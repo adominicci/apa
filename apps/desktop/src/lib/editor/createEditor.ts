@@ -1,10 +1,12 @@
-import { Editor } from "@tiptap/core";
+import { type Content, Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import type { Node as PMNode } from "@tiptap/pm/model";
+import { sectionExtensions } from "./sections.ts";
+import { defaultDoc, ensureSectionedDoc } from "./migrate.ts";
 
 export interface CreateEditorArgs {
   element: HTMLElement;
-  /** ProseMirror doc JSON from a saved essay; empty paragraph when absent. */
+  /** ProseMirror doc JSON from a saved essay; empty sectioned doc when absent. */
   content?: unknown;
   onUpdate?: (docJson: unknown, words: number) => void;
 }
@@ -15,10 +17,11 @@ export function countWords(doc: PMNode): number {
 }
 
 /**
- * The M2 baseline editor: APA-relevant marks and blocks only. Elements APA
- * papers never contain (code, horizontal rules, strikethrough) are disabled
- * at the schema level so they cannot arrive via paste either. Custom section
- * nodes, citations, figures, and footnotes land in later M2 iterations.
+ * The M2 editor: APA-relevant marks and blocks only, on top of Tesina's
+ * sectioned document (`sectionAbstract? sectionBody sectionAppendix*`).
+ * Elements APA papers never contain (code, horizontal rules, strikethrough)
+ * are disabled at the schema level so they cannot arrive via paste either.
+ * Citations, figures, and footnotes land in later M2 iterations.
  */
 export function createTesinaEditor(
   { element, content, onUpdate }: CreateEditorArgs,
@@ -27,14 +30,18 @@ export function createTesinaEditor(
     element,
     extensions: [
       StarterKit.configure({
+        document: false,
         heading: { levels: [1, 2, 3, 4, 5] },
         code: false,
         codeBlock: false,
         horizontalRule: false,
         strike: false,
       }),
+      ...sectionExtensions,
     ],
-    content: content ?? { type: "doc", content: [{ type: "paragraph" }] },
+    content: (content !== undefined
+      ? ensureSectionedDoc(content)
+      : defaultDoc()) as Content,
     autofocus: "end",
     onUpdate({ editor }) {
       onUpdate?.(editor.getJSON(), countWords(editor.state.doc));

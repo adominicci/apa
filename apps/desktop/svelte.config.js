@@ -12,6 +12,9 @@ const config = {
     adapter: adapter({
       fallback: "index.html",
     }),
+    alias: {
+      "@tesina/engine": "../../packages/apa-engine/src/index.ts",
+    },
   },
 };
 

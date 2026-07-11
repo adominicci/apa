@@ -60,6 +60,66 @@
   font-style: italic;
 }
 
+.apa-editor .tiptap {
+  counter-reset: appendix;
+}
+
+.apa-editor .tiptap .sec + .sec {
+  margin-top: 1.5rem;
+  border-top: 1px dashed rgba(0, 0, 0, 0.15);
+  padding-top: 1.5rem;
+}
+
+.apa-editor .tiptap .sec::before {
+  display: block;
+  text-align: center;
+  font-weight: bold;
+  user-select: none;
+  pointer-events: none;
+}
+
+.apa-editor .tiptap .sec-body::before {
+  content: none;
+}
+
+.apa-editor[data-doclang="es"] .tiptap .sec-abstract::before {
+  content: "Resumen";
+}
+
+.apa-editor[data-doclang="en"] .tiptap .sec-abstract::before {
+  content: "Abstract";
+}
+
+.apa-editor .tiptap .sec-abstract p:first-of-type {
+  text-indent: 0;
+}
+
+.apa-editor .tiptap .sec-appendix {
+  counter-increment: appendix;
+}
+
+.apa-editor[data-doclang="es"] .tiptap .sec-appendix::before {
+  content: "Apéndice " counter(appendix, upper-alpha);
+}
+
+.apa-editor[data-doclang="en"] .tiptap .sec-appendix::before {
+  content: "Appendix " counter(appendix, upper-alpha);
+}
+
+.apa-editor .tiptap .keywords-line {
+  text-indent: 0.5in;
+}
+
+.apa-editor[data-doclang="es"] .tiptap .keywords-line::before {
+  content: "Palabras clave: ";
+  font-style: italic;
+}
+
+.apa-editor[data-doclang="en"] .tiptap .keywords-line::before {
+  content: "Keywords: ";
+  font-style: italic;
+}
+
 .apa-editor .tiptap blockquote {
   margin: 0 0 0 0.5in;
   padding: 0;
