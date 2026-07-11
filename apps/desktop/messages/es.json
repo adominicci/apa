@@ -1,0 +1,15 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "home_tagline": "Tus ensayos, siempre en formato APA 7.",
+  "home_new_essay": "+ Nuevo ensayo",
+  "home_new_in_spanish": "En español",
+  "home_new_in_english": "In English",
+  "home_loading": "Cargando…",
+  "home_empty_title": "Todavía no hay ensayos.",
+  "home_empty_body": "Crea el primero y olvídate del formato para siempre.",
+  "home_rename": "Renombrar",
+  "home_duplicate": "Duplicar",
+  "home_delete": "Eliminar",
+  "home_delete_confirm": "¿Seguro?",
+  "home_ui_language_label": "Idioma de la interfaz"
+}

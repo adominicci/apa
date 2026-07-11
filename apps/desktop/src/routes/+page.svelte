@@ -5,13 +5,18 @@
   import EditorScreen from "$lib/components/EditorScreen.svelte";
   import { essays } from "$lib/state/essays.svelte";
   import { library } from "$lib/state/library.svelte";
+  import { uiLocale } from "$lib/state/uiLocale.svelte";
 
   // Router-less shell (plan §app shell): a desktop app, not a website.
   let currentEssay = $state<Essay | null>(null);
   let booted = $state(false);
 
   onMount(async () => {
-    await Promise.all([library.load(), essays.loadIndex()]);
+    await Promise.all([
+      library.load(),
+      essays.loadIndex(),
+      uiLocale.load(),
+    ]);
     booted = true;
   });
 
@@ -28,12 +33,16 @@
 
 {#if !booted}
   <div class="boot">Cargando Tesina…</div>
-{:else if currentEssay}
-  {#key currentEssay.id}
-    <EditorScreen essay={currentEssay} onBack={goHome} />
-  {/key}
 {:else}
-  <EssayHome onOpen={openEssay} />
+  {#key uiLocale.current}
+    {#if currentEssay}
+      {#key currentEssay.id}
+        <EditorScreen essay={currentEssay} onBack={goHome} />
+      {/key}
+    {:else}
+      <EssayHome onOpen={openEssay} />
+    {/if}
+  {/key}
 {/if}
 
 <style>

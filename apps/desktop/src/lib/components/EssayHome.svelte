@@ -2,6 +2,8 @@
   import type { DocLocale } from "@tesina/engine";
   import type { EssaySummary } from "$lib/model/essay";
   import { essays } from "$lib/state/essays.svelte";
+  import { uiLocale } from "$lib/state/uiLocale.svelte";
+  import { m } from "$lib/paraglide/messages";
 
   interface Props {
     onOpen: (id: string) => void;
@@ -53,18 +55,32 @@
 <div class="home">
   <header>
     <h1>Tesina</h1>
-    <p class="tag">Tus ensayos, siempre en formato APA 7.</p>
+    <p class="tag">{m.home_tagline()}</p>
+    <div class="seg" role="group" aria-label={m.home_ui_language_label()}>
+      <button
+        class:active={uiLocale.current === "es"}
+        onclick={() => uiLocale.set("es")}
+      >
+        ES
+      </button>
+      <button
+        class:active={uiLocale.current === "en"}
+        onclick={() => uiLocale.set("en")}
+      >
+        EN
+      </button>
+    </div>
     <div class="new-wrap">
       <button class="new" onclick={() => (creating = !creating)}>
-        + Nuevo ensayo
+        {m.home_new_essay()}
       </button>
       {#if creating}
         <div class="menu" role="menu">
           <button role="menuitem" onclick={() => createEssay("es")}>
-            En español
+            {m.home_new_in_spanish()}
           </button>
           <button role="menuitem" onclick={() => createEssay("en")}>
-            In English
+            {m.home_new_in_english()}
           </button>
         </div>
       {/if}
@@ -72,11 +88,11 @@
   </header>
 
   {#if !essays.loaded}
-    <p class="empty">Cargando…</p>
+    <p class="empty">{m.home_loading()}</p>
   {:else if essays.summaries.length === 0}
     <div class="empty">
-      <p>Todavía no hay ensayos.</p>
-      <p>Crea el primero y olvídate del formato para siempre.</p>
+      <p>{m.home_empty_title()}</p>
+      <p>{m.home_empty_body()}</p>
     </div>
   {:else}
     <div class="grid">
@@ -103,16 +119,20 @@
             {formatDate(summary.updatedAt)}
           </p>
           <div class="actions">
-            <button onclick={() => startRename(summary)}>Renombrar</button>
+            <button onclick={() => startRename(summary)}>
+              {m.home_rename()}
+            </button>
             <button onclick={() => essays.duplicate(summary.id)}>
-              Duplicar
+              {m.home_duplicate()}
             </button>
             <button
               class="danger"
               onclick={() => handleDelete(summary.id)}
               onblur={() => (confirmingDelete = null)}
             >
-              {confirmingDelete === summary.id ? "¿Seguro?" : "Eliminar"}
+              {confirmingDelete === summary.id
+                ? m.home_delete_confirm()
+                : m.home_delete()}
             </button>
           </div>
         </article>
@@ -153,6 +173,29 @@
 
   .new-wrap {
     position: relative;
+  }
+
+  .seg {
+    display: flex;
+    border: 1px solid #d7d4cf;
+    border-radius: 7px;
+    overflow: hidden;
+  }
+
+  .seg button {
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 0.78rem;
+    padding: 4px 10px;
+    cursor: pointer;
+    color: #6b6a64;
+  }
+
+  .seg button.active {
+    background: #eaf1fe;
+    color: #173a8c;
+    font-weight: 600;
   }
 
   .new {
@@ -310,6 +353,19 @@
 
     .menu button:hover {
       background: #1d2c50;
+    }
+
+    .seg {
+      border-color: #45443f;
+    }
+
+    .seg button {
+      color: #a3a19a;
+    }
+
+    .seg button.active {
+      background: #1d2c50;
+      color: #b7cdfa;
     }
 
     .lang {

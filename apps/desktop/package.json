@@ -8,7 +8,8 @@
     "vite:dev": "vite dev",
     "vite:build": "vite build",
     "vite:preview": "vite preview",
-    "app:check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "paraglide:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide",
+    "app:check": "deno task paraglide:compile && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "app:check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "tauri": "tauri"
   },
@@ -27,6 +28,7 @@
     "pagedjs": "^0.4.3"
   },
   "devDependencies": {
+    "@inlang/paraglide-js": "^2.4.0",
     "@sveltejs/adapter-static": "^3.0.6",
     "@sveltejs/kit": "^2.9.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
