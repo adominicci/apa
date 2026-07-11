@@ -2,7 +2,7 @@ import type { Reference } from "@tesina/engine";
 
 /** Field values the quick-reference form can be prefilled with. */
 export interface QuickFields {
-  type: "journalArticle" | "book" | "website";
+  type: "journalArticle" | "book" | "website" | "report" | "thesis";
   authorsText: string;
   year: string;
   noDate: boolean;
@@ -13,6 +13,11 @@ export interface QuickFields {
   pages: string;
   publisher: string;
   siteName: string;
+  institution: string;
+  reportNumber: string;
+  thesisType: "doctoral" | "masters";
+  unpublished: boolean;
+  archive: string;
   url: string;
   doi: string;
 }
@@ -26,7 +31,7 @@ export interface QuickFields {
 export function refToQuickFields(ref: Reference): QuickFields | null {
   if (
     ref.type !== "journalArticle" && ref.type !== "book" &&
-    ref.type !== "website"
+    ref.type !== "website" && ref.type !== "report" && ref.type !== "thesis"
   ) {
     return null;
   }
@@ -52,6 +57,11 @@ export function refToQuickFields(ref: Reference): QuickFields | null {
     pages: "",
     publisher: "",
     siteName: "",
+    institution: "",
+    reportNumber: "",
+    thesisType: "doctoral",
+    unpublished: false,
+    archive: "",
     url: ref.url ?? "",
     doi: ref.doi ?? "",
   };
@@ -67,6 +77,14 @@ export function refToQuickFields(ref: Reference): QuickFields | null {
     base.publisher = ref.publisher ?? "";
   } else if (ref.type === "website") {
     base.siteName = ref.siteName ?? "";
+  } else if (ref.type === "report") {
+    base.institution = ref.institution ?? "";
+    base.reportNumber = ref.reportNumber ?? "";
+  } else if (ref.type === "thesis") {
+    base.institution = ref.institution;
+    base.thesisType = ref.thesisType;
+    base.unpublished = ref.unpublished === true;
+    base.archive = ref.archive ?? "";
   }
   return base;
 }

@@ -15,7 +15,7 @@
 
   let { onSave, onClose }: Props = $props();
 
-  type QuickType = "journalArticle" | "book" | "website";
+  type QuickType = "journalArticle" | "book" | "website" | "report" | "thesis";
 
   let type = $state<QuickType>("journalArticle");
   let authorsText = $state("");
@@ -28,6 +28,11 @@
   let pages = $state("");
   let publisher = $state("");
   let siteName = $state("");
+  let institution = $state("");
+  let reportNumber = $state("");
+  let thesisType = $state<"doctoral" | "masters">("doctoral");
+  let unpublished = $state(false);
+  let archive = $state("");
   let url = $state("");
   let doi = $state("");
 
@@ -78,6 +83,11 @@
       pages = fields.pages;
       publisher = fields.publisher;
       siteName = fields.siteName;
+      institution = fields.institution;
+      reportNumber = fields.reportNumber;
+      thesisType = fields.thesisType;
+      unpublished = fields.unpublished;
+      archive = fields.archive;
       url = fields.url;
       doi = fields.doi;
       autofilled = true;
@@ -89,7 +99,8 @@
   const canSave = $derived(
     title.trim() !== "" &&
       (noDate || year.trim() !== "") &&
-      (type !== "journalArticle" || journal.trim() !== ""),
+      (type !== "journalArticle" || journal.trim() !== "") &&
+      (type !== "thesis" || institution.trim() !== ""),
   );
 
   /** One contributor per line: "Apellido, Nombre" or a group name. */
@@ -139,6 +150,28 @@
         ...base,
         type: "book",
         ...(publisher.trim() !== "" ? { publisher: publisher.trim() } : {}),
+      };
+    } else if (type === "report") {
+      ref = {
+        ...base,
+        type: "report",
+        ...(institution.trim() !== ""
+          ? { institution: institution.trim() }
+          : {}),
+        ...(reportNumber.trim() !== ""
+          ? { reportNumber: reportNumber.trim() }
+          : {}),
+      };
+    } else if (type === "thesis") {
+      ref = {
+        ...base,
+        type: "thesis",
+        thesisType,
+        institution: institution.trim(),
+        ...(unpublished ? { unpublished: true } : {}),
+        ...(!unpublished && archive.trim() !== ""
+          ? { archive: archive.trim() }
+          : {}),
       };
     } else {
       ref = {
@@ -201,6 +234,18 @@
       >
         Página web
       </button>
+      <button
+        class:active={type === "report"}
+        onclick={() => (type = "report")}
+      >
+        Informe
+      </button>
+      <button
+        class:active={type === "thesis"}
+        onclick={() => (type = "thesis")}
+      >
+        Tesis
+      </button>
     </div>
 
     <label>
@@ -259,6 +304,52 @@
       </label>
       <label>
         DOI o URL (opcional)
+        <input type="text" bind:value={url} />
+      </label>
+    {:else if type === "report"}
+      <label>
+        Institución que publica
+        <input type="text" bind:value={institution} />
+      </label>
+      <label>
+        Número de informe (opcional)
+        <input type="text" bind:value={reportNumber} placeholder="123" />
+      </label>
+      <label>
+        DOI o URL (opcional)
+        <input type="text" bind:value={url} />
+      </label>
+    {:else if type === "thesis"}
+      <div class="seg" role="group" aria-label="Tipo de tesis">
+        <button
+          class:active={thesisType === "doctoral"}
+          onclick={() => (thesisType = "doctoral")}
+        >
+          Doctoral
+        </button>
+        <button
+          class:active={thesisType === "masters"}
+          onclick={() => (thesisType = "masters")}
+        >
+          Maestría
+        </button>
+      </div>
+      <label>
+        Institución (universidad)
+        <input type="text" bind:value={institution} />
+      </label>
+      <label class="checkline">
+        <input type="checkbox" bind:checked={unpublished} /> Inédita (no
+        publicada)
+      </label>
+      {#if !unpublished}
+        <label>
+          Repositorio o base de datos
+          <input type="text" bind:value={archive} />
+        </label>
+      {/if}
+      <label>
+        URL (opcional)
         <input type="text" bind:value={url} />
       </label>
     {:else}

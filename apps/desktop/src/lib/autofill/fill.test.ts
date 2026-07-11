@@ -60,4 +60,41 @@ describe("refToQuickFields", () => {
       }),
     ).toBeNull();
   });
+
+  it("prefills reports with institution and report number", () => {
+    const fields = refToQuickFields({
+      id: "r",
+      type: "report",
+      authors: [{ kind: "group", name: "Consejo Nacional de Lectura" }],
+      date: { year: 2021 },
+      title: "Panorama lector",
+      institution: "Consejo Nacional de Lectura",
+      reportNumber: "CL-9",
+    });
+    expect(fields).toMatchObject({
+      type: "report",
+      institution: "Consejo Nacional de Lectura",
+      reportNumber: "CL-9",
+    });
+  });
+
+  it("prefills theses with type, institution, and archive", () => {
+    const fields = refToQuickFields({
+      id: "t",
+      type: "thesis",
+      authors: [{ kind: "person", family: "Vargas", given: "Óscar" }],
+      date: { year: 2018 },
+      title: "Estrategias de revisión",
+      thesisType: "masters",
+      institution: "Universidad del Valle",
+      archive: "Repositorio Académico Nacional",
+    });
+    expect(fields).toMatchObject({
+      type: "thesis",
+      thesisType: "masters",
+      unpublished: false,
+      institution: "Universidad del Valle",
+      archive: "Repositorio Académico Nacional",
+    });
+  });
 });
