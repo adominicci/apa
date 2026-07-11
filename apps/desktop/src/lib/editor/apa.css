@@ -120,6 +120,25 @@
   font-style: italic;
 }
 
+.apa-editor .tiptap .tesina-citation {
+  background: #eaf1fe;
+  color: #0f2761;
+  border-radius: 4px;
+  padding: 0 3px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.apa-editor .tiptap .tesina-citation.ProseMirror-selectednode {
+  outline: 2px solid #4380f0;
+}
+
+.apa-editor .tiptap .tesina-citation--missing {
+  background: #fceded;
+  color: #791f1f;
+  text-decoration: wavy underline #a32d2d;
+}
+
 .apa-editor .tiptap blockquote {
   margin: 0 0 0 0.5in;
   padding: 0;

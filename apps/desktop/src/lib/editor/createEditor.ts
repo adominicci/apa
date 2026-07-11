@@ -2,12 +2,15 @@ import { type Content, Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { sectionExtensions } from "./sections.ts";
+import { type CitationEnv, createCitationExtension } from "./citation.ts";
 import { defaultDoc, ensureSectionedDoc } from "./migrate.ts";
 
 export interface CreateEditorArgs {
   element: HTMLElement;
   /** ProseMirror doc JSON from a saved essay; empty sectioned doc when absent. */
   content?: unknown;
+  /** Live library + document language; mutated by the app, see citation.ts. */
+  citationEnv: CitationEnv;
   onUpdate?: (docJson: unknown, words: number) => void;
 }
 
@@ -24,7 +27,7 @@ export function countWords(doc: PMNode): number {
  * Citations, figures, and footnotes land in later M2 iterations.
  */
 export function createTesinaEditor(
-  { element, content, onUpdate }: CreateEditorArgs,
+  { element, content, citationEnv, onUpdate }: CreateEditorArgs,
 ): Editor {
   return new Editor({
     element,
@@ -38,6 +41,7 @@ export function createTesinaEditor(
         strike: false,
       }),
       ...sectionExtensions,
+      createCitationExtension(citationEnv),
     ],
     content: (content !== undefined
       ? ensureSectionedDoc(content)

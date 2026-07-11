@@ -1,8 +1,15 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { Editor as TiptapEditor } from "@tiptap/core";
-  import type { DocLocale } from "@tesina/engine";
+  import type { CitationAttrs, DocLocale, Reference } from "@tesina/engine";
   import Editor from "$lib/components/Editor.svelte";
+  import CitationPopover from "$lib/components/CitationPopover.svelte";
+  import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
+  import {
+    type CitationEnv,
+    insertCitation,
+    refreshCitations,
+  } from "$lib/editor/citation";
   import {
     addAbstract,
     addAppendix,
@@ -10,10 +17,11 @@
     hasAbstract,
     removeAbstract,
   } from "$lib/editor/sections";
+  import { library } from "$lib/state/library.svelte";
   import { readJson, writeJsonAtomic } from "$lib/persist/atomic";
 
-  // M2.2: single-draft editor shell with sectioned document and per-document
-  // language. The essay library and the three-column layout arrive next.
+  // M2.3: editor with live citations wired to the APA engine. The essay
+  // library screen and the references side panel arrive next.
   const DRAFT_FILE = "essays/draft.json";
 
   interface DraftFile {
@@ -31,11 +39,27 @@
   );
   let editor = $state<TiptapEditor | undefined>(undefined);
   let abstractPresent = $state(false);
+  let citePopoverOpen = $state(false);
+  let refFormOpen = $state(false);
   let lastDoc: unknown;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
+  // Mutable env shared with the citation plugin; updated in place, then
+  // refreshCitations() forces every chip to recompute (see citation.ts).
+  const citationEnv: CitationEnv = {
+    refsById: new Map<string, Reference>(),
+    locale: "es",
+  };
+
+  function syncCitationEnv() {
+    citationEnv.refsById = library.byId();
+    citationEnv.locale = documentLanguage;
+    if (editor) refreshCitations(editor);
+  }
+
   onMount(async () => {
     try {
+      await library.load();
       const draft = await readJson<DraftFile>(DRAFT_FILE);
       if (draft) {
         initialDoc = draft.content;
@@ -44,6 +68,8 @@
           documentLanguage = draft.settings.documentLanguage;
         }
       }
+      citationEnv.refsById = library.byId();
+      citationEnv.locale = documentLanguage;
       status = "guardado";
     } catch (err) {
       console.error("No se pudo cargar el borrador:", err);
@@ -87,6 +113,7 @@
   function setLanguage(lang: DocLocale) {
     if (documentLanguage === lang) return;
     documentLanguage = lang;
+    syncCitationEnv();
     scheduleSave();
   }
 
@@ -106,6 +133,17 @@
 
   function handleAddAppendix() {
     if (editor) addAppendix(editor);
+  }
+
+  function handleInsertCitation(attrs: CitationAttrs) {
+    citePopoverOpen = false;
+    if (editor) insertCitation(editor, attrs);
+  }
+
+  function handleSaveReference(ref: Reference) {
+    library.add(ref);
+    refFormOpen = false;
+    syncCitationEnv();
   }
 </script>
 
@@ -131,22 +169,40 @@
     <button class="act" onclick={toggleAbstract} disabled={!editor}>
       {abstractPresent ? "Quitar resumen" : "Añadir resumen"}
     </button>
-    <button
-      class="act"
-      onclick={handleAddKeywords}
-      disabled={!editor}
-    >
+    <button class="act" onclick={handleAddKeywords} disabled={!editor}>
       Palabras clave
     </button>
     <button class="act" onclick={handleAddAppendix} disabled={!editor}>
       Añadir apéndice
     </button>
+    <span class="divider"></span>
+    <button class="act" onclick={() => (refFormOpen = true)}>
+      Añadir referencia
+    </button>
+    <div class="cite-anchor">
+      <button
+        class="act primary"
+        onclick={() => (citePopoverOpen = !citePopoverOpen)}
+        disabled={!editor}
+      >
+        Insertar cita
+      </button>
+      {#if citePopoverOpen}
+        <CitationPopover
+          references={library.references}
+          {documentLanguage}
+          onInsert={handleInsertCitation}
+          onClose={() => (citePopoverOpen = false)}
+        />
+      {/if}
+    </div>
   </header>
   <main>
     {#if ready}
       <Editor
         {initialDoc}
         {documentLanguage}
+        {citationEnv}
         onUpdate={handleUpdate}
         onReady={handleReady}
       />
@@ -154,10 +210,18 @@
   </main>
   <footer>
     <span>{words} {words === 1 ? "palabra" : "palabras"}</span>
+    <span>{library.references.length} referencias en la biblioteca</span>
     <span>Documento: {documentLanguage === "es" ? "Español" : "English"}</span>
     <span class="status" data-status={status}>{status}</span>
   </footer>
 </div>
+
+{#if refFormOpen}
+  <ReferenceQuickForm
+    onSave={handleSaveReference}
+    onClose={() => (refFormOpen = false)}
+  />
+{/if}
 
 <style>
   .shell {
@@ -176,6 +240,7 @@
     padding: 8px 16px;
     border-bottom: 1px solid #e0deda;
     background: #faf9f7;
+    flex-wrap: wrap;
   }
 
   .brand {
@@ -190,6 +255,16 @@
 
   .spacer {
     flex: 1;
+  }
+
+  .divider {
+    width: 1px;
+    height: 18px;
+    background: #d7d4cf;
+  }
+
+  .cite-anchor {
+    position: relative;
   }
 
   .seg {
@@ -226,8 +301,14 @@
     color: #44433e;
   }
 
+  .act.primary {
+    background: #2158d6;
+    border-color: #2158d6;
+    color: #fff;
+  }
+
   .act:hover:enabled {
-    background: #eef0f4;
+    filter: brightness(0.97);
   }
 
   .act:disabled {
@@ -285,8 +366,14 @@
     }
 
     .seg,
-    .act {
+    .act,
+    .divider {
       border-color: #45443f;
+      background-color: transparent;
+    }
+
+    .divider {
+      background: #45443f;
     }
 
     .seg button,
@@ -299,8 +386,9 @@
       color: #b7cdfa;
     }
 
-    .act:hover:enabled {
-      background: #2b2b28;
+    .act.primary {
+      background: #2158d6;
+      color: #fff;
     }
   }
 </style>
