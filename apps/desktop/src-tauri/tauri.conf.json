@@ -26,6 +26,10 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "category": "Productivity",
+    "copyright": "© 2026 Andres Dominicci and Tesina contributors — MIT License",
+    "shortDescription": "Ensayos académicos con formato APA 7 automático / APA 7 academic writing, formatted for you",
+    "longDescription": "Tesina es un procesador de textos académicos open source: portada, márgenes, interlineado, citas en el texto y lista de referencias en APA 7, en español o en inglés. Tú escribes; del formato se encarga Tesina. / Tesina is an open-source academic word processor: title page, margins, spacing, in-text citations, and the APA 7 reference list, in Spanish or English. You write; Tesina does the formatting.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

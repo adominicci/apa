@@ -22,6 +22,15 @@ A diferencia de otras herramientas, el **idioma del documento** es independiente
 - **Autollenado**: pega un DOI o ISBN y el formulario se rellena solo (CrossRef / OpenLibrary, sin API keys).
 - **Export a Word**: un clic → `.docx` con portada, secciones en páginas nuevas, encabezados reales de Word, citas y referencias con sangría francesa. 144 tests automatizados, incluidos asserts sobre el XML del documento.
 
+## Instalación (builds sin firmar)
+
+Los instaladores de GitHub Releases no están firmados (no hay cuenta de Apple Developer ni certificado de Windows todavía), así que el sistema mostrará una advertencia la primera vez:
+
+- **macOS**: al abrir el `.dmg` y arrastrar Tesina a Aplicaciones, macOS dirá que no puede verificar el desarrollador. Haz **clic derecho sobre Tesina.app → Abrir → Abrir** (solo la primera vez). En macOS 15+ puede hacer falta ir a **Ajustes del Sistema → Privacidad y seguridad → Abrir de todos modos**.
+- **Windows**: SmartScreen mostrará "Windows protegió tu PC". Pulsa **Más información → Ejecutar de todas formas**.
+
+El código es abierto: si prefieres, compílalo tú mismo con las instrucciones de abajo.
+
 ## Cómo probarlo
 
 ```bash
