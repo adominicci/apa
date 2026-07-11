@@ -46,6 +46,21 @@ export interface LocaleTerms {
     type: "doctoral" | "masters",
     unpublished: boolean,
   ) => string;
+  /** Bracketed medium descriptors (APA 9.21). */
+  brackets: {
+    paperPresentation: string;
+    video: string;
+    podcastEpisode: string;
+    software: string;
+    dataset: string;
+  };
+  /** "(Host)." / "(Anfitrión)." role after podcast hosts. */
+  hostRole: (count: number) => string;
+  versionLabel: (v: string) => string;
+  episodeNumber: (n: string) => string;
+  personalCommunication: string;
+  /** Conference date range: "2023, September 5–8" / "2023, 5–8 de septiembre". */
+  formatDateRange: (d: APADate, dayEnd: number) => string;
   originalWorkPublished: (year: number) => string;
   retrieved: (longDate: string) => string;
   monthNames: readonly string[];

@@ -503,5 +503,201 @@
       "institution": "Western Plains University"
     },
     "expected": "Lema, R. (2022). *Peer tutoring in first-year seminars* [Unpublished master's thesis]. Western Plains University."
+  },
+  {
+    "name": "conference paper: date range, bracket, and venue",
+    "ref": {
+      "type": "conferencePaper",
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Fuentes",
+          "given": "Carla"
+        },
+        {
+          "kind": "person",
+          "family": "Osorio",
+          "given": "Pablo"
+        }
+      ],
+      "date": {
+        "year": 2023,
+        "month": 9,
+        "day": 5
+      },
+      "dayEnd": 8,
+      "title": "Rubrics that travel across departments",
+      "conferenceName": "Imaginary Education Congress",
+      "location": "Bogotá, Colombia",
+      "id": "fx-en-22"
+    },
+    "expected": "Fuentes, C., & Osorio, P. (2023, September 5–8). *Rubrics that travel across departments* [Paper presentation]. Imaginary Education Congress, Bogotá, Colombia."
+  },
+  {
+    "name": "newspaper article: full date and italic publication",
+    "ref": {
+      "type": "newspaperArticle",
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Ibarra",
+          "given": "Diego"
+        }
+      ],
+      "date": {
+        "year": 2020,
+        "month": 7,
+        "day": 3
+      },
+      "title": "Campus libraries reopen with new rules",
+      "publication": "The Imaginary Herald",
+      "url": "https://example.org/herald",
+      "id": "fx-en-23"
+    },
+    "expected": "Ibarra, D. (2020, July 3). Campus libraries reopen with new rules. *The Imaginary Herald*. https://example.org/herald"
+  },
+  {
+    "name": "dictionary entry: undated with retrieval date, publisher omitted",
+    "ref": {
+      "type": "referenceEntry",
+      "authors": [
+        {
+          "kind": "group",
+          "name": "Imaginary Language Institute"
+        }
+      ],
+      "date": {
+        "noDate": true
+      },
+      "title": "Metacognition",
+      "workTitle": "Institute dictionary of learning",
+      "publisher": "Imaginary Language Institute",
+      "retrievedDate": {
+        "year": 2026,
+        "month": 7,
+        "day": 11
+      },
+      "url": "https://example.org/dict/metacognition",
+      "id": "fx-en-24"
+    },
+    "expected": "Imaginary Language Institute. (n.d.). Metacognition. In *Institute dictionary of learning*. Retrieved July 11, 2026, from https://example.org/dict/metacognition"
+  },
+  {
+    "name": "video: real name with bracketed channel",
+    "ref": {
+      "type": "video",
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Pérez",
+          "given": "Juana"
+        }
+      ],
+      "username": "Aula Abierta",
+      "date": {
+        "year": 2021,
+        "month": 3,
+        "day": 2
+      },
+      "title": "How to structure your first literature review",
+      "platform": "YouTube",
+      "url": "https://example.org/video1",
+      "id": "fx-en-25"
+    },
+    "expected": "Pérez, J. [Aula Abierta]. (2021, March 2). *How to structure your first literature review* [Video]. YouTube. https://example.org/video1"
+  },
+  {
+    "name": "podcast episode: host role, number, and show",
+    "ref": {
+      "type": "podcastEpisode",
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Ramos",
+          "given": "Andrés"
+        }
+      ],
+      "date": {
+        "year": 2022,
+        "month": 5,
+        "day": 4
+      },
+      "title": "Why students skim",
+      "episodeNumber": "12",
+      "showTitle": "Study Signals",
+      "platform": "Spotify",
+      "url": "https://example.org/pod12",
+      "id": "fx-en-26"
+    },
+    "expected": "Ramos, A. (Host). (2022, May 4). Why students skim (No. 12) [Audio podcast episode]. In *Study Signals*. Spotify. https://example.org/pod12"
+  },
+  {
+    "name": "social media: handle, italic post text, free bracket",
+    "ref": {
+      "type": "socialMedia",
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Vela",
+          "given": "Marta"
+        }
+      ],
+      "username": "@mvela_lee",
+      "date": {
+        "year": 2024,
+        "month": 1,
+        "day": 5
+      },
+      "title": "Reading twenty pages a day changes the whole semester",
+      "contentType": "Post",
+      "platform": "X",
+      "url": "https://example.org/post1",
+      "id": "fx-en-27"
+    },
+    "expected": "Vela, M. [@mvela_lee]. (2024, January 5). *Reading twenty pages a day changes the whole semester* [Post]. X. https://example.org/post1"
+  },
+  {
+    "name": "dataset: version and bracket",
+    "ref": {
+      "type": "software",
+      "kind": "dataset",
+      "authors": [
+        {
+          "kind": "group",
+          "name": "Open Study Lab"
+        }
+      ],
+      "date": {
+        "year": 2023
+      },
+      "title": "Campus reading habits panel",
+      "version": "1.2",
+      "publisher": "Open Data Foundation",
+      "url": "https://example.org/panel",
+      "id": "fx-en-28"
+    },
+    "expected": "Open Study Lab. (2023). *Campus reading habits panel* (Version 1.2) [Data set]. Open Data Foundation. https://example.org/panel"
+  },
+  {
+    "name": "software: version and bracket",
+    "ref": {
+      "type": "software",
+      "kind": "software",
+      "authors": [
+        {
+          "kind": "group",
+          "name": "Open Study Lab"
+        }
+      ],
+      "date": {
+        "year": 2023
+      },
+      "title": "Citation trainer",
+      "version": "2.0",
+      "publisher": "Open Data Foundation",
+      "url": "https://example.org/trainer",
+      "id": "fx-en-29"
+    },
+    "expected": "Open Study Lab. (2023). *Citation trainer* (Version 2.0) [Computer software]. Open Data Foundation. https://example.org/trainer"
   }
 ]

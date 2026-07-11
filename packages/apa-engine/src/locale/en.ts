@@ -68,6 +68,21 @@ export const en: LocaleTerms = {
   ordinal,
   articleNumber: (n) => `Article ${n}`,
   reportNumber: (n) => `Report No. ${n}`,
+  brackets: {
+    paperPresentation: "Paper presentation",
+    video: "Video",
+    podcastEpisode: "Audio podcast episode",
+    software: "Computer software",
+    dataset: "Data set",
+  },
+  hostRole: (count) => (count > 1 ? "Hosts" : "Host"),
+  versionLabel: (v) => `Version ${v}`,
+  episodeNumber: (n) => `No. ${n}`,
+  personalCommunication: "personal communication",
+  formatDateRange: (d, dayEnd) => {
+    const month = MONTHS[(d.month ?? 1) - 1] ?? "";
+    return `${d.year}, ${month} ${d.day}–${dayEnd}`;
+  },
   thesisDescriptor: (type, unpublished) => {
     const base = type === "doctoral"
       ? "Doctoral dissertation"

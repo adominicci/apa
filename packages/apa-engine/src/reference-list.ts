@@ -9,6 +9,17 @@ import { bookEntry } from "./entry/book.ts";
 import { bookChapterEntry } from "./entry/bookChapter.ts";
 import { websiteEntry } from "./entry/website.ts";
 import { reportEntry, thesisEntry } from "./entry/report.ts";
+import {
+  conferencePaperEntry,
+  newspaperArticleEntry,
+  referenceEntryEntry,
+} from "./entry/periodical.ts";
+import {
+  podcastEpisodeEntry,
+  socialMediaEntry,
+  softwareEntry,
+  videoEntry,
+} from "./entry/media.ts";
 
 export interface RefListContext {
   /** a/b/c suffixes keyed by reference id (APA 9.47: same authors + year). */
@@ -73,6 +84,22 @@ export function formatReferenceEntry(
       return reportEntry(ref, t, entryCtx);
     case "thesis":
       return thesisEntry(ref, t, entryCtx);
+    case "conferencePaper":
+      return conferencePaperEntry(ref, t, entryCtx);
+    case "newspaperArticle":
+      return newspaperArticleEntry(ref, t, entryCtx);
+    case "referenceEntry":
+      return referenceEntryEntry(ref, t, entryCtx);
+    case "video":
+      return videoEntry(ref, t, entryCtx);
+    case "podcastEpisode":
+      return podcastEpisodeEntry(ref, t, entryCtx);
+    case "socialMedia":
+      return socialMediaEntry(ref, t, entryCtx);
+    case "software":
+      return softwareEntry(ref, t, entryCtx);
+    case "personalCommunication":
+      return [];
   }
 }
 
@@ -87,7 +114,11 @@ export function buildReferenceList(
   locale: DocLocale,
 ): ReferenceListResult {
   const unique = new Map<string, Reference>();
-  for (const ref of refs) unique.set(ref.id, ref);
+  for (const ref of refs) {
+    // Personal communications are cited in text only (APA 8.9).
+    if (ref.type === "personalCommunication") continue;
+    unique.set(ref.id, ref);
+  }
   const sorted = sortReferences([...unique.values()], locale);
   const ctx: RefListContext = {
     yearSuffixes: assignYearSuffixes(sorted, locale),

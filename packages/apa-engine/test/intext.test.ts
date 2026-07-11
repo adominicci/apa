@@ -145,6 +145,31 @@ describe("parenthetical citations", () => {
   });
 });
 
+describe("personal communications (in text only)", () => {
+  const comm: Reference = {
+    id: "comm-1",
+    type: "personalCommunication",
+    authors: [{ kind: "person", family: "Salgado", given: "Nora" }],
+    date: { year: 2026, month: 7, day: 3 },
+    title: "Conversación sobre hábitos de lectura",
+  };
+
+  it("cites initials-first with the localized term and full date", () => {
+    expect(render(cite([comm]), [comm], "es")).toBe(
+      "(N. Salgado, comunicación personal, 3 de julio de 2026)",
+    );
+    expect(render(cite([comm]), [comm], "en")).toBe(
+      "(N. Salgado, personal communication, July 3, 2026)",
+    );
+  });
+
+  it("supports narrative form", () => {
+    expect(render(cite([comm], "narrative"), [comm], "es")).toBe(
+      "N. Salgado (comunicación personal, 3 de julio de 2026)",
+    );
+  });
+});
+
 describe("narrative citations", () => {
   it("renders author outside and year inside parens", () => {
     const ref = article(

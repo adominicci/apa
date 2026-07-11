@@ -112,12 +112,86 @@ export interface Thesis extends ReferenceBase {
   archive?: string;
 }
 
+export interface ConferencePaper extends ReferenceBase {
+  type: "conferencePaper";
+  conferenceName: string;
+  /** "Ciudad, País". */
+  location?: string;
+  /** Last day when the conference spans several days in the same month. */
+  dayEnd?: number;
+}
+
+/** Newspapers and magazines share the pattern (APA 10.1 examples 15–16). */
+export interface NewspaperArticle extends ReferenceBase {
+  type: "newspaperArticle";
+  publication: string;
+  volume?: string;
+  issue?: string;
+  pageStart?: string;
+  pageEnd?: string;
+}
+
+/** Dictionary or encyclopedia entry (APA 10.3 examples 47–48). */
+export interface ReferenceEntry extends ReferenceBase {
+  type: "referenceEntry";
+  /** The dictionary/encyclopedia itself (italic). */
+  workTitle: string;
+  edition?: string;
+  /** Omitted when identical to a group author. */
+  publisher?: string;
+}
+
+export interface Video extends ReferenceBase {
+  type: "video";
+  /** Channel or screen name, bracketed after a real name (APA 10.12). */
+  username?: string;
+  platform: string;
+}
+
+export interface PodcastEpisode extends ReferenceBase {
+  type: "podcastEpisode";
+  episodeNumber?: string;
+  /** The show (italic, after "In"/"En"). */
+  showTitle: string;
+  platform?: string;
+}
+
+export interface SocialMedia extends ReferenceBase {
+  type: "socialMedia";
+  /** Handle bracketed after the name: "[@usuaria]". */
+  username?: string;
+  platform: string;
+  /** Free bracket label typed in the document language: "Tuit", "Post". */
+  contentType: string;
+}
+
+export interface Software extends ReferenceBase {
+  type: "software";
+  kind: "software" | "dataset";
+  version?: string;
+  publisher?: string;
+}
+
+/** Cited in text only; never appears in the reference list (APA 8.9). */
+export interface PersonalCommunication extends ReferenceBase {
+  type: "personalCommunication";
+  medium?: string;
+}
+
 export type Reference =
   | JournalArticle
   | Book
   | BookChapter
   | Website
   | Report
-  | Thesis;
+  | Thesis
+  | ConferencePaper
+  | NewspaperArticle
+  | ReferenceEntry
+  | Video
+  | PodcastEpisode
+  | SocialMedia
+  | Software
+  | PersonalCommunication;
 
 export type ReferenceType = Reference["type"];

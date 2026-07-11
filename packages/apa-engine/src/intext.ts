@@ -105,6 +105,27 @@ function authorPart(
   };
 }
 
+/**
+ * Personal communications cite initials-first name + term + full date and
+ * never join the reference list (APA 8.9): "(N. Salgado, comunicación
+ * personal, 3 de julio de 2026)".
+ */
+function personalCommunicationRuns(
+  ref: Reference,
+  mode: CitationAttrs["mode"],
+  t: LocaleTerms,
+): RichRun[] {
+  const first = ref.authors[0];
+  const name = first ? inTextName(first, true) : "";
+  const dateText = ref.date.year !== undefined
+    ? t.formatLongDate(ref.date)
+    : t.noDate;
+  if (mode === "narrative") {
+    return [{ text: `${name} (${t.personalCommunication}, ${dateText})` }];
+  }
+  return [{ text: `${name}, ${t.personalCommunication}, ${dateText}` }];
+}
+
 function itemRuns(
   item: CitationItem,
   ref: Reference | undefined,
@@ -114,6 +135,9 @@ function itemRuns(
   opts?: FormatCitationOptions,
 ): RichRun[] {
   if (!ref) return [MISSING_REF];
+  if (ref.type === "personalCommunication") {
+    return personalCommunicationRuns(ref, mode, t);
+  }
 
   const { yearSuffix } = contextFor(ctx, ref.id);
   const year = citationYear(ref.date, t, yearSuffix);
