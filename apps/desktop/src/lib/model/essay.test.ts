@@ -51,6 +51,7 @@ describe("summarize", () => {
       title: "Ensayo sin título",
       updatedAt: "2026-07-11T12:00:00.000Z",
       language: "es",
+      words: 0,
     });
   });
 });

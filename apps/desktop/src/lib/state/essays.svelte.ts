@@ -65,8 +65,11 @@ class EssaysStore {
     this.summaries = [summary, ...rest];
   }
 
-  async create(language: DocLocale): Promise<Essay> {
-    const essay = createEmptyEssay(language);
+  async create(
+    language: DocLocale,
+    variant: "student" | "professional" = "student",
+  ): Promise<Essay> {
+    const essay = createEmptyEssay(language, new Date().toISOString(), variant);
     await writeJsonAtomic(essayPath(essay.id), essay);
     this.#upsertSummary(essay);
     return essay;

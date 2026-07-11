@@ -2,15 +2,16 @@
   import { untrack } from "svelte";
   import type { Editor as TiptapEditor } from "@tiptap/core";
   import type { CitationAttrs, DocLocale, Reference } from "@tesina/engine";
+  import { getTerms } from "@tesina/engine";
   import type { Essay, EssaySettings, TitlePage } from "$lib/model/essay";
   import Editor from "$lib/components/Editor.svelte";
   import CitationPopover from "$lib/components/CitationPopover.svelte";
-  import EditorToolbar from "$lib/components/EditorToolbar.svelte";
-  import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
   import PrintPreview from "$lib/components/PrintPreview.svelte";
-  import ReferencesPanel from "$lib/components/ReferencesPanel.svelte";
+  import RefEntry from "$lib/components/RefEntry.svelte";
+  import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
   import TitlePageForm from "$lib/components/TitlePageForm.svelte";
   import { collectCitedRefIds } from "$lib/editor/citedRefs";
+  import { buildOutline, type OutlineItem } from "$lib/editor/outline";
   import {
     type CitationEnv,
     insertCitation,
@@ -25,9 +26,9 @@
     removeAppendixAtSelection,
     selectionInAppendix,
   } from "$lib/editor/sections";
-  import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { library } from "$lib/state/library.svelte";
   import { essays } from "$lib/state/essays.svelte";
+  import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { exportEssayToDocx } from "$lib/export/exportEssay";
   import { m } from "$lib/paraglide/messages";
 
@@ -38,12 +39,11 @@
 
   let { essay, onBack }: Props = $props();
 
-  // This screen is remounted per essay via {#key essay.id}, so capturing the
-  // essay's INITIAL values here is deliberate — hence the untrack() calls.
+  // Remounted per essay via {#key essay.id}; initial captures are deliberate.
   let documentLanguage = $state<DocLocale>(
     untrack(() => essay.settings.documentLanguage),
   );
-  let words = $state(0);
+  let words = $state(untrack(() => 0));
   let status = $state<"guardando" | "guardado" | "error">("guardado");
   let editor = $state<TiptapEditor | undefined>(undefined);
   let abstractPresent = $state(false);
@@ -51,24 +51,89 @@
   let citePopoverOpen = $state(false);
   let refFormOpen = $state(false);
   let titleFormOpen = $state(false);
-  let panelOpen = $state(true);
-  let essayTitle = $state(untrack(() => essay.titlePage.title));
-  let exporting = $state(false);
-  let exportMessage = $state("");
+  let addMenuOpen = $state(false);
+  let outlineOpen = $state(true);
+  let refsOpen = $state(true);
+  let focusMode = $state(false);
   let previewOpen = $state(false);
   let pageCount = $state(0);
+  let refSearch = $state("");
+  let confirmingDelete = $state<string | null>(null);
+  let exporting = $state(false);
+  let exportMessage = $state("");
+  let essayTitle = $state(untrack(() => essay.titlePage.title));
+  let outline = $state<OutlineItem[]>(
+    untrack(() => buildOutline(essay.content)),
+  );
+  let selPos = $state(0);
+  let bubble = $state<{ x: number; y: number } | null>(null);
   let citedCounts = $state<Map<string, number>>(
     untrack(() => collectCitedRefIds(essay.content)),
   );
   let lastDoc = $state<unknown>(untrack(() => essay.content));
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
-  // Mutable env shared with the citation plugin; updated in place, then
-  // refreshCitations() forces every chip to recompute (see citation.ts).
   const citationEnv: CitationEnv = {
     refsById: untrack(() => library.byId()),
     locale: untrack(() => documentLanguage),
   };
+
+  const wordGoal = $derived(essay.settings.wordGoal ?? 2500);
+  const progress = $derived(Math.min(100, Math.round((words / wordGoal) * 100)));
+  const pagesEst = $derived(Math.max(1, Math.ceil(words / 250)));
+  const byline = $derived.by(() => {
+    const parts = [
+      ...essay.titlePage.authors.slice(0, 1),
+      ...essay.titlePage.affiliations.slice(0, 1),
+    ];
+    return parts.join(" · ");
+  });
+
+  const abstractLabel = $derived(
+    getTerms(documentLanguage).headings.abstract,
+  );
+  const referencesLabel = $derived(
+    getTerms(documentLanguage).headings.references,
+  );
+  const appendixLabel = $derived(
+    getTerms(documentLanguage).headings.appendix,
+  );
+
+  const STATUS_LABELS = {
+    guardando: m.editor_status_saving,
+    guardado: m.editor_status_saved,
+    error: m.editor_status_error,
+  } as const;
+
+  interface RefRow {
+    ref: Reference;
+    text: string;
+    cited: number;
+    personal: boolean;
+  }
+
+  const refRows = $derived.by(() => {
+    const t = getTerms(documentLanguage);
+    const rows: RefRow[] = library.references.map((ref) => {
+      const personal = ref.type === "personalCommunication";
+      let text: string;
+      if (personal) {
+        const first = ref.authors[0];
+        const name = first
+          ? first.kind === "group" ? first.name : first.family
+          : "";
+        text = `${name} — ${t.personalCommunication}`;
+      } else {
+        text = "";
+      }
+      return { ref, text, cited: citedCounts.get(ref.id) ?? 0, personal };
+    });
+    const q = refSearch.trim().toLowerCase();
+    return rows.filter((row) =>
+      q === "" ||
+      JSON.stringify(row.ref).toLowerCase().includes(q)
+    );
+  });
 
   function syncCitationEnv() {
     citationEnv.refsById = library.byId();
@@ -107,23 +172,68 @@
     lastDoc = docJson;
     words = wordCount;
     citedCounts = collectCitedRefIds(docJson);
+    outline = buildOutline(docJson);
     if (editor) abstractPresent = hasAbstract(editor);
     scheduleSave();
+  }
+
+  function updateBubble(instance: TiptapEditor) {
+    const { from, to, empty } = instance.state.selection;
+    if (empty || to - from < 1) {
+      bubble = null;
+      return;
+    }
+    try {
+      const start = instance.view.coordsAtPos(from);
+      const end = instance.view.coordsAtPos(to);
+      bubble = {
+        x: (start.left + end.right) / 2,
+        y: Math.min(start.top, end.top) - 10,
+      };
+    } catch {
+      bubble = null;
+    }
   }
 
   function handleReady(instance: TiptapEditor) {
     editor = instance;
     abstractPresent = hasAbstract(instance);
-    const trackAppendix = () => {
+    words = instance.state.doc.textBetween(
+      0,
+      instance.state.doc.content.size,
+      " ",
+      " ",
+    ).trim().split(/\s+/).filter((w) => w !== "").length;
+    const track = () => {
       inAppendix = selectionInAppendix(instance);
+      selPos = instance.state.selection.from;
+      updateBubble(instance);
     };
-    instance.on("selectionUpdate", trackAppendix);
-    instance.on("transaction", trackAppendix);
+    instance.on("selectionUpdate", track);
+    instance.on("transaction", track);
+    instance.on("blur", () => {
+      // Let bubble clicks land before hiding.
+      setTimeout(() => (bubble = null), 150);
+    });
   }
 
-  function handleRemoveAppendix() {
-    if (editor) removeAppendixAtSelection(editor);
+  function goTo(item: OutlineItem) {
+    if (!editor) return;
+    editor
+      .chain()
+      .focus()
+      .setTextSelection(Math.min(item.pos + 1, editor.state.doc.content.size))
+      .scrollIntoView()
+      .run();
   }
+
+  const activeIndex = $derived.by(() => {
+    let index = -1;
+    outline.forEach((item, i) => {
+      if (item.pos <= selPos) index = i;
+    });
+    return index;
+  });
 
   function setLanguage(lang: DocLocale) {
     if (documentLanguage === lang) return;
@@ -137,6 +247,7 @@
     if (abstractPresent) removeAbstract(editor);
     else addAbstract(editor);
     abstractPresent = hasAbstract(editor);
+    addMenuOpen = false;
   }
 
   function handleAddKeywords() {
@@ -144,37 +255,17 @@
     if (!abstractPresent) addAbstract(editor);
     addKeywordsLine(editor);
     abstractPresent = hasAbstract(editor);
+    addMenuOpen = false;
   }
 
   function handleAddAppendix() {
     if (editor) addAppendix(editor);
+    addMenuOpen = false;
   }
 
-  const STATUS_LABELS = {
-    guardando: m.editor_status_saving,
-    guardado: m.editor_status_saved,
-    error: m.editor_status_error,
-  } as const;
-
-  function handleInsertCitation(attrs: CitationAttrs) {
-    citePopoverOpen = false;
-    if (editor) insertCitation(editor, attrs);
-  }
-
-  function handleSaveReference(ref: Reference) {
-    library.add(ref);
-    refFormOpen = false;
-    syncCitationEnv();
-  }
-
-  function handleCiteFromPanel(refId: string) {
-    if (!editor) return;
-    insertCitation(editor, { items: [{ refId }], mode: "parenthetical" });
-  }
-
-  function handleDeleteReference(refId: string) {
-    library.remove(refId);
-    syncCitationEnv();
+  function handleRemoveAppendix() {
+    if (editor) removeAppendixAtSelection(editor);
+    addMenuOpen = false;
   }
 
   async function handleExport() {
@@ -200,10 +291,33 @@
     }
   }
 
-  function handleSaveTitlePage(
-    titlePage: TitlePage,
-    settings: EssaySettings,
-  ) {
+  function handleInsertCitation(attrs: CitationAttrs) {
+    citePopoverOpen = false;
+    if (editor) insertCitation(editor, attrs);
+  }
+
+  function handleSaveReference(ref: Reference) {
+    library.add(ref);
+    refFormOpen = false;
+    syncCitationEnv();
+  }
+
+  function handleCiteFromPanel(refId: string) {
+    if (!editor) return;
+    insertCitation(editor, { items: [{ refId }], mode: "parenthetical" });
+  }
+
+  function handleDeleteReference(refId: string) {
+    if (confirmingDelete !== refId) {
+      confirmingDelete = refId;
+      return;
+    }
+    confirmingDelete = null;
+    library.remove(refId);
+    syncCitationEnv();
+  }
+
+  function handleSaveTitlePage(titlePage: TitlePage, settings: EssaySettings) {
     essay.titlePage = titlePage;
     essay.settings = { ...settings, documentLanguage };
     essayTitle = titlePage.title;
@@ -212,163 +326,270 @@
   }
 </script>
 
-<div class="shell">
-  <header>
-    <button class="act" onclick={onBack} aria-label={m.editor_back_aria()}>
-      {m.editor_back()}
-    </button>
-    <span class="brand">Tesina</span>
-    <span class="doc">{essayTitle}</span>
-    <span class="spacer"></span>
-    <button class="act" onclick={() => (titleFormOpen = true)}>
-      {m.editor_title_page()}
-    </button>
-    <div class="seg" role="group" aria-label={m.editor_doc_language_aria()}>
-      <button
-        class:active={documentLanguage === "es"}
-        onclick={() => setLanguage("es")}
-      >
-        ES
-      </button>
-      <button
-        class:active={documentLanguage === "en"}
-        onclick={() => setLanguage("en")}
-      >
-        EN
+<div class="app">
+  <header class="titlebar" data-tauri-drag-region>
+    <div class="tb-left">
+      <div class="traffic-space"></div>
+      <button class="icon-btn" onclick={onBack} title={m.tb_back()} aria-label={m.tb_back()}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" width="16" height="16"><path d="M14 6l-6 6 6 6" /></svg>
       </button>
     </div>
-    <button class="act" onclick={toggleAbstract} disabled={!editor}>
-      {abstractPresent ? m.editor_remove_abstract() : m.editor_add_abstract()}
-    </button>
-    <button class="act" onclick={handleAddKeywords} disabled={!editor}>
-      {m.editor_keywords()}
-    </button>
-    <button class="act" onclick={handleAddAppendix} disabled={!editor}>
-      {m.editor_add_appendix()}
-    </button>
-    {#if inAppendix}
-      <button class="act" onclick={handleRemoveAppendix}>
-        {m.editor_remove_appendix()}
-      </button>
-    {/if}
-    <span class="divider"></span>
-    <button
-      class="act"
-      onclick={() => {
-        previewOpen = !previewOpen;
-        if (!previewOpen) pageCount = 0;
-      }}
-    >
-      {previewOpen ? m.editor_back_to_editor() : m.editor_preview()}
-    </button>
-    {#if previewOpen}
-      <button class="act" onclick={() => window.print()}>
-        {m.editor_print()}
-      </button>
-    {/if}
-    <button class="act" onclick={() => (panelOpen = !panelOpen)}>
-      {panelOpen ? m.editor_hide_references() : m.editor_show_references()}
-    </button>
-    <div class="cite-anchor">
+    <div class="tb-title" data-tauri-drag-region>
+      <span class="mark">T</span> <b>{essayTitle}</b>
+    </div>
+    <div class="tb-actions">
       <button
-        class="act"
-        onclick={() => (citePopoverOpen = !citePopoverOpen)}
-        disabled={!editor}
+        class="icon-btn"
+        class:on={outlineOpen && !focusMode}
+        onclick={() => (outlineOpen = !outlineOpen)}
+        title={m.tb_outline()}
+        aria-label={m.tb_outline()}
       >
-        {m.editor_insert_citation()}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" /></svg>
       </button>
-      {#if citePopoverOpen}
-        <CitationPopover
-          references={library.references}
+      <button
+        class="icon-btn"
+        class:on={refsOpen && !focusMode}
+        onclick={() => (refsOpen = !refsOpen)}
+        title={m.tb_refs()}
+        aria-label={m.tb_refs()}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 4h11a2 2 0 0 1 2 2v14l-4-2-4 2V6H6z" /><path d="M6 4v16" /></svg>
+      </button>
+      <button
+        class="icon-btn"
+        class:on={previewOpen}
+        onclick={() => {
+          previewOpen = !previewOpen;
+          if (!previewOpen) pageCount = 0;
+        }}
+        title={m.tb_preview()}
+        aria-label={m.tb_preview()}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z" /><circle cx="12" cy="12" r="2.6" /></svg>
+      </button>
+      <button
+        class="icon-btn"
+        onclick={() => uiLocale.cycleTheme()}
+        title={m.common_theme()}
+        aria-label={m.common_theme()}
+      >
+        {uiLocale.theme === "light" ? "☀" : uiLocale.theme === "dark" ? "☾" : "◐"}
+      </button>
+    </div>
+  </header>
+
+  <div
+    class="shell"
+    class:no-outline={!outlineOpen}
+    class:no-refs={!refsOpen}
+    class:focus={focusMode}
+  >
+    <aside class="outline">
+      <div class="panel-head">
+        <h4>{m.outline_title()}</h4>
+        <div class="add-wrap">
+          <button class="mini" onclick={() => (addMenuOpen = !addMenuOpen)} aria-label={m.outline_add()}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 5v14M5 12h14" /></svg>
+          </button>
+          {#if addMenuOpen}
+            <div class="menu" role="menu">
+              <button role="menuitem" onclick={toggleAbstract}>
+                {abstractPresent ? m.editor_remove_abstract() : m.editor_add_abstract()}
+              </button>
+              <button role="menuitem" onclick={handleAddKeywords}>{m.editor_keywords()}</button>
+              <button role="menuitem" onclick={handleAddAppendix}>{m.editor_add_appendix()}</button>
+              {#if inAppendix}
+                <button role="menuitem" onclick={handleRemoveAppendix}>{m.editor_remove_appendix()}</button>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      <button class="out-item" onclick={() => (titleFormOpen = true)}>
+        <span class="n">—</span>{m.outline_titlepage()}
+        <span class="wc">{m.outline_one_page()}</span>
+      </button>
+      {#each outline as item, i (item.pos)}
+        <button
+          class="out-item"
+          class:sub={item.sub}
+          class:active={i === activeIndex}
+          onclick={() => goTo(item)}
+        >
+          {#if !item.sub}<span class="n">{item.marker}</span>{/if}
+          {item.label ||
+            (item.marker === "R" ? abstractLabel : appendixLabel)}
+          {#if !item.sub}
+            <span class="wc">{item.words > 0 ? item.words.toLocaleString() : ""}</span>
+          {/if}
+        </button>
+      {/each}
+      <button class="out-item" onclick={() => (refsOpen = true)}>
+        <span class="n">R</span>{referencesLabel}
+        <span class="wc">{citedCounts.size}</span>
+      </button>
+
+      <div class="out-progress">
+        <div class="pl">
+          <span>{m.outline_progress({ goal: wordGoal.toLocaleString() })}</span>
+          <span>{progress}%</span>
+        </div>
+        <div class="bar"><span style="width: {progress}%"></span></div>
+      </div>
+    </aside>
+
+    <main class="canvas">
+      {#if previewOpen}
+        <div class="preview-host">
+          {#key documentLanguage}
+            <PrintPreview
+              {essay}
+              docJson={lastDoc ?? editor?.getJSON()}
+              references={snapshotCitedRefs()}
+              onPageCount={(pages) => (pageCount = pages)}
+            />
+          {/key}
+        </div>
+      {:else}
+        <Editor
+          initialDoc={essay.content}
           {documentLanguage}
-          onInsert={handleInsertCitation}
-          onClose={() => (citePopoverOpen = false)}
+          {citationEnv}
+          headTitle={essayTitle}
+          {byline}
+          onHeadClick={() => (titleFormOpen = true)}
+          onUpdate={handleUpdate}
+          onReady={handleReady}
         />
       {/if}
-    </div>
-    <button
-      class="act primary"
-      onclick={handleExport}
-      disabled={!editor || exporting}
-    >
-      {exporting ? m.editor_exporting() : m.editor_export()}
-    </button>
-    <button
-      class="act icon"
-      onclick={() => uiLocale.cycleTheme()}
-      aria-label={m.common_theme()}
-      title={m.common_theme()}
-    >
-      {uiLocale.theme === "light" ? "☀" : uiLocale.theme === "dark" ? "☾" : "◐"}
-    </button>
-  </header>
-  <EditorToolbar {editor} />
-  <main>
-    <div class="editor-col" class:hidden={previewOpen}>
-      <Editor
-        initialDoc={essay.content}
-        {documentLanguage}
-        {citationEnv}
-        onUpdate={handleUpdate}
-        onReady={handleReady}
-      />
-    </div>
-    {#if previewOpen}
-      <div class="editor-col preview-col">
-        {#key documentLanguage}
-          <PrintPreview
-            {essay}
-            docJson={lastDoc ?? editor?.getJSON()}
-            references={snapshotCitedRefs()}
-            onPageCount={(pages) => (pageCount = pages)}
-          />
-        {/key}
+    </main>
+
+    <aside class="refs">
+      <div class="panel-head">
+        <h4>{referencesLabel}</h4>
+        <button class="btn btn-primary btn-sm" onclick={() => (refFormOpen = true)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" /></svg>
+          {m.panel_add().replace("+ ", "")}
+        </button>
       </div>
-    {/if}
-    {#if panelOpen && !previewOpen}
-      <ReferencesPanel
-        references={library.references}
-        {citedCounts}
-        {documentLanguage}
-        onCite={handleCiteFromPanel}
-        onDelete={handleDeleteReference}
-        onAdd={() => (refFormOpen = true)}
-      />
-    {/if}
-  </main>
-  <footer>
+      <div class="search-ref">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <input type="text" placeholder={m.refs_search()} bind:value={refSearch} />
+      </div>
+      {#each refRows as row (row.ref.id)}
+        <div class="ref-card">
+          {#if row.personal}
+            <p class="rtxt">{row.text}</p>
+          {:else}
+            <RefEntry reference={row.ref} language={documentLanguage} />
+          {/if}
+          <div class="ref-foot">
+            <span
+              class="status"
+              class:cited={row.cited > 0}
+              class:uncited={row.cited === 0 && !row.personal}
+            >
+              <span class="dot"></span>
+              {row.personal
+                ? m.refs_in_text_only()
+                : row.cited > 0
+                ? `${m.refs_cited()} · ${row.cited}`
+                : m.refs_uncited()}
+            </span>
+            <button
+              class="del"
+              onclick={() => handleDeleteReference(row.ref.id)}
+              onblur={() => (confirmingDelete = null)}
+            >
+              {confirmingDelete === row.ref.id ? m.panel_delete_confirm() : "×"}
+            </button>
+            <button class="ins" onclick={() => handleCiteFromPanel(row.ref.id)}>
+              {m.refs_insert()}
+            </button>
+          </div>
+        </div>
+      {/each}
+    </aside>
+  </div>
+
+  {#if !previewOpen}
+    <div class="float-menu">
+      <div class="fab-cite">
+        <button class="fm-btn primary" onclick={() => (citePopoverOpen = !citePopoverOpen)} disabled={!editor}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 5v14M5 12h14" /></svg>
+          {m.editor_insert_citation()}
+        </button>
+        {#if citePopoverOpen}
+          <CitationPopover
+            references={library.references}
+            {documentLanguage}
+            onInsert={handleInsertCitation}
+            onClose={() => (citePopoverOpen = false)}
+          />
+        {/if}
+      </div>
+      <button class="fm-btn" onclick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} aria-label={m.toolbar_heading_level({ level: 2 })}>N2</button>
+      <button class="fm-btn" onclick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} aria-label={m.toolbar_heading_level({ level: 3 })}>N3</button>
+      <button class="fm-btn" onclick={() => editor?.chain().focus().setParagraph().run()} aria-label="¶">¶</button>
+      <button class="fm-btn" onclick={() => editor?.chain().focus().toggleBulletList().run()} aria-label={m.toolbar_bullet_list()}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="7" r="1" /><circle cx="5" cy="12" r="1" /><circle cx="5" cy="17" r="1" /><path d="M9 7h11M9 12h11M9 17h11" /></svg>
+      </button>
+      <div class="fm-sep"></div>
+      <button class="fm-btn" class:on={focusMode} onclick={() => (focusMode = !focusMode)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4" /></svg>
+        {m.fab_focus()}
+      </button>
+      <div class="fm-sep"></div>
+      <button class="fm-btn" onclick={handleExport} disabled={!editor || exporting}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M8 11l4 4 4-4M5 21h14" /></svg>
+        {exporting ? m.editor_exporting() : m.editor_export()}
+      </button>
+      <span class="fm-count">{m.fab_words({ count: words.toLocaleString() })}</span>
+    </div>
+  {/if}
+
+  {#if bubble && !previewOpen}
+    <div class="bubble show" style="left: {bubble.x}px; top: {bubble.y}px">
+      <button class="bb" style="font-weight: 700" onclick={() => editor?.chain().focus().toggleBold().run()} aria-label={m.toolbar_bold()}>B</button>
+      <button class="bb it" onclick={() => editor?.chain().focus().toggleItalic().run()} aria-label={m.toolbar_italic()}>I</button>
+      <button class="bb un" onclick={() => editor?.chain().focus().toggleUnderline().run()} aria-label={m.toolbar_underline()}>U</button>
+      <div class="bb-sep"></div>
+      <button class="bb" onclick={() => editor?.chain().focus().toggleBlockquote().run()} aria-label={m.toolbar_blockquote()}>❝</button>
+    </div>
+  {/if}
+
+  <footer class="statusbar" class:dim={focusMode}>
+    <span>{words === 1 ? m.editor_words_one() : m.editor_words_many({ count: words })}</span>
+    <span class="sep">·</span>
     <span>
-      {words === 1 ? m.editor_words_one() : m.editor_words_many({
-        count: words,
-      })}
+      {previewOpen && pageCount > 0
+        ? pageCount === 1 ? m.status_pages_one() : m.status_pages_many({ count: pageCount })
+        : pagesEst === 1
+        ? m.status_pages_one()
+        : m.status_pages_many({ count: pagesEst })}
     </span>
-    {#if previewOpen && pageCount > 0}
-      <span>
-        {pageCount === 1 ? m.editor_pages_one() : m.editor_pages_many({
-          count: pageCount,
-        })}
-      </span>
-    {/if}
-    <span>
-      {m.editor_refs_in_library({ count: library.references.length })}
-    </span>
-    <span>
-      {m.editor_document_label({
-        lang: documentLanguage === "es" ? "Español" : "English",
-      })}
-    </span>
+    <span class="sep">·</span>
+    <span>{m.status_refs({ count: citedCounts.size })}</span>
+    <span class="sep">·</span>
+    <button class="lang" onclick={() => setLanguage(documentLanguage === "es" ? "en" : "es")}>
+      {documentLanguage.toUpperCase()}
+    </button>
+    <span class="sep">·</span>
+    <span>APA 7</span>
     {#if exportMessage}
       <span class="export-msg">{exportMessage}</span>
     {/if}
-    <span class="status" data-status={status}>{STATUS_LABELS[status]()}</span>
+    <span class="saved" data-status={status}>
+      <span class="dot"></span>
+      {STATUS_LABELS[status]()}
+    </span>
   </footer>
 </div>
 
 {#if refFormOpen}
-  <ReferenceQuickForm
-    onSave={handleSaveReference}
-    onClose={() => (refFormOpen = false)}
-  />
+  <ReferenceQuickForm onSave={handleSaveReference} onClose={() => (refFormOpen = false)} />
 {/if}
 
 {#if titleFormOpen}
@@ -381,161 +602,654 @@
 {/if}
 
 <style>
-  .shell {
+  .app {
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    font-family: var(--font);
     background: var(--canvas);
-    color: var(--fg);
   }
 
-  header {
+  .titlebar {
+    height: 40px;
+    flex: 0 0 40px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 0 12px;
+    background: var(--chrome);
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .tb-left {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--chrome);
-    flex-wrap: wrap;
   }
 
-  .brand {
+  .traffic-space {
+    width: 62px;
+  }
+
+  .tb-title {
+    justify-self: center;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 46vw;
+    overflow: hidden;
+  }
+
+  .tb-title b {
+    color: var(--fg-2);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mark {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    border-radius: 5px;
+    background: var(--accent);
+    color: var(--accent-on);
+    display: grid;
+    place-items: center;
     font-family: var(--serif);
     font-weight: 700;
-    color: var(--accent);
+    font-size: 10px;
   }
 
-  .act.icon {
+  .tb-actions {
+    justify-self: end;
+    display: flex;
+    gap: 4px;
+  }
+
+  .icon-btn {
     width: 30px;
-    padding: 4px 0;
-    text-align: center;
+    height: 30px;
     border: none;
+    background: none;
+    border-radius: var(--r-sm);
+    display: grid;
+    place-items: center;
     color: var(--muted);
+    cursor: pointer;
+    transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
   }
 
-  .act.icon:hover:enabled {
+  .icon-btn:hover {
     background: var(--hover);
     color: var(--fg);
   }
 
-  .doc {
-    font-size: 0.85rem;
+  .icon-btn.on {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .icon-btn :global(svg) {
+    width: 16px;
+    height: 16px;
+  }
+
+  .shell {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 248px 1fr 312px;
+    transition: grid-template-columns 220ms var(--ease);
+  }
+
+  .shell.no-outline {
+    grid-template-columns: 0 1fr 312px;
+  }
+
+  .shell.no-refs {
+    grid-template-columns: 248px 1fr 0;
+  }
+
+  .shell.no-outline.no-refs,
+  .shell.focus {
+    grid-template-columns: 0 1fr 0;
+  }
+
+  .outline {
+    background: var(--chrome);
+    border-right: 1px solid var(--border);
+    overflow: hidden auto;
+    padding: 20px 14px;
+    transition: opacity 220ms var(--ease);
+  }
+
+  .no-outline .outline,
+  .focus .outline {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .panel-head h4 {
+    margin: 0;
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
     color: var(--muted);
-    max-width: 220px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-weight: 600;
   }
 
-  .spacer {
-    flex: 1;
-  }
-
-  .divider {
-    width: 1px;
-    height: 18px;
-    background: var(--border);
-  }
-
-  .cite-anchor {
+  .add-wrap {
     position: relative;
   }
 
-  .seg {
-    display: flex;
+  .mini {
+    width: 22px;
+    height: 22px;
     border: 1px solid var(--border);
-    border-radius: 7px;
+    background: var(--surface);
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .mini:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .menu {
+    position: absolute;
+    left: 0;
+    top: 115%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    box-shadow: var(--elev-raised);
+    display: flex;
+    flex-direction: column;
+    min-width: 170px;
+    z-index: 20;
     overflow: hidden;
   }
 
-  .seg button {
+  .menu button {
     border: none;
-    background: transparent;
-    font: inherit;
-    font-size: 0.78rem;
-    padding: 4px 10px;
+    background: none;
+    font-size: 12.5px;
+    text-align: left;
+    padding: 8px 12px;
     cursor: pointer;
-    color: var(--muted);
+    color: var(--fg);
+    white-space: nowrap;
   }
 
-  .seg button.active {
+  .menu button:hover {
+    background: var(--hover);
+  }
+
+  .out-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    padding: 7px 10px;
+    border: none;
+    background: none;
+    border-radius: var(--r-sm);
+    color: var(--fg-2);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
+  }
+
+  .out-item:hover {
+    background: var(--hover);
+  }
+
+  .out-item.active {
     background: var(--accent-soft);
     color: var(--accent);
     font-weight: 600;
   }
 
-  .act {
-    border: 1px solid var(--border);
-    background: transparent;
-    border-radius: 7px;
-    font: inherit;
-    font-size: 0.78rem;
-    padding: 4px 10px;
-    cursor: pointer;
-    color: var(--fg-2);
+  .out-item .n {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    width: 16px;
+    flex: 0 0 auto;
   }
 
-  .act.primary {
+  .out-item.active .n {
+    color: var(--accent);
+  }
+
+  .out-item .wc {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .out-item.sub {
+    padding-left: 26px;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+
+  .out-progress {
+    margin-top: 20px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface);
+  }
+
+  .out-progress .pl {
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .bar {
+    height: 6px;
+    border-radius: var(--r-pill);
+    background: var(--hover);
+    overflow: hidden;
+  }
+
+  .bar > span {
+    display: block;
+    height: 100%;
     background: var(--accent);
-    border-color: var(--accent);
+    border-radius: var(--r-pill);
+    transition: width 220ms var(--ease);
+  }
+
+  .canvas {
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    min-width: 0;
+  }
+
+  .preview-host {
+    padding-bottom: 4rem;
+  }
+
+  .refs {
+    background: var(--chrome);
+    border-left: 1px solid var(--border);
+    overflow: hidden auto;
+    padding: 20px 16px;
+    transition: opacity 220ms var(--ease);
+  }
+
+  .no-refs .refs,
+  .focus .refs {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: var(--r-sm);
+    font-size: 12.5px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .btn :global(svg) {
+    width: 15px;
+    height: 15px;
+  }
+
+  .btn-primary {
+    background: var(--accent);
     color: var(--accent-on);
   }
 
-  .act:hover:enabled {
-    filter: brightness(0.97);
+  .btn-primary:hover {
+    background: var(--accent-hover);
   }
 
-  .act:disabled {
+  .search-ref {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 0 10px;
+    height: 34px;
+    margin: 14px 0;
+  }
+
+  .search-ref :global(svg) {
+    width: 14px;
+    height: 14px;
+    color: var(--muted);
+  }
+
+  .search-ref input {
+    border: 0;
+    background: none;
+    outline: none;
+    width: 100%;
+    font-size: 13px;
+    color: var(--fg);
+  }
+
+  .ref-card {
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    margin-bottom: 10px;
+    transition: border-color var(--fast) var(--ease);
+  }
+
+  .ref-card:hover {
+    border-color: color-mix(in oklab, var(--accent), var(--border) 55%);
+  }
+
+  .rtxt,
+  .ref-card :global(.rtxt) {
+    margin: 0 0 8px;
+    font-family: var(--serif);
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--fg-2);
+    overflow-wrap: anywhere;
+  }
+
+  .ref-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.04em;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--accent);
+  }
+
+  .status.cited {
+    color: var(--success);
+  }
+
+  .status.uncited {
+    color: var(--muted);
+  }
+
+  .status .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .ref-foot .del {
+    margin-left: auto;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 5px;
+  }
+
+  .ref-foot .del:hover {
+    color: var(--danger);
+    background: color-mix(in oklab, var(--danger), transparent 90%);
+  }
+
+  .ref-foot .ins {
+    border: none;
+    background: none;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .float-menu {
+    position: fixed;
+    left: 50%;
+    bottom: 40px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px;
+    background: color-mix(in oklab, var(--surface), transparent 8%);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    box-shadow: var(--elev-raised);
+    z-index: 40;
+  }
+
+  .fm-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 38px;
+    padding: 0 14px;
+    border: none;
+    background: none;
+    border-radius: var(--r-pill);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fg-2);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
+  }
+
+  .fm-btn :global(svg) {
+    width: 16px;
+    height: 16px;
+  }
+
+  .fm-btn:hover:enabled {
+    background: var(--hover);
+    color: var(--fg);
+  }
+
+  .fm-btn.primary {
+    background: var(--accent);
+    color: var(--accent-on);
+  }
+
+  .fm-btn.primary:hover:enabled {
+    background: var(--accent-hover);
+  }
+
+  .fm-btn.on {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .fm-btn:disabled {
     opacity: 0.5;
     cursor: default;
   }
 
-  main {
-    flex: 1;
+  .fm-sep {
+    width: 1px;
+    height: 22px;
+    background: var(--border);
+    margin: 0 3px;
+  }
+
+  .fm-count {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    padding: 0 12px 0 8px;
+    white-space: nowrap;
+  }
+
+  .fab-cite {
+    position: relative;
+  }
+
+  .fab-cite :global(.pop) {
+    top: auto;
+    bottom: calc(100% + 12px);
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .bubble {
+    position: fixed;
+    z-index: 50;
     display: flex;
-    min-height: 0;
+    align-items: center;
+    gap: 2px;
+    padding: 5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    box-shadow: var(--elev-raised);
+    transform: translate(-50%, -100%);
   }
 
-  .editor-col {
-    flex: 1;
-    overflow-y: auto;
-    min-width: 0;
+  .bubble.show {
+    animation: pop 140ms var(--ease);
   }
 
-  .editor-col.hidden {
-    display: none;
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translate(-50%, calc(-100% + 6px));
+    }
   }
 
-  footer {
+  .bb {
+    min-width: 30px;
+    height: 30px;
+    padding: 0 9px;
+    border: none;
+    background: none;
+    border-radius: var(--r-pill);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg-2);
+    cursor: pointer;
+    transition: background var(--fast) var(--ease);
+  }
+
+  .bb:hover {
+    background: var(--hover);
+  }
+
+  .bb.it {
+    font-style: italic;
+    font-family: var(--serif);
+  }
+
+  .bb.un {
+    text-decoration: underline;
+  }
+
+  .bb-sep {
+    width: 1px;
+    height: 18px;
+    background: var(--border);
+    margin: 0 4px;
+  }
+
+  .statusbar {
     display: flex;
-    gap: 16px;
+    align-items: center;
+    gap: 10px;
     padding: 6px 16px;
     border-top: 1px solid var(--border);
     background: var(--chrome);
     font-family: var(--mono);
     font-size: 11px;
     color: var(--muted);
+    transition: opacity 220ms var(--ease);
+  }
+
+  .statusbar.dim {
+    opacity: 0.5;
+  }
+
+  .statusbar .sep {
+    color: var(--border);
+  }
+
+  .statusbar .lang {
+    border: none;
+    background: none;
+    font: inherit;
+    color: var(--accent);
+    cursor: pointer;
+    padding: 0 2px;
   }
 
   .export-msg {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 40%;
+    max-width: 32%;
   }
 
-  .status {
+  .saved {
     margin-left: auto;
-  }
-
-  .status[data-status="guardado"] {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     color: var(--success);
   }
 
-  .status[data-status="error"] {
+  .saved[data-status="guardando"] {
+    color: var(--muted);
+  }
+
+  .saved[data-status="error"] {
     color: var(--danger);
   }
 
-  
+  .saved .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
 </style>

@@ -12,6 +12,8 @@ export interface EssaySettings {
   /** Professional variant only; uppercased at render time, ≤50 chars. */
   runningHead?: string;
   includeUncitedReferences: boolean;
+  /** Target length for the outline's progress bar (default 2500). */
+  wordGoal?: number;
 }
 
 /** Form data rendered only in preview/export — never lives in the PM doc. */
@@ -47,6 +49,23 @@ export interface EssaySummary {
   title: string;
   updatedAt: string;
   language: DocLocale;
+  words: number;
+}
+
+/** Word count of a ProseMirror doc JSON (text nodes only, pure walk). */
+export function countDocWords(docJson: unknown): number {
+  let count = 0;
+  const walk = (node: unknown): void => {
+    if (!node || typeof node !== "object") return;
+    const n = node as { text?: string; content?: unknown[] };
+    if (typeof n.text === "string") {
+      const words = n.text.trim().split(/\s+/).filter((w) => w !== "");
+      count += words.length;
+    }
+    for (const child of n.content ?? []) walk(child);
+  };
+  walk(docJson);
+  return count;
 }
 
 export function defaultSettings(language: DocLocale): EssaySettings {
@@ -62,13 +81,14 @@ export function defaultSettings(language: DocLocale): EssaySettings {
 export function createEmptyEssay(
   language: DocLocale,
   now = new Date().toISOString(),
+  variant: PaperVariant = "student",
 ): Essay {
   return {
     schemaVersion: 2,
     id: crypto.randomUUID(),
     createdAt: now,
     updatedAt: now,
-    settings: defaultSettings(language),
+    settings: { ...defaultSettings(language), variant },
     titlePage: {
       title: language === "es" ? "Ensayo sin título" : "Untitled essay",
       authors: [],
@@ -88,6 +108,7 @@ export function summarize(essay: Essay): EssaySummary {
     title: essay.titlePage.title,
     updatedAt: essay.updatedAt,
     language: essay.settings.documentLanguage,
+    words: countDocWords(essay.content),
   };
 }
 

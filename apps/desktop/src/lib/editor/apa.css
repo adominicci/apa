@@ -8,23 +8,54 @@
 .apa-editor {
   display: flex;
   justify-content: center;
-  padding: 2rem 1rem 4rem;
+  padding: 3rem 1.5rem 10rem;
   min-height: 100%;
   box-sizing: border-box;
 }
 
-.apa-editor .tiptap {
+.apa-editor .paper-sheet {
   background: var(--paper);
   color: var(--fg);
-  font-family: var(--serif);
-  font-size: 12pt;
-  line-height: 2;
-  width: min(100%, 6.5in);
-  min-height: 8in;
-  padding: 0.75in 0.85in;
+  width: min(100%, 6.9in);
   border: 1px solid var(--border-soft);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-paper);
+  padding: 0.7in 0.85in 0.9in;
+}
+
+.apa-editor .paper-head {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: center;
+  font: inherit;
+  color: inherit;
+  padding: 0 0 6px;
+}
+
+.apa-editor .paper-head .title-line {
+  margin: 0 0 6px;
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.apa-editor .paper-head .byline {
+  margin: 0 0 22px;
+  font-family: var(--serif);
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.apa-editor .tiptap {
+  font-family: var(--serif);
+  font-size: 12pt;
+  line-height: 2;
+  min-height: 5in;
   outline: none;
 }
 
