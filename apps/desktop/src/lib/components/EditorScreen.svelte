@@ -2,11 +2,13 @@
   import { untrack } from "svelte";
   import type { Editor as TiptapEditor } from "@tiptap/core";
   import type { CitationAttrs, DocLocale, Reference } from "@tesina/engine";
-  import type { Essay } from "$lib/model/essay";
+  import type { Essay, EssaySettings, TitlePage } from "$lib/model/essay";
   import Editor from "$lib/components/Editor.svelte";
   import CitationPopover from "$lib/components/CitationPopover.svelte";
+  import EditorToolbar from "$lib/components/EditorToolbar.svelte";
   import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
   import ReferencesPanel from "$lib/components/ReferencesPanel.svelte";
+  import TitlePageForm from "$lib/components/TitlePageForm.svelte";
   import { collectCitedRefIds } from "$lib/editor/citedRefs";
   import {
     type CitationEnv,
@@ -41,7 +43,9 @@
   let abstractPresent = $state(false);
   let citePopoverOpen = $state(false);
   let refFormOpen = $state(false);
+  let titleFormOpen = $state(false);
   let panelOpen = $state(true);
+  let essayTitle = $state(untrack(() => essay.titlePage.title));
   let citedCounts = $state<Map<string, number>>(
     untrack(() => collectCitedRefIds(essay.content)),
   );
@@ -146,6 +150,17 @@
     library.remove(refId);
     syncCitationEnv();
   }
+
+  function handleSaveTitlePage(
+    titlePage: TitlePage,
+    settings: EssaySettings,
+  ) {
+    essay.titlePage = titlePage;
+    essay.settings = { ...settings, documentLanguage };
+    essayTitle = titlePage.title;
+    titleFormOpen = false;
+    scheduleSave();
+  }
 </script>
 
 <div class="shell">
@@ -154,8 +169,11 @@
       ← Inicio
     </button>
     <span class="brand">Tesina</span>
-    <span class="doc">{essay.titlePage.title}</span>
+    <span class="doc">{essayTitle}</span>
     <span class="spacer"></span>
+    <button class="act" onclick={() => (titleFormOpen = true)}>
+      Portada
+    </button>
     <div class="seg" role="group" aria-label="Idioma del documento">
       <button
         class:active={documentLanguage === "es"}
@@ -201,6 +219,7 @@
       {/if}
     </div>
   </header>
+  <EditorToolbar {editor} />
   <main>
     <div class="editor-col">
       <Editor
@@ -234,6 +253,15 @@
   <ReferenceQuickForm
     onSave={handleSaveReference}
     onClose={() => (refFormOpen = false)}
+  />
+{/if}
+
+{#if titleFormOpen}
+  <TitlePageForm
+    titlePage={essay.titlePage}
+    settings={essay.settings}
+    onSave={handleSaveTitlePage}
+    onClose={() => (titleFormOpen = false)}
   />
 {/if}
 
