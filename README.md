@@ -24,7 +24,7 @@ A diferencia de otras herramientas, el **idioma del documento** es independiente
 
 ## Instalación (builds sin firmar)
 
-Los instaladores de GitHub Releases no están firmados (no hay cuenta de Apple Developer ni certificado de Windows todavía), así que el sistema mostrará una advertencia la primera vez:
+Tesina se distribuye **únicamente por GitHub Releases** — en macOS como `.dmg` (no está ni estará en la Mac App Store). Los instaladores no están firmados (no hay cuenta de Apple Developer ni certificado de Windows todavía), así que el sistema mostrará una advertencia la primera vez:
 
 - **macOS**: al abrir el `.dmg` y arrastrar Tesina a Aplicaciones, macOS dirá que no puede verificar el desarrollador. Haz **clic derecho sobre Tesina.app → Abrir → Abrir** (solo la primera vez). En macOS 15+ puede hacer falta ir a **Ajustes del Sistema → Privacidad y seguridad → Abrir de todos modos**.
 - **Windows**: SmartScreen mostrará "Windows protegió tu PC". Pulsa **Más información → Ejecutar de todas formas**.
