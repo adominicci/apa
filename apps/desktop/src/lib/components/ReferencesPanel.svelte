@@ -39,6 +39,20 @@
     buildReferenceList(shown, documentLanguage).entries,
   );
 
+  // Cited in text only (APA 8.9); listed here so they stay manageable.
+  const personalComms = $derived(
+    shown.filter((ref) => ref.type === "personalCommunication"),
+  );
+
+  function commSummary(ref: Reference): string {
+    const first = ref.authors[0];
+    const name = first
+      ? first.kind === "group" ? first.name : first.family
+      : "";
+    const year = ref.date.year !== undefined ? ` (${ref.date.year})` : "";
+    return `${name}${year}`;
+  }
+
   function citedLabel(refId: string): string {
     const count = citedCounts.get(refId) ?? 0;
     if (count === 0) return "";
@@ -67,7 +81,7 @@
   </label>
 
   <div class="list">
-    {#if entries.length === 0}
+    {#if entries.length === 0 && personalComms.length === 0}
       <p class="empty">
         {references.length === 0
           ? "La biblioteca está vacía."
@@ -95,6 +109,27 @@
                 onblur={() => (confirmingDelete = null)}
               >
                 {confirmingDelete === entry.refId ? "¿Seguro?" : "Eliminar"}
+              </button>
+            </span>
+          </div>
+        </div>
+      {/each}
+      {#each personalComms as comm (comm.id)}
+        <div class="entry">
+          <p class="runs">{commSummary(comm)} — {comm.title}</p>
+          <div class="meta">
+            <span class="pill blue">solo en texto</span>
+            {#if citedCounts.has(comm.id)}
+              <span>{citedLabel(comm.id)}</span>
+            {/if}
+            <span class="actions">
+              <button onclick={() => onCite(comm.id)}>Citar</button>
+              <button
+                class="danger"
+                onclick={() => handleDelete(comm.id)}
+                onblur={() => (confirmingDelete = null)}
+              >
+                {confirmingDelete === comm.id ? "¿Seguro?" : "Eliminar"}
               </button>
             </span>
           </div>
@@ -182,6 +217,11 @@
     color: #633806;
     border-radius: 999px;
     padding: 0 7px;
+  }
+
+  .pill.blue {
+    background: #eaf1fe;
+    color: #173a8c;
   }
 
   .actions {

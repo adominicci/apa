@@ -22,12 +22,28 @@
   let mode = $state<CitationAttrs["mode"]>("parenthetical");
   let page = $state("");
 
-  const formatted = $derived(
-    buildReferenceList(references, documentLanguage).entries.map((entry) => ({
-      refId: entry.refId,
-      text: plainText(entry.runs),
-    })),
-  );
+  const formatted = $derived.by(() => {
+    const listed = buildReferenceList(references, documentLanguage).entries
+      .map((entry) => ({
+        refId: entry.refId,
+        text: plainText(entry.runs),
+      }));
+    // Personal communications are citable but never listed (APA 8.9).
+    const comms = references
+      .filter((ref) => ref.type === "personalCommunication")
+      .map((ref) => {
+        const first = ref.authors[0];
+        const name = first
+          ? first.kind === "group" ? first.name : first.family
+          : "";
+        const year = ref.date.year !== undefined ? `, ${ref.date.year}` : "";
+        return {
+          refId: ref.id,
+          text: `${name} — comunicación personal${year}`,
+        };
+      });
+    return [...listed, ...comms];
+  });
 
   const visible = $derived(
     query.trim() === ""

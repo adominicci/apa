@@ -1,12 +1,21 @@
 <script lang="ts">
-  import type { Contributor, Reference } from "@tesina/engine";
+  import type {
+    APADate,
+    Contributor,
+    Reference,
+    ReferenceType,
+  } from "@tesina/engine";
   import { detectInput } from "$lib/autofill/detect";
   import {
     type AutofillError,
     lookupDoi,
     lookupIsbn,
   } from "$lib/autofill/client";
-  import { refToQuickFields } from "$lib/autofill/fill";
+  import {
+    emptyQuickFields,
+    type QuickFields,
+    refToQuickFields,
+  } from "$lib/autofill/fill";
 
   interface Props {
     onSave: (ref: Reference) => void;
@@ -15,27 +24,24 @@
 
   let { onSave, onClose }: Props = $props();
 
-  type QuickType = "journalArticle" | "book" | "website" | "report" | "thesis";
+  const TYPE_OPTIONS: { value: ReferenceType; label: string }[] = [
+    { value: "journalArticle", label: "Artículo de revista académica" },
+    { value: "book", label: "Libro" },
+    { value: "bookChapter", label: "Capítulo de libro editado" },
+    { value: "website", label: "Página web" },
+    { value: "report", label: "Informe" },
+    { value: "thesis", label: "Tesis" },
+    { value: "conferencePaper", label: "Ponencia de congreso" },
+    { value: "newspaperArticle", label: "Periódico o revista" },
+    { value: "referenceEntry", label: "Entrada de diccionario" },
+    { value: "video", label: "Video" },
+    { value: "podcastEpisode", label: "Episodio de podcast" },
+    { value: "socialMedia", label: "Publicación en red social" },
+    { value: "software", label: "Software o conjunto de datos" },
+    { value: "personalCommunication", label: "Comunicación personal" },
+  ];
 
-  let type = $state<QuickType>("journalArticle");
-  let authorsText = $state("");
-  let year = $state("");
-  let noDate = $state(false);
-  let title = $state("");
-  let journal = $state("");
-  let volume = $state("");
-  let issue = $state("");
-  let pages = $state("");
-  let publisher = $state("");
-  let siteName = $state("");
-  let institution = $state("");
-  let reportNumber = $state("");
-  let thesisType = $state<"doctoral" | "masters">("doctoral");
-  let unpublished = $state(false);
-  let archive = $state("");
-  let url = $state("");
-  let doi = $state("");
-
+  let f = $state<QuickFields>(emptyQuickFields());
   let lookupText = $state("");
   let looking = $state(false);
   let lookupError = $state("");
@@ -44,11 +50,40 @@
   const ERROR_MESSAGES: Record<AutofillError | "unknown-input", string> = {
     offline: "Sin conexión o el servicio no respondió. Intenta de nuevo.",
     "not-found": "No se encontró ese DOI/ISBN.",
-    unsupported:
-      "Tipo de obra aún no soportado por el formulario rápido (llega en el gestor completo).",
+    unsupported: "Tipo de obra aún no soportado por el autollenado.",
     parse: "El servicio devolvió una respuesta inesperada.",
     "unknown-input": "Eso no parece un DOI ni un ISBN.",
   };
+
+  const canSave = $derived.by(() => {
+    if (f.type === "personalCommunication") {
+      return f.authorsText.trim() !== "" && (f.noDate || f.year.trim() !== "");
+    }
+    if (f.title.trim() === "") return false;
+    if (!f.noDate && f.year.trim() === "") return false;
+    switch (f.type) {
+      case "journalArticle":
+        return f.journal.trim() !== "";
+      case "bookChapter":
+        return f.bookTitle.trim() !== "";
+      case "thesis":
+        return f.institution.trim() !== "";
+      case "conferencePaper":
+        return f.conferenceName.trim() !== "";
+      case "newspaperArticle":
+        return f.publication.trim() !== "";
+      case "referenceEntry":
+        return f.workTitle.trim() !== "";
+      case "video":
+        return f.platform.trim() !== "";
+      case "podcastEpisode":
+        return f.showTitle.trim() !== "";
+      case "socialMedia":
+        return f.platform.trim() !== "" && f.contentType.trim() !== "";
+      default:
+        return true;
+    }
+  });
 
   async function lookup() {
     lookupError = "";
@@ -67,44 +102,15 @@
         lookupError = ERROR_MESSAGES[result.error];
         return;
       }
-      const fields = refToQuickFields(result.ref);
-      if (!fields) {
-        lookupError = ERROR_MESSAGES.unsupported;
-        return;
-      }
-      type = fields.type;
-      authorsText = fields.authorsText;
-      year = fields.year;
-      noDate = fields.noDate;
-      title = fields.title;
-      journal = fields.journal;
-      volume = fields.volume;
-      issue = fields.issue;
-      pages = fields.pages;
-      publisher = fields.publisher;
-      siteName = fields.siteName;
-      institution = fields.institution;
-      reportNumber = fields.reportNumber;
-      thesisType = fields.thesisType;
-      unpublished = fields.unpublished;
-      archive = fields.archive;
-      url = fields.url;
-      doi = fields.doi;
+      f = refToQuickFields(result.ref);
       autofilled = true;
     } finally {
       looking = false;
     }
   }
 
-  const canSave = $derived(
-    title.trim() !== "" &&
-      (noDate || year.trim() !== "") &&
-      (type !== "journalArticle" || journal.trim() !== "") &&
-      (type !== "thesis" || institution.trim() !== ""),
-  );
-
   /** One contributor per line: "Apellido, Nombre" or a group name. */
-  function parseAuthors(text: string): Contributor[] {
+  function parseContributors(text: string): Contributor[] {
     return text
       .split("\n")
       .map((line) => line.trim())
@@ -120,65 +126,173 @@
       });
   }
 
+  function buildDate(): APADate {
+    if (f.noDate) return { noDate: true };
+    const date: APADate = { year: Number.parseInt(f.year, 10) };
+    const month = Number.parseInt(f.month, 10);
+    const day = Number.parseInt(f.day, 10);
+    if (month >= 1 && month <= 12) {
+      date.month = month;
+      if (day >= 1 && day <= 31) date.day = day;
+    }
+    return date;
+  }
+
+  function opt(value: string): string | undefined {
+    const trimmed = value.trim();
+    return trimmed === "" ? undefined : trimmed;
+  }
+
+  function splitPages(): { pageStart?: string; pageEnd?: string } {
+    const [start, end] = f.pages.split(/[–-]/).map((p) => p.trim());
+    return {
+      ...(start ? { pageStart: start } : {}),
+      ...(end ? { pageEnd: end } : {}),
+    };
+  }
+
   function save() {
     if (!canSave) return;
     const base = {
       id: crypto.randomUUID(),
-      authors: parseAuthors(authorsText),
-      date: noDate
-        ? { noDate: true as const }
-        : { year: Number.parseInt(year, 10) },
-      title: title.trim(),
-      ...(doi.trim() !== "" ? { doi: doi.trim() } : {}),
-      ...(url.trim() !== "" ? { url: url.trim() } : {}),
+      authors: parseContributors(f.authorsText),
+      date: buildDate(),
+      title: f.title.trim() ||
+        (f.type === "personalCommunication" ? "Comunicación personal" : ""),
+      ...(opt(f.doi) ? { doi: opt(f.doi)! } : {}),
+      ...(opt(f.url) ? { url: opt(f.url)! } : {}),
     };
 
     let ref: Reference;
-    if (type === "journalArticle") {
-      const [pageStart, pageEnd] = pages.split(/[–-]/).map((p) => p.trim());
-      ref = {
-        ...base,
-        type: "journalArticle",
-        journal: journal.trim(),
-        ...(volume.trim() !== "" ? { volume: volume.trim() } : {}),
-        ...(issue.trim() !== "" ? { issue: issue.trim() } : {}),
-        ...(pageStart ? { pageStart } : {}),
-        ...(pageEnd ? { pageEnd } : {}),
-      };
-    } else if (type === "book") {
-      ref = {
-        ...base,
-        type: "book",
-        ...(publisher.trim() !== "" ? { publisher: publisher.trim() } : {}),
-      };
-    } else if (type === "report") {
-      ref = {
-        ...base,
-        type: "report",
-        ...(institution.trim() !== ""
-          ? { institution: institution.trim() }
-          : {}),
-        ...(reportNumber.trim() !== ""
-          ? { reportNumber: reportNumber.trim() }
-          : {}),
-      };
-    } else if (type === "thesis") {
-      ref = {
-        ...base,
-        type: "thesis",
-        thesisType,
-        institution: institution.trim(),
-        ...(unpublished ? { unpublished: true } : {}),
-        ...(!unpublished && archive.trim() !== ""
-          ? { archive: archive.trim() }
-          : {}),
-      };
-    } else {
-      ref = {
-        ...base,
-        type: "website",
-        ...(siteName.trim() !== "" ? { siteName: siteName.trim() } : {}),
-      };
+    switch (f.type) {
+      case "journalArticle":
+        ref = {
+          ...base,
+          type: "journalArticle",
+          journal: f.journal.trim(),
+          ...(opt(f.volume) ? { volume: opt(f.volume)! } : {}),
+          ...(opt(f.issue) ? { issue: opt(f.issue)! } : {}),
+          ...splitPages(),
+        };
+        break;
+      case "book":
+        ref = {
+          ...base,
+          type: "book",
+          ...(opt(f.publisher) ? { publisher: opt(f.publisher)! } : {}),
+          ...(opt(f.edition) ? { edition: opt(f.edition)! } : {}),
+        };
+        break;
+      case "bookChapter":
+        ref = {
+          ...base,
+          type: "bookChapter",
+          editors: parseContributors(f.editorsText),
+          bookTitle: f.bookTitle.trim(),
+          ...(opt(f.edition) ? { edition: opt(f.edition)! } : {}),
+          ...splitPages(),
+          ...(opt(f.publisher) ? { publisher: opt(f.publisher)! } : {}),
+        };
+        break;
+      case "website":
+        ref = {
+          ...base,
+          type: "website",
+          ...(opt(f.siteName) ? { siteName: opt(f.siteName)! } : {}),
+        };
+        break;
+      case "report":
+        ref = {
+          ...base,
+          type: "report",
+          ...(opt(f.institution) ? { institution: opt(f.institution)! } : {}),
+          ...(opt(f.reportNumber)
+            ? { reportNumber: opt(f.reportNumber)! }
+            : {}),
+        };
+        break;
+      case "thesis":
+        ref = {
+          ...base,
+          type: "thesis",
+          thesisType: f.thesisType,
+          institution: f.institution.trim(),
+          ...(f.unpublished ? { unpublished: true } : {}),
+          ...(!f.unpublished && opt(f.archive)
+            ? { archive: opt(f.archive)! }
+            : {}),
+        };
+        break;
+      case "conferencePaper": {
+        const dayEnd = Number.parseInt(f.dayEnd, 10);
+        ref = {
+          ...base,
+          type: "conferencePaper",
+          conferenceName: f.conferenceName.trim(),
+          ...(opt(f.location) ? { location: opt(f.location)! } : {}),
+          ...(dayEnd >= 1 && dayEnd <= 31 ? { dayEnd } : {}),
+        };
+        break;
+      }
+      case "newspaperArticle":
+        ref = {
+          ...base,
+          type: "newspaperArticle",
+          publication: f.publication.trim(),
+          ...(opt(f.volume) ? { volume: opt(f.volume)! } : {}),
+          ...(opt(f.issue) ? { issue: opt(f.issue)! } : {}),
+          ...splitPages(),
+        };
+        break;
+      case "referenceEntry":
+        ref = {
+          ...base,
+          type: "referenceEntry",
+          workTitle: f.workTitle.trim(),
+          ...(opt(f.edition) ? { edition: opt(f.edition)! } : {}),
+          ...(opt(f.publisher) ? { publisher: opt(f.publisher)! } : {}),
+        };
+        break;
+      case "video":
+        ref = {
+          ...base,
+          type: "video",
+          ...(opt(f.username) ? { username: opt(f.username)! } : {}),
+          platform: f.platform.trim(),
+        };
+        break;
+      case "podcastEpisode":
+        ref = {
+          ...base,
+          type: "podcastEpisode",
+          ...(opt(f.episodeNumber)
+            ? { episodeNumber: opt(f.episodeNumber)! }
+            : {}),
+          showTitle: f.showTitle.trim(),
+          ...(opt(f.platform) ? { platform: opt(f.platform)! } : {}),
+        };
+        break;
+      case "socialMedia":
+        ref = {
+          ...base,
+          type: "socialMedia",
+          ...(opt(f.username) ? { username: opt(f.username)! } : {}),
+          platform: f.platform.trim(),
+          contentType: f.contentType.trim(),
+        };
+        break;
+      case "software":
+        ref = {
+          ...base,
+          type: "software",
+          kind: f.softwareKind,
+          ...(opt(f.version) ? { version: opt(f.version)! } : {}),
+          ...(opt(f.publisher) ? { publisher: opt(f.publisher)! } : {}),
+        };
+        break;
+      case "personalCommunication":
+        ref = { ...base, type: "personalCommunication" };
+        break;
     }
     onSave(ref);
   }
@@ -218,156 +332,286 @@
       {/if}
     </div>
 
-    <div class="seg" role="group" aria-label="Tipo de fuente">
-      <button
-        class:active={type === "journalArticle"}
-        onclick={() => (type = "journalArticle")}
-      >
-        Artículo
-      </button>
-      <button class:active={type === "book"} onclick={() => (type = "book")}>
-        Libro
-      </button>
-      <button
-        class:active={type === "website"}
-        onclick={() => (type = "website")}
-      >
-        Página web
-      </button>
-      <button
-        class:active={type === "report"}
-        onclick={() => (type = "report")}
-      >
-        Informe
-      </button>
-      <button
-        class:active={type === "thesis"}
-        onclick={() => (type = "thesis")}
-      >
-        Tesis
-      </button>
-    </div>
+    <label>
+      Tipo de fuente
+      <select bind:value={f.type}>
+        {#each TYPE_OPTIONS as option (option.value)}
+          <option value={option.value}>{option.label}</option>
+        {/each}
+      </select>
+    </label>
+
+    {#if f.type === "personalCommunication"}
+      <p class="notice">
+        Las comunicaciones personales se citan solo en el texto y nunca
+        aparecen en la lista de referencias (APA 8.9).
+      </p>
+    {/if}
 
     <label>
       Autores — uno por línea: "Apellido, Nombre" (o nombre de organización)
-      <textarea rows="3" bind:value={authorsText} placeholder="Salgado, Nora"
+      <textarea rows="3" bind:value={f.authorsText} placeholder="Salgado, Nora"
       ></textarea>
     </label>
 
     <div class="row">
       <label class="grow">
         Año
-        <input
-          type="text"
-          bind:value={year}
-          placeholder="2020"
-          disabled={noDate}
-        />
+        <input type="text" bind:value={f.year} disabled={f.noDate} />
+      </label>
+      <label class="grow">
+        Mes (1–12)
+        <input type="text" bind:value={f.month} disabled={f.noDate} />
+      </label>
+      <label class="grow">
+        Día
+        <input type="text" bind:value={f.day} disabled={f.noDate} />
       </label>
       <label class="checkline">
-        <input type="checkbox" bind:checked={noDate} /> Sin fecha
+        <input type="checkbox" bind:checked={f.noDate} /> Sin fecha
       </label>
     </div>
 
-    <label>
-      Título
-      <input type="text" bind:value={title} />
-    </label>
+    {#if f.type !== "personalCommunication"}
+      <label>
+        Título
+        <input type="text" bind:value={f.title} />
+      </label>
+    {/if}
 
-    {#if type === "journalArticle"}
+    {#if f.type === "journalArticle"}
       <label>
         Revista
-        <input type="text" bind:value={journal} />
+        <input type="text" bind:value={f.journal} />
       </label>
       <div class="row">
         <label class="grow">
           Volumen
-          <input type="text" bind:value={volume} />
+          <input type="text" bind:value={f.volume} />
         </label>
         <label class="grow">
           Número
-          <input type="text" bind:value={issue} />
+          <input type="text" bind:value={f.issue} />
         </label>
         <label class="grow">
           Páginas
-          <input type="text" bind:value={pages} placeholder="45–67" />
+          <input type="text" bind:value={f.pages} placeholder="45–67" />
         </label>
       </div>
+    {:else if f.type === "book"}
+      <div class="row">
+        <label class="grow">
+          Editorial
+          <input type="text" bind:value={f.publisher} />
+        </label>
+        <label class="grow">
+          Edición (número)
+          <input type="text" bind:value={f.edition} placeholder="2" />
+        </label>
+      </div>
+    {:else if f.type === "bookChapter"}
       <label>
-        DOI
-        <input type="text" bind:value={doi} placeholder="10.1234/abcd" />
-      </label>
-    {:else if type === "book"}
-      <label>
-        Editorial
-        <input type="text" bind:value={publisher} />
-      </label>
-      <label>
-        DOI o URL (opcional)
-        <input type="text" bind:value={url} />
-      </label>
-    {:else if type === "report"}
-      <label>
-        Institución que publica
-        <input type="text" bind:value={institution} />
+        Editores del libro — uno por línea
+        <textarea rows="2" bind:value={f.editorsText}></textarea>
       </label>
       <label>
-        Número de informe (opcional)
-        <input type="text" bind:value={reportNumber} placeholder="123" />
+        Título del libro
+        <input type="text" bind:value={f.bookTitle} />
       </label>
+      <div class="row">
+        <label class="grow">
+          Edición
+          <input type="text" bind:value={f.edition} />
+        </label>
+        <label class="grow">
+          Páginas
+          <input type="text" bind:value={f.pages} placeholder="85–104" />
+        </label>
+        <label class="grow">
+          Editorial
+          <input type="text" bind:value={f.publisher} />
+        </label>
+      </div>
+    {:else if f.type === "website"}
       <label>
-        DOI o URL (opcional)
-        <input type="text" bind:value={url} />
+        Nombre del sitio
+        <input type="text" bind:value={f.siteName} />
       </label>
-    {:else if type === "thesis"}
+    {:else if f.type === "report"}
+      <div class="row">
+        <label class="grow">
+          Institución que publica
+          <input type="text" bind:value={f.institution} />
+        </label>
+        <label class="grow">
+          Número de informe
+          <input type="text" bind:value={f.reportNumber} />
+        </label>
+      </div>
+    {:else if f.type === "thesis"}
       <div class="seg" role="group" aria-label="Tipo de tesis">
         <button
-          class:active={thesisType === "doctoral"}
-          onclick={() => (thesisType = "doctoral")}
+          class:active={f.thesisType === "doctoral"}
+          onclick={() => (f.thesisType = "doctoral")}
         >
           Doctoral
         </button>
         <button
-          class:active={thesisType === "masters"}
-          onclick={() => (thesisType = "masters")}
+          class:active={f.thesisType === "masters"}
+          onclick={() => (f.thesisType = "masters")}
         >
           Maestría
         </button>
       </div>
       <label>
         Institución (universidad)
-        <input type="text" bind:value={institution} />
+        <input type="text" bind:value={f.institution} />
       </label>
       <label class="checkline">
-        <input type="checkbox" bind:checked={unpublished} /> Inédita (no
+        <input type="checkbox" bind:checked={f.unpublished} /> Inédita (no
         publicada)
       </label>
-      {#if !unpublished}
+      {#if !f.unpublished}
         <label>
           Repositorio o base de datos
-          <input type="text" bind:value={archive} />
+          <input type="text" bind:value={f.archive} />
         </label>
       {/if}
+    {:else if f.type === "conferencePaper"}
       <label>
-        URL (opcional)
-        <input type="text" bind:value={url} />
+        Nombre del congreso
+        <input type="text" bind:value={f.conferenceName} />
       </label>
-    {:else}
+      <div class="row">
+        <label class="grow">
+          Lugar (Ciudad, País)
+          <input type="text" bind:value={f.location} />
+        </label>
+        <label class="grow">
+          Día final (si dura varios días)
+          <input type="text" bind:value={f.dayEnd} placeholder="8" />
+        </label>
+      </div>
+    {:else if f.type === "newspaperArticle"}
       <label>
-        Nombre del sitio
-        <input type="text" bind:value={siteName} />
+        Nombre del periódico o revista
+        <input type="text" bind:value={f.publication} />
       </label>
+      <div class="row">
+        <label class="grow">
+          Volumen
+          <input type="text" bind:value={f.volume} />
+        </label>
+        <label class="grow">
+          Número
+          <input type="text" bind:value={f.issue} />
+        </label>
+        <label class="grow">
+          Páginas
+          <input type="text" bind:value={f.pages} />
+        </label>
+      </div>
+    {:else if f.type === "referenceEntry"}
       <label>
-        URL
-        <input type="text" bind:value={url} placeholder="https://…" />
+        Diccionario o enciclopedia
+        <input type="text" bind:value={f.workTitle} />
       </label>
+      <div class="row">
+        <label class="grow">
+          Edición
+          <input type="text" bind:value={f.edition} />
+        </label>
+        <label class="grow">
+          Editorial
+          <input type="text" bind:value={f.publisher} />
+        </label>
+      </div>
+    {:else if f.type === "video"}
+      <div class="row">
+        <label class="grow">
+          Canal o nombre de usuario
+          <input type="text" bind:value={f.username} />
+        </label>
+        <label class="grow">
+          Plataforma
+          <input type="text" bind:value={f.platform} placeholder="YouTube" />
+        </label>
+      </div>
+    {:else if f.type === "podcastEpisode"}
+      <div class="row">
+        <label class="grow">
+          Número de episodio
+          <input type="text" bind:value={f.episodeNumber} />
+        </label>
+        <label class="grow">
+          Nombre del podcast
+          <input type="text" bind:value={f.showTitle} />
+        </label>
+        <label class="grow">
+          Plataforma
+          <input type="text" bind:value={f.platform} />
+        </label>
+      </div>
+    {:else if f.type === "socialMedia"}
+      <div class="row">
+        <label class="grow">
+          Usuario (@handle)
+          <input type="text" bind:value={f.username} />
+        </label>
+        <label class="grow">
+          Tipo de contenido
+          <input type="text" bind:value={f.contentType} placeholder="Tuit" />
+        </label>
+        <label class="grow">
+          Plataforma
+          <input type="text" bind:value={f.platform} placeholder="X" />
+        </label>
+      </div>
+    {:else if f.type === "software"}
+      <div class="seg" role="group" aria-label="Software o datos">
+        <button
+          class:active={f.softwareKind === "software"}
+          onclick={() => (f.softwareKind = "software")}
+        >
+          Software
+        </button>
+        <button
+          class:active={f.softwareKind === "dataset"}
+          onclick={() => (f.softwareKind = "dataset")}
+        >
+          Conjunto de datos
+        </button>
+      </div>
+      <div class="row">
+        <label class="grow">
+          Versión
+          <input type="text" bind:value={f.version} placeholder="2.1" />
+        </label>
+        <label class="grow">
+          Editorial o distribuidor
+          <input type="text" bind:value={f.publisher} />
+        </label>
+      </div>
+    {/if}
+
+    {#if f.type !== "personalCommunication"}
+      <div class="row">
+        <label class="grow">
+          DOI
+          <input type="text" bind:value={f.doi} placeholder="10.1234/abcd" />
+        </label>
+        <label class="grow">
+          URL
+          <input type="text" bind:value={f.url} placeholder="https://…" />
+        </label>
+      </div>
     {/if}
 
     <button class="save" onclick={save} disabled={!canSave}>
       Guardar referencia
     </button>
     <p class="hint">
-      Autollenado por URL, más tipos de fuente e import BibTeX: próximamente.
+      Autollenado por URL e import BibTeX: próximamente.
     </p>
   </div>
 </div>
@@ -384,7 +628,7 @@
   }
 
   .modal {
-    width: min(440px, calc(100vw - 2rem));
+    width: min(500px, calc(100vw - 2rem));
     max-height: calc(100vh - 4rem);
     overflow-y: auto;
     background: #fff;
@@ -402,6 +646,56 @@
     display: flex;
     gap: 10px;
     align-items: end;
+  }
+
+  .head {
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .close {
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #6b6a64;
+  }
+
+  .grow {
+    flex: 1;
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #44433e;
+  }
+
+  .checkline {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: 7px;
+    white-space: nowrap;
+  }
+
+  input[type="text"],
+  textarea,
+  select {
+    font: inherit;
+    padding: 6px 8px;
+    border: 1px solid #d7d4cf;
+    border-radius: 6px;
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    background: #fff;
+    color: inherit;
+  }
+
+  input:disabled {
+    opacity: 0.5;
   }
 
   .lookup {
@@ -451,51 +745,13 @@
     font-size: 0.75rem;
   }
 
-  .head {
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .close {
-    border: none;
-    background: transparent;
-    font-size: 1rem;
-    cursor: pointer;
-    color: #6b6a64;
-  }
-
-  .grow {
-    flex: 1;
-  }
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    color: #44433e;
-  }
-
-  .checkline {
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
-    padding-bottom: 7px;
-    white-space: nowrap;
-  }
-
-  input[type="text"],
-  textarea {
-    font: inherit;
-    padding: 6px 8px;
-    border: 1px solid #d7d4cf;
-    border-radius: 6px;
-    width: 100%;
-    box-sizing: border-box;
-    resize: vertical;
-  }
-
-  input:disabled {
-    opacity: 0.5;
+  .notice {
+    margin: 0;
+    padding: 8px;
+    border-radius: 8px;
+    background: #faeeda;
+    color: #633806;
+    font-size: 0.78rem;
   }
 
   .seg {
@@ -555,6 +811,7 @@
 
     input[type="text"],
     textarea,
+    select,
     .seg {
       border-color: #45443f;
       background: #1c1c1a;
@@ -589,6 +846,11 @@
 
     .lookup-ok {
       color: #b7cdfa;
+    }
+
+    .notice {
+      background: #4b3a12;
+      color: #fac775;
     }
   }
 </style>

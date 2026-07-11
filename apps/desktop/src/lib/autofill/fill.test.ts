@@ -30,71 +30,106 @@ describe("refToQuickFields", () => {
     });
   });
 
-  it("prefills books and undated works", () => {
+  it("prefills chapters with editors, book title, and pages", () => {
     const fields = refToQuickFields({
-      id: "y",
-      type: "book",
-      authors: [{ kind: "person", family: "Padilla", given: "Elena" }],
-      date: { noDate: true },
-      title: "Fundamentos",
-      publisher: "Ediciones Cardenal",
+      id: "c",
+      type: "bookChapter",
+      authors: [{ kind: "person", family: "Zamora", given: "Félix" }],
+      date: { year: 2019 },
+      title: "Redactar con intención",
+      editors: [{ kind: "person", family: "Navarro", given: "Iris" }],
+      bookTitle: "Manual de técnicas de estudio",
+      pageStart: "85",
+      pageEnd: "104",
+      publisher: "Ediciones Norlago",
     });
     expect(fields).toMatchObject({
-      type: "book",
-      noDate: true,
-      year: "",
-      publisher: "Ediciones Cardenal",
+      type: "bookChapter",
+      editorsText: "Navarro, Iris",
+      bookTitle: "Manual de técnicas de estudio",
+      pages: "85–104",
+      publisher: "Ediciones Norlago",
     });
   });
 
-  it("returns null for chapters (not editable in the quick form yet)", () => {
+  it("prefills full dates for media types", () => {
+    const fields = refToQuickFields({
+      id: "v",
+      type: "video",
+      authors: [{ kind: "person", family: "Pérez", given: "Juana" }],
+      username: "Aula Abierta",
+      date: { year: 2021, month: 3, day: 2 },
+      title: "Cómo estructurar tu primera revisión",
+      platform: "YouTube",
+    });
+    expect(fields).toMatchObject({
+      type: "video",
+      username: "Aula Abierta",
+      platform: "YouTube",
+      year: "2021",
+      month: "3",
+      day: "2",
+    });
+  });
+
+  it("prefills conference papers, social media, and software", () => {
     expect(
       refToQuickFields({
-        id: "z",
-        type: "bookChapter",
+        id: "cf",
+        type: "conferencePaper",
         authors: [],
-        date: { year: 2019 },
-        title: "Capítulo",
-        editors: [],
-        bookTitle: "Libro",
+        date: { year: 2023, month: 9, day: 5 },
+        dayEnd: 8,
+        title: "Rúbricas que viajan",
+        conferenceName: "Congreso Imaginario",
+        location: "Bogotá, Colombia",
       }),
-    ).toBeNull();
+    ).toMatchObject({
+      conferenceName: "Congreso Imaginario",
+      location: "Bogotá, Colombia",
+      dayEnd: "8",
+    });
+    expect(
+      refToQuickFields({
+        id: "sm",
+        type: "socialMedia",
+        authors: [],
+        username: "@mvela_lee",
+        date: { year: 2024 },
+        title: "Leer veinte páginas al día",
+        platform: "X",
+        contentType: "Tuit",
+      }),
+    ).toMatchObject({ username: "@mvela_lee", contentType: "Tuit" });
+    expect(
+      refToQuickFields({
+        id: "sw",
+        type: "software",
+        kind: "dataset",
+        authors: [],
+        date: { year: 2023 },
+        title: "Panel de hábitos",
+        version: "1.2",
+      }),
+    ).toMatchObject({ softwareKind: "dataset", version: "1.2" });
   });
 
-  it("prefills reports with institution and report number", () => {
-    const fields = refToQuickFields({
-      id: "r",
-      type: "report",
-      authors: [{ kind: "group", name: "Consejo Nacional de Lectura" }],
-      date: { year: 2021 },
-      title: "Panorama lector",
-      institution: "Consejo Nacional de Lectura",
-      reportNumber: "CL-9",
-    });
-    expect(fields).toMatchObject({
-      type: "report",
-      institution: "Consejo Nacional de Lectura",
-      reportNumber: "CL-9",
-    });
-  });
-
-  it("prefills theses with type, institution, and archive", () => {
+  it("prefills theses and undated works", () => {
     const fields = refToQuickFields({
       id: "t",
       type: "thesis",
       authors: [{ kind: "person", family: "Vargas", given: "Óscar" }],
-      date: { year: 2018 },
+      date: { noDate: true },
       title: "Estrategias de revisión",
       thesisType: "masters",
       institution: "Universidad del Valle",
-      archive: "Repositorio Académico Nacional",
     });
     expect(fields).toMatchObject({
       type: "thesis",
       thesisType: "masters",
-      unpublished: false,
+      noDate: true,
+      year: "",
       institution: "Universidad del Valle",
-      archive: "Repositorio Académico Nacional",
     });
   });
 });
