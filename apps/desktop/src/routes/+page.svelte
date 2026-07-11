@@ -5,6 +5,8 @@
   import Editor from "$lib/components/Editor.svelte";
   import CitationPopover from "$lib/components/CitationPopover.svelte";
   import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
+  import ReferencesPanel from "$lib/components/ReferencesPanel.svelte";
+  import { collectCitedRefIds } from "$lib/editor/citedRefs";
   import {
     type CitationEnv,
     insertCitation,
@@ -41,6 +43,8 @@
   let abstractPresent = $state(false);
   let citePopoverOpen = $state(false);
   let refFormOpen = $state(false);
+  let panelOpen = $state(true);
+  let citedCounts = $state<Map<string, number>>(new Map());
   let lastDoc: unknown;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -64,6 +68,7 @@
       if (draft) {
         initialDoc = draft.content;
         lastDoc = draft.content;
+        citedCounts = collectCitedRefIds(draft.content);
         if (draft.settings?.documentLanguage) {
           documentLanguage = draft.settings.documentLanguage;
         }
@@ -101,6 +106,7 @@
   function handleUpdate(docJson: unknown, wordCount: number) {
     lastDoc = docJson;
     words = wordCount;
+    citedCounts = collectCitedRefIds(docJson);
     if (editor) abstractPresent = hasAbstract(editor);
     scheduleSave();
   }
@@ -145,6 +151,19 @@
     refFormOpen = false;
     syncCitationEnv();
   }
+
+  function handleCiteFromPanel(refId: string) {
+    if (!editor) return;
+    insertCitation(editor, {
+      items: [{ refId }],
+      mode: "parenthetical",
+    });
+  }
+
+  function handleDeleteReference(refId: string) {
+    library.remove(refId);
+    syncCitationEnv();
+  }
 </script>
 
 <div class="shell">
@@ -176,8 +195,8 @@
       Añadir apéndice
     </button>
     <span class="divider"></span>
-    <button class="act" onclick={() => (refFormOpen = true)}>
-      Añadir referencia
+    <button class="act" onclick={() => (panelOpen = !panelOpen)}>
+      {panelOpen ? "Ocultar referencias" : "Referencias"}
     </button>
     <div class="cite-anchor">
       <button
@@ -199,13 +218,25 @@
   </header>
   <main>
     {#if ready}
-      <Editor
-        {initialDoc}
-        {documentLanguage}
-        {citationEnv}
-        onUpdate={handleUpdate}
-        onReady={handleReady}
-      />
+      <div class="editor-col">
+        <Editor
+          {initialDoc}
+          {documentLanguage}
+          {citationEnv}
+          onUpdate={handleUpdate}
+          onReady={handleReady}
+        />
+      </div>
+      {#if panelOpen}
+        <ReferencesPanel
+          references={library.references}
+          {citedCounts}
+          {documentLanguage}
+          onCite={handleCiteFromPanel}
+          onDelete={handleDeleteReference}
+          onAdd={() => (refFormOpen = true)}
+        />
+      {/if}
     {/if}
   </main>
   <footer>
@@ -318,7 +349,14 @@
 
   main {
     flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+
+  .editor-col {
+    flex: 1;
     overflow-y: auto;
+    min-width: 0;
   }
 
   footer {
