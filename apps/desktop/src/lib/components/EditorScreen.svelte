@@ -24,6 +24,7 @@
   } from "$lib/editor/sections";
   import { library } from "$lib/state/library.svelte";
   import { essays } from "$lib/state/essays.svelte";
+  import { exportEssayToDocx } from "$lib/export/exportEssay";
 
   interface Props {
     essay: Essay;
@@ -46,6 +47,8 @@
   let titleFormOpen = $state(false);
   let panelOpen = $state(true);
   let essayTitle = $state(untrack(() => essay.titlePage.title));
+  let exporting = $state(false);
+  let exportMessage = $state("");
   let citedCounts = $state<Map<string, number>>(
     untrack(() => collectCitedRefIds(essay.content)),
   );
@@ -151,6 +154,29 @@
     syncCitationEnv();
   }
 
+  async function handleExport() {
+    if (!editor || exporting) return;
+    exporting = true;
+    exportMessage = "";
+    try {
+      const references = essay.settings.includeUncitedReferences
+        ? [...library.byId().values()]
+        : snapshotCitedRefs();
+      const outcome = await exportEssayToDocx(
+        essay,
+        lastDoc ?? editor.getJSON(),
+        references,
+      );
+      if (outcome.status === "saved") {
+        exportMessage = `Exportado: ${outcome.path}`;
+      } else if (outcome.status === "error") {
+        exportMessage = `Error al exportar: ${outcome.message}`;
+      }
+    } finally {
+      exporting = false;
+    }
+  }
+
   function handleSaveTitlePage(
     titlePage: TitlePage,
     settings: EssaySettings,
@@ -203,7 +229,7 @@
     </button>
     <div class="cite-anchor">
       <button
-        class="act primary"
+        class="act"
         onclick={() => (citePopoverOpen = !citePopoverOpen)}
         disabled={!editor}
       >
@@ -218,6 +244,13 @@
         />
       {/if}
     </div>
+    <button
+      class="act primary"
+      onclick={handleExport}
+      disabled={!editor || exporting}
+    >
+      {exporting ? "Exportando…" : "Exportar"}
+    </button>
   </header>
   <EditorToolbar {editor} />
   <main>
@@ -245,6 +278,9 @@
     <span>{words} {words === 1 ? "palabra" : "palabras"}</span>
     <span>{library.references.length} referencias en la biblioteca</span>
     <span>Documento: {documentLanguage === "es" ? "Español" : "English"}</span>
+    {#if exportMessage}
+      <span class="export-msg">{exportMessage}</span>
+    {/if}
     <span class="status" data-status={status}>{status}</span>
   </footer>
 </div>
@@ -382,6 +418,13 @@
     background: #faf9f7;
     font-size: 0.8rem;
     color: #6b6a64;
+  }
+
+  .export-msg {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 40%;
   }
 
   .status {

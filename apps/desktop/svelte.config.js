@@ -14,6 +14,7 @@ const config = {
     }),
     alias: {
       "@tesina/engine": "../../packages/apa-engine/src/index.ts",
+      "@tesina/docx-export": "../../packages/docx-export/src/index.ts",
     },
   },
 };

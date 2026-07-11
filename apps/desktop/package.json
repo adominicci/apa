@@ -19,6 +19,7 @@
     "@tauri-apps/plugin-fs": "^2",
     "@tauri-apps/plugin-http": "^2",
     "@tauri-apps/plugin-opener": "^2",
+    "@tesina/docx-export": "*",
     "@tesina/engine": "*",
     "@tiptap/core": "^3.6.5",
     "@tiptap/pm": "^3.6.5",
