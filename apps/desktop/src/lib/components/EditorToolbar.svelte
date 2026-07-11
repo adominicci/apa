@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Editor } from "@tiptap/core";
+  import { m } from "$lib/paraglide/messages";
 
   interface Props {
     editor: Editor | undefined;
@@ -33,14 +34,14 @@
   const HEADING_LEVELS = [1, 2, 3, 4, 5] as const;
 </script>
 
-<div class="toolbar" role="toolbar" aria-label="Formato">
+<div class="toolbar" role="toolbar" aria-label={m.toolbar_aria()}>
   <span class="group">
     <button
       class="ic bold"
       class:on={active("bold")}
       onclick={() => editor?.chain().focus().toggleBold().run()}
       disabled={!editor}
-      aria-label="Negrita"
+      aria-label={m.toolbar_bold()}
     >
       B
     </button>
@@ -49,7 +50,7 @@
       class:on={active("italic")}
       onclick={() => editor?.chain().focus().toggleItalic().run()}
       disabled={!editor}
-      aria-label="Cursiva"
+      aria-label={m.toolbar_italic()}
     >
       I
     </button>
@@ -58,7 +59,7 @@
       class:on={active("underline")}
       onclick={() => editor?.chain().focus().toggleUnderline().run()}
       disabled={!editor}
-      aria-label="Subrayado"
+      aria-label={m.toolbar_underline()}
     >
       U
     </button>
@@ -71,7 +72,7 @@
         onclick={() =>
           editor?.chain().focus().toggleHeading({ level }).run()}
         disabled={!editor}
-        aria-label={`Encabezado nivel ${level}`}
+        aria-label={m.toolbar_heading_level({ level })}
       >
         T{level}
       </button>
@@ -83,7 +84,7 @@
       class:on={active("blockquote")}
       onclick={() => editor?.chain().focus().toggleBlockquote().run()}
       disabled={!editor}
-      aria-label="Cita en bloque"
+      aria-label={m.toolbar_blockquote()}
     >
       ❝
     </button>
@@ -92,7 +93,7 @@
       class:on={active("bulletList")}
       onclick={() => editor?.chain().focus().toggleBulletList().run()}
       disabled={!editor}
-      aria-label="Lista con viñetas"
+      aria-label={m.toolbar_bullet_list()}
     >
       ••
     </button>
@@ -101,14 +102,12 @@
       class:on={active("orderedList")}
       onclick={() => editor?.chain().focus().toggleOrderedList().run()}
       disabled={!editor}
-      aria-label="Lista numerada"
+      aria-label={m.toolbar_ordered_list()}
     >
       1.
     </button>
   </span>
-  <span class="apa-hint">
-    N1 centrado · N2 izquierda · N3 cursiva — el formato APA lo pone Tesina
-  </span>
+  <span class="apa-hint">{m.toolbar_apa_hint()}</span>
 </div>
 
 <style>

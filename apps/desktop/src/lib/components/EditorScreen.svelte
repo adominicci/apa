@@ -26,6 +26,7 @@
   import { library } from "$lib/state/library.svelte";
   import { essays } from "$lib/state/essays.svelte";
   import { exportEssayToDocx } from "$lib/export/exportEssay";
+  import { m } from "$lib/paraglide/messages";
 
   interface Props {
     essay: Essay;
@@ -136,6 +137,12 @@
     if (editor) addAppendix(editor);
   }
 
+  const STATUS_LABELS = {
+    guardando: m.editor_status_saving,
+    guardado: m.editor_status_saved,
+    error: m.editor_status_error,
+  } as const;
+
   function handleInsertCitation(attrs: CitationAttrs) {
     citePopoverOpen = false;
     if (editor) insertCitation(editor, attrs);
@@ -171,9 +178,9 @@
         references,
       );
       if (outcome.status === "saved") {
-        exportMessage = `Exportado: ${outcome.path}`;
+        exportMessage = m.editor_exported({ path: outcome.path });
       } else if (outcome.status === "error") {
-        exportMessage = `Error al exportar: ${outcome.message}`;
+        exportMessage = m.editor_export_error({ message: outcome.message });
       }
     } finally {
       exporting = false;
@@ -194,16 +201,16 @@
 
 <div class="shell">
   <header>
-    <button class="act" onclick={onBack} aria-label="Volver a mis ensayos">
-      ← Inicio
+    <button class="act" onclick={onBack} aria-label={m.editor_back_aria()}>
+      {m.editor_back()}
     </button>
     <span class="brand">Tesina</span>
     <span class="doc">{essayTitle}</span>
     <span class="spacer"></span>
     <button class="act" onclick={() => (titleFormOpen = true)}>
-      Portada
+      {m.editor_title_page()}
     </button>
-    <div class="seg" role="group" aria-label="Idioma del documento">
+    <div class="seg" role="group" aria-label={m.editor_doc_language_aria()}>
       <button
         class:active={documentLanguage === "es"}
         onclick={() => setLanguage("es")}
@@ -218,13 +225,13 @@
       </button>
     </div>
     <button class="act" onclick={toggleAbstract} disabled={!editor}>
-      {abstractPresent ? "Quitar resumen" : "Añadir resumen"}
+      {abstractPresent ? m.editor_remove_abstract() : m.editor_add_abstract()}
     </button>
     <button class="act" onclick={handleAddKeywords} disabled={!editor}>
-      Palabras clave
+      {m.editor_keywords()}
     </button>
     <button class="act" onclick={handleAddAppendix} disabled={!editor}>
-      Añadir apéndice
+      {m.editor_add_appendix()}
     </button>
     <span class="divider"></span>
     <button
@@ -234,15 +241,15 @@
         if (!previewOpen) pageCount = 0;
       }}
     >
-      {previewOpen ? "Volver al editor" : "Vista previa"}
+      {previewOpen ? m.editor_back_to_editor() : m.editor_preview()}
     </button>
     {#if previewOpen}
       <button class="act" onclick={() => window.print()}>
-        Imprimir / PDF
+        {m.editor_print()}
       </button>
     {/if}
     <button class="act" onclick={() => (panelOpen = !panelOpen)}>
-      {panelOpen ? "Ocultar referencias" : "Referencias"}
+      {panelOpen ? m.editor_hide_references() : m.editor_show_references()}
     </button>
     <div class="cite-anchor">
       <button
@@ -250,7 +257,7 @@
         onclick={() => (citePopoverOpen = !citePopoverOpen)}
         disabled={!editor}
       >
-        Insertar cita
+        {m.editor_insert_citation()}
       </button>
       {#if citePopoverOpen}
         <CitationPopover
@@ -266,7 +273,7 @@
       onclick={handleExport}
       disabled={!editor || exporting}
     >
-      {exporting ? "Exportando…" : "Exportar"}
+      {exporting ? m.editor_exporting() : m.editor_export()}
     </button>
   </header>
   <EditorToolbar {editor} />
@@ -304,16 +311,30 @@
     {/if}
   </main>
   <footer>
-    <span>{words} {words === 1 ? "palabra" : "palabras"}</span>
+    <span>
+      {words === 1 ? m.editor_words_one() : m.editor_words_many({
+        count: words,
+      })}
+    </span>
     {#if previewOpen && pageCount > 0}
-      <span>{pageCount} {pageCount === 1 ? "página" : "páginas"}</span>
+      <span>
+        {pageCount === 1 ? m.editor_pages_one() : m.editor_pages_many({
+          count: pageCount,
+        })}
+      </span>
     {/if}
-    <span>{library.references.length} referencias en la biblioteca</span>
-    <span>Documento: {documentLanguage === "es" ? "Español" : "English"}</span>
+    <span>
+      {m.editor_refs_in_library({ count: library.references.length })}
+    </span>
+    <span>
+      {m.editor_document_label({
+        lang: documentLanguage === "es" ? "Español" : "English",
+      })}
+    </span>
     {#if exportMessage}
       <span class="export-msg">{exportMessage}</span>
     {/if}
-    <span class="status" data-status={status}>{status}</span>
+    <span class="status" data-status={status}>{STATUS_LABELS[status]()}</span>
   </footer>
 </div>
 
