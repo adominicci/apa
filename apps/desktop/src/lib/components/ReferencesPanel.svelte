@@ -5,6 +5,7 @@
     getTerms,
     type Reference,
   } from "@tesina/engine";
+  import { m } from "$lib/paraglide/messages";
 
   interface Props {
     references: Reference[];
@@ -56,7 +57,7 @@
   function citedLabel(refId: string): string {
     const count = citedCounts.get(refId) ?? 0;
     if (count === 0) return "";
-    return count === 1 ? "citada 1×" : `citada ${count}×`;
+    return count === 1 ? m.panel_cited_once() : m.panel_cited_many({ count });
   }
 
   function handleDelete(refId: string) {
@@ -72,20 +73,20 @@
 <aside class="panel" aria-label={heading}>
   <div class="head">
     <strong>{heading}</strong>
-    <button class="add" onclick={onAdd}>+ Añadir</button>
+    <button class="add" onclick={onAdd}>{m.panel_add()}</button>
   </div>
 
   <label class="toggle">
     <input type="checkbox" bind:checked={includeUncited} />
-    Incluir no citadas
+    {m.panel_include_uncited()}
   </label>
 
   <div class="list">
     {#if entries.length === 0 && personalComms.length === 0}
       <p class="empty">
         {references.length === 0
-          ? "La biblioteca está vacía."
-          : "Ninguna obra citada todavía."}
+          ? m.panel_empty_library()
+          : m.panel_empty_cited()}
       </p>
     {:else}
       {#each entries as entry (entry.refId)}
@@ -99,16 +100,20 @@
             {#if citedCounts.has(entry.refId)}
               <span>{citedLabel(entry.refId)}</span>
             {:else}
-              <span class="pill">sin citar</span>
+              <span class="pill">{m.panel_uncited()}</span>
             {/if}
             <span class="actions">
-              <button onclick={() => onCite(entry.refId)}>Citar</button>
+              <button onclick={() => onCite(entry.refId)}>
+                {m.panel_cite()}
+              </button>
               <button
                 class="danger"
                 onclick={() => handleDelete(entry.refId)}
                 onblur={() => (confirmingDelete = null)}
               >
-                {confirmingDelete === entry.refId ? "¿Seguro?" : "Eliminar"}
+                {confirmingDelete === entry.refId
+                  ? m.panel_delete_confirm()
+                  : m.panel_delete()}
               </button>
             </span>
           </div>
@@ -118,18 +123,20 @@
         <div class="entry">
           <p class="runs">{commSummary(comm)} — {comm.title}</p>
           <div class="meta">
-            <span class="pill blue">solo en texto</span>
+            <span class="pill blue">{m.panel_in_text_only()}</span>
             {#if citedCounts.has(comm.id)}
               <span>{citedLabel(comm.id)}</span>
             {/if}
             <span class="actions">
-              <button onclick={() => onCite(comm.id)}>Citar</button>
+              <button onclick={() => onCite(comm.id)}>{m.panel_cite()}</button>
               <button
                 class="danger"
                 onclick={() => handleDelete(comm.id)}
                 onblur={() => (confirmingDelete = null)}
               >
-                {confirmingDelete === comm.id ? "¿Seguro?" : "Eliminar"}
+                {confirmingDelete === comm.id
+                  ? m.panel_delete_confirm()
+                  : m.panel_delete()}
               </button>
             </span>
           </div>

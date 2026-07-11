@@ -16,6 +16,7 @@
     type QuickFields,
     refToQuickFields,
   } from "$lib/autofill/fill";
+  import { m } from "$lib/paraglide/messages";
 
   interface Props {
     onSave: (ref: Reference) => void;
@@ -25,20 +26,23 @@
   let { onSave, onClose }: Props = $props();
 
   const TYPE_OPTIONS: { value: ReferenceType; label: string }[] = [
-    { value: "journalArticle", label: "Artículo de revista académica" },
-    { value: "book", label: "Libro" },
-    { value: "bookChapter", label: "Capítulo de libro editado" },
-    { value: "website", label: "Página web" },
-    { value: "report", label: "Informe" },
-    { value: "thesis", label: "Tesis" },
-    { value: "conferencePaper", label: "Ponencia de congreso" },
-    { value: "newspaperArticle", label: "Periódico o revista" },
-    { value: "referenceEntry", label: "Entrada de diccionario" },
-    { value: "video", label: "Video" },
-    { value: "podcastEpisode", label: "Episodio de podcast" },
-    { value: "socialMedia", label: "Publicación en red social" },
-    { value: "software", label: "Software o conjunto de datos" },
-    { value: "personalCommunication", label: "Comunicación personal" },
+    { value: "journalArticle", label: m.form_type_journalArticle() },
+    { value: "book", label: m.form_type_book() },
+    { value: "bookChapter", label: m.form_type_bookChapter() },
+    { value: "website", label: m.form_type_website() },
+    { value: "report", label: m.form_type_report() },
+    { value: "thesis", label: m.form_type_thesis() },
+    { value: "conferencePaper", label: m.form_type_conferencePaper() },
+    { value: "newspaperArticle", label: m.form_type_newspaperArticle() },
+    { value: "referenceEntry", label: m.form_type_referenceEntry() },
+    { value: "video", label: m.form_type_video() },
+    { value: "podcastEpisode", label: m.form_type_podcastEpisode() },
+    { value: "socialMedia", label: m.form_type_socialMedia() },
+    { value: "software", label: m.form_type_software() },
+    {
+      value: "personalCommunication",
+      label: m.form_type_personalCommunication(),
+    },
   ];
 
   let f = $state<QuickFields>(emptyQuickFields());
@@ -47,13 +51,14 @@
   let lookupError = $state("");
   let autofilled = $state(false);
 
-  const ERROR_MESSAGES: Record<AutofillError | "unknown-input", string> = {
-    offline: "Sin conexión o el servicio no respondió. Intenta de nuevo.",
-    "not-found": "No se encontró ese DOI/ISBN.",
-    unsupported: "Tipo de obra aún no soportado por el autollenado.",
-    parse: "El servicio devolvió una respuesta inesperada.",
-    "unknown-input": "Eso no parece un DOI ni un ISBN.",
-  };
+  const ERROR_MESSAGES: Record<AutofillError | "unknown-input", () => string> =
+    {
+      offline: m.form_err_offline,
+      "not-found": m.form_err_not_found,
+      unsupported: m.form_err_unsupported,
+      parse: m.form_err_parse,
+      "unknown-input": m.form_err_unknown_input,
+    };
 
   const canSave = $derived.by(() => {
     if (f.type === "personalCommunication") {
@@ -90,7 +95,7 @@
     autofilled = false;
     const detected = detectInput(lookupText);
     if (detected.kind !== "doi" && detected.kind !== "isbn") {
-      lookupError = ERROR_MESSAGES["unknown-input"];
+      lookupError = ERROR_MESSAGES["unknown-input"]();
       return;
     }
     looking = true;
@@ -99,7 +104,7 @@
         ? await lookupDoi(detected.value)
         : await lookupIsbn(detected.value);
       if (!result.ok) {
-        lookupError = ERROR_MESSAGES[result.error];
+        lookupError = ERROR_MESSAGES[result.error]();
         return;
       }
       f = refToQuickFields(result.ref);
@@ -299,10 +304,10 @@
 </script>
 
 <div class="overlay" role="presentation">
-  <div class="modal" role="dialog" aria-label="Añadir referencia">
+  <div class="modal" role="dialog" aria-label={m.form_title()}>
     <div class="row head">
-      <strong>Añadir referencia</strong>
-      <button class="close" onclick={onClose} aria-label="Cerrar">×</button>
+      <strong>{m.form_title()}</strong>
+      <button class="close" onclick={onClose} aria-label={m.common_close()}>×</button>
     </div>
 
     <div class="lookup" class:filled={autofilled}>
@@ -310,7 +315,7 @@
         <input
           type="text"
           bind:value={lookupText}
-          placeholder="Pega un DOI o ISBN y rellena el resto solo"
+          placeholder={m.form_lookup_placeholder()}
           onkeydown={(e) => {
             if (e.key === "Enter") lookup();
           }}
@@ -320,20 +325,20 @@
           onclick={lookup}
           disabled={looking || lookupText.trim() === ""}
         >
-          {looking ? "Buscando…" : "Buscar"}
+          {looking ? m.form_lookup_busy() : m.form_lookup_button()}
         </button>
       </div>
       {#if lookupError}
         <p class="lookup-error">{lookupError}</p>
       {:else if autofilled}
         <p class="lookup-ok">
-          Formulario prellenado — revisa los datos antes de guardar.
+          {m.form_lookup_ok()}
         </p>
       {/if}
     </div>
 
     <label>
-      Tipo de fuente
+      {m.form_type_label()}
       <select bind:value={f.type}>
         {#each TYPE_OPTIONS as option (option.value)}
           <option value={option.value}>{option.label}</option>
@@ -343,252 +348,250 @@
 
     {#if f.type === "personalCommunication"}
       <p class="notice">
-        Las comunicaciones personales se citan solo en el texto y nunca
-        aparecen en la lista de referencias (APA 8.9).
+        {m.form_pc_notice()}
       </p>
     {/if}
 
     <label>
-      Autores — uno por línea: "Apellido, Nombre" (o nombre de organización)
+      {m.form_authors_label()}
       <textarea rows="3" bind:value={f.authorsText} placeholder="Salgado, Nora"
       ></textarea>
     </label>
 
     <div class="row">
       <label class="grow">
-        Año
+        {m.form_year()}
         <input type="text" bind:value={f.year} disabled={f.noDate} />
       </label>
       <label class="grow">
-        Mes (1–12)
+        {m.form_month()}
         <input type="text" bind:value={f.month} disabled={f.noDate} />
       </label>
       <label class="grow">
-        Día
+        {m.form_day()}
         <input type="text" bind:value={f.day} disabled={f.noDate} />
       </label>
       <label class="checkline">
-        <input type="checkbox" bind:checked={f.noDate} /> Sin fecha
+        <input type="checkbox" bind:checked={f.noDate} /> {m.form_no_date()}
       </label>
     </div>
 
     {#if f.type !== "personalCommunication"}
       <label>
-        Título
+        {m.form_field_title()}
         <input type="text" bind:value={f.title} />
       </label>
     {/if}
 
     {#if f.type === "journalArticle"}
       <label>
-        Revista
+        {m.form_journal()}
         <input type="text" bind:value={f.journal} />
       </label>
       <div class="row">
         <label class="grow">
-          Volumen
+          {m.form_volume()}
           <input type="text" bind:value={f.volume} />
         </label>
         <label class="grow">
-          Número
+          {m.form_issue()}
           <input type="text" bind:value={f.issue} />
         </label>
         <label class="grow">
-          Páginas
+          {m.form_pages()}
           <input type="text" bind:value={f.pages} placeholder="45–67" />
         </label>
       </div>
     {:else if f.type === "book"}
       <div class="row">
         <label class="grow">
-          Editorial
+          {m.form_publisher()}
           <input type="text" bind:value={f.publisher} />
         </label>
         <label class="grow">
-          Edición (número)
+          {m.form_edition()}
           <input type="text" bind:value={f.edition} placeholder="2" />
         </label>
       </div>
     {:else if f.type === "bookChapter"}
       <label>
-        Editores del libro — uno por línea
+        {m.form_editors()}
         <textarea rows="2" bind:value={f.editorsText}></textarea>
       </label>
       <label>
-        Título del libro
+        {m.form_book_title()}
         <input type="text" bind:value={f.bookTitle} />
       </label>
       <div class="row">
         <label class="grow">
-          Edición
+          {m.form_edition()}
           <input type="text" bind:value={f.edition} />
         </label>
         <label class="grow">
-          Páginas
+          {m.form_pages()}
           <input type="text" bind:value={f.pages} placeholder="85–104" />
         </label>
         <label class="grow">
-          Editorial
+          {m.form_publisher()}
           <input type="text" bind:value={f.publisher} />
         </label>
       </div>
     {:else if f.type === "website"}
       <label>
-        Nombre del sitio
+        {m.form_site_name()}
         <input type="text" bind:value={f.siteName} />
       </label>
     {:else if f.type === "report"}
       <div class="row">
         <label class="grow">
-          Institución que publica
+          {m.form_institution()}
           <input type="text" bind:value={f.institution} />
         </label>
         <label class="grow">
-          Número de informe
+          {m.form_report_number()}
           <input type="text" bind:value={f.reportNumber} />
         </label>
       </div>
     {:else if f.type === "thesis"}
-      <div class="seg" role="group" aria-label="Tipo de tesis">
+      <div class="seg" role="group" aria-label={m.form_thesis_aria()}>
         <button
           class:active={f.thesisType === "doctoral"}
           onclick={() => (f.thesisType = "doctoral")}
         >
-          Doctoral
+          {m.form_thesis_doctoral()}
         </button>
         <button
           class:active={f.thesisType === "masters"}
           onclick={() => (f.thesisType = "masters")}
         >
-          Maestría
+          {m.form_thesis_masters()}
         </button>
       </div>
       <label>
-        Institución (universidad)
+        {m.form_thesis_institution()}
         <input type="text" bind:value={f.institution} />
       </label>
       <label class="checkline">
-        <input type="checkbox" bind:checked={f.unpublished} /> Inédita (no
-        publicada)
+        <input type="checkbox" bind:checked={f.unpublished} /> {m.form_unpublished()}
       </label>
       {#if !f.unpublished}
         <label>
-          Repositorio o base de datos
+          {m.form_archive()}
           <input type="text" bind:value={f.archive} />
         </label>
       {/if}
     {:else if f.type === "conferencePaper"}
       <label>
-        Nombre del congreso
+        {m.form_conference()}
         <input type="text" bind:value={f.conferenceName} />
       </label>
       <div class="row">
         <label class="grow">
-          Lugar (Ciudad, País)
+          {m.form_location()}
           <input type="text" bind:value={f.location} />
         </label>
         <label class="grow">
-          Día final (si dura varios días)
+          {m.form_day_end()}
           <input type="text" bind:value={f.dayEnd} placeholder="8" />
         </label>
       </div>
     {:else if f.type === "newspaperArticle"}
       <label>
-        Nombre del periódico o revista
+        {m.form_publication()}
         <input type="text" bind:value={f.publication} />
       </label>
       <div class="row">
         <label class="grow">
-          Volumen
+          {m.form_volume()}
           <input type="text" bind:value={f.volume} />
         </label>
         <label class="grow">
-          Número
+          {m.form_issue()}
           <input type="text" bind:value={f.issue} />
         </label>
         <label class="grow">
-          Páginas
+          {m.form_pages()}
           <input type="text" bind:value={f.pages} />
         </label>
       </div>
     {:else if f.type === "referenceEntry"}
       <label>
-        Diccionario o enciclopedia
+        {m.form_work_title()}
         <input type="text" bind:value={f.workTitle} />
       </label>
       <div class="row">
         <label class="grow">
-          Edición
+          {m.form_edition()}
           <input type="text" bind:value={f.edition} />
         </label>
         <label class="grow">
-          Editorial
+          {m.form_publisher()}
           <input type="text" bind:value={f.publisher} />
         </label>
       </div>
     {:else if f.type === "video"}
       <div class="row">
         <label class="grow">
-          Canal o nombre de usuario
+          {m.form_username()}
           <input type="text" bind:value={f.username} />
         </label>
         <label class="grow">
-          Plataforma
+          {m.form_platform()}
           <input type="text" bind:value={f.platform} placeholder="YouTube" />
         </label>
       </div>
     {:else if f.type === "podcastEpisode"}
       <div class="row">
         <label class="grow">
-          Número de episodio
+          {m.form_episode_number()}
           <input type="text" bind:value={f.episodeNumber} />
         </label>
         <label class="grow">
-          Nombre del podcast
+          {m.form_show_title()}
           <input type="text" bind:value={f.showTitle} />
         </label>
         <label class="grow">
-          Plataforma
+          {m.form_platform()}
           <input type="text" bind:value={f.platform} />
         </label>
       </div>
     {:else if f.type === "socialMedia"}
       <div class="row">
         <label class="grow">
-          Usuario (@handle)
+          {m.form_handle()}
           <input type="text" bind:value={f.username} />
         </label>
         <label class="grow">
-          Tipo de contenido
-          <input type="text" bind:value={f.contentType} placeholder="Tuit" />
+          {m.form_content_type()}
+          <input type="text" bind:value={f.contentType} placeholder={m.form_content_type_ph()} />
         </label>
         <label class="grow">
-          Plataforma
+          {m.form_platform()}
           <input type="text" bind:value={f.platform} placeholder="X" />
         </label>
       </div>
     {:else if f.type === "software"}
-      <div class="seg" role="group" aria-label="Software o datos">
+      <div class="seg" role="group" aria-label={m.form_software_kind_aria()}>
         <button
           class:active={f.softwareKind === "software"}
           onclick={() => (f.softwareKind = "software")}
         >
-          Software
+          {m.form_software()}
         </button>
         <button
           class:active={f.softwareKind === "dataset"}
           onclick={() => (f.softwareKind = "dataset")}
         >
-          Conjunto de datos
+          {m.form_dataset()}
         </button>
       </div>
       <div class="row">
         <label class="grow">
-          Versión
+          {m.form_version()}
           <input type="text" bind:value={f.version} placeholder="2.1" />
         </label>
         <label class="grow">
-          Editorial o distribuidor
+          {m.form_distributor()}
           <input type="text" bind:value={f.publisher} />
         </label>
       </div>
@@ -608,10 +611,10 @@
     {/if}
 
     <button class="save" onclick={save} disabled={!canSave}>
-      Guardar referencia
+      {m.form_save()}
     </button>
     <p class="hint">
-      Autollenado por URL e import BibTeX: próximamente.
+      {m.form_hint()}
     </p>
   </div>
 </div>

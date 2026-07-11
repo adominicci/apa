@@ -4,9 +4,11 @@
     type CitationAttrs,
     type CitationItem,
     type DocLocale,
+    getTerms,
     plainText,
     type Reference,
   } from "@tesina/engine";
+  import { m } from "$lib/paraglide/messages";
 
   interface Props {
     references: Reference[];
@@ -28,7 +30,9 @@
         refId: entry.refId,
         text: plainText(entry.runs),
       }));
-    // Personal communications are citable but never listed (APA 8.9).
+    // Personal communications are citable but never listed (APA 8.9); the
+    // label follows the DOCUMENT language, so it comes from the engine.
+    const pcTerm = getTerms(documentLanguage).personalCommunication;
     const comms = references
       .filter((ref) => ref.type === "personalCommunication")
       .map((ref) => {
@@ -39,7 +43,7 @@
         const year = ref.date.year !== undefined ? `, ${ref.date.year}` : "";
         return {
           refId: ref.id,
-          text: `${name} — comunicación personal${year}`,
+          text: `${name} — ${pcTerm}${year}`,
         };
       });
     return [...listed, ...comms];
@@ -78,24 +82,23 @@
   }
 </script>
 
-<div class="pop" role="dialog" aria-label="Insertar cita">
+<div class="pop" role="dialog" aria-label={m.cite_title()}>
   <div class="row head">
-    <strong>Insertar cita</strong>
-    <button class="close" onclick={onClose} aria-label="Cerrar">×</button>
+    <strong>{m.cite_title()}</strong>
+    <button class="close" onclick={onClose} aria-label={m.common_close()}>
+      ×
+    </button>
   </div>
   <input
     type="search"
-    placeholder="Buscar en la biblioteca…"
+    placeholder={m.cite_search_placeholder()}
     bind:value={query}
   />
   <div class="list">
     {#if formatted.length === 0}
-      <p class="empty">
-        La biblioteca está vacía. Usa "Añadir referencia" para crear la
-        primera.
-      </p>
+      <p class="empty">{m.cite_empty_library()}</p>
     {:else if visible.length === 0}
-      <p class="empty">Sin resultados para "{query}".</p>
+      <p class="empty">{m.cite_no_results({ query })}</p>
     {:else}
       {#each visible as entry (entry.refId)}
         <label class="item">
@@ -110,24 +113,28 @@
     {/if}
   </div>
   <div class="row">
-    <div class="seg" role="group" aria-label="Tipo de cita">
+    <div class="seg" role="group" aria-label={m.cite_title()}>
       <button
         class:active={mode === "parenthetical"}
         onclick={() => (mode = "parenthetical")}
       >
-        Parentética
+        {m.cite_parenthetical()}
       </button>
       <button
         class:active={mode === "narrative"}
         onclick={() => (mode = "narrative")}
         disabled={selectedIds.length > 1}
       >
-        Narrativa
+        {m.cite_narrative()}
       </button>
     </div>
     <label class="page">
-      Página(s)
-      <input type="text" bind:value={page} placeholder="12 o 12–14" />
+      {m.cite_pages_label()}
+      <input
+        type="text"
+        bind:value={page}
+        placeholder={m.cite_pages_placeholder()}
+      />
     </label>
   </div>
   <button
@@ -135,7 +142,9 @@
     onclick={insert}
     disabled={selectedIds.length === 0}
   >
-    Insertar {selectedIds.length > 1 ? `${selectedIds.length} obras` : "cita"}
+    {selectedIds.length > 1
+      ? m.cite_insert_many({ count: selectedIds.length })
+      : m.cite_insert_one()}
   </button>
 </div>
 

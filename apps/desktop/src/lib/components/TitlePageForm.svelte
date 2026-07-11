@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack } from "svelte";
+  import { m } from "$lib/paraglide/messages";
   import type {
     EssaySettings,
     PaperVariant,
@@ -60,40 +61,40 @@
 </script>
 
 <div class="overlay" role="presentation">
-  <div class="modal" role="dialog" aria-label="Portada">
+  <div class="modal" role="dialog" aria-label={m.titlepage_title()}>
     <div class="row head">
-      <strong>Portada</strong>
-      <button class="close" onclick={onClose} aria-label="Cerrar">×</button>
+      <strong>{m.titlepage_title()}</strong>
+      <button class="close" onclick={onClose} aria-label={m.common_close()}>×</button>
     </div>
 
-    <div class="seg" role="group" aria-label="Variante APA">
+    <div class="seg" role="group" aria-label={m.titlepage_variant_aria()}>
       <button
         class:active={variant === "student"}
         onclick={() => (variant = "student")}
       >
-        Estudiante
+        {m.titlepage_student()}
       </button>
       <button
         class:active={variant === "professional"}
         onclick={() => (variant = "professional")}
       >
-        Profesional
+        {m.titlepage_professional()}
       </button>
     </div>
 
     <label>
-      Título del ensayo
+      {m.titlepage_essay_title()}
       <input type="text" bind:value={title} />
     </label>
 
     <label>
-      Autores — uno por línea
+      {m.titlepage_authors()}
       <textarea rows="2" bind:value={authorsText} placeholder="Ana María Ruiz"
       ></textarea>
     </label>
 
     <label>
-      Afiliaciones — una por línea
+      {m.titlepage_affiliations()}
       <textarea
         rows="2"
         bind:value={affiliationsText}
@@ -103,35 +104,34 @@
 
     <div class="row">
       <label class="grow">
-        Curso
+        {m.titlepage_course()}
         <input type="text" bind:value={course} placeholder="EDU 301" />
       </label>
       <label class="grow">
-        Profesor(a)
+        {m.titlepage_instructor()}
         <input type="text" bind:value={instructor} />
       </label>
     </div>
 
     <label>
-      Fecha de entrega
+      {m.titlepage_due_date()}
       <input type="date" bind:value={dueDate} />
     </label>
 
     {#if variant === "professional"}
       <label>
-        Titulillo (running head, ≤50 caracteres, se pone en MAYÚSCULAS)
+        {m.titlepage_running_head()}
         <input type="text" bind:value={runningHead} maxlength="50" />
       </label>
       <label>
-        Nota del autor
+        {m.titlepage_author_note()}
         <textarea rows="2" bind:value={authorNote}></textarea>
       </label>
     {/if}
 
-    <button class="save" onclick={save}>Guardar portada</button>
+    <button class="save" onclick={save}>{m.titlepage_save()}</button>
     <p class="hint">
-      La portada no vive en el texto: se genera con este formulario en la
-      vista previa y el export (M4/M5).
+      {m.titlepage_hint()}
     </p>
   </div>
 </div>
