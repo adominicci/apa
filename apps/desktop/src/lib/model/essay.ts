@@ -1,0 +1,110 @@
+import type { DocLocale, Reference } from "@tesina/engine";
+
+export type PaperVariant = "student" | "professional";
+export type FontChoice = "times-new-roman-12" | "calibri-11" | "arial-11";
+export type PaperSize = "us-letter" | "a4";
+
+export interface EssaySettings {
+  documentLanguage: DocLocale;
+  variant: PaperVariant;
+  font: FontChoice;
+  paperSize: PaperSize;
+  /** Professional variant only; uppercased at render time, ≤50 chars. */
+  runningHead?: string;
+  includeUncitedReferences: boolean;
+}
+
+/** Form data rendered only in preview/export — never lives in the PM doc. */
+export interface TitlePage {
+  title: string;
+  authors: string[];
+  affiliations: string[];
+  course?: string;
+  instructor?: string;
+  /** ISO date; rendered per document locale. */
+  dueDate?: string;
+  authorNote?: string;
+}
+
+export interface Essay {
+  schemaVersion: 2;
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  settings: EssaySettings;
+  titlePage: TitlePage;
+  /** ProseMirror doc JSON (sectioned schema). */
+  content: unknown;
+  /**
+   * Denormalized copies of cited references so an essay file stays complete
+   * if the library entry is deleted (plan §library/essay reconciliation).
+   */
+  referencesSnapshot: Reference[];
+}
+
+export interface EssaySummary {
+  id: string;
+  title: string;
+  updatedAt: string;
+  language: DocLocale;
+}
+
+export function defaultSettings(language: DocLocale): EssaySettings {
+  return {
+    documentLanguage: language,
+    variant: "student",
+    font: "times-new-roman-12",
+    paperSize: "us-letter",
+    includeUncitedReferences: false,
+  };
+}
+
+export function createEmptyEssay(
+  language: DocLocale,
+  now = new Date().toISOString(),
+): Essay {
+  return {
+    schemaVersion: 2,
+    id: crypto.randomUUID(),
+    createdAt: now,
+    updatedAt: now,
+    settings: defaultSettings(language),
+    titlePage: {
+      title: language === "es" ? "Ensayo sin título" : "Untitled essay",
+      authors: [],
+      affiliations: [],
+    },
+    content: {
+      type: "doc",
+      content: [{ type: "sectionBody", content: [{ type: "paragraph" }] }],
+    },
+    referencesSnapshot: [],
+  };
+}
+
+export function summarize(essay: Essay): EssaySummary {
+  return {
+    id: essay.id,
+    title: essay.titlePage.title,
+    updatedAt: essay.updatedAt,
+    language: essay.settings.documentLanguage,
+  };
+}
+
+interface LegacyDraft {
+  schemaVersion?: number;
+  settings?: { documentLanguage?: DocLocale };
+  content?: unknown;
+}
+
+/** Converts the pre-M2.5 single-draft file into a first-class essay. */
+export function essayFromLegacyDraft(
+  draft: LegacyDraft,
+  now = new Date().toISOString(),
+): Essay {
+  const language = draft.settings?.documentLanguage ?? "es";
+  const essay = createEmptyEssay(language, now);
+  essay.titlePage.title = language === "es" ? "Borrador" : "Draft";
+  if (draft.content !== undefined) essay.content = draft.content;
+  return essay;
+}

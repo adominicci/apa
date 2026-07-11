@@ -1,6 +1,7 @@
 import {
   exists,
   mkdir,
+  readDir,
   readTextFile,
   remove,
   rename,
@@ -52,4 +53,18 @@ export async function removeFile(relativePath: string): Promise<void> {
   if (await exists(target)) {
     await remove(target);
   }
+}
+
+export async function fileExists(relativePath: string): Promise<boolean> {
+  return await exists(await resolveAbsolute(relativePath));
+}
+
+/** Names of the .json files directly inside a directory (no recursion). */
+export async function listJsonFiles(relativeDir: string): Promise<string[]> {
+  const dir = await resolveAbsolute(relativeDir);
+  if (!(await exists(dir))) return [];
+  const entries = await readDir(dir);
+  return entries
+    .filter((entry) => entry.isFile && entry.name.endsWith(".json"))
+    .map((entry) => entry.name);
 }
