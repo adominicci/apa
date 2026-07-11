@@ -14,17 +14,17 @@
 }
 
 .apa-editor .tiptap {
-  background: #fff;
-  color: #131313;
-  font-family: "Times New Roman", Georgia, serif;
+  background: var(--paper);
+  color: var(--fg);
+  font-family: var(--serif);
   font-size: 12pt;
   line-height: 2;
   width: min(100%, 6.5in);
   min-height: 8in;
   padding: 0.75in 0.85in;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 3px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-paper);
   outline: none;
 }
 
@@ -66,7 +66,7 @@
 
 .apa-editor .tiptap .sec + .sec {
   margin-top: 1.5rem;
-  border-top: 1px dashed rgba(0, 0, 0, 0.15);
+  border-top: 1px dashed var(--border);
   padding-top: 1.5rem;
 }
 
@@ -121,22 +121,27 @@
 }
 
 .apa-editor .tiptap .tesina-citation {
-  background: #eaf1fe;
-  color: #0f2761;
-  border-radius: 4px;
-  padding: 0 3px;
+  color: var(--accent);
+  font-family: var(--font);
+  font-size: 0.82em;
+  border-radius: 3px;
+  padding: 0 1px;
   white-space: nowrap;
   cursor: pointer;
+  transition: background var(--fast) var(--ease);
+}
+
+.apa-editor .tiptap .tesina-citation:hover {
+  background: var(--accent-soft);
 }
 
 .apa-editor .tiptap .tesina-citation.ProseMirror-selectednode {
-  outline: 2px solid #4380f0;
+  outline: 2px solid var(--accent);
 }
 
 .apa-editor .tiptap .tesina-citation--missing {
-  background: #fceded;
-  color: #791f1f;
-  text-decoration: wavy underline #a32d2d;
+  color: var(--danger);
+  text-decoration: wavy underline;
 }
 
 .apa-editor .tiptap blockquote {

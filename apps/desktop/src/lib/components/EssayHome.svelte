@@ -70,6 +70,14 @@
         EN
       </button>
     </div>
+    <button
+      class="theme"
+      onclick={() => uiLocale.cycleTheme()}
+      aria-label={m.common_theme()}
+      title={m.common_theme()}
+    >
+      {uiLocale.theme === "light" ? "☀" : uiLocale.theme === "dark" ? "☾" : "◐"}
+    </button>
     <div class="new-wrap">
       <button class="new" onclick={() => (creating = !creating)}>
         {m.home_new_essay()}
@@ -146,8 +154,8 @@
     max-width: 860px;
     margin: 0 auto;
     padding: 2.5rem 1.5rem;
-    font-family: system-ui, sans-serif;
-    color: #26251f;
+    font-family: var(--font);
+    color: var(--fg);
   }
 
   header {
@@ -161,12 +169,31 @@
   h1 {
     margin: 0;
     font-size: 1.4rem;
-    color: #2158d6;
+    font-family: var(--serif);
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .theme {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background var(--fast) var(--ease);
+  }
+
+  .theme:hover {
+    background: var(--hover);
+    color: var(--fg);
   }
 
   .tag {
     margin: 0;
-    color: #6b6a64;
+    color: var(--muted);
     font-size: 0.85rem;
     flex: 1;
   }
@@ -177,7 +204,7 @@
 
   .seg {
     display: flex;
-    border: 1px solid #d7d4cf;
+    border: 1px solid var(--border);
     border-radius: 7px;
     overflow: hidden;
   }
@@ -189,19 +216,19 @@
     font-size: 0.78rem;
     padding: 4px 10px;
     cursor: pointer;
-    color: #6b6a64;
+    color: var(--muted);
   }
 
   .seg button.active {
-    background: #eaf1fe;
-    color: #173a8c;
+    background: var(--accent-soft);
+    color: var(--accent);
     font-weight: 600;
   }
 
   .new {
     border: none;
-    background: #2158d6;
-    color: #fff;
+    background: var(--accent);
+    color: var(--accent-on);
     font: inherit;
     font-size: 0.85rem;
     padding: 7px 14px;
@@ -213,10 +240,10 @@
     position: absolute;
     right: 0;
     top: 110%;
-    background: #fff;
-    border: 1px solid #d7d4cf;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--elev-raised);
     display: flex;
     flex-direction: column;
     min-width: 150px;
@@ -235,7 +262,7 @@
   }
 
   .menu button:hover {
-    background: #eaf1fe;
+    background: var(--accent-soft);
   }
 
   .grid {
@@ -245,8 +272,8 @@
   }
 
   .card {
-    background: #fff;
-    border: 1px solid #e0deda;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 12px 14px;
     display: flex;
@@ -262,34 +289,34 @@
     font-size: 0.95rem;
     text-align: left;
     cursor: pointer;
-    color: #26251f;
+    color: var(--fg);
     padding: 0;
   }
 
   .title:hover {
-    color: #2158d6;
+    color: var(--accent);
   }
 
   .rename {
     font: inherit;
     font-weight: 600;
     padding: 2px 6px;
-    border: 1px solid #a6c4fa;
+    border: 1px solid color-mix(in oklab, var(--accent), transparent 50%);
     border-radius: 6px;
   }
 
   .meta {
     margin: 0;
     font-size: 0.75rem;
-    color: #8a887f;
+    color: var(--muted);
     display: flex;
     gap: 8px;
     align-items: center;
   }
 
   .lang {
-    background: #eaf1fe;
-    color: #173a8c;
+    background: var(--accent-soft);
+    color: var(--accent);
     border-radius: 999px;
     padding: 0 7px;
     font-size: 0.7rem;
@@ -307,76 +334,19 @@
     font: inherit;
     font-size: 0.75rem;
     cursor: pointer;
-    color: #2158d6;
+    color: var(--accent);
     padding: 0;
   }
 
   .actions .danger {
-    color: #a32d2d;
+    color: var(--danger);
   }
 
   .empty {
-    color: #8a887f;
+    color: var(--muted);
     text-align: center;
     margin-top: 3rem;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .home {
-      color: #e8e6e1;
-    }
-
-    .tag,
-    .meta,
-    .empty {
-      color: #a3a19a;
-    }
-
-    .card,
-    .menu {
-      background: #232320;
-      border-color: #373632;
-    }
-
-    .title {
-      color: #e8e6e1;
-    }
-
-    .title:hover,
-    .actions button {
-      color: #7ea4f5;
-    }
-
-    .actions .danger {
-      color: #f09595;
-    }
-
-    .menu button:hover {
-      background: #1d2c50;
-    }
-
-    .seg {
-      border-color: #45443f;
-    }
-
-    .seg button {
-      color: #a3a19a;
-    }
-
-    .seg button.active {
-      background: #1d2c50;
-      color: #b7cdfa;
-    }
-
-    .lang {
-      background: #1d2c50;
-      color: #b7cdfa;
-    }
-
-    .rename {
-      background: #1c1c1a;
-      color: #e8e6e1;
-      border-color: #45443f;
-    }
-  }
+  
 </style>

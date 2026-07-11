@@ -22,7 +22,10 @@
     addKeywordsLine,
     hasAbstract,
     removeAbstract,
+    removeAppendixAtSelection,
+    selectionInAppendix,
   } from "$lib/editor/sections";
+  import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { library } from "$lib/state/library.svelte";
   import { essays } from "$lib/state/essays.svelte";
   import { exportEssayToDocx } from "$lib/export/exportEssay";
@@ -44,6 +47,7 @@
   let status = $state<"guardando" | "guardado" | "error">("guardado");
   let editor = $state<TiptapEditor | undefined>(undefined);
   let abstractPresent = $state(false);
+  let inAppendix = $state(false);
   let citePopoverOpen = $state(false);
   let refFormOpen = $state(false);
   let titleFormOpen = $state(false);
@@ -110,6 +114,15 @@
   function handleReady(instance: TiptapEditor) {
     editor = instance;
     abstractPresent = hasAbstract(instance);
+    const trackAppendix = () => {
+      inAppendix = selectionInAppendix(instance);
+    };
+    instance.on("selectionUpdate", trackAppendix);
+    instance.on("transaction", trackAppendix);
+  }
+
+  function handleRemoveAppendix() {
+    if (editor) removeAppendixAtSelection(editor);
   }
 
   function setLanguage(lang: DocLocale) {
@@ -233,6 +246,11 @@
     <button class="act" onclick={handleAddAppendix} disabled={!editor}>
       {m.editor_add_appendix()}
     </button>
+    {#if inAppendix}
+      <button class="act" onclick={handleRemoveAppendix}>
+        {m.editor_remove_appendix()}
+      </button>
+    {/if}
     <span class="divider"></span>
     <button
       class="act"
@@ -274,6 +292,14 @@
       disabled={!editor || exporting}
     >
       {exporting ? m.editor_exporting() : m.editor_export()}
+    </button>
+    <button
+      class="act icon"
+      onclick={() => uiLocale.cycleTheme()}
+      aria-label={m.common_theme()}
+      title={m.common_theme()}
+    >
+      {uiLocale.theme === "light" ? "☀" : uiLocale.theme === "dark" ? "☾" : "◐"}
     </button>
   </header>
   <EditorToolbar {editor} />
@@ -359,9 +385,9 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
-    font-family: system-ui, sans-serif;
-    background: #f2f1ee;
-    color: #26251f;
+    font-family: var(--font);
+    background: var(--canvas);
+    color: var(--fg);
   }
 
   header {
@@ -369,19 +395,33 @@
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    border-bottom: 1px solid #e0deda;
-    background: #faf9f7;
+    border-bottom: 1px solid var(--border);
+    background: var(--chrome);
     flex-wrap: wrap;
   }
 
   .brand {
-    font-weight: 600;
-    color: #2158d6;
+    font-family: var(--serif);
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .act.icon {
+    width: 30px;
+    padding: 4px 0;
+    text-align: center;
+    border: none;
+    color: var(--muted);
+  }
+
+  .act.icon:hover:enabled {
+    background: var(--hover);
+    color: var(--fg);
   }
 
   .doc {
     font-size: 0.85rem;
-    color: #6b6a64;
+    color: var(--muted);
     max-width: 220px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -395,7 +435,7 @@
   .divider {
     width: 1px;
     height: 18px;
-    background: #d7d4cf;
+    background: var(--border);
   }
 
   .cite-anchor {
@@ -404,7 +444,7 @@
 
   .seg {
     display: flex;
-    border: 1px solid #d7d4cf;
+    border: 1px solid var(--border);
     border-radius: 7px;
     overflow: hidden;
   }
@@ -416,30 +456,30 @@
     font-size: 0.78rem;
     padding: 4px 10px;
     cursor: pointer;
-    color: #6b6a64;
+    color: var(--muted);
   }
 
   .seg button.active {
-    background: #eaf1fe;
-    color: #173a8c;
+    background: var(--accent-soft);
+    color: var(--accent);
     font-weight: 600;
   }
 
   .act {
-    border: 1px solid #d7d4cf;
+    border: 1px solid var(--border);
     background: transparent;
     border-radius: 7px;
     font: inherit;
     font-size: 0.78rem;
     padding: 4px 10px;
     cursor: pointer;
-    color: #44433e;
+    color: var(--fg-2);
   }
 
   .act.primary {
-    background: #2158d6;
-    border-color: #2158d6;
-    color: #fff;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-on);
   }
 
   .act:hover:enabled {
@@ -471,10 +511,11 @@
     display: flex;
     gap: 16px;
     padding: 6px 16px;
-    border-top: 1px solid #e0deda;
-    background: #faf9f7;
-    font-size: 0.8rem;
-    color: #6b6a64;
+    border-top: 1px solid var(--border);
+    background: var(--chrome);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
   }
 
   .export-msg {
@@ -489,57 +530,12 @@
   }
 
   .status[data-status="guardado"] {
-    color: #2158d6;
+    color: var(--success);
   }
 
   .status[data-status="error"] {
-    color: #b00020;
+    color: var(--danger);
   }
 
-  @media (prefers-color-scheme: dark) {
-    .shell {
-      background: #1c1c1a;
-      color: #e8e6e1;
-    }
-
-    header,
-    footer {
-      background: #232320;
-      border-color: #373632;
-    }
-
-    .doc,
-    footer {
-      color: #a3a19a;
-    }
-
-    .brand,
-    .status[data-status="guardado"] {
-      color: #7ea4f5;
-    }
-
-    .seg,
-    .act {
-      border-color: #45443f;
-    }
-
-    .divider {
-      background: #45443f;
-    }
-
-    .seg button,
-    .act {
-      color: #c9c7c0;
-    }
-
-    .seg button.active {
-      background: #1d2c50;
-      color: #b7cdfa;
-    }
-
-    .act.primary {
-      background: #2158d6;
-      color: #fff;
-    }
-  }
+  
 </style>

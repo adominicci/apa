@@ -71,16 +71,16 @@
 
   .msg {
     text-align: center;
-    color: #8a887f;
+    color: var(--muted);
     font-size: 0.85rem;
   }
 
   .msg.error {
-    color: #a32d2d;
+    color: var(--danger);
   }
 
   .pages :global(.pagedjs_page) {
-    background: #fff;
+    background: var(--surface);
     margin: 0 auto 1.25rem;
     box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
   }

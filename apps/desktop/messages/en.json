@@ -151,5 +151,7 @@
   "titlepage_author_note": "Author note",
   "titlepage_save": "Save title page",
   "titlepage_hint": "The title page doesn't live in the text: it's generated from this form in the preview and the export.",
-  "panel_in_text_only": "in text only"
+  "panel_in_text_only": "in text only",
+  "editor_remove_appendix": "Remove appendix",
+  "common_theme": "Theme"
 }

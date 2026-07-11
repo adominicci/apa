@@ -155,16 +155,16 @@
     right: 0;
     z-index: 30;
     width: 340px;
-    background: #fff;
-    border: 1px solid #d7d4cf;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 10px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+    box-shadow: var(--elev-raised);
     display: flex;
     flex-direction: column;
     gap: 8px;
     font-size: 0.82rem;
-    color: #26251f;
+    color: var(--fg);
   }
 
   .row {
@@ -182,14 +182,14 @@
     background: transparent;
     font-size: 1rem;
     cursor: pointer;
-    color: #6b6a64;
+    color: var(--muted);
   }
 
   input[type="search"],
   input[type="text"] {
     font: inherit;
     padding: 5px 8px;
-    border: 1px solid #d7d4cf;
+    border: 1px solid var(--border);
     border-radius: 6px;
     width: 100%;
     box-sizing: border-box;
@@ -213,22 +213,22 @@
   }
 
   .item:hover {
-    background: #f4f3f0;
+    background: var(--hover);
   }
 
   .item span {
-    font-family: Georgia, serif;
+    font-family: var(--serif);
     line-height: 1.4;
   }
 
   .empty {
-    color: #6b6a64;
+    color: var(--muted);
     margin: 4px 2px;
   }
 
   .seg {
     display: flex;
-    border: 1px solid #d7d4cf;
+    border: 1px solid var(--border);
     border-radius: 7px;
     overflow: hidden;
   }
@@ -240,12 +240,12 @@
     font-size: 0.78rem;
     padding: 4px 10px;
     cursor: pointer;
-    color: #6b6a64;
+    color: var(--muted);
   }
 
   .seg button.active {
-    background: #eaf1fe;
-    color: #173a8c;
+    background: var(--accent-soft);
+    color: var(--accent);
     font-weight: 600;
   }
 
@@ -259,13 +259,13 @@
     align-items: center;
     gap: 6px;
     flex: 1;
-    color: #6b6a64;
+    color: var(--muted);
   }
 
   .insert {
     border: none;
-    background: #2158d6;
-    color: #fff;
+    background: var(--accent);
+    color: var(--accent-on);
     font: inherit;
     font-size: 0.82rem;
     padding: 7px 10px;
@@ -278,35 +278,5 @@
     cursor: default;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .pop {
-      background: #232320;
-      border-color: #45443f;
-      color: #e8e6e1;
-    }
-
-    input[type="search"],
-    input[type="text"],
-    .seg {
-      border-color: #45443f;
-      background: #1c1c1a;
-      color: #e8e6e1;
-    }
-
-    .item:hover {
-      background: #2b2b28;
-    }
-
-    .empty,
-    .close,
-    .page,
-    .seg button {
-      color: #a3a19a;
-    }
-
-    .seg button.active {
-      background: #1d2c50;
-      color: #b7cdfa;
-    }
-  }
+  
 </style>

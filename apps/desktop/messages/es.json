@@ -151,5 +151,7 @@
   "titlepage_author_note": "Nota del autor",
   "titlepage_save": "Guardar portada",
   "titlepage_hint": "La portada no vive en el texto: se genera con este formulario en la vista previa y el export.",
-  "panel_in_text_only": "solo en texto"
+  "panel_in_text_only": "solo en texto",
+  "editor_remove_appendix": "Quitar apéndice",
+  "common_theme": "Tema"
 }

@@ -1,0 +1,109 @@
+/*
+ * Tesina design tokens — from Andrés's Open Design prototype.
+ * All color flows through tokens; raw hex lives only in the two theme
+ * blocks. Theme is driven by :root[data-theme] (set from the settings
+ * store; "system" resolves via matchMedia in the layout).
+ */
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --fg: #111111;
+  --fg-2: #33373e;
+  --muted: #6b6b6b;
+  --border: #e5e5e5;
+  --border-soft: #eeeeee;
+  --accent: #2f6feb;
+  --accent-on: #ffffff;
+  --success: #17a34a;
+  --warn: #eab308;
+  --danger: #dc2626;
+  --paper: #ffffff;
+
+  --tl-red: #ff5f57;
+  --tl-yellow: #febc2e;
+  --tl-green: #28c840;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f1216;
+  --surface: #171b21;
+  --fg: #e9ecf1;
+  --fg-2: #c3c9d2;
+  --muted: #8b93a1;
+  --border: #272d36;
+  --border-soft: #1e242c;
+  --accent: #5b8def;
+  --accent-on: #0b1220;
+  --success: #22c55e;
+  --warn: #eab308;
+  --danger: #f0555b;
+  --paper: #1b2027;
+}
+
+:root {
+  --canvas: color-mix(in oklab, var(--bg), var(--fg) 3%);
+  --chrome: color-mix(in oklab, var(--surface), var(--fg) 3%);
+  --raise: color-mix(in oklab, var(--fg), transparent 88%);
+  --hover: color-mix(in oklab, var(--fg), transparent 94%);
+  --accent-soft: color-mix(in oklab, var(--accent), transparent 86%);
+  --accent-hover: color-mix(in oklab, var(--accent), black 8%);
+  --warn-soft: color-mix(in oklab, var(--warn), transparent 85%);
+  --warn-strong: color-mix(in oklab, var(--warn), var(--fg) 45%);
+  --overlay: color-mix(in oklab, var(--fg), transparent 55%);
+  --focus-ring: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 68%);
+  --elev-raised: 0 8px 30px color-mix(in oklab, var(--fg), transparent 86%);
+  --shadow-paper:
+    0 1px 2px color-mix(in oklab, var(--fg), transparent 90%), 0 12px 40px
+    color-mix(in oklab, var(--fg), transparent 88%);
+
+  --font: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --serif: "Iowan Old Style", "Charter", Georgia, "Times New Roman", serif;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --fast: 150ms;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent), transparent 74%);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--r-sm);
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}

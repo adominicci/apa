@@ -116,6 +116,33 @@ export function addAppendix(editor: Editor): void {
     .run();
 }
 
+/** True when the selection sits inside an appendix section. */
+export function selectionInAppendix(editor: Editor): boolean {
+  const { $from } = editor.state.selection;
+  for (let depth = $from.depth; depth > 0; depth--) {
+    if ($from.node(depth).type.name === "sectionAppendix") return true;
+  }
+  return false;
+}
+
+/** Deletes the appendix section containing the selection, if any. */
+export function removeAppendixAtSelection(editor: Editor): boolean {
+  const { $from } = editor.state.selection;
+  for (let depth = $from.depth; depth > 0; depth--) {
+    const node = $from.node(depth);
+    if (node.type.name === "sectionAppendix") {
+      const start = $from.before(depth);
+      editor
+        .chain()
+        .deleteRange({ from: start, to: start + node.nodeSize })
+        .focus()
+        .run();
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Appends the keywords line to the abstract if one is not already there. */
 export function addKeywordsLine(editor: Editor): void {
   const abstract = editor.state.doc.firstChild;

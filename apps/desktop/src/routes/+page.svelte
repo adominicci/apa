@@ -51,7 +51,7 @@
     align-items: center;
     justify-content: center;
     height: 100vh;
-    font-family: system-ui, sans-serif;
-    color: #8a887f;
+    font-family: var(--font);
+    color: var(--muted);
   }
 </style>

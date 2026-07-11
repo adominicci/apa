@@ -623,7 +623,7 @@
   .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(20, 20, 18, 0.4);
+    background: var(--overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -634,15 +634,15 @@
     width: min(500px, calc(100vw - 2rem));
     max-height: calc(100vh - 4rem);
     overflow-y: auto;
-    background: #fff;
+    background: var(--surface);
     border-radius: 12px;
     padding: 14px;
     display: flex;
     flex-direction: column;
     gap: 10px;
     font-size: 0.82rem;
-    color: #26251f;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+    color: var(--fg);
+    box-shadow: var(--elev-raised);
   }
 
   .row {
@@ -661,7 +661,7 @@
     background: transparent;
     font-size: 1rem;
     cursor: pointer;
-    color: #6b6a64;
+    color: var(--muted);
   }
 
   .grow {
@@ -672,7 +672,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    color: #44433e;
+    color: var(--fg-2);
   }
 
   .checkline {
@@ -688,12 +688,12 @@
   select {
     font: inherit;
     padding: 6px 8px;
-    border: 1px solid #d7d4cf;
+    border: 1px solid var(--border);
     border-radius: 6px;
     width: 100%;
     box-sizing: border-box;
     resize: vertical;
-    background: #fff;
+    background: var(--surface);
     color: inherit;
   }
 
@@ -702,7 +702,7 @@
   }
 
   .lookup {
-    border: 1px dashed #a6c4fa;
+    border: 1px dashed color-mix(in oklab, var(--accent), transparent 50%);
     border-radius: 8px;
     padding: 8px;
     display: flex;
@@ -712,7 +712,7 @@
 
   .lookup.filled {
     border-style: solid;
-    background: #eaf1fe55;
+    background: var(--accent-soft);
   }
 
   .lookup .row {
@@ -721,8 +721,8 @@
 
   .find {
     border: none;
-    background: #2158d6;
-    color: #fff;
+    background: var(--accent);
+    color: var(--accent-on);
     font: inherit;
     font-size: 0.78rem;
     padding: 6px 12px;
@@ -738,13 +738,13 @@
 
   .lookup-error {
     margin: 0;
-    color: #a32d2d;
+    color: var(--danger);
     font-size: 0.75rem;
   }
 
   .lookup-ok {
     margin: 0;
-    color: #173a8c;
+    color: var(--accent);
     font-size: 0.75rem;
   }
 
@@ -752,14 +752,14 @@
     margin: 0;
     padding: 8px;
     border-radius: 8px;
-    background: #faeeda;
-    color: #633806;
+    background: var(--warn-soft);
+    color: var(--warn-strong);
     font-size: 0.78rem;
   }
 
   .seg {
     display: flex;
-    border: 1px solid #d7d4cf;
+    border: 1px solid var(--border);
     border-radius: 7px;
     overflow: hidden;
     align-self: start;
@@ -772,19 +772,19 @@
     font-size: 0.78rem;
     padding: 5px 12px;
     cursor: pointer;
-    color: #6b6a64;
+    color: var(--muted);
   }
 
   .seg button.active {
-    background: #eaf1fe;
-    color: #173a8c;
+    background: var(--accent-soft);
+    color: var(--accent);
     font-weight: 600;
   }
 
   .save {
     border: none;
-    background: #2158d6;
-    color: #fff;
+    background: var(--accent);
+    color: var(--accent-on);
     font: inherit;
     padding: 8px 10px;
     border-radius: 7px;
@@ -798,62 +798,9 @@
 
   .hint {
     margin: 0;
-    color: #8a887f;
+    color: var(--muted);
     font-size: 0.75rem;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .modal {
-      background: #232320;
-      color: #e8e6e1;
-    }
-
-    label {
-      color: #c9c7c0;
-    }
-
-    input[type="text"],
-    textarea,
-    select,
-    .seg {
-      border-color: #45443f;
-      background: #1c1c1a;
-      color: #e8e6e1;
-    }
-
-    .seg button {
-      color: #a3a19a;
-    }
-
-    .seg button.active {
-      background: #1d2c50;
-      color: #b7cdfa;
-    }
-
-    .close,
-    .hint {
-      color: #8a887f;
-    }
-
-    .lookup {
-      border-color: #2f4d8f;
-    }
-
-    .lookup.filled {
-      background: #1d2c5055;
-    }
-
-    .lookup-error {
-      color: #f09595;
-    }
-
-    .lookup-ok {
-      color: #b7cdfa;
-    }
-
-    .notice {
-      background: #4b3a12;
-      color: #fac775;
-    }
-  }
+  
 </style>

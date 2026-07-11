@@ -116,8 +116,8 @@
     align-items: center;
     gap: 10px;
     padding: 5px 14px;
-    border-bottom: 1px solid #e0deda;
-    background: #f6f5f2;
+    border-bottom: 1px solid var(--border);
+    background: var(--chrome);
     flex-wrap: wrap;
   }
 
@@ -125,7 +125,7 @@
     display: flex;
     gap: 2px;
     padding-right: 10px;
-    border-right: 1px solid #e0deda;
+    border-right: 1px solid var(--border);
   }
 
   .ic {
@@ -137,17 +137,17 @@
     font: inherit;
     font-size: 0.75rem;
     cursor: pointer;
-    color: #44433e;
+    color: var(--fg-2);
     padding: 0 5px;
   }
 
   .ic:hover:enabled {
-    background: #eceae5;
+    background: var(--border-soft);
   }
 
   .ic.on {
-    background: #eaf1fe;
-    color: #173a8c;
+    background: var(--accent-soft);
+    color: var(--accent);
     font-weight: 600;
   }
 
@@ -162,7 +162,7 @@
 
   .italic {
     font-style: italic;
-    font-family: Georgia, serif;
+    font-family: var(--serif);
   }
 
   .underline {
@@ -172,34 +172,8 @@
   .apa-hint {
     margin-left: auto;
     font-size: 0.7rem;
-    color: #a09e96;
+    color: var(--muted);
   }
 
-  @media (prefers-color-scheme: dark) {
-    .toolbar {
-      background: #232320;
-      border-color: #373632;
-    }
-
-    .group {
-      border-color: #373632;
-    }
-
-    .ic {
-      color: #c9c7c0;
-    }
-
-    .ic:hover:enabled {
-      background: #2b2b28;
-    }
-
-    .ic.on {
-      background: #1d2c50;
-      color: #b7cdfa;
-    }
-
-    .apa-hint {
-      color: #6f6e67;
-    }
-  }
+  
 </style>

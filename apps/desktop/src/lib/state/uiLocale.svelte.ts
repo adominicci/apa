@@ -4,20 +4,24 @@ import { overwriteGetLocale } from "$lib/paraglide/runtime";
 const SETTINGS_FILE = "settings.json";
 
 export type UiLanguage = "es" | "en";
+export type UiTheme = "system" | "light" | "dark";
 
 interface AppSettings {
   schemaVersion: 1;
   uiLanguage?: UiLanguage;
+  uiTheme?: UiTheme;
 }
 
 /**
- * UI-chrome language (Paraglide axis) — deliberately independent from each
- * essay's document language (engine axis, plan §i18n rule). Persisted in the
- * global $APPDATA/settings.json. Components re-render via the {#key} wrapper
- * in the page shell.
+ * Global app settings: UI-chrome language (Paraglide axis — deliberately
+ * independent from each essay's document language) and theme. One store
+ * owns $APPDATA/settings.json so the fields never clobber each other.
+ * Components re-render on language via the {#key} wrapper in the shell;
+ * the theme applies via data-theme on <html> (see +layout.svelte).
  */
-class UiLocaleStore {
+class UiSettingsStore {
   current = $state<UiLanguage>("es");
+  theme = $state<UiTheme>("system");
   loaded = $state(false);
 
   constructor() {
@@ -28,6 +32,7 @@ class UiLocaleStore {
     try {
       const settings = await readJson<AppSettings>(SETTINGS_FILE);
       if (settings?.uiLanguage) this.current = settings.uiLanguage;
+      if (settings?.uiTheme) this.theme = settings.uiTheme;
     } catch (err) {
       console.error("No se pudo cargar settings.json:", err);
     } finally {
@@ -35,19 +40,37 @@ class UiLocaleStore {
     }
   }
 
-  set(language: UiLanguage): void {
-    if (this.current === language) return;
-    this.current = language;
+  #persist(): void {
     writeJsonAtomic(
       SETTINGS_FILE,
       {
         schemaVersion: 1,
-        uiLanguage: language,
+        uiLanguage: this.current,
+        uiTheme: this.theme,
       } satisfies AppSettings,
     ).catch((err) => {
       console.error("No se pudo guardar settings.json:", err);
     });
   }
+
+  set(language: UiLanguage): void {
+    if (this.current === language) return;
+    this.current = language;
+    this.#persist();
+  }
+
+  setTheme(theme: UiTheme): void {
+    if (this.theme === theme) return;
+    this.theme = theme;
+    this.#persist();
+  }
+
+  /** Cycle light → dark → system → light (one button, three states). */
+  cycleTheme(): void {
+    const order: UiTheme[] = ["light", "dark", "system"];
+    const next = order[(order.indexOf(this.theme) + 1) % order.length]!;
+    this.setTheme(next);
+  }
 }
 
-export const uiLocale = new UiLocaleStore();
+export const uiLocale = new UiSettingsStore();
