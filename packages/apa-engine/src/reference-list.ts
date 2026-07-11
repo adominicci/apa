@@ -20,6 +20,13 @@ import {
   softwareEntry,
   videoEntry,
 } from "./entry/media.ts";
+import {
+  artworkEntry,
+  filmEntry,
+  musicEntry,
+  tvEpisodeEntry,
+} from "./entry/av.ts";
+import { preprintEntry, unpublishedWorkEntry } from "./entry/informal.ts";
 
 export interface RefListContext {
   /** a/b/c suffixes keyed by reference id (APA 9.47: same authors + year). */
@@ -98,6 +105,18 @@ export function formatReferenceEntry(
       return socialMediaEntry(ref, t, entryCtx);
     case "software":
       return softwareEntry(ref, t, entryCtx);
+    case "film":
+      return filmEntry(ref, t, entryCtx);
+    case "tvEpisode":
+      return tvEpisodeEntry(ref, t, entryCtx);
+    case "music":
+      return musicEntry(ref, t, entryCtx);
+    case "artwork":
+      return artworkEntry(ref, t, entryCtx);
+    case "preprint":
+      return preprintEntry(ref, t, entryCtx);
+    case "unpublishedWork":
+      return unpublishedWorkEntry(ref, t, entryCtx);
     case "personalCommunication":
       return [];
   }

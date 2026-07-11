@@ -60,6 +60,9 @@ export const en: LocaleTerms = {
   ed: "Ed.",
   eds: "Eds.",
   translatorAbbrev: "Trans.",
+  illustratorAbbrev: "Illus.",
+  onAlbum: "On",
+  present: "present",
   volumeAbbrev: "Vol.",
   page: "p.",
   pages: "pp.",
@@ -72,8 +75,68 @@ export const en: LocaleTerms = {
     paperPresentation: "Paper presentation",
     video: "Video",
     podcastEpisode: "Audio podcast episode",
+    podcastShow: "Audio podcast",
     software: "Computer software",
     dataset: "Data set",
+    film: "Film",
+    tvSeries: "TV series",
+    tvSeriesEpisode: "TV series episode",
+    album: "Album",
+    song: "Song",
+  },
+  descriptors: {
+    brochure: "Brochure",
+    factSheet: "Fact sheet",
+    pressRelease: "Press release",
+    whitePaper: "White paper",
+    standard: "Standard",
+    posterPresentation: "Poster presentation",
+    conferenceSession: "Conference session",
+    keynote: "Keynote address",
+    slides: "PowerPoint slides",
+    lectureNotes: "Lecture notes",
+    mooc: "MOOC",
+    webinar: "Webinar",
+    radioBroadcast: "Radio broadcast",
+    transcript: "Transcript",
+    forumPost: "Online forum post",
+    llm: "Large language model",
+    mobileApp: "Mobile app",
+    clipArt: "Clip art",
+    stockImage: "Stock image",
+    infographic: "Infographic",
+    map: "Map",
+    photograph: "Photograph",
+    painting: "Painting",
+    musicalScore: "Musical score",
+  },
+  avRole: (role, count) => {
+    switch (role) {
+      case "director":
+        return count > 1 ? "Directors" : "Director";
+      case "execProducer":
+        return count > 1 ? "Executive Producers" : "Executive Producer";
+      case "writer":
+        return count > 1 ? "Writers" : "Writer";
+      case "writerDirector":
+        return count > 1 ? "Writers & Directors" : "Writer & Director";
+    }
+  },
+  seasonEpisode: (season, episode) => {
+    const parts: string[] = [];
+    if (season) parts.push(`Season ${season}`);
+    if (episode) parts.push(`Episode ${episode}`);
+    return parts.join(", ");
+  },
+  unpublishedStatus: (status) => {
+    switch (status) {
+      case "unpublished":
+        return "Unpublished manuscript";
+      case "inPreparation":
+        return "Manuscript in preparation";
+      case "submitted":
+        return "Manuscript submitted for publication";
+    }
   },
   hostRole: (count) => (count > 1 ? "Hosts" : "Host"),
   versionLabel: (v) => `Version ${v}`,

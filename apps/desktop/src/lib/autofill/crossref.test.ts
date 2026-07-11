@@ -88,9 +88,43 @@ describe("mapCrossrefWork", () => {
     }
   });
 
+  it("maps posted-content to a preprint with its repository", () => {
+    const ref = mapCrossrefWork(
+      {
+        type: "posted-content",
+        title: ["Hábitos de sueño y memoria"],
+        "group-title": "OpenPrints",
+        issued: { "date-parts": [[2024]] },
+        DOI: "10.5555/op.2024.17",
+      },
+      "ref-5",
+    );
+    expect(ref?.type).toBe("preprint");
+    if (ref?.type === "preprint") {
+      expect(ref.repository).toBe("OpenPrints");
+      expect(ref.doi).toBe("10.5555/op.2024.17");
+    }
+  });
+
+  it("maps datasets and reports onto their own types", () => {
+    const dataset = mapCrossrefWork(
+      { type: "dataset", title: ["Datos"], publisher: "Fundación" },
+      "x",
+    );
+    expect(dataset?.type).toBe("software");
+    if (dataset?.type === "software") expect(dataset.kind).toBe("dataset");
+
+    const report = mapCrossrefWork(
+      { type: "report", title: ["Informe"], publisher: "Instituto" },
+      "y",
+    );
+    expect(report?.type).toBe("report");
+    if (report?.type === "report") expect(report.institution).toBe("Instituto");
+  });
+
   it("returns null for unsupported types or missing titles", () => {
     expect(
-      mapCrossrefWork({ type: "dataset", title: ["Datos"] }, "x"),
+      mapCrossrefWork({ type: "peer-review", title: ["Revisión"] }, "x"),
     ).toBeNull();
     expect(mapCrossrefWork({ type: "journal-article" }, "x")).toBeNull();
   });

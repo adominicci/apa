@@ -4,6 +4,7 @@ import type {
   BookChapter,
   Contributor,
   JournalArticle,
+  Preprint,
   Reference,
 } from "@tesina/engine";
 
@@ -19,6 +20,8 @@ export interface CrossrefWork {
   issue?: string;
   page?: string;
   publisher?: string;
+  /** Preprint server name on posted-content works ("PsyArXiv"). */
+  "group-title"?: string;
   DOI?: string;
 }
 
@@ -106,7 +109,8 @@ export function mapCrossrefWork(
       };
       return book;
     }
-    case "book-chapter": {
+    case "book-chapter":
+    case "proceedings-article": {
       const chapter: BookChapter = {
         ...base,
         type: "bookChapter",
@@ -117,6 +121,27 @@ export function mapCrossrefWork(
       };
       return chapter;
     }
+    case "posted-content": {
+      const preprint: Preprint = {
+        ...base,
+        type: "preprint",
+        repository: work["group-title"] ?? work.publisher ?? "",
+      };
+      return preprint;
+    }
+    case "dataset":
+      return {
+        ...base,
+        type: "software",
+        kind: "dataset",
+        ...(work.publisher ? { publisher: work.publisher } : {}),
+      };
+    case "report":
+      return {
+        ...base,
+        type: "report",
+        ...(work.publisher ? { institution: work.publisher } : {}),
+      };
     default:
       return null;
   }

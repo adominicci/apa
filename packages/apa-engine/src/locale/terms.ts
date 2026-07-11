@@ -33,6 +33,12 @@ export interface LocaleTerms {
   ed: string;
   eds: string;
   translatorAbbrev: string;
+  /** "Illus." / "Il." — inline illustrator credit in book parentheticals. */
+  illustratorAbbrev: string;
+  /** "On" / "En" — connects a song to its album (APA 10.13). */
+  onAlbum: string;
+  /** "present" / "presente" — open end of a TV-series year range. */
+  present: string;
   volumeAbbrev: string;
   page: string;
   pages: string;
@@ -51,9 +57,58 @@ export interface LocaleTerms {
     paperPresentation: string;
     video: string;
     podcastEpisode: string;
+    /** Whole podcast show, without an episode. */
+    podcastShow: string;
     software: string;
     dataset: string;
+    film: string;
+    tvSeries: string;
+    tvSeriesEpisode: string;
+    album: string;
+    song: string;
   };
+  /**
+   * Localized suggestions for user-editable bracket descriptors (APA 9.21).
+   * The catalog prefills form fields with these; the chosen text is then
+   * stored on the reference itself, like socialMedia.contentType.
+   */
+  descriptors: {
+    brochure: string;
+    factSheet: string;
+    pressRelease: string;
+    whitePaper: string;
+    standard: string;
+    posterPresentation: string;
+    conferenceSession: string;
+    keynote: string;
+    slides: string;
+    lectureNotes: string;
+    mooc: string;
+    webinar: string;
+    radioBroadcast: string;
+    transcript: string;
+    forumPost: string;
+    llm: string;
+    mobileApp: string;
+    clipArt: string;
+    stockImage: string;
+    infographic: string;
+    map: string;
+    photograph: string;
+    painting: string;
+    musicalScore: string;
+  };
+  /** "(Director)" / "(Executive Producers)" credit after AV author lists. */
+  avRole: (
+    role: "director" | "execProducer" | "writer" | "writerDirector",
+    count: number,
+  ) => string;
+  /** "Season 2, Episode 5" parenthetical content; either part optional. */
+  seasonEpisode: (season?: string, episode?: string) => string;
+  /** Bracket content for manuscripts outside formal publication (APA 10.8). */
+  unpublishedStatus: (
+    status: "unpublished" | "inPreparation" | "submitted",
+  ) => string;
   /** "(Host)." / "(Anfitrión)." role after podcast hosts. */
   hostRole: (count: number) => string;
   versionLabel: (v: string) => string;

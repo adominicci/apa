@@ -40,6 +40,24 @@ export function citationYear(
   return yearSuffix ? `${d.year}${yearSuffix}` : String(d.year);
 }
 
+/**
+ * Extends a formatted date with the year range of an ongoing or finished
+ * TV series / podcast show: "2015" → "2015–2019" or "2015–present". Textual
+ * dates (n.d., in press) and same-year ranges pass through untouched.
+ */
+export function appendYearRange(
+  base: string,
+  d: APADate,
+  t: LocaleTerms,
+  yearEnd?: number,
+  ongoing?: boolean,
+): string {
+  if (d.inPress || d.noDate || d.year === undefined) return base;
+  if (ongoing) return `${base}–${t.present}`;
+  if (yearEnd !== undefined && yearEnd !== d.year) return `${base}–${yearEnd}`;
+  return base;
+}
+
 /** Sort key: undated first, then years ascending, in-press last (APA 9.47). */
 export function dateSortKey(d: APADate): number {
   if (d.inPress) return Number.MAX_SAFE_INTEGER;

@@ -60,6 +60,9 @@ export const es: LocaleTerms = {
   ed: "Ed.",
   eds: "Eds.",
   translatorAbbrev: "Trad.",
+  illustratorAbbrev: "Il.",
+  onAlbum: "En",
+  present: "presente",
   volumeAbbrev: "Vol.",
   page: "p.",
   pages: "pp.",
@@ -72,8 +75,68 @@ export const es: LocaleTerms = {
     paperPresentation: "Ponencia",
     video: "Video",
     podcastEpisode: "Episodio de podcast",
+    podcastShow: "Podcast",
     software: "Software",
     dataset: "Conjunto de datos",
+    film: "Película",
+    tvSeries: "Serie de televisión",
+    tvSeriesEpisode: "Episodio de serie de televisión",
+    album: "Álbum",
+    song: "Canción",
+  },
+  descriptors: {
+    brochure: "Folleto",
+    factSheet: "Hoja informativa",
+    pressRelease: "Comunicado de prensa",
+    whitePaper: "Libro blanco",
+    standard: "Norma",
+    posterPresentation: "Póster",
+    conferenceSession: "Sesión de congreso",
+    keynote: "Conferencia magistral",
+    slides: "Diapositivas de PowerPoint",
+    lectureNotes: "Apuntes de clase",
+    mooc: "MOOC",
+    webinar: "Seminario web",
+    radioBroadcast: "Emisión de radio",
+    transcript: "Transcripción",
+    forumPost: "Publicación en foro en línea",
+    llm: "Modelo de lenguaje de gran tamaño",
+    mobileApp: "Aplicación móvil",
+    clipArt: "Imagen prediseñada",
+    stockImage: "Imagen de archivo",
+    infographic: "Infografía",
+    map: "Mapa",
+    photograph: "Fotografía",
+    painting: "Pintura",
+    musicalScore: "Partitura",
+  },
+  avRole: (role, count) => {
+    switch (role) {
+      case "director":
+        return count > 1 ? "Directores" : "Director";
+      case "execProducer":
+        return count > 1 ? "Productores ejecutivos" : "Productor ejecutivo";
+      case "writer":
+        return count > 1 ? "Guionistas" : "Guionista";
+      case "writerDirector":
+        return count > 1 ? "Guionistas y directores" : "Guionista y director";
+    }
+  },
+  seasonEpisode: (season, episode) => {
+    const parts: string[] = [];
+    if (season) parts.push(`Temporada ${season}`);
+    if (episode) parts.push(`Episodio ${episode}`);
+    return parts.join(", ");
+  },
+  unpublishedStatus: (status) => {
+    switch (status) {
+      case "unpublished":
+        return "Manuscrito no publicado";
+      case "inPreparation":
+        return "Manuscrito en preparación";
+      case "submitted":
+        return "Manuscrito enviado para publicación";
+    }
   },
   hostRole: (count) => (count > 1 ? "Anfitriones" : "Anfitrión"),
   versionLabel: (v) => `Versión ${v}`,

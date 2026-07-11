@@ -357,7 +357,11 @@
 </div>
 
 {#if refFormOpen}
-  <ReferenceQuickForm onSave={saveGlobalRef} onClose={() => (refFormOpen = false)} />
+  <ReferenceQuickForm
+    language={uiLocale.current}
+    onSave={saveGlobalRef}
+    onClose={() => (refFormOpen = false)}
+  />
 {/if}
 
 {#if settingsOpen}

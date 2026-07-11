@@ -7,7 +7,7 @@ import type {
 import type { Contributor } from "../model/reference.ts";
 import type { LocaleTerms } from "../locale/terms.ts";
 import type { RichRun } from "../richtext.ts";
-import { referenceDate } from "../dates.ts";
+import { appendYearRange, referenceDate } from "../dates.ts";
 import { formatAuthorsForReferences } from "../names.ts";
 import {
   assemble,
@@ -47,7 +47,8 @@ function authorsWithUsername(
 
 /**
  * Pattern (APA 10.12): Author [username]. (2021, March 2). *Title of the
- * video* [Video]. Platform. URL
+ * video* [Video]. Platform. URL — the descriptor override reuses this shape
+ * for webinars, MOOCs, slide decks, radio broadcasts, and transcripts.
  */
 export function videoEntry(
   ref: Video,
@@ -56,7 +57,7 @@ export function videoEntry(
 ): RichRun[] {
   const title = closeBlock([
     { text: ref.title, italic: true },
-    { text: ` [${t.brackets.video}]` },
+    { text: ` [${ref.descriptor ?? t.brackets.video}]` },
   ]);
   const platform = closeBlock([{ text: ref.platform }]);
   const author = authorsWithUsername(ref.authors, ref.username, t);
@@ -68,7 +69,9 @@ export function videoEntry(
 
 /**
  * Pattern (APA 10.13): Host, H. (Host). (2022, May 4). Episode title
- * (No. 12) [Audio podcast episode]. In *Show title*. Platform. URL
+ * (No. 12) [Audio podcast episode]. In *Show title*. Platform. URL — whole
+ * shows italicize the title, take "[Audio podcast]", and may span years:
+ * Host, H. (Host). (2019–present). *Show title* [Audio podcast]. Platform.
  */
 export function podcastEpisodeEntry(
   ref: PodcastEpisode,
@@ -83,17 +86,43 @@ export function podcastEpisodeEntry(
     }])
     : [];
 
+  if (ref.kind === "show") {
+    const dateText = appendYearRange(
+      referenceDate(ref.date, t, ctx?.yearSuffix),
+      ref.date,
+      t,
+      ref.yearEnd,
+      ref.ongoing,
+    );
+    const date: RichRun[] = [{ text: `(${dateText}).` }];
+    const title = closeBlock([
+      { text: ref.title, italic: true },
+      { text: ` [${t.brackets.podcastShow}]` },
+    ]);
+    const platform = ref.platform ? closeBlock([{ text: ref.platform }]) : [];
+    const blocks = author.length > 0
+      ? [author, date, title, platform]
+      : [title, date, platform];
+    return assemble([...blocks, extraBlock(ref), linkBlock(ref)]);
+  }
+
   const title: RichRun[] = [{ text: ref.title }];
   if (ref.episodeNumber) {
     title.push({ text: ` (${t.episodeNumber(ref.episodeNumber)})` });
   }
   title.push({ text: ` [${t.brackets.podcastEpisode}]` });
 
-  const source: RichRun[] = [{ text: `${t.in} ` }, {
-    text: ref.showTitle,
-    italic: true,
-  }, { text: "." }];
-  if (ref.platform) source.push({ text: ` ${ref.platform}.` });
+  const source: RichRun[] = [];
+  if (ref.showTitle) {
+    source.push({ text: `${t.in} ` }, { text: ref.showTitle, italic: true }, {
+      text: ".",
+    });
+  }
+  if (ref.platform) {
+    source.push({
+      text: source.length > 0 ? ` ${ref.platform}.` : `${ref.platform}.`,
+    });
+  }
 
   const blocks = author.length > 0
     ? [author, dateBlock(ref, t, ctx), closeBlock(title), closeBlock(source)]
@@ -125,16 +154,16 @@ export function socialMediaEntry(
 
 /**
  * Pattern (APA 10.10): Author/Org. (2023). *Title* (Version 2.1)
- * [Computer software]. Publisher. URL
+ * [Computer software]. Publisher. URL — the descriptor override covers
+ * mobile apps and AI models ("[Large language model]").
  */
 export function softwareEntry(
   ref: Software,
   t: LocaleTerms,
   ctx?: EntryContext,
 ): RichRun[] {
-  const bracket = ref.kind === "dataset"
-    ? t.brackets.dataset
-    : t.brackets.software;
+  const bracket = ref.descriptor ??
+    (ref.kind === "dataset" ? t.brackets.dataset : t.brackets.software);
   const title: RichRun[] = [{ text: ref.title, italic: true }];
   if (ref.version) {
     title.push({ text: ` (${t.versionLabel(ref.version)})` });

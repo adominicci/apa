@@ -35,6 +35,32 @@ export interface QuickFields {
   contentType: string;
   softwareKind: "software" | "dataset";
   version: string;
+  /** Free bracket descriptor (report, book, video, software). */
+  descriptor: string;
+  /** Bracket override for conference contributions (poster, session…). */
+  contributionType: string;
+  /** Verbatim number parenthetical for standards: "ISO 14001:2015". */
+  standardNumber: string;
+  filmKind: "film" | "tvSeries";
+  yearEnd: string;
+  ongoing: boolean;
+  credit: "writer" | "director" | "writerDirector";
+  season: string;
+  episode: string;
+  seriesTitle: string;
+  execProducersText: string;
+  productionCompany: string;
+  musicKind: "album" | "song";
+  albumTitle: string;
+  musicLabel: string;
+  medium: string;
+  venue: string;
+  repository: string;
+  itemNumber: string;
+  unpubStatus: "unpublished" | "inPreparation" | "submitted";
+  podcastKind: "episode" | "show";
+  illustratorsText: string;
+  originalYear: string;
   url: string;
   doi: string;
 }
@@ -74,6 +100,29 @@ export function emptyQuickFields(): QuickFields {
     contentType: "",
     softwareKind: "software",
     version: "",
+    descriptor: "",
+    contributionType: "",
+    standardNumber: "",
+    filmKind: "film",
+    yearEnd: "",
+    ongoing: false,
+    credit: "writerDirector",
+    season: "",
+    episode: "",
+    seriesTitle: "",
+    execProducersText: "",
+    productionCompany: "",
+    musicKind: "album",
+    albumTitle: "",
+    musicLabel: "",
+    medium: "",
+    venue: "",
+    repository: "",
+    itemNumber: "",
+    unpubStatus: "unpublished",
+    podcastKind: "episode",
+    illustratorsText: "",
+    originalYear: "",
     url: "",
     doi: "",
   };
@@ -121,6 +170,11 @@ export function refToQuickFields(ref: Reference): QuickFields {
     case "book":
       base.publisher = ref.publisher ?? "";
       base.edition = ref.edition ?? "";
+      base.illustratorsText = contributorsToText(ref.illustrators ?? []);
+      base.descriptor = ref.descriptor ?? "";
+      base.originalYear = ref.originalYear !== undefined
+        ? String(ref.originalYear)
+        : "";
       break;
     case "bookChapter":
       base.editorsText = contributorsToText(ref.editors);
@@ -135,6 +189,8 @@ export function refToQuickFields(ref: Reference): QuickFields {
     case "report":
       base.institution = ref.institution ?? "";
       base.reportNumber = ref.reportNumber ?? "";
+      base.standardNumber = ref.standardNumber ?? "";
+      base.descriptor = ref.descriptor ?? "";
       break;
     case "thesis":
       base.institution = ref.institution;
@@ -146,6 +202,7 @@ export function refToQuickFields(ref: Reference): QuickFields {
       base.conferenceName = ref.conferenceName;
       base.location = ref.location ?? "";
       base.dayEnd = ref.dayEnd !== undefined ? String(ref.dayEnd) : "";
+      base.contributionType = ref.contributionType ?? "";
       break;
     case "newspaperArticle":
       base.publication = ref.publication;
@@ -161,11 +218,15 @@ export function refToQuickFields(ref: Reference): QuickFields {
     case "video":
       base.username = ref.username ?? "";
       base.platform = ref.platform;
+      base.descriptor = ref.descriptor ?? "";
       break;
     case "podcastEpisode":
+      base.podcastKind = ref.kind ?? "episode";
       base.episodeNumber = ref.episodeNumber ?? "";
-      base.showTitle = ref.showTitle;
+      base.showTitle = ref.showTitle ?? "";
       base.platform = ref.platform ?? "";
+      base.yearEnd = ref.yearEnd !== undefined ? String(ref.yearEnd) : "";
+      base.ongoing = ref.ongoing === true;
       break;
     case "socialMedia":
       base.username = ref.username ?? "";
@@ -176,6 +237,41 @@ export function refToQuickFields(ref: Reference): QuickFields {
       base.softwareKind = ref.kind;
       base.version = ref.version ?? "";
       base.publisher = ref.publisher ?? "";
+      base.descriptor = ref.descriptor ?? "";
+      break;
+    case "film":
+      base.filmKind = ref.kind;
+      base.productionCompany = ref.productionCompany ?? "";
+      base.yearEnd = ref.yearEnd !== undefined ? String(ref.yearEnd) : "";
+      base.ongoing = ref.ongoing === true;
+      break;
+    case "tvEpisode":
+      base.credit = ref.credit ?? "writerDirector";
+      base.season = ref.season ?? "";
+      base.episode = ref.episode ?? "";
+      base.seriesTitle = ref.seriesTitle;
+      base.execProducersText = contributorsToText(
+        ref.executiveProducers ?? [],
+      );
+      base.productionCompany = ref.productionCompany ?? "";
+      break;
+    case "music":
+      base.musicKind = ref.kind;
+      base.albumTitle = ref.albumTitle ?? "";
+      base.musicLabel = ref.label ?? "";
+      break;
+    case "artwork":
+      base.medium = ref.medium ?? "";
+      base.venue = ref.venue ?? "";
+      base.location = ref.location ?? "";
+      break;
+    case "preprint":
+      base.repository = ref.repository;
+      base.itemNumber = ref.itemNumber ?? "";
+      break;
+    case "unpublishedWork":
+      base.unpubStatus = ref.status;
+      base.institution = ref.institution ?? "";
       break;
     case "personalCommunication":
       break;

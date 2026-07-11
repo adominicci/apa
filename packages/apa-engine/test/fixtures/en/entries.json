@@ -699,5 +699,290 @@
       "id": "fx-en-29"
     },
     "expected": "Open Study Lab. (2023). *Citation trainer* (Version 2.0) [Computer software]. Open Data Foundation. https://example.org/trainer"
+  },
+  {
+    "name": "film: director credit and production company",
+    "ref": {
+      "type": "film",
+      "kind": "film",
+      "id": "fx-en-30",
+      "authors": [{ "kind": "person", "family": "Iriarte", "given": "Manuel" }],
+      "date": { "year": 2018 },
+      "title": "The paper river",
+      "productionCompany": "Andes Films"
+    },
+    "expected": "Iriarte, M. (Director). (2018). *The paper river* [Film]. Andes Films."
+  },
+  {
+    "name": "tv series: executive producers and ongoing year range",
+    "ref": {
+      "type": "film",
+      "kind": "tvSeries",
+      "id": "fx-en-31",
+      "authors": [
+        { "kind": "person", "family": "Quero", "given": "Alba" },
+        { "kind": "person", "family": "Nedim", "given": "Sara" }
+      ],
+      "date": { "year": 2019 },
+      "ongoing": true,
+      "title": "Harbor lights",
+      "productionCompany": "Norte Studio"
+    },
+    "expected": "Quero, A., & Nedim, S. (Executive Producers). (2019–present). *Harbor lights* [TV series]. Norte Studio."
+  },
+  {
+    "name": "tv episode: season, episode, and executive producer",
+    "ref": {
+      "type": "tvEpisode",
+      "id": "fx-en-32",
+      "authors": [{ "kind": "person", "family": "Falco", "given": "Renata" }],
+      "credit": "writerDirector",
+      "date": { "year": 2021, "month": 3, "day": 14 },
+      "title": "The long detour",
+      "season": "2",
+      "episode": "5",
+      "seriesTitle": "Harbor lights",
+      "executiveProducers": [
+        { "kind": "person", "family": "Quero", "given": "Alba" }
+      ],
+      "productionCompany": "Norte Studio"
+    },
+    "expected": "Falco, R. (Writer & Director). (2021, March 14). The long detour (Season 2, Episode 5) [TV series episode]. In A. Quero (Executive Producer), *Harbor lights*. Norte Studio."
+  },
+  {
+    "name": "music: album with label",
+    "ref": {
+      "type": "music",
+      "kind": "album",
+      "id": "fx-en-33",
+      "authors": [
+        { "kind": "person", "family": "Vela Ríos", "given": "Camila" }
+      ],
+      "date": { "year": 2016 },
+      "title": "Mareas de sal",
+      "label": "Faro Records"
+    },
+    "expected": "Vela Ríos, C. (2016). *Mareas de sal* [Album]. Faro Records."
+  },
+  {
+    "name": "music: song on an album",
+    "ref": {
+      "type": "music",
+      "kind": "song",
+      "id": "fx-en-34",
+      "authors": [
+        { "kind": "person", "family": "Vela Ríos", "given": "Camila" }
+      ],
+      "date": { "year": 2016 },
+      "title": "Puerto escondido",
+      "albumTitle": "Mareas de sal",
+      "label": "Faro Records",
+      "url": "https://example.org/puerto"
+    },
+    "expected": "Vela Ríos, C. (2016). Puerto escondido [Song]. On *Mareas de sal*. Faro Records. https://example.org/puerto"
+  },
+  {
+    "name": "artwork: painting in a museum",
+    "ref": {
+      "type": "artwork",
+      "id": "fx-en-35",
+      "authors": [
+        { "kind": "person", "family": "Obregón", "given": "Teodora" }
+      ],
+      "date": { "year": 1931 },
+      "title": "Valle en sombra",
+      "medium": "Painting",
+      "venue": "Museo del Llano",
+      "location": "Bogotá, Colombia"
+    },
+    "expected": "Obregón, T. (1931). *Valle en sombra* [Painting]. Museo del Llano, Bogotá, Colombia."
+  },
+  {
+    "name": "artwork: stock image with URL",
+    "ref": {
+      "type": "artwork",
+      "id": "fx-en-36",
+      "authors": [{ "kind": "group", "name": "Lumen Stock" }],
+      "date": { "year": 2022 },
+      "title": "Students in a library",
+      "medium": "Stock image",
+      "url": "https://example.org/students"
+    },
+    "expected": "Lumen Stock. (2022). *Students in a library* [Stock image]. https://example.org/students"
+  },
+  {
+    "name": "preprint: repository with DOI",
+    "ref": {
+      "type": "preprint",
+      "id": "fx-en-37",
+      "authors": [
+        { "kind": "person", "family": "Ansaldo", "given": "Piero" },
+        { "kind": "person", "family": "Ruiz", "given": "Elba" }
+      ],
+      "date": { "year": 2024 },
+      "title": "Sleep and recall in bilingual adults",
+      "repository": "OpenPrints",
+      "doi": "10.5555/op.2024.17"
+    },
+    "expected": "Ansaldo, P., & Ruiz, E. (2024). *Sleep and recall in bilingual adults*. OpenPrints. https://doi.org/10.5555/op.2024.17"
+  },
+  {
+    "name": "preprint: database document with accession number",
+    "ref": {
+      "type": "preprint",
+      "id": "fx-en-38",
+      "authors": [{ "kind": "person", "family": "Mendive", "given": "Laura" }],
+      "date": { "year": 2019 },
+      "title": "Rural classroom libraries",
+      "repository": "EduDocs",
+      "itemNumber": "DB-90441",
+      "url": "https://example.org/db90441"
+    },
+    "expected": "Mendive, L. (2019). *Rural classroom libraries* (DB-90441). EduDocs. https://example.org/db90441"
+  },
+  {
+    "name": "unpublished manuscript with institution",
+    "ref": {
+      "type": "unpublishedWork",
+      "id": "fx-en-39",
+      "authors": [{ "kind": "person", "family": "Zabala", "given": "Iker" }],
+      "date": { "year": 2023 },
+      "title": "Cartography of school gardens",
+      "status": "unpublished",
+      "institution": "Department of Education, University of the Valley"
+    },
+    "expected": "Zabala, I. (2023). *Cartography of school gardens* [Unpublished manuscript]. Department of Education, University of the Valley."
+  },
+  {
+    "name": "manuscript submitted for publication omits the institution",
+    "ref": {
+      "type": "unpublishedWork",
+      "id": "fx-en-40",
+      "authors": [{ "kind": "person", "family": "Ferro", "given": "Dalia" }],
+      "date": { "year": 2025 },
+      "title": "Peer feedback loops in writing courses",
+      "status": "submitted"
+    },
+    "expected": "Ferro, D. (2025). *Peer feedback loops in writing courses* [Manuscript submitted for publication]."
+  },
+  {
+    "name": "brochure: report with descriptor, institution repeats author",
+    "ref": {
+      "type": "report",
+      "id": "fx-en-41",
+      "authors": [{ "kind": "group", "name": "River Health Coalition" }],
+      "date": { "year": 2021 },
+      "title": "Hand hygiene at school",
+      "descriptor": "Brochure",
+      "institution": "River Health Coalition",
+      "url": "https://example.org/hygiene"
+    },
+    "expected": "River Health Coalition. (2021). *Hand hygiene at school* [Brochure]. https://example.org/hygiene"
+  },
+  {
+    "name": "standard: verbatim number parenthetical",
+    "ref": {
+      "type": "report",
+      "id": "fx-en-42",
+      "authors": [
+        { "kind": "group", "name": "International Standards Group" }
+      ],
+      "date": { "year": 2015 },
+      "title": "Environmental management systems",
+      "standardNumber": "ISG Standard 14200:2015",
+      "institution": "International Standards Group",
+      "url": "https://example.org/isg14200"
+    },
+    "expected": "International Standards Group. (2015). *Environmental management systems* (ISG Standard 14200:2015). https://example.org/isg14200"
+  },
+  {
+    "name": "conference poster: contribution type override",
+    "ref": {
+      "type": "conferencePaper",
+      "id": "fx-en-43",
+      "authors": [
+        { "kind": "person", "family": "Bran", "given": "Olivia" },
+        { "kind": "person", "family": "Costas", "given": "Julen" }
+      ],
+      "date": { "year": 2022, "month": 9, "day": 3 },
+      "dayEnd": 6,
+      "title": "Mapping campus noise",
+      "conferenceName": "Acoustic Ecology Meeting",
+      "location": "Valparaíso, Chile",
+      "contributionType": "Poster presentation"
+    },
+    "expected": "Bran, O., & Costas, J. (2022, September 3–6). *Mapping campus noise* [Poster presentation]. Acoustic Ecology Meeting, Valparaíso, Chile."
+  },
+  {
+    "name": "podcast show: host, ongoing range, platform",
+    "ref": {
+      "type": "podcastEpisode",
+      "kind": "show",
+      "id": "fx-en-44",
+      "authors": [{ "kind": "person", "family": "Ochoa", "given": "Damián" }],
+      "date": { "year": 2020 },
+      "ongoing": true,
+      "title": "Margins of history",
+      "platform": "PodBase",
+      "url": "https://example.org/margins"
+    },
+    "expected": "Ochoa, D. (Host). (2020–present). *Margins of history* [Audio podcast]. PodBase. https://example.org/margins"
+  },
+  {
+    "name": "mooc: video with descriptor override",
+    "ref": {
+      "type": "video",
+      "id": "fx-en-45",
+      "authors": [{ "kind": "group", "name": "Open Campus Initiative" }],
+      "date": { "year": 2023 },
+      "title": "Introduction to research writing",
+      "descriptor": "MOOC",
+      "platform": "LearnSphere",
+      "url": "https://example.org/writing-mooc"
+    },
+    "expected": "Open Campus Initiative. (2023). *Introduction to research writing* [MOOC]. LearnSphere. https://example.org/writing-mooc"
+  },
+  {
+    "name": "ai model: software with descriptor override",
+    "ref": {
+      "type": "software",
+      "kind": "software",
+      "id": "fx-en-46",
+      "authors": [{ "kind": "group", "name": "Aurora Labs" }],
+      "date": { "year": 2025 },
+      "title": "Lumen Chat",
+      "version": "3.2",
+      "descriptor": "Large language model",
+      "url": "https://example.org/lumen"
+    },
+    "expected": "Aurora Labs. (2025). *Lumen Chat* (Version 3.2) [Large language model]. https://example.org/lumen"
+  },
+  {
+    "name": "illustrated book: illustrator credit in the parenthetical",
+    "ref": {
+      "type": "book",
+      "id": "fx-en-47",
+      "authors": [{ "kind": "person", "family": "Paredes", "given": "Rocío" }],
+      "date": { "year": 2017 },
+      "title": "The lighthouse ant",
+      "illustrators": [
+        { "kind": "person", "family": "Vidal", "given": "Nuria" }
+      ],
+      "publisher": "Faro Infantil"
+    },
+    "expected": "Paredes, R. (2017). *The lighthouse ant* (N. Vidal, Illus.). Faro Infantil."
+  },
+  {
+    "name": "musical score: book with descriptor",
+    "ref": {
+      "type": "book",
+      "id": "fx-en-48",
+      "authors": [{ "kind": "person", "family": "Riofrío", "given": "Édgar" }],
+      "date": { "year": 1998 },
+      "title": "Suite for two guitars",
+      "descriptor": "Musical score",
+      "publisher": "Ediciones Cuerda"
+    },
+    "expected": "Riofrío, É. (1998). *Suite for two guitars* [Musical score]. Ediciones Cuerda."
   }
 ]

@@ -18,9 +18,10 @@ A diferencia de otras herramientas, el **idioma del documento** es independiente
 - **Editor APA seccionado**: resumen con palabras clave, cuerpo con los 5 niveles de encabezado, apéndices con letra automática; hoja blanca con serif, doble espacio y sangrías correctas.
 - **Citas vivas**: inserta citas parentéticas o narrativas desde tu biblioteca (multi-obra, localizadores de página/párrafo); el motor aplica et al., sufijos 2020a/b, iniciales por apellidos repetidos y abreviaturas de grupo — y se re-renderizan solas al editar la biblioteca o cambiar el idioma.
 - **Bibliografía automática**: ordenada y formateada por el motor, con avisos de obras sin citar.
+- **Catálogo APA completo**: todos los formatos de la página de ejemplos de APA Style, agrupados por categoría — periódicos (revista académica, magacín, periódico, blog), libros (incl. ilustrados, obras religiosas, partituras), capítulos y entradas de diccionario/Wikipedia, informes y literatura gris (folleto, hoja informativa, comunicado, white paper, normas ISO, códigos de ética), congresos (ponencia, póster, sesión, conferencia magistral, actas) y tesis, preprints/ERIC y manuscritos no publicados, datos/software/apps/modelos de IA, audiovisual (película, serie y episodio, YouTube, TED, MOOC, seminario web, diapositivas, radio, transcripciones, pódcast completo o episodio, álbum, canción, obras de arte e imágenes) y en línea (web, redes sociales, foros, comunicación personal).
 - **Portada**: variantes estudiante y profesional (con titulillo y nota del autor).
-- **Autollenado**: pega un DOI o ISBN y el formulario se rellena solo (CrossRef / OpenLibrary, sin API keys).
-- **Export a Word**: un clic → `.docx` con portada, secciones en páginas nuevas, encabezados reales de Word, citas y referencias con sangría francesa. 144 tests automatizados, incluidos asserts sobre el XML del documento.
+- **Autollenado**: pega un DOI o ISBN y el formulario se rellena solo (CrossRef / OpenLibrary, sin API keys) — artículos, libros, capítulos, actas, preprints, datasets e informes.
+- **Export a Word**: un clic → `.docx` con portada, secciones en páginas nuevas, encabezados reales de Word, citas y referencias con sangría francesa. 215 tests automatizados, incluidos asserts sobre el XML del documento.
 
 ## Instalación (builds sin firmar)
 
@@ -44,7 +45,7 @@ Requisitos: Deno 2.x, Rust estable ≥ 1.88 (`rustup update stable`), y en Linux
 
 ## Hoja de ruta
 
-- Gestor completo de referencias (colecciones, más tipos de fuente, editar existentes)
+- Gestor completo de referencias (colecciones, editar existentes)
 - Autollenado por URL e import BibTeX
 - Vista previa paginada e impresión/PDF (M5)
 - Empaquetado firmado, actualizador y UI en inglés completa (M6)

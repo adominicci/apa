@@ -8,7 +8,7 @@ import type { DocLocale, LocaleTerms } from "./locale/terms.ts";
 import { getTerms } from "./locale/index.ts";
 import type { RichRun } from "./richtext.ts";
 import { mergeRuns } from "./richtext.ts";
-import { citationYear } from "./dates.ts";
+import { appendYearRange, citationYear } from "./dates.ts";
 import { formatAuthorsInText, inTextName } from "./names.ts";
 import { type CitationContext, contextFor } from "./disambiguate.ts";
 import { compareReferences } from "./sort.ts";
@@ -38,14 +38,34 @@ function locatorText(locator: CitationLocator, t: LocaleTerms): string {
   }
 }
 
+/**
+ * Titles rendered plain (quoted in text) because the work lives inside a
+ * larger whole; every other type italicizes its standalone title (APA 8.14).
+ */
+function titleIsQuoted(ref: Reference): boolean {
+  switch (ref.type) {
+    case "journalArticle":
+    case "bookChapter":
+    case "newspaperArticle":
+    case "referenceEntry":
+    case "tvEpisode":
+      return true;
+    case "podcastEpisode":
+      return (ref.kind ?? "episode") === "episode";
+    case "music":
+      return ref.kind === "song" && ref.albumTitle !== undefined;
+    default:
+      return false;
+  }
+}
+
 /** First words of the title stand in for a missing author (APA 8.14). */
 function shortTitleRuns(ref: Reference): RichRun[] {
   const words = ref.title.trim().split(/\s+/);
   const short = words.slice(0, 4).join(" ").replace(/[.,;:]+$/, "");
-  const standalone = ref.type === "book" || ref.type === "website";
-  return standalone
-    ? [{ text: short, italic: true }]
-    : [{ text: `“${short}”` }];
+  return titleIsQuoted(ref)
+    ? [{ text: `“${short}”` }]
+    : [{ text: short, italic: true }];
 }
 
 interface AuthorPart {
@@ -140,7 +160,14 @@ function itemRuns(
   }
 
   const { yearSuffix } = contextFor(ctx, ref.id);
-  const year = citationYear(ref.date, t, yearSuffix);
+  let year = citationYear(ref.date, t, yearSuffix);
+  // Ongoing works cite their whole range: "(García, 2015–present)" (APA 8.10).
+  if (
+    ref.type === "film" ||
+    (ref.type === "podcastEpisode" && ref.kind === "show")
+  ) {
+    year = appendYearRange(year, ref.date, t, ref.yearEnd, ref.ongoing);
+  }
   const tail: string[] = [];
   if (item.locator) tail.push(locatorText(item.locator, t));
   if (item.suffix) tail.push(item.suffix);

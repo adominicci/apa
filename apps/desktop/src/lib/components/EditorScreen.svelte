@@ -50,6 +50,7 @@
   let inAppendix = $state(false);
   let citePopoverOpen = $state(false);
   let refFormOpen = $state(false);
+  let citeOnSave = $state(false);
   let titleFormOpen = $state(false);
   let addMenuOpen = $state(false);
   let outlineOpen = $state(true);
@@ -300,6 +301,19 @@
     library.add(ref);
     refFormOpen = false;
     syncCitationEnv();
+    // From the writing bar the new source is cited where the cursor sits.
+    if (citeOnSave && editor && ref.type !== "personalCommunication") {
+      insertCitation(editor, {
+        items: [{ refId: ref.id }],
+        mode: "parenthetical",
+      });
+    }
+    citeOnSave = false;
+  }
+
+  function openRefForm(insertAfter: boolean) {
+    citeOnSave = insertAfter;
+    refFormOpen = true;
   }
 
   function handleCiteFromPanel(refId: string) {
@@ -469,7 +483,7 @@
     <aside class="refs">
       <div class="panel-head">
         <h4>{referencesLabel}</h4>
-        <button class="btn btn-primary btn-sm" onclick={() => (refFormOpen = true)}>
+        <button class="btn btn-primary btn-sm" onclick={() => openRefForm(false)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" /></svg>
           {m.panel_add().replace("+ ", "")}
         </button>
@@ -530,6 +544,11 @@
           />
         {/if}
       </div>
+      <button class="fm-btn" onclick={() => openRefForm(true)} title={m.fab_new_ref_hint()}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4h11a2 2 0 0 1 2 2v14l-4-2-4 2V6H6z" /><path d="M6 4v16" /></svg>
+        {m.fab_new_ref()}
+      </button>
+      <div class="fm-sep"></div>
       <button class="fm-btn" onclick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} aria-label={m.toolbar_heading_level({ level: 2 })}>N2</button>
       <button class="fm-btn" onclick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} aria-label={m.toolbar_heading_level({ level: 3 })}>N3</button>
       <button class="fm-btn" onclick={() => editor?.chain().focus().setParagraph().run()} aria-label="¶">¶</button>
@@ -589,7 +608,14 @@
 </div>
 
 {#if refFormOpen}
-  <ReferenceQuickForm onSave={handleSaveReference} onClose={() => (refFormOpen = false)} />
+  <ReferenceQuickForm
+    language={documentLanguage}
+    onSave={handleSaveReference}
+    onClose={() => {
+      refFormOpen = false;
+      citeOnSave = false;
+    }}
+  />
 {/if}
 
 {#if titleFormOpen}

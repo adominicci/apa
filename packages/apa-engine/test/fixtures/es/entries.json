@@ -704,5 +704,290 @@
       "id": "fx-es-29"
     },
     "expected": "Laboratorio Abierto de Estudio. (2023). *Entrenador de citas* (Versión 2.0) [Software]. Fundación Datos Abiertos. https://example.org/entrenador"
+  },
+  {
+    "name": "película: crédito de dirección y productora",
+    "ref": {
+      "type": "film",
+      "kind": "film",
+      "id": "fx-es-30",
+      "authors": [{ "kind": "person", "family": "Iriarte", "given": "Manuel" }],
+      "date": { "year": 2018 },
+      "title": "El río de papel",
+      "productionCompany": "Andes Films"
+    },
+    "expected": "Iriarte, M. (Director). (2018). *El río de papel* [Película]. Andes Films."
+  },
+  {
+    "name": "serie de televisión: productores ejecutivos y rango abierto",
+    "ref": {
+      "type": "film",
+      "kind": "tvSeries",
+      "id": "fx-es-31",
+      "authors": [
+        { "kind": "person", "family": "Quero", "given": "Alba" },
+        { "kind": "person", "family": "Nedim", "given": "Sara" }
+      ],
+      "date": { "year": 2019 },
+      "ongoing": true,
+      "title": "Luces del puerto",
+      "productionCompany": "Norte Studio"
+    },
+    "expected": "Quero, A. y Nedim, S. (Productores ejecutivos). (2019–presente). *Luces del puerto* [Serie de televisión]. Norte Studio."
+  },
+  {
+    "name": "episodio de serie: temporada, episodio y productor ejecutivo",
+    "ref": {
+      "type": "tvEpisode",
+      "id": "fx-es-32",
+      "authors": [{ "kind": "person", "family": "Falco", "given": "Renato" }],
+      "credit": "writerDirector",
+      "date": { "year": 2021, "month": 3, "day": 14 },
+      "title": "El desvío largo",
+      "season": "2",
+      "episode": "5",
+      "seriesTitle": "Luces del puerto",
+      "executiveProducers": [
+        { "kind": "person", "family": "Quero", "given": "Alba" }
+      ],
+      "productionCompany": "Norte Studio"
+    },
+    "expected": "Falco, R. (Guionista y director). (2021, 14 de marzo). El desvío largo (Temporada 2, Episodio 5) [Episodio de serie de televisión]. En A. Quero (Productor ejecutivo), *Luces del puerto*. Norte Studio."
+  },
+  {
+    "name": "música: álbum con discográfica",
+    "ref": {
+      "type": "music",
+      "kind": "album",
+      "id": "fx-es-33",
+      "authors": [
+        { "kind": "person", "family": "Vela Ríos", "given": "Camila" }
+      ],
+      "date": { "year": 2016 },
+      "title": "Mareas de sal",
+      "label": "Faro Records"
+    },
+    "expected": "Vela Ríos, C. (2016). *Mareas de sal* [Álbum]. Faro Records."
+  },
+  {
+    "name": "música: canción dentro de un álbum",
+    "ref": {
+      "type": "music",
+      "kind": "song",
+      "id": "fx-es-34",
+      "authors": [
+        { "kind": "person", "family": "Vela Ríos", "given": "Camila" }
+      ],
+      "date": { "year": 2016 },
+      "title": "Puerto escondido",
+      "albumTitle": "Mareas de sal",
+      "label": "Faro Records",
+      "url": "https://example.org/puerto"
+    },
+    "expected": "Vela Ríos, C. (2016). Puerto escondido [Canción]. En *Mareas de sal*. Faro Records. https://example.org/puerto"
+  },
+  {
+    "name": "obra de arte: pintura en museo",
+    "ref": {
+      "type": "artwork",
+      "id": "fx-es-35",
+      "authors": [
+        { "kind": "person", "family": "Obregón", "given": "Teodora" }
+      ],
+      "date": { "year": 1931 },
+      "title": "Valle en sombra",
+      "medium": "Pintura",
+      "venue": "Museo del Llano",
+      "location": "Bogotá, Colombia"
+    },
+    "expected": "Obregón, T. (1931). *Valle en sombra* [Pintura]. Museo del Llano, Bogotá, Colombia."
+  },
+  {
+    "name": "imagen de archivo con URL",
+    "ref": {
+      "type": "artwork",
+      "id": "fx-es-36",
+      "authors": [{ "kind": "group", "name": "Lumen Stock" }],
+      "date": { "year": 2022 },
+      "title": "Estudiantes en una biblioteca",
+      "medium": "Imagen de archivo",
+      "url": "https://example.org/estudiantes"
+    },
+    "expected": "Lumen Stock. (2022). *Estudiantes en una biblioteca* [Imagen de archivo]. https://example.org/estudiantes"
+  },
+  {
+    "name": "preprint: repositorio con DOI",
+    "ref": {
+      "type": "preprint",
+      "id": "fx-es-37",
+      "authors": [
+        { "kind": "person", "family": "Ansaldo", "given": "Piero" },
+        { "kind": "person", "family": "Ruiz", "given": "Elba" }
+      ],
+      "date": { "year": 2024 },
+      "title": "Sueño y memoria en adultos bilingües",
+      "repository": "OpenPrints",
+      "doi": "10.5555/op.2024.17"
+    },
+    "expected": "Ansaldo, P. y Ruiz, E. (2024). *Sueño y memoria en adultos bilingües*. OpenPrints. https://doi.org/10.5555/op.2024.17"
+  },
+  {
+    "name": "preprint: documento de base de datos con número",
+    "ref": {
+      "type": "preprint",
+      "id": "fx-es-38",
+      "authors": [{ "kind": "person", "family": "Mendive", "given": "Laura" }],
+      "date": { "year": 2019 },
+      "title": "Bibliotecas de aula rurales",
+      "repository": "EduDocs",
+      "itemNumber": "DB-90441",
+      "url": "https://example.org/db90441"
+    },
+    "expected": "Mendive, L. (2019). *Bibliotecas de aula rurales* (DB-90441). EduDocs. https://example.org/db90441"
+  },
+  {
+    "name": "manuscrito no publicado con institución",
+    "ref": {
+      "type": "unpublishedWork",
+      "id": "fx-es-39",
+      "authors": [{ "kind": "person", "family": "Zabala", "given": "Iker" }],
+      "date": { "year": 2023 },
+      "title": "Cartografía de huertos escolares",
+      "status": "unpublished",
+      "institution": "Departamento de Educación, Universidad del Valle"
+    },
+    "expected": "Zabala, I. (2023). *Cartografía de huertos escolares* [Manuscrito no publicado]. Departamento de Educación, Universidad del Valle."
+  },
+  {
+    "name": "manuscrito enviado omite la institución",
+    "ref": {
+      "type": "unpublishedWork",
+      "id": "fx-es-40",
+      "authors": [{ "kind": "person", "family": "Ferro", "given": "Dalia" }],
+      "date": { "year": 2025 },
+      "title": "Ciclos de retroalimentación entre pares",
+      "status": "submitted"
+    },
+    "expected": "Ferro, D. (2025). *Ciclos de retroalimentación entre pares* [Manuscrito enviado para publicación]."
+  },
+  {
+    "name": "folleto: informe con descriptor e institución repetida",
+    "ref": {
+      "type": "report",
+      "id": "fx-es-41",
+      "authors": [{ "kind": "group", "name": "Coalición Salud del Río" }],
+      "date": { "year": 2021 },
+      "title": "Higiene de manos en la escuela",
+      "descriptor": "Folleto",
+      "institution": "Coalición Salud del Río",
+      "url": "https://example.org/higiene"
+    },
+    "expected": "Coalición Salud del Río. (2021). *Higiene de manos en la escuela* [Folleto]. https://example.org/higiene"
+  },
+  {
+    "name": "norma: número literal entre paréntesis",
+    "ref": {
+      "type": "report",
+      "id": "fx-es-42",
+      "authors": [
+        { "kind": "group", "name": "Grupo Internacional de Normas" }
+      ],
+      "date": { "year": 2015 },
+      "title": "Sistemas de gestión ambiental",
+      "standardNumber": "Norma GIN 14200:2015",
+      "institution": "Grupo Internacional de Normas",
+      "url": "https://example.org/gin14200"
+    },
+    "expected": "Grupo Internacional de Normas. (2015). *Sistemas de gestión ambiental* (Norma GIN 14200:2015). https://example.org/gin14200"
+  },
+  {
+    "name": "póster de congreso: corchete personalizado",
+    "ref": {
+      "type": "conferencePaper",
+      "id": "fx-es-43",
+      "authors": [
+        { "kind": "person", "family": "Bran", "given": "Olivia" },
+        { "kind": "person", "family": "Costas", "given": "Julen" }
+      ],
+      "date": { "year": 2022, "month": 9, "day": 3 },
+      "dayEnd": 6,
+      "title": "Mapeo del ruido en el campus",
+      "conferenceName": "Encuentro de Ecología Acústica",
+      "location": "Valparaíso, Chile",
+      "contributionType": "Póster"
+    },
+    "expected": "Bran, O. y Costas, J. (2022, 3–6 de septiembre). *Mapeo del ruido en el campus* [Póster]. Encuentro de Ecología Acústica, Valparaíso, Chile."
+  },
+  {
+    "name": "podcast completo: anfitrión, rango abierto y plataforma",
+    "ref": {
+      "type": "podcastEpisode",
+      "kind": "show",
+      "id": "fx-es-44",
+      "authors": [{ "kind": "person", "family": "Ochoa", "given": "Damián" }],
+      "date": { "year": 2020 },
+      "ongoing": true,
+      "title": "Márgenes de la historia",
+      "platform": "PodBase",
+      "url": "https://example.org/margenes"
+    },
+    "expected": "Ochoa, D. (Anfitrión). (2020–presente). *Márgenes de la historia* [Podcast]. PodBase. https://example.org/margenes"
+  },
+  {
+    "name": "mooc: video con descriptor personalizado",
+    "ref": {
+      "type": "video",
+      "id": "fx-es-45",
+      "authors": [{ "kind": "group", "name": "Iniciativa Campus Abierto" }],
+      "date": { "year": 2023 },
+      "title": "Introducción a la escritura académica",
+      "descriptor": "MOOC",
+      "platform": "LearnSphere",
+      "url": "https://example.org/mooc-escritura"
+    },
+    "expected": "Iniciativa Campus Abierto. (2023). *Introducción a la escritura académica* [MOOC]. LearnSphere. https://example.org/mooc-escritura"
+  },
+  {
+    "name": "modelo de IA: software con descriptor personalizado",
+    "ref": {
+      "type": "software",
+      "kind": "software",
+      "id": "fx-es-46",
+      "authors": [{ "kind": "group", "name": "Aurora Labs" }],
+      "date": { "year": 2025 },
+      "title": "Lumen Chat",
+      "version": "3.2",
+      "descriptor": "Modelo de lenguaje de gran tamaño",
+      "url": "https://example.org/lumen"
+    },
+    "expected": "Aurora Labs. (2025). *Lumen Chat* (Versión 3.2) [Modelo de lenguaje de gran tamaño]. https://example.org/lumen"
+  },
+  {
+    "name": "libro ilustrado: crédito de ilustración en el paréntesis",
+    "ref": {
+      "type": "book",
+      "id": "fx-es-47",
+      "authors": [{ "kind": "person", "family": "Paredes", "given": "Rocío" }],
+      "date": { "year": 2017 },
+      "title": "La hormiga del faro",
+      "illustrators": [
+        { "kind": "person", "family": "Vidal", "given": "Nuria" }
+      ],
+      "publisher": "Faro Infantil"
+    },
+    "expected": "Paredes, R. (2017). *La hormiga del faro* (N. Vidal, Il.). Faro Infantil."
+  },
+  {
+    "name": "partitura: libro con descriptor",
+    "ref": {
+      "type": "book",
+      "id": "fx-es-48",
+      "authors": [{ "kind": "person", "family": "Riofrío", "given": "Édgar" }],
+      "date": { "year": 1998 },
+      "title": "Suite para dos guitarras",
+      "descriptor": "Partitura",
+      "publisher": "Ediciones Cuerda"
+    },
+    "expected": "Riofrío, É. (1998). *Suite para dos guitarras* [Partitura]. Ediciones Cuerda."
   }
 ]

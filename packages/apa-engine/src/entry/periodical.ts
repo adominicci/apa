@@ -36,7 +36,7 @@ export function conferencePaperEntry(
 
   const title = closeBlock([
     { text: ref.title, italic: true },
-    { text: ` [${t.brackets.paperPresentation}]` },
+    { text: ` [${ref.contributionType ?? t.brackets.paperPresentation}]` },
   ]);
   const venue = closeBlock([
     {

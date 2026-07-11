@@ -73,6 +73,10 @@ export interface Book extends ReferenceBase {
   /** For edited whole books when `authors` is empty: editors take the author position. */
   editors?: Contributor[];
   translators?: Contributor[];
+  /** Illustrated/children's books: joins the parenthetical as "N. Vidal, Illus." */
+  illustrators?: Contributor[];
+  /** Free bracket after the title, typed in the document language: "Partitura". */
+  descriptor?: string;
   /** Adds "(Original work published YYYY)" / "(Obra original publicada en YYYY)". */
   originalYear?: number;
 }
@@ -94,12 +98,21 @@ export interface Website extends ReferenceBase {
   siteName?: string;
 }
 
+/**
+ * Reports and the rest of APA's gray literature: brochures, fact sheets,
+ * press releases, white papers, standards, ethics codes. The bracket
+ * descriptor and the verbatim number cover the whole family (APA 10.4).
+ */
 export interface Report extends ReferenceBase {
   type: "report";
   /** Publishing institution; omitted when identical to a group author. */
   institution?: string;
   /** E.g. "123" → "(Report No. 123)" / "(Informe n.º 123)". */
   reportNumber?: string;
+  /** Verbatim parenthetical for self-labelled numbers: "ISO 14001:2015". */
+  standardNumber?: string;
+  /** Free bracket after the title, typed in the document language: "Folleto". */
+  descriptor?: string;
 }
 
 export interface Thesis extends ReferenceBase {
@@ -119,6 +132,11 @@ export interface ConferencePaper extends ReferenceBase {
   location?: string;
   /** Last day when the conference spans several days in the same month. */
   dayEnd?: number;
+  /**
+   * Overrides the "[Paper presentation]" bracket for posters, sessions,
+   * keynotes…; typed in the document language.
+   */
+  contributionType?: string;
 }
 
 /** Newspapers and magazines share the pattern (APA 10.1 examples 15–16). */
@@ -141,19 +159,31 @@ export interface ReferenceEntry extends ReferenceBase {
   publisher?: string;
 }
 
+/**
+ * Streaming video and everything sharing its shape (APA 10.12): the
+ * descriptor override turns it into a webinar, MOOC, TED talk, slide deck,
+ * lecture notes, radio broadcast, or transcript entry.
+ */
 export interface Video extends ReferenceBase {
   type: "video";
   /** Channel or screen name, bracketed after a real name (APA 10.12). */
   username?: string;
   platform: string;
+  /** Overrides the "[Video]" bracket; typed in the document language. */
+  descriptor?: string;
 }
 
 export interface PodcastEpisode extends ReferenceBase {
   type: "podcastEpisode";
+  /** "show" cites the whole podcast: italic title + "[Audio podcast]". */
+  kind?: "episode" | "show";
   episodeNumber?: string;
-  /** The show (italic, after "In"/"En"). */
-  showTitle: string;
+  /** The show (italic, after "In"/"En"); required for episodes. */
+  showTitle?: string;
   platform?: string;
+  /** Whole shows spanning years: "(2019–2024)" / "(2019–present)". */
+  yearEnd?: number;
+  ongoing?: boolean;
 }
 
 export interface SocialMedia extends ReferenceBase {
@@ -165,11 +195,79 @@ export interface SocialMedia extends ReferenceBase {
   contentType: string;
 }
 
+/**
+ * Software, data sets, mobile apps, toolboxes, and AI models (APA 10.10):
+ * the descriptor override yields "[Mobile app]", "[Large language model]"…
+ */
 export interface Software extends ReferenceBase {
   type: "software";
   kind: "software" | "dataset";
   version?: string;
   publisher?: string;
+  /** Overrides the kind bracket; typed in the document language. */
+  descriptor?: string;
+}
+
+/** Films and whole TV series (APA 10.12): authors carry the credit role. */
+export interface Film extends ReferenceBase {
+  type: "film";
+  kind: "film" | "tvSeries";
+  /** Authors are credited "(Director)" for films, "(Executive Producers)" for series. */
+  productionCompany?: string;
+  /** Series spanning years: "(2015–2019)" / "(2015–present)". */
+  yearEnd?: number;
+  ongoing?: boolean;
+}
+
+/** One TV series episode (APA 10.12); authors carry the writing/directing credit. */
+export interface TVEpisode extends ReferenceBase {
+  type: "tvEpisode";
+  /** Credit shown after the author list; defaults to writer & director. */
+  credit?: "writer" | "director" | "writerDirector";
+  season?: string;
+  episode?: string;
+  /** The series (italic, after "In"/"En"). */
+  seriesTitle: string;
+  executiveProducers?: Contributor[];
+  /** Production company or network. */
+  productionCompany?: string;
+}
+
+/** Albums and songs (APA 10.13). */
+export interface Music extends ReferenceBase {
+  type: "music";
+  kind: "album" | "song";
+  /** Songs on an album: plain title + "On *Album*" / "En *Álbum*". */
+  albumTitle?: string;
+  /** Record label. */
+  label?: string;
+}
+
+/** Artworks and standalone images: paintings, photos, maps, clip art (APA 10.14). */
+export interface Artwork extends ReferenceBase {
+  type: "artwork";
+  /** Bracket descriptor typed in the document language: "Pintura", "Mapa". */
+  medium?: string;
+  /** Museum, collection, or hosting site. */
+  venue?: string;
+  /** "Ciudad, País". */
+  location?: string;
+}
+
+/** Preprints and repository documents: PsyArXiv, ERIC… (APA 10.8). */
+export interface Preprint extends ReferenceBase {
+  type: "preprint";
+  repository: string;
+  /** Accession ID rendered plain after the title: "(EJ876543)". */
+  itemNumber?: string;
+}
+
+/** Manuscripts outside formal publication (APA 10.8). */
+export interface UnpublishedWork extends ReferenceBase {
+  type: "unpublishedWork";
+  status: "unpublished" | "inPreparation" | "submitted";
+  /** "Departamento, Universidad"; omit for submitted manuscripts (APA 10.8). */
+  institution?: string;
 }
 
 /** Cited in text only; never appears in the reference list (APA 8.9). */
@@ -192,6 +290,12 @@ export type Reference =
   | PodcastEpisode
   | SocialMedia
   | Software
+  | Film
+  | TVEpisode
+  | Music
+  | Artwork
+  | Preprint
+  | UnpublishedWork
   | PersonalCommunication;
 
 export type ReferenceType = Reference["type"];

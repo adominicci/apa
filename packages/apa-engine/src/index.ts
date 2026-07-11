@@ -10,12 +10,18 @@ export {
 // Model
 export type {
   APADate,
+  Artwork,
   Book,
   BookChapter,
   Contributor,
+  Film,
   JournalArticle,
+  Music,
+  Preprint,
   Reference,
   ReferenceType,
+  TVEpisode,
+  UnpublishedWork,
   Website,
 } from "./model/reference.ts";
 export type {

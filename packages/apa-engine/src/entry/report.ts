@@ -8,7 +8,6 @@ import {
   dateBlock,
   type EntryContext,
   extraBlock,
-  italicTitleBlock,
   linkBlock,
   plainTitleBlock,
 } from "./common.ts";
@@ -34,12 +33,17 @@ export function reportEntry(
     ? closeBlock([{ text: ref.institution }])
     : [];
 
-  const parenthetical = ref.reportNumber
-    ? t.reportNumber(ref.reportNumber)
-    : undefined;
+  const parenParts: string[] = [];
+  if (ref.reportNumber) parenParts.push(t.reportNumber(ref.reportNumber));
+  if (ref.standardNumber) parenParts.push(ref.standardNumber);
 
   const author = authorsBlock(ref.authors, t);
-  const title = italicTitleBlock(ref.title, parenthetical);
+  const titleRuns: RichRun[] = [{ text: ref.title, italic: true }];
+  if (parenParts.length > 0) {
+    titleRuns.push({ text: ` (${parenParts.join(", ")})` });
+  }
+  if (ref.descriptor) titleRuns.push({ text: ` [${ref.descriptor}]` });
+  const title = closeBlock(titleRuns);
   const blocks = author.length > 0
     ? [author, dateBlock(ref, t, ctx), title, institution]
     : [title, dateBlock(ref, t, ctx), institution];

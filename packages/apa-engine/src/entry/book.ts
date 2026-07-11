@@ -10,7 +10,6 @@ import {
   editionVolumeParts,
   type EntryContext,
   extraBlock,
-  italicTitleBlock,
   linkBlock,
 } from "./common.ts";
 
@@ -26,6 +25,13 @@ export function bookEntry(
   ctx?: EntryContext,
 ): RichRun[] {
   const parentheticalParts: string[] = [];
+  if (ref.illustrators && ref.illustrators.length > 0) {
+    parentheticalParts.push(
+      `${
+        formatContributorsInline(ref.illustrators, t)
+      }, ${t.illustratorAbbrev}`,
+    );
+  }
   if (ref.translators && ref.translators.length > 0) {
     parentheticalParts.push(
       `${formatContributorsInline(ref.translators, t)}, ${t.translatorAbbrev}`,
@@ -38,7 +44,10 @@ export function bookEntry(
     : undefined;
 
   const author = authorsBlock(ref.authors, t, ref.editors);
-  const title = italicTitleBlock(ref.title, parenthetical);
+  const titleRuns: RichRun[] = [{ text: ref.title, italic: true }];
+  if (parenthetical) titleRuns.push({ text: ` (${parenthetical})` });
+  if (ref.descriptor) titleRuns.push({ text: ` [${ref.descriptor}]` });
+  const title = closeBlock(titleRuns);
   const publisher = ref.publisher ? closeBlock([{ text: ref.publisher }]) : [];
   const original: RichRun[] = ref.originalYear !== undefined
     ? [{ text: `(${t.originalWorkPublished(ref.originalYear)})` }]
