@@ -4,31 +4,42 @@
 
 **EN** · An academic word processor that handles APA 7 formatting for you: title page, margins, spacing, headings, in-text citations, and the reference list — in Spanish or English. You write; Tesina does the formatting.
 
-> Proyecto en desarrollo activo / under active development. Aún no hay una versión estable.
+> En desarrollo activo. El núcleo ya funciona (ver abajo); aún no hay instaladores publicados.
 
 ## ¿Por qué? / Why?
 
 Creado por un ex profesor universitario cansado de ver trabajos con formato APA incorrecto. Tesina es open source (MIT), local-first (tus ensayos son archivos tuyos, sin cuentas ni nube) y funciona en macOS, Windows y Linux.
 
-A diferencia de otras herramientas, el **idioma del documento** es independiente del idioma de la interfaz: un ensayo en español usa "Referencias", "y" en vez de "&", "s. f." en vez de "n.d.", fechas en español — todo según las convenciones APA en español.
+A diferencia de otras herramientas, el **idioma del documento** es independiente del idioma de la interfaz: un ensayo en español usa "Referencias", "y" en vez de "&" (con la regla RAE "y"→"e" ante i/hi), "s. f." en vez de "n.d.", fechas en español — todo según las convenciones APA en español. Cambiar el idioma retraduce el documento entero al instante.
 
-## Características (v1 en construcción)
+## Lo que ya funciona
 
-- Portada (estudiante o profesional), resumen/abstract, cuerpo con los 5 niveles de encabezado APA, apéndices y lista de referencias generada automáticamente.
-- Gestor de referencias con ~14 tipos de fuente, reutilizable entre ensayos; autollenado por DOI, ISBN o URL; import BibTeX.
-- Citas en el texto (parentéticas y narrativas) con reglas APA completas: et al., desambiguación 2020a/2020b, localizadores de página/párrafo.
-- Export a **DOCX** (abre perfecto en Word — es lo que se entrega) y PDF.
-- Interfaz en español e inglés; modo oscuro.
+- **Biblioteca de ensayos**: crear (ES/EN), renombrar, duplicar; eliminar guarda respaldo en `backups/`.
+- **Editor APA seccionado**: resumen con palabras clave, cuerpo con los 5 niveles de encabezado, apéndices con letra automática; hoja blanca con serif, doble espacio y sangrías correctas.
+- **Citas vivas**: inserta citas parentéticas o narrativas desde tu biblioteca (multi-obra, localizadores de página/párrafo); el motor aplica et al., sufijos 2020a/b, iniciales por apellidos repetidos y abreviaturas de grupo — y se re-renderizan solas al editar la biblioteca o cambiar el idioma.
+- **Bibliografía automática**: ordenada y formateada por el motor, con avisos de obras sin citar.
+- **Portada**: variantes estudiante y profesional (con titulillo y nota del autor).
+- **Autollenado**: pega un DOI o ISBN y el formulario se rellena solo (CrossRef / OpenLibrary, sin API keys).
+- **Export a Word**: un clic → `.docx` con portada, secciones en páginas nuevas, encabezados reales de Word, citas y referencias con sangría francesa. 144 tests automatizados, incluidos asserts sobre el XML del documento.
 
-## Stack
-
-Tauri 2 (Rust) · Deno 2 · Svelte 5 · TipTap/ProseMirror · TypeScript
+## Cómo probarlo
 
 ```bash
-deno install        # instala dependencias del workspace
-deno task dev       # abre la app en modo desarrollo
-deno task test      # corre las suites (Vitest)
+deno install          # dependencias del workspace
+deno task dev         # abre la app (compila Rust la primera vez)
+deno task test        # suites completas
+deno task spike:docx  # genera samples/*.docx para revisarlos en Word
 ```
+
+Requisitos: Deno 2.x, Rust estable ≥ 1.88 (`rustup update stable`), y en Linux las dependencias de Tauri 2.
+
+## Hoja de ruta
+
+- Gestor completo de referencias (colecciones, más tipos de fuente, editar existentes)
+- Autollenado por URL e import BibTeX
+- Vista previa paginada e impresión/PDF (M5)
+- Empaquetado firmado, actualizador y UI en inglés completa (M6)
+- Después de v1: paginación en vivo, búsqueda académica integrada, ecuaciones
 
 ### Notas de toolchain
 

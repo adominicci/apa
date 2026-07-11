@@ -4,8 +4,16 @@
     "ref": {
       "type": "journalArticle",
       "id": "fx-es-01",
-      "authors": [{ "kind": "person", "family": "Salgado", "given": "Nora" }],
-      "date": { "year": 2020 },
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Salgado",
+          "given": "Nora"
+        }
+      ],
+      "date": {
+        "year": 2020
+      },
       "title": "Hábitos de lectura en estudiantes universitarios de primer año",
       "journal": "Revista de Estudios Imaginarios",
       "volume": "12",
@@ -22,10 +30,20 @@
       "type": "journalArticle",
       "id": "fx-es-02",
       "authors": [
-        { "kind": "person", "family": "Ferrer", "given": "Hugo" },
-        { "kind": "person", "family": "Ibáñez", "given": "Carla" }
+        {
+          "kind": "person",
+          "family": "Ferrer",
+          "given": "Hugo"
+        },
+        {
+          "kind": "person",
+          "family": "Ibáñez",
+          "given": "Carla"
+        }
       ],
-      "date": { "year": 2019 },
+      "date": {
+        "year": 2019
+      },
       "title": "Toma de apuntes y memoria",
       "journal": "Cuadernos de Memoria",
       "volume": "8",
@@ -40,11 +58,25 @@
       "type": "journalArticle",
       "id": "fx-es-03",
       "authors": [
-        { "kind": "person", "family": "Osorio", "given": "Pablo" },
-        { "kind": "person", "family": "Quesada", "given": "Lucía" },
-        { "kind": "person", "family": "Ramos", "given": "Andrés" }
+        {
+          "kind": "person",
+          "family": "Osorio",
+          "given": "Pablo"
+        },
+        {
+          "kind": "person",
+          "family": "Quesada",
+          "given": "Lucía"
+        },
+        {
+          "kind": "person",
+          "family": "Ramos",
+          "given": "Andrés"
+        }
       ],
-      "date": { "year": 2022 },
+      "date": {
+        "year": 2022
+      },
       "title": "Datos abiertos en la investigación de aula",
       "journal": "Datos y Enseñanza",
       "volume": "5",
@@ -59,8 +91,15 @@
     "ref": {
       "type": "journalArticle",
       "id": "fx-es-04",
-      "authors": [{ "kind": "group", "name": "Consejo Nacional de Lectura" }],
-      "date": { "year": 2021 },
+      "authors": [
+        {
+          "kind": "group",
+          "name": "Consejo Nacional de Lectura"
+        }
+      ],
+      "date": {
+        "year": 2021
+      },
       "title": "Panorama anual de alfabetización",
       "journal": "Boletines de Política",
       "volume": "3",
@@ -76,7 +115,9 @@
       "type": "journalArticle",
       "id": "fx-es-05",
       "authors": [],
-      "date": { "year": 2018 },
+      "date": {
+        "year": 2018
+      },
       "title": "Tendencias en bibliotecas universitarias",
       "journal": "Notas de Educación Superior",
       "volume": "4",
@@ -90,8 +131,16 @@
     "ref": {
       "type": "journalArticle",
       "id": "fx-es-06",
-      "authors": [{ "kind": "person", "family": "Vela", "given": "Marta" }],
-      "date": { "inPress": true },
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Vela",
+          "given": "Marta"
+        }
+      ],
+      "date": {
+        "inPress": true
+      },
       "title": "Ciclos de retroalimentación entre pares",
       "journal": "Investigación sobre Escritura"
     },
@@ -102,8 +151,16 @@
     "ref": {
       "type": "journalArticle",
       "id": "fx-es-07",
-      "authors": [{ "kind": "person", "family": "Soto", "given": "Ramiro" }],
-      "date": { "year": 2023 },
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Soto",
+          "given": "Ramiro"
+        }
+      ],
+      "date": {
+        "year": 2023
+      },
       "title": "¿Ayudan las rúbricas?",
       "journal": "Evaluación Hoy",
       "volume": "2",
@@ -118,8 +175,16 @@
     "ref": {
       "type": "book",
       "id": "fx-es-08",
-      "authors": [{ "kind": "person", "family": "Padilla", "given": "Elena" }],
-      "date": { "year": 2017 },
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Padilla",
+          "given": "Elena"
+        }
+      ],
+      "date": {
+        "year": 2017
+      },
       "title": "Fundamentos de la escritura académica",
       "edition": "2",
       "publisher": "Ediciones Cardenal"
@@ -133,10 +198,20 @@
       "id": "fx-es-09",
       "authors": [],
       "editors": [
-        { "kind": "person", "family": "Navarro", "given": "Iris" },
-        { "kind": "person", "family": "Olmos", "given": "Diego" }
+        {
+          "kind": "person",
+          "family": "Navarro",
+          "given": "Iris"
+        },
+        {
+          "kind": "person",
+          "family": "Olmos",
+          "given": "Diego"
+        }
       ],
-      "date": { "year": 2020 },
+      "date": {
+        "year": 2020
+      },
       "title": "Manual de técnicas de estudio",
       "publisher": "Ediciones Norlago"
     },
@@ -147,10 +222,24 @@
     "ref": {
       "type": "book",
       "id": "fx-es-10",
-      "authors": [{ "kind": "person", "family": "Beltrán", "given": "Rosa" }],
-      "date": { "year": 2015 },
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Beltrán",
+          "given": "Rosa"
+        }
+      ],
+      "date": {
+        "year": 2015
+      },
       "title": "El jardín de papel",
-      "translators": [{ "kind": "person", "family": "Cook", "given": "Amy" }],
+      "translators": [
+        {
+          "kind": "person",
+          "family": "Cook",
+          "given": "Amy"
+        }
+      ],
       "originalYear": 1998,
       "publisher": "Casa Puerto"
     },
@@ -161,8 +250,16 @@
     "ref": {
       "type": "book",
       "id": "fx-es-11",
-      "authors": [{ "kind": "person", "family": "Uribe", "given": "Tomás" }],
-      "date": { "noDate": true },
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Uribe",
+          "given": "Tomás"
+        }
+      ],
+      "date": {
+        "noDate": true
+      },
       "title": "Notas de estilo para estudiantes",
       "url": "https://example.org/notas-de-estilo"
     },
@@ -181,7 +278,9 @@
           "suffix": "Jr."
         }
       ],
-      "date": { "year": 2011 },
+      "date": {
+        "year": 2011
+      },
       "title": "Ensayos reunidos",
       "edition": "3",
       "volume": "2",
@@ -194,12 +293,28 @@
     "ref": {
       "type": "bookChapter",
       "id": "fx-es-13",
-      "authors": [{ "kind": "person", "family": "Zamora", "given": "Félix" }],
-      "date": { "year": 2019 },
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Zamora",
+          "given": "Félix"
+        }
+      ],
+      "date": {
+        "year": 2019
+      },
       "title": "Redactar con intención",
       "editors": [
-        { "kind": "person", "family": "Navarro", "given": "Iris" },
-        { "kind": "person", "family": "Olmos", "given": "Diego" }
+        {
+          "kind": "person",
+          "family": "Navarro",
+          "given": "Iris"
+        },
+        {
+          "kind": "person",
+          "family": "Olmos",
+          "given": "Diego"
+        }
       ],
       "bookTitle": "Manual de técnicas de estudio",
       "edition": "2",
@@ -215,12 +330,28 @@
     "ref": {
       "type": "bookChapter",
       "id": "fx-es-14",
-      "authors": [{ "kind": "person", "family": "Arce", "given": "Belén" }],
-      "date": { "year": 2021 },
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Arce",
+          "given": "Belén"
+        }
+      ],
+      "date": {
+        "year": 2021
+      },
       "title": "Márgenes y sentido",
       "editors": [
-        { "kind": "person", "family": "Prieto", "given": "Marcos" },
-        { "kind": "person", "family": "Hidalgo", "given": "Inés" }
+        {
+          "kind": "person",
+          "family": "Prieto",
+          "given": "Marcos"
+        },
+        {
+          "kind": "person",
+          "family": "Hidalgo",
+          "given": "Inés"
+        }
       ],
       "bookTitle": "Pequeños ensayos sobre la forma",
       "pageStart": "12",
@@ -233,8 +364,18 @@
     "ref": {
       "type": "website",
       "id": "fx-es-15",
-      "authors": [{ "kind": "person", "family": "Camino", "given": "Sergio" }],
-      "date": { "year": 2023, "month": 7, "day": 14 },
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Camino",
+          "given": "Sergio"
+        }
+      ],
+      "date": {
+        "year": 2023,
+        "month": 7,
+        "day": 14
+      },
       "title": "Cómo estructurar una revisión de literatura",
       "siteName": "Brújula de Estudio",
       "url": "https://example.org/revision"
@@ -247,9 +388,15 @@
       "type": "website",
       "id": "fx-es-16",
       "authors": [
-        { "kind": "group", "name": "Alianza de Bibliotecas Abiertas" }
+        {
+          "kind": "group",
+          "name": "Alianza de Bibliotecas Abiertas"
+        }
       ],
-      "date": { "year": 2022, "month": 3 },
+      "date": {
+        "year": 2022,
+        "month": 3
+      },
       "title": "Fundamentos de las citas",
       "siteName": "Alianza de Bibliotecas Abiertas",
       "url": "https://example.org/citas"
@@ -262,12 +409,104 @@
       "type": "website",
       "id": "fx-es-17",
       "authors": [],
-      "date": { "noDate": true },
+      "date": {
+        "noDate": true
+      },
       "title": "Glosario de términos de investigación",
       "siteName": "BancoTérminos",
       "url": "https://example.org/glosario",
-      "retrievedDate": { "year": 2026, "month": 7, "day": 11 }
+      "retrievedDate": {
+        "year": 2026,
+        "month": 7,
+        "day": 11
+      }
     },
     "expected": "*Glosario de términos de investigación*. (s. f.). BancoTérminos. Recuperado el 11 de julio de 2026 de https://example.org/glosario"
+  },
+  {
+    "name": "informe: autor grupal igual a la institución (se omite)",
+    "ref": {
+      "type": "report",
+      "id": "fx-es-18",
+      "authors": [
+        {
+          "kind": "group",
+          "name": "Consejo Nacional de Lectura"
+        }
+      ],
+      "date": {
+        "year": 2021
+      },
+      "title": "Panorama lector en institutos comunitarios",
+      "reportNumber": "CL-9",
+      "institution": "Consejo Nacional de Lectura",
+      "url": "https://example.org/cl9"
+    },
+    "expected": "Consejo Nacional de Lectura. (2021). *Panorama lector en institutos comunitarios* (Informe n.º CL-9). https://example.org/cl9"
+  },
+  {
+    "name": "informe: autora personal con institución y sin número",
+    "ref": {
+      "type": "report",
+      "id": "fx-es-19",
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Quesada",
+          "given": "Lucía"
+        }
+      ],
+      "date": {
+        "year": 2019
+      },
+      "title": "Notas de campo sobre programas de tutoría",
+      "institution": "Centro de Apoyo al Estudio"
+    },
+    "expected": "Quesada, L. (2019). *Notas de campo sobre programas de tutoría*. Centro de Apoyo al Estudio."
+  },
+  {
+    "name": "tesis: doctoral publicada con repositorio",
+    "ref": {
+      "type": "thesis",
+      "id": "fx-es-20",
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Vargas",
+          "given": "Óscar"
+        }
+      ],
+      "date": {
+        "year": 2018
+      },
+      "title": "Estrategias de revisión en escritores bilingües",
+      "thesisType": "doctoral",
+      "institution": "Universidad del Valle",
+      "archive": "Repositorio Académico Nacional",
+      "url": "https://example.org/tesis-vargas"
+    },
+    "expected": "Vargas, Ó. (2018). *Estrategias de revisión en escritores bilingües* [Tesis doctoral, Universidad del Valle]. Repositorio Académico Nacional. https://example.org/tesis-vargas"
+  },
+  {
+    "name": "tesis: de maestría inédita cita la institución",
+    "ref": {
+      "type": "thesis",
+      "id": "fx-es-21",
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Lema",
+          "given": "Rocío"
+        }
+      ],
+      "date": {
+        "year": 2022
+      },
+      "title": "Tutoría entre pares en seminarios de primer año",
+      "thesisType": "masters",
+      "unpublished": true,
+      "institution": "Universidad de los Llanos"
+    },
+    "expected": "Lema, R. (2022). *Tutoría entre pares en seminarios de primer año* [Tesis de maestría inédita]. Universidad de los Llanos."
   }
 ]

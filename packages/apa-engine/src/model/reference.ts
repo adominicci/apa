@@ -94,6 +94,30 @@ export interface Website extends ReferenceBase {
   siteName?: string;
 }
 
-export type Reference = JournalArticle | Book | BookChapter | Website;
+export interface Report extends ReferenceBase {
+  type: "report";
+  /** Publishing institution; omitted when identical to a group author. */
+  institution?: string;
+  /** E.g. "123" → "(Report No. 123)" / "(Informe n.º 123)". */
+  reportNumber?: string;
+}
+
+export interface Thesis extends ReferenceBase {
+  type: "thesis";
+  thesisType: "doctoral" | "masters";
+  institution: string;
+  /** Unpublished theses cite the institution as source (APA 10.6). */
+  unpublished?: boolean;
+  /** Repository or database holding the published thesis. */
+  archive?: string;
+}
+
+export type Reference =
+  | JournalArticle
+  | Book
+  | BookChapter
+  | Website
+  | Report
+  | Thesis;
 
 export type ReferenceType = Reference["type"];

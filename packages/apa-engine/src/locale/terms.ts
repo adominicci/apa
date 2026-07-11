@@ -40,6 +40,12 @@ export interface LocaleTerms {
   edition: (ordinalText: string) => string;
   ordinal: (n: number) => string;
   articleNumber: (n: string) => string;
+  reportNumber: (n: string) => string;
+  /** "[Doctoral dissertation, X]" / "[Tesis doctoral, X]" bracket content. */
+  thesisDescriptor: (
+    type: "doctoral" | "masters",
+    unpublished: boolean,
+  ) => string;
   originalWorkPublished: (year: number) => string;
   retrieved: (longDate: string) => string;
   monthNames: readonly string[];

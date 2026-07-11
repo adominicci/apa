@@ -8,6 +8,7 @@ import { journalArticleEntry } from "./entry/journalArticle.ts";
 import { bookEntry } from "./entry/book.ts";
 import { bookChapterEntry } from "./entry/bookChapter.ts";
 import { websiteEntry } from "./entry/website.ts";
+import { reportEntry, thesisEntry } from "./entry/report.ts";
 
 export interface RefListContext {
   /** a/b/c suffixes keyed by reference id (APA 9.47: same authors + year). */
@@ -68,6 +69,10 @@ export function formatReferenceEntry(
       return bookChapterEntry(ref, t, entryCtx);
     case "website":
       return websiteEntry(ref, t, entryCtx);
+    case "report":
+      return reportEntry(ref, t, entryCtx);
+    case "thesis":
+      return thesisEntry(ref, t, entryCtx);
   }
 }
 

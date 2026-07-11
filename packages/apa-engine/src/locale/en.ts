@@ -67,6 +67,13 @@ export const en: LocaleTerms = {
   edition: (ordinalText) => `${ordinalText} ed.`,
   ordinal,
   articleNumber: (n) => `Article ${n}`,
+  reportNumber: (n) => `Report No. ${n}`,
+  thesisDescriptor: (type, unpublished) => {
+    const base = type === "doctoral"
+      ? "Doctoral dissertation"
+      : "Master's thesis";
+    return unpublished ? `Unpublished ${base.toLowerCase()}` : base;
+  },
   originalWorkPublished: (year) => `Original work published ${year}`,
   retrieved: (longDate) => `Retrieved ${longDate}, from`,
   monthNames: MONTHS,

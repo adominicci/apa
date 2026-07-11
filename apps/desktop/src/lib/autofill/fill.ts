@@ -20,10 +20,16 @@ export interface QuickFields {
 /**
  * Maps a fetched reference onto the quick form so the user can review and
  * correct before saving. Returns null for types the quick form cannot edit
- * yet (chapters arrive with the full reference manager).
+ * yet (they arrive with the full reference manager) — allowlist so new
+ * engine types degrade gracefully instead of breaking the form.
  */
 export function refToQuickFields(ref: Reference): QuickFields | null {
-  if (ref.type === "bookChapter") return null;
+  if (
+    ref.type !== "journalArticle" && ref.type !== "book" &&
+    ref.type !== "website"
+  ) {
+    return null;
+  }
 
   const authorsText = ref.authors
     .map((a) =>
