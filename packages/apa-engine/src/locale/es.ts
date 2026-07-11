@@ -80,6 +80,7 @@ export const es: LocaleTerms = {
     table: "Tabla",
     figure: "Figura",
     note: "Nota.",
+    authorNote: "Nota del autor",
   },
   collatorLocale: "es",
   leadingArticles: [

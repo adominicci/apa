@@ -1,0 +1,47 @@
+import type { DocLocale, Reference } from "@tesina/engine";
+
+/**
+ * The exporter's own input contract. It structurally mirrors the app's
+ * Essay pieces but deliberately does not import app code — the package
+ * depends only on @tesina/engine and docx (plan §5.1).
+ */
+export type PaperVariant = "student" | "professional";
+export type FontChoice = "times-new-roman-12" | "calibri-11" | "arial-11";
+export type PaperSize = "us-letter" | "a4";
+
+export interface ExportSettings {
+  documentLanguage: DocLocale;
+  variant: PaperVariant;
+  font: FontChoice;
+  paperSize: PaperSize;
+  runningHead?: string;
+}
+
+export interface ExportTitlePage {
+  title: string;
+  authors: string[];
+  affiliations: string[];
+  course?: string;
+  instructor?: string;
+  /** ISO date (YYYY-MM-DD); rendered per document locale. */
+  dueDate?: string;
+  authorNote?: string;
+}
+
+export interface ExportInput {
+  /** ProseMirror doc JSON with Tesina's sectioned schema. */
+  content: unknown;
+  settings: ExportSettings;
+  titlePage: ExportTitlePage;
+  /** Already filtered by the caller (cited only, or cited + uncited). */
+  references: Reference[];
+}
+
+/** Minimal structural view of ProseMirror JSON the visitor walks. */
+export interface PMJson {
+  type?: string;
+  text?: string;
+  attrs?: Record<string, unknown>;
+  marks?: { type?: string }[];
+  content?: PMJson[];
+}

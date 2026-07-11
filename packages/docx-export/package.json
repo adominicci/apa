@@ -9,6 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@tesina/engine": "*",
     "docx": "^9.5.0"
   },
   "devDependencies": {

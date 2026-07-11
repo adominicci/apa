@@ -55,6 +55,7 @@ export interface LocaleTerms {
     table: string;
     figure: string;
     note: string;
+    authorNote: string;
   };
   /** BCP 47 tag driving Intl.Collator for reference-list alphabetization. */
   collatorLocale: string;

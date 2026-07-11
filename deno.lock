@@ -1270,6 +1270,7 @@
       "packages/docx-export": {
         "packageJson": {
           "dependencies": [
+            "npm:@tesina/engine@*",
             "npm:docx@^9.5.0",
             "npm:fflate@~0.8.2"
           ]
