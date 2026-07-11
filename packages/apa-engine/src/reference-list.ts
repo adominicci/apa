@@ -1,0 +1,97 @@
+import type { Reference } from "./model/reference.ts";
+import type { DocLocale } from "./locale/terms.ts";
+import { getTerms } from "./locale/index.ts";
+import type { RichRun } from "./richtext.ts";
+import { compareReferences, sortReferences } from "./sort.ts";
+import { authorsKey } from "./entry/common.ts";
+import { journalArticleEntry } from "./entry/journalArticle.ts";
+import { bookEntry } from "./entry/book.ts";
+import { bookChapterEntry } from "./entry/bookChapter.ts";
+import { websiteEntry } from "./entry/website.ts";
+
+export interface RefListContext {
+  /** a/b/c suffixes keyed by reference id (APA 9.47: same authors + year). */
+  yearSuffixes: ReadonlyMap<string, string>;
+}
+
+function dateKey(ref: Reference): string {
+  if (ref.date.inPress) return "in-press";
+  if (ref.date.noDate || ref.date.year === undefined) return "no-date";
+  return String(ref.date.year);
+}
+
+/**
+ * Works by the identical author list in the identical year get letter
+ * suffixes in reference-list order (which, within such a group, is title
+ * order — that is what compareReferences ties on). Authorless works group
+ * by title instead so two same-year anonymous reports don't collide.
+ */
+export function assignYearSuffixes(
+  refs: readonly Reference[],
+  locale: DocLocale,
+): Map<string, string> {
+  const groups = new Map<string, Reference[]>();
+  for (const ref of refs) {
+    const identity = ref.authors.length > 0
+      ? authorsKey(ref.authors)
+      : `title:${ref.title.trim().toLowerCase()}`;
+    const key = `${identity}|${dateKey(ref)}`;
+    const group = groups.get(key);
+    if (group) group.push(ref);
+    else groups.set(key, [ref]);
+  }
+
+  const suffixes = new Map<string, string>();
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    const ordered = [...group].sort((a, b) => compareReferences(a, b, locale));
+    ordered.forEach((ref, i) => {
+      suffixes.set(ref.id, String.fromCharCode(97 + i)); // a, b, c…
+    });
+  }
+  return suffixes;
+}
+
+export function formatReferenceEntry(
+  ref: Reference,
+  locale: DocLocale,
+  ctx?: RefListContext,
+): RichRun[] {
+  const t = getTerms(locale);
+  const entryCtx = { yearSuffix: ctx?.yearSuffixes.get(ref.id) };
+  switch (ref.type) {
+    case "journalArticle":
+      return journalArticleEntry(ref, t, entryCtx);
+    case "book":
+      return bookEntry(ref, t, entryCtx);
+    case "bookChapter":
+      return bookChapterEntry(ref, t, entryCtx);
+    case "website":
+      return websiteEntry(ref, t, entryCtx);
+  }
+}
+
+export interface ReferenceListResult {
+  entries: { refId: string; runs: RichRun[] }[];
+  ctx: RefListContext;
+}
+
+/** Sorted, suffixed, formatted — the entire references section in one call. */
+export function buildReferenceList(
+  refs: readonly Reference[],
+  locale: DocLocale,
+): ReferenceListResult {
+  const unique = new Map<string, Reference>();
+  for (const ref of refs) unique.set(ref.id, ref);
+  const sorted = sortReferences([...unique.values()], locale);
+  const ctx: RefListContext = {
+    yearSuffixes: assignYearSuffixes(sorted, locale),
+  };
+  return {
+    entries: sorted.map((ref) => ({
+      refId: ref.id,
+      runs: formatReferenceEntry(ref, locale, ctx),
+    })),
+    ctx,
+  };
+}

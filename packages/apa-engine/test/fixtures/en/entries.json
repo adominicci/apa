@@ -1,0 +1,268 @@
+[
+  {
+    "name": "journal article: one author with DOI",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-en-01",
+      "authors": [{ "kind": "person", "family": "Salgado", "given": "Nora" }],
+      "date": { "year": 2020 },
+      "title": "Reading habits in first-year university students",
+      "journal": "Journal of Imaginary Studies",
+      "volume": "12",
+      "issue": "3",
+      "pageStart": "45",
+      "pageEnd": "67",
+      "doi": "10.1234/jis.2020.045"
+    },
+    "expected": "Salgado, N. (2020). Reading habits in first-year university students. *Journal of Imaginary Studies, 12*(3), 45–67. https://doi.org/10.1234/jis.2020.045"
+  },
+  {
+    "name": "journal article: two authors, volume without issue",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-en-02",
+      "authors": [
+        { "kind": "person", "family": "Ferrer", "given": "Hugo" },
+        { "kind": "person", "family": "Ibáñez", "given": "Carla" }
+      ],
+      "date": { "year": 2019 },
+      "title": "Note-taking and recall",
+      "journal": "Memory Quarterly",
+      "volume": "8",
+      "pageStart": "101",
+      "pageEnd": "118"
+    },
+    "expected": "Ferrer, H., & Ibáñez, C. (2019). Note-taking and recall. *Memory Quarterly, 8*, 101–118."
+  },
+  {
+    "name": "journal article: three authors with article number",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-en-03",
+      "authors": [
+        { "kind": "person", "family": "Osorio", "given": "Pablo" },
+        { "kind": "person", "family": "Quesada", "given": "Lucía" },
+        { "kind": "person", "family": "Ramos", "given": "Andrés" }
+      ],
+      "date": { "year": 2022 },
+      "title": "Open datasets in classroom research",
+      "journal": "Data & Teaching",
+      "volume": "5",
+      "issue": "2",
+      "articleNumber": "e0450",
+      "doi": "10.5555/dt.e0450"
+    },
+    "expected": "Osorio, P., Quesada, L., & Ramos, A. (2022). Open datasets in classroom research. *Data & Teaching, 5*(2), Article e0450. https://doi.org/10.5555/dt.e0450"
+  },
+  {
+    "name": "journal article: group author",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-en-04",
+      "authors": [{ "kind": "group", "name": "National Reading Council" }],
+      "date": { "year": 2021 },
+      "title": "Annual literacy outlook",
+      "journal": "Policy Briefs",
+      "volume": "3",
+      "issue": "1",
+      "pageStart": "1",
+      "pageEnd": "12"
+    },
+    "expected": "National Reading Council. (2021). Annual literacy outlook. *Policy Briefs, 3*(1), 1–12."
+  },
+  {
+    "name": "journal article: no author moves title first",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-en-05",
+      "authors": [],
+      "date": { "year": 2018 },
+      "title": "Trends in campus libraries",
+      "journal": "Higher Ed Notes",
+      "volume": "4",
+      "pageStart": "9",
+      "pageEnd": "11"
+    },
+    "expected": "Trends in campus libraries. (2018). *Higher Ed Notes, 4*, 9–11."
+  },
+  {
+    "name": "journal article: in press without volume or pages",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-en-06",
+      "authors": [{ "kind": "person", "family": "Vela", "given": "Marta" }],
+      "date": { "inPress": true },
+      "title": "Peer feedback loops",
+      "journal": "Writing Research"
+    },
+    "expected": "Vela, M. (in press). Peer feedback loops. *Writing Research*."
+  },
+  {
+    "name": "journal article: title ending in question mark gets no extra period",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-en-07",
+      "authors": [{ "kind": "person", "family": "Soto", "given": "Ramiro" }],
+      "date": { "year": 2023 },
+      "title": "Do rubrics help?",
+      "journal": "Assessment Now",
+      "volume": "2",
+      "issue": "4",
+      "pageStart": "30",
+      "pageEnd": "41"
+    },
+    "expected": "Soto, R. (2023). Do rubrics help? *Assessment Now, 2*(4), 30–41."
+  },
+  {
+    "name": "book: single author with edition",
+    "ref": {
+      "type": "book",
+      "id": "fx-en-08",
+      "authors": [{ "kind": "person", "family": "Padilla", "given": "Elena" }],
+      "date": { "year": 2017 },
+      "title": "Foundations of academic writing",
+      "edition": "2",
+      "publisher": "Cardinal Press"
+    },
+    "expected": "Padilla, E. (2017). *Foundations of academic writing* (2nd ed.). Cardinal Press."
+  },
+  {
+    "name": "book: editors in the author position",
+    "ref": {
+      "type": "book",
+      "id": "fx-en-09",
+      "authors": [],
+      "editors": [
+        { "kind": "person", "family": "Navarro", "given": "Iris" },
+        { "kind": "person", "family": "Olmos", "given": "Diego" }
+      ],
+      "date": { "year": 2020 },
+      "title": "Handbook of study skills",
+      "publisher": "Northlake"
+    },
+    "expected": "Navarro, I., & Olmos, D. (Eds.). (2020). *Handbook of study skills*. Northlake."
+  },
+  {
+    "name": "book: translated and republished",
+    "ref": {
+      "type": "book",
+      "id": "fx-en-10",
+      "authors": [{ "kind": "person", "family": "Beltrán", "given": "Rosa" }],
+      "date": { "year": 2015 },
+      "title": "The paper garden",
+      "translators": [{ "kind": "person", "family": "Cook", "given": "Amy" }],
+      "originalYear": 1998,
+      "publisher": "Harbor House"
+    },
+    "expected": "Beltrán, R. (2015). *The paper garden* (A. Cook, Trans.). Harbor House. (Original work published 1998)"
+  },
+  {
+    "name": "book: no date with URL",
+    "ref": {
+      "type": "book",
+      "id": "fx-en-11",
+      "authors": [{ "kind": "person", "family": "Uribe", "given": "Tomás" }],
+      "date": { "noDate": true },
+      "title": "Style notes for students",
+      "url": "https://example.org/style-notes"
+    },
+    "expected": "Uribe, T. (n.d.). *Style notes for students*. https://example.org/style-notes"
+  },
+  {
+    "name": "book: suffix author with edition and volume",
+    "ref": {
+      "type": "book",
+      "id": "fx-en-12",
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Soto",
+          "given": "Ramón",
+          "suffix": "Jr."
+        }
+      ],
+      "date": { "year": 2011 },
+      "title": "Collected essays",
+      "edition": "3",
+      "volume": "2",
+      "publisher": "Beacon & Field"
+    },
+    "expected": "Soto, R., Jr. (2011). *Collected essays* (3rd ed., Vol. 2). Beacon & Field."
+  },
+  {
+    "name": "chapter: two editors, edition, and page range",
+    "ref": {
+      "type": "bookChapter",
+      "id": "fx-en-13",
+      "authors": [{ "kind": "person", "family": "Zamora", "given": "Félix" }],
+      "date": { "year": 2019 },
+      "title": "Drafting with intent",
+      "editors": [
+        { "kind": "person", "family": "Navarro", "given": "Iris" },
+        { "kind": "person", "family": "Olmos", "given": "Diego" }
+      ],
+      "bookTitle": "Handbook of study skills",
+      "edition": "2",
+      "pageStart": "85",
+      "pageEnd": "104",
+      "publisher": "Northlake",
+      "doi": "10.7777/hss.05"
+    },
+    "expected": "Zamora, F. (2019). Drafting with intent. In I. Navarro & D. Olmos (Eds.), *Handbook of study skills* (2nd ed., pp. 85–104). Northlake. https://doi.org/10.7777/hss.05"
+  },
+  {
+    "name": "chapter: single editor and single page",
+    "ref": {
+      "type": "bookChapter",
+      "id": "fx-en-14",
+      "authors": [{ "kind": "person", "family": "Arce", "given": "Belén" }],
+      "date": { "year": 2021 },
+      "title": "Margins and meaning",
+      "editors": [{ "kind": "person", "family": "Prieto", "given": "Marcos" }],
+      "bookTitle": "Small essays on form",
+      "pageStart": "12",
+      "publisher": "Quill Books"
+    },
+    "expected": "Arce, B. (2021). Margins and meaning. In M. Prieto (Ed.), *Small essays on form* (p. 12). Quill Books."
+  },
+  {
+    "name": "website: person author with full date",
+    "ref": {
+      "type": "website",
+      "id": "fx-en-15",
+      "authors": [{ "kind": "person", "family": "Camino", "given": "Sergio" }],
+      "date": { "year": 2023, "month": 7, "day": 14 },
+      "title": "How to structure a literature review",
+      "siteName": "Study Compass",
+      "url": "https://example.org/lit-review"
+    },
+    "expected": "Camino, S. (2023, July 14). *How to structure a literature review*. Study Compass. https://example.org/lit-review"
+  },
+  {
+    "name": "website: site name omitted when it repeats the group author",
+    "ref": {
+      "type": "website",
+      "id": "fx-en-16",
+      "authors": [{ "kind": "group", "name": "Open Library Alliance" }],
+      "date": { "year": 2022, "month": 3 },
+      "title": "Citation basics",
+      "siteName": "Open Library Alliance",
+      "url": "https://example.org/citation-basics"
+    },
+    "expected": "Open Library Alliance. (2022, March). *Citation basics*. https://example.org/citation-basics"
+  },
+  {
+    "name": "website: authorless, undated, with retrieval date",
+    "ref": {
+      "type": "website",
+      "id": "fx-en-17",
+      "authors": [],
+      "date": { "noDate": true },
+      "title": "Glossary of research terms",
+      "siteName": "TermBank",
+      "url": "https://example.org/glossary",
+      "retrievedDate": { "year": 2026, "month": 7, "day": 11 }
+    },
+    "expected": "*Glossary of research terms*. (n.d.). TermBank. Retrieved July 11, 2026, from https://example.org/glossary"
+  }
+]

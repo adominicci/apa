@@ -1,0 +1,273 @@
+[
+  {
+    "name": "artículo: un autor con DOI",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-es-01",
+      "authors": [{ "kind": "person", "family": "Salgado", "given": "Nora" }],
+      "date": { "year": 2020 },
+      "title": "Hábitos de lectura en estudiantes universitarios de primer año",
+      "journal": "Revista de Estudios Imaginarios",
+      "volume": "12",
+      "issue": "3",
+      "pageStart": "45",
+      "pageEnd": "67",
+      "doi": "10.1234/rei.2020.045"
+    },
+    "expected": "Salgado, N. (2020). Hábitos de lectura en estudiantes universitarios de primer año. *Revista de Estudios Imaginarios, 12*(3), 45–67. https://doi.org/10.1234/rei.2020.045"
+  },
+  {
+    "name": "artículo: dos autores con conjunción e ante I",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-es-02",
+      "authors": [
+        { "kind": "person", "family": "Ferrer", "given": "Hugo" },
+        { "kind": "person", "family": "Ibáñez", "given": "Carla" }
+      ],
+      "date": { "year": 2019 },
+      "title": "Toma de apuntes y memoria",
+      "journal": "Cuadernos de Memoria",
+      "volume": "8",
+      "pageStart": "101",
+      "pageEnd": "118"
+    },
+    "expected": "Ferrer, H. e Ibáñez, C. (2019). Toma de apuntes y memoria. *Cuadernos de Memoria, 8*, 101–118."
+  },
+  {
+    "name": "artículo: tres autores con número de artículo",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-es-03",
+      "authors": [
+        { "kind": "person", "family": "Osorio", "given": "Pablo" },
+        { "kind": "person", "family": "Quesada", "given": "Lucía" },
+        { "kind": "person", "family": "Ramos", "given": "Andrés" }
+      ],
+      "date": { "year": 2022 },
+      "title": "Datos abiertos en la investigación de aula",
+      "journal": "Datos y Enseñanza",
+      "volume": "5",
+      "issue": "2",
+      "articleNumber": "e0450",
+      "doi": "10.5555/de.e0450"
+    },
+    "expected": "Osorio, P., Quesada, L. y Ramos, A. (2022). Datos abiertos en la investigación de aula. *Datos y Enseñanza, 5*(2), Artículo e0450. https://doi.org/10.5555/de.e0450"
+  },
+  {
+    "name": "artículo: autor grupal",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-es-04",
+      "authors": [{ "kind": "group", "name": "Consejo Nacional de Lectura" }],
+      "date": { "year": 2021 },
+      "title": "Panorama anual de alfabetización",
+      "journal": "Boletines de Política",
+      "volume": "3",
+      "issue": "1",
+      "pageStart": "1",
+      "pageEnd": "12"
+    },
+    "expected": "Consejo Nacional de Lectura. (2021). Panorama anual de alfabetización. *Boletines de Política, 3*(1), 1–12."
+  },
+  {
+    "name": "artículo: sin autor, el título pasa al frente",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-es-05",
+      "authors": [],
+      "date": { "year": 2018 },
+      "title": "Tendencias en bibliotecas universitarias",
+      "journal": "Notas de Educación Superior",
+      "volume": "4",
+      "pageStart": "9",
+      "pageEnd": "11"
+    },
+    "expected": "Tendencias en bibliotecas universitarias. (2018). *Notas de Educación Superior, 4*, 9–11."
+  },
+  {
+    "name": "artículo: en prensa sin volumen ni páginas",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-es-06",
+      "authors": [{ "kind": "person", "family": "Vela", "given": "Marta" }],
+      "date": { "inPress": true },
+      "title": "Ciclos de retroalimentación entre pares",
+      "journal": "Investigación sobre Escritura"
+    },
+    "expected": "Vela, M. (en prensa). Ciclos de retroalimentación entre pares. *Investigación sobre Escritura*."
+  },
+  {
+    "name": "artículo: título que termina en interrogación",
+    "ref": {
+      "type": "journalArticle",
+      "id": "fx-es-07",
+      "authors": [{ "kind": "person", "family": "Soto", "given": "Ramiro" }],
+      "date": { "year": 2023 },
+      "title": "¿Ayudan las rúbricas?",
+      "journal": "Evaluación Hoy",
+      "volume": "2",
+      "issue": "4",
+      "pageStart": "30",
+      "pageEnd": "41"
+    },
+    "expected": "Soto, R. (2023). ¿Ayudan las rúbricas? *Evaluación Hoy, 2*(4), 30–41."
+  },
+  {
+    "name": "libro: un autor con edición",
+    "ref": {
+      "type": "book",
+      "id": "fx-es-08",
+      "authors": [{ "kind": "person", "family": "Padilla", "given": "Elena" }],
+      "date": { "year": 2017 },
+      "title": "Fundamentos de la escritura académica",
+      "edition": "2",
+      "publisher": "Ediciones Cardenal"
+    },
+    "expected": "Padilla, E. (2017). *Fundamentos de la escritura académica* (2.ª ed.). Ediciones Cardenal."
+  },
+  {
+    "name": "libro: editores en posición de autor",
+    "ref": {
+      "type": "book",
+      "id": "fx-es-09",
+      "authors": [],
+      "editors": [
+        { "kind": "person", "family": "Navarro", "given": "Iris" },
+        { "kind": "person", "family": "Olmos", "given": "Diego" }
+      ],
+      "date": { "year": 2020 },
+      "title": "Manual de técnicas de estudio",
+      "publisher": "Ediciones Norlago"
+    },
+    "expected": "Navarro, I. y Olmos, D. (Eds.). (2020). *Manual de técnicas de estudio*. Ediciones Norlago."
+  },
+  {
+    "name": "libro: traducido y reeditado",
+    "ref": {
+      "type": "book",
+      "id": "fx-es-10",
+      "authors": [{ "kind": "person", "family": "Beltrán", "given": "Rosa" }],
+      "date": { "year": 2015 },
+      "title": "El jardín de papel",
+      "translators": [{ "kind": "person", "family": "Cook", "given": "Amy" }],
+      "originalYear": 1998,
+      "publisher": "Casa Puerto"
+    },
+    "expected": "Beltrán, R. (2015). *El jardín de papel* (A. Cook, Trad.). Casa Puerto. (Obra original publicada en 1998)"
+  },
+  {
+    "name": "libro: sin fecha con URL",
+    "ref": {
+      "type": "book",
+      "id": "fx-es-11",
+      "authors": [{ "kind": "person", "family": "Uribe", "given": "Tomás" }],
+      "date": { "noDate": true },
+      "title": "Notas de estilo para estudiantes",
+      "url": "https://example.org/notas-de-estilo"
+    },
+    "expected": "Uribe, T. (s. f.). *Notas de estilo para estudiantes*. https://example.org/notas-de-estilo"
+  },
+  {
+    "name": "libro: autor con sufijo, edición y volumen",
+    "ref": {
+      "type": "book",
+      "id": "fx-es-12",
+      "authors": [
+        {
+          "kind": "person",
+          "family": "Soto",
+          "given": "Ramón",
+          "suffix": "Jr."
+        }
+      ],
+      "date": { "year": 2011 },
+      "title": "Ensayos reunidos",
+      "edition": "3",
+      "volume": "2",
+      "publisher": "Faro y Campo"
+    },
+    "expected": "Soto, R., Jr. (2011). *Ensayos reunidos* (3.ª ed., Vol. 2). Faro y Campo."
+  },
+  {
+    "name": "capítulo: dos editores, edición y rango de páginas",
+    "ref": {
+      "type": "bookChapter",
+      "id": "fx-es-13",
+      "authors": [{ "kind": "person", "family": "Zamora", "given": "Félix" }],
+      "date": { "year": 2019 },
+      "title": "Redactar con intención",
+      "editors": [
+        { "kind": "person", "family": "Navarro", "given": "Iris" },
+        { "kind": "person", "family": "Olmos", "given": "Diego" }
+      ],
+      "bookTitle": "Manual de técnicas de estudio",
+      "edition": "2",
+      "pageStart": "85",
+      "pageEnd": "104",
+      "publisher": "Ediciones Norlago",
+      "doi": "10.7777/mte.05"
+    },
+    "expected": "Zamora, F. (2019). Redactar con intención. En I. Navarro y D. Olmos (Eds.), *Manual de técnicas de estudio* (2.ª ed., pp. 85–104). Ediciones Norlago. https://doi.org/10.7777/mte.05"
+  },
+  {
+    "name": "capítulo: editora única con conjunción e ante Hi, página única",
+    "ref": {
+      "type": "bookChapter",
+      "id": "fx-es-14",
+      "authors": [{ "kind": "person", "family": "Arce", "given": "Belén" }],
+      "date": { "year": 2021 },
+      "title": "Márgenes y sentido",
+      "editors": [
+        { "kind": "person", "family": "Prieto", "given": "Marcos" },
+        { "kind": "person", "family": "Hidalgo", "given": "Inés" }
+      ],
+      "bookTitle": "Pequeños ensayos sobre la forma",
+      "pageStart": "12",
+      "publisher": "Libros Pluma"
+    },
+    "expected": "Arce, B. (2021). Márgenes y sentido. En M. Prieto e I. Hidalgo (Eds.), *Pequeños ensayos sobre la forma* (p. 12). Libros Pluma."
+  },
+  {
+    "name": "web: autor personal con fecha completa",
+    "ref": {
+      "type": "website",
+      "id": "fx-es-15",
+      "authors": [{ "kind": "person", "family": "Camino", "given": "Sergio" }],
+      "date": { "year": 2023, "month": 7, "day": 14 },
+      "title": "Cómo estructurar una revisión de literatura",
+      "siteName": "Brújula de Estudio",
+      "url": "https://example.org/revision"
+    },
+    "expected": "Camino, S. (2023, 14 de julio). *Cómo estructurar una revisión de literatura*. Brújula de Estudio. https://example.org/revision"
+  },
+  {
+    "name": "web: se omite el sitio cuando repite al autor grupal",
+    "ref": {
+      "type": "website",
+      "id": "fx-es-16",
+      "authors": [
+        { "kind": "group", "name": "Alianza de Bibliotecas Abiertas" }
+      ],
+      "date": { "year": 2022, "month": 3 },
+      "title": "Fundamentos de las citas",
+      "siteName": "Alianza de Bibliotecas Abiertas",
+      "url": "https://example.org/citas"
+    },
+    "expected": "Alianza de Bibliotecas Abiertas. (2022, marzo). *Fundamentos de las citas*. https://example.org/citas"
+  },
+  {
+    "name": "web: sin autor, sin fecha, con fecha de recuperación",
+    "ref": {
+      "type": "website",
+      "id": "fx-es-17",
+      "authors": [],
+      "date": { "noDate": true },
+      "title": "Glosario de términos de investigación",
+      "siteName": "BancoTérminos",
+      "url": "https://example.org/glosario",
+      "retrievedDate": { "year": 2026, "month": 7, "day": 11 }
+    },
+    "expected": "*Glosario de términos de investigación*. (s. f.). BancoTérminos. Recuperado el 11 de julio de 2026 de https://example.org/glosario"
+  }
+]

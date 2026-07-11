@@ -11,6 +11,8 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
     "paths": {
       "@tesina/engine": ["./packages/apa-engine/src/index.ts"],
       "@tesina/docx-export": ["./packages/docx-export/src/index.ts"]
