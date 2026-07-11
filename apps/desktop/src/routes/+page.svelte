@@ -1,92 +1,121 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import Editor from "$lib/components/Editor.svelte";
   import { readJson, writeJsonAtomic } from "$lib/persist/atomic";
 
-  // M0 smoke test: proves the fs plugin, the $APPDATA capability scope, and
-  // atomic persistence across app relaunches. Replaced by the real essay
-  // library screen in M2.
-  const SMOKE_FILE = "smoke.json";
+  // M2.1: single-draft editor shell. The essay library, sections, and the
+  // full three-column layout arrive in the next M2 iterations.
+  const DRAFT_FILE = "essays/draft.json";
 
-  let text = $state("");
+  interface DraftFile {
+    schemaVersion: 1;
+    content: unknown;
+  }
+
+  let initialDoc = $state<unknown>(undefined);
+  let ready = $state(false);
+  let words = $state(0);
   let status = $state<"cargando" | "guardando" | "guardado" | "error">(
     "cargando",
   );
-  let loaded = $state(false);
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
   onMount(async () => {
     try {
-      const data = await readJson<{ text: string }>(SMOKE_FILE);
-      if (data) text = data.text;
+      const draft = await readJson<DraftFile>(DRAFT_FILE);
+      if (draft) initialDoc = draft.content;
       status = "guardado";
-      loaded = true;
     } catch (err) {
-      console.error("No se pudo leer el archivo de humo:", err);
+      console.error("No se pudo cargar el borrador:", err);
       status = "error";
+    } finally {
+      ready = true;
     }
   });
 
-  function scheduleSave() {
-    if (!loaded) return;
+  function handleUpdate(docJson: unknown, wordCount: number) {
+    words = wordCount;
     status = "guardando";
     clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
       try {
-        await writeJsonAtomic(SMOKE_FILE, { text });
+        const draft: DraftFile = { schemaVersion: 1, content: docJson };
+        await writeJsonAtomic(DRAFT_FILE, draft);
         status = "guardado";
       } catch (err) {
-        console.error("No se pudo guardar el archivo de humo:", err);
+        console.error("No se pudo guardar el borrador:", err);
         status = "error";
       }
-    }, 400);
+    }, 500);
   }
 </script>
 
-<main>
-  <h1>Tesina</h1>
-  <p class="hint">
-    Esqueleto M0 — lo que escribas aquí se guarda en
-    <code>$APPDATA/smoke.json</code> y debe seguir presente al relanzar la app.
-  </p>
-  <textarea
-    bind:value={text}
-    oninput={scheduleSave}
-    placeholder="Escribe algo y relanza la app…"
-    rows="10"
-  ></textarea>
-  <p class="status" data-status={status}>{status}</p>
-</main>
+<div class="shell">
+  <header>
+    <span class="brand">Tesina</span>
+    <span class="doc">Borrador</span>
+  </header>
+  <main>
+    {#if ready}
+      <Editor {initialDoc} onUpdate={handleUpdate} />
+    {/if}
+  </main>
+  <footer>
+    <span>{words} {words === 1 ? "palabra" : "palabras"}</span>
+    <span class="status" data-status={status}>{status}</span>
+  </footer>
+</div>
 
 <style>
-  main {
-    max-width: 40rem;
-    margin: 3rem auto;
-    padding: 0 1.5rem;
+  .shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
     font-family: system-ui, sans-serif;
+    background: #f2f1ee;
+    color: #26251f;
   }
 
-  h1 {
-    font-size: 1.5rem;
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid #e0deda;
+    background: #faf9f7;
   }
 
-  .hint {
-    color: #555;
-    font-size: 0.9rem;
+  .brand {
+    font-weight: 600;
+    color: #2158d6;
   }
 
-  textarea {
-    width: 100%;
-    font: inherit;
-    padding: 0.75rem;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    resize: vertical;
-    box-sizing: border-box;
+  .doc {
+    font-size: 0.85rem;
+    color: #6b6a64;
+  }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  footer {
+    display: flex;
+    gap: 16px;
+    padding: 6px 16px;
+    border-top: 1px solid #e0deda;
+    background: #faf9f7;
+    font-size: 0.8rem;
+    color: #6b6a64;
   }
 
   .status {
-    font-size: 0.85rem;
-    color: #777;
+    margin-left: auto;
+  }
+
+  .status[data-status="guardado"] {
+    color: #2158d6;
   }
 
   .status[data-status="error"] {
@@ -94,15 +123,25 @@
   }
 
   @media (prefers-color-scheme: dark) {
-    .hint,
-    .status {
-      color: #aaa;
+    .shell {
+      background: #1c1c1a;
+      color: #e8e6e1;
     }
 
-    textarea {
-      background: #1e1e1e;
-      color: #eee;
-      border-color: #444;
+    header,
+    footer {
+      background: #232320;
+      border-color: #373632;
+    }
+
+    .doc,
+    footer {
+      color: #a3a19a;
+    }
+
+    .brand,
+    .status[data-status="guardado"] {
+      color: #7ea4f5;
     }
   }
 </style>

@@ -1,0 +1,77 @@
+/*
+ * APA 7 visual styling for the continuous editor. The sheet is always
+ * paper-white with near-black serif text regardless of app theme — the
+ * document is a document. Exact pagination lives in the preview/export;
+ * here the text column matches the printable width (8.5in - 2in margins)
+ * so line breaks approximate the final page.
+ */
+.apa-editor {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem 4rem;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.apa-editor .tiptap {
+  background: #fff;
+  color: #131313;
+  font-family: "Times New Roman", Georgia, serif;
+  font-size: 12pt;
+  line-height: 2;
+  width: min(100%, 6.5in);
+  min-height: 8in;
+  padding: 0.75in 0.85in;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  outline: none;
+}
+
+.apa-editor .tiptap p {
+  margin: 0;
+  text-indent: 0.5in;
+}
+
+.apa-editor .tiptap h1,
+.apa-editor .tiptap h2,
+.apa-editor .tiptap h3,
+.apa-editor .tiptap h4,
+.apa-editor .tiptap h5 {
+  font-size: 12pt;
+  font-weight: bold;
+  margin: 0;
+}
+
+.apa-editor .tiptap h1 {
+  text-align: center;
+}
+
+.apa-editor .tiptap h3 {
+  font-style: italic;
+}
+
+.apa-editor .tiptap h4,
+.apa-editor .tiptap h5 {
+  text-indent: 0.5in;
+}
+
+.apa-editor .tiptap h5 {
+  font-style: italic;
+}
+
+.apa-editor .tiptap blockquote {
+  margin: 0 0 0 0.5in;
+  padding: 0;
+  border: none;
+}
+
+.apa-editor .tiptap blockquote p {
+  text-indent: 0;
+}
+
+.apa-editor .tiptap ul,
+.apa-editor .tiptap ol {
+  margin: 0;
+  padding-left: 1in;
+}

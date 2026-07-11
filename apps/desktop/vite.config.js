@@ -7,6 +7,15 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [sveltekit()],
 
+  resolve: {
+    alias: {
+      "@tesina/engine": new URL(
+        "../../packages/apa-engine/src/index.ts",
+        import.meta.url,
+      ).pathname,
+    },
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors
