@@ -1,5 +1,12 @@
 <script lang="ts">
   import type { Contributor, Reference } from "@tesina/engine";
+  import { detectInput } from "$lib/autofill/detect";
+  import {
+    type AutofillError,
+    lookupDoi,
+    lookupIsbn,
+  } from "$lib/autofill/client";
+  import { refToQuickFields } from "$lib/autofill/fill";
 
   interface Props {
     onSave: (ref: Reference) => void;
@@ -23,6 +30,61 @@
   let siteName = $state("");
   let url = $state("");
   let doi = $state("");
+
+  let lookupText = $state("");
+  let looking = $state(false);
+  let lookupError = $state("");
+  let autofilled = $state(false);
+
+  const ERROR_MESSAGES: Record<AutofillError | "unknown-input", string> = {
+    offline: "Sin conexión o el servicio no respondió. Intenta de nuevo.",
+    "not-found": "No se encontró ese DOI/ISBN.",
+    unsupported:
+      "Tipo de obra aún no soportado por el formulario rápido (llega en el gestor completo).",
+    parse: "El servicio devolvió una respuesta inesperada.",
+    "unknown-input": "Eso no parece un DOI ni un ISBN.",
+  };
+
+  async function lookup() {
+    lookupError = "";
+    autofilled = false;
+    const detected = detectInput(lookupText);
+    if (detected.kind !== "doi" && detected.kind !== "isbn") {
+      lookupError = ERROR_MESSAGES["unknown-input"];
+      return;
+    }
+    looking = true;
+    try {
+      const result = detected.kind === "doi"
+        ? await lookupDoi(detected.value)
+        : await lookupIsbn(detected.value);
+      if (!result.ok) {
+        lookupError = ERROR_MESSAGES[result.error];
+        return;
+      }
+      const fields = refToQuickFields(result.ref);
+      if (!fields) {
+        lookupError = ERROR_MESSAGES.unsupported;
+        return;
+      }
+      type = fields.type;
+      authorsText = fields.authorsText;
+      year = fields.year;
+      noDate = fields.noDate;
+      title = fields.title;
+      journal = fields.journal;
+      volume = fields.volume;
+      issue = fields.issue;
+      pages = fields.pages;
+      publisher = fields.publisher;
+      siteName = fields.siteName;
+      url = fields.url;
+      doi = fields.doi;
+      autofilled = true;
+    } finally {
+      looking = false;
+    }
+  }
 
   const canSave = $derived(
     title.trim() !== "" &&
@@ -94,6 +156,33 @@
     <div class="row head">
       <strong>Añadir referencia</strong>
       <button class="close" onclick={onClose} aria-label="Cerrar">×</button>
+    </div>
+
+    <div class="lookup" class:filled={autofilled}>
+      <div class="row">
+        <input
+          type="text"
+          bind:value={lookupText}
+          placeholder="Pega un DOI o ISBN y rellena el resto solo"
+          onkeydown={(e) => {
+            if (e.key === "Enter") lookup();
+          }}
+        />
+        <button
+          class="find"
+          onclick={lookup}
+          disabled={looking || lookupText.trim() === ""}
+        >
+          {looking ? "Buscando…" : "Buscar"}
+        </button>
+      </div>
+      {#if lookupError}
+        <p class="lookup-error">{lookupError}</p>
+      {:else if autofilled}
+        <p class="lookup-ok">
+          Formulario prellenado — revisa los datos antes de guardar.
+        </p>
+      {/if}
     </div>
 
     <div class="seg" role="group" aria-label="Tipo de fuente">
@@ -187,8 +276,7 @@
       Guardar referencia
     </button>
     <p class="hint">
-      El autollenado por DOI/ISBN/URL y los demás tipos de fuente llegan en el
-      hito M3.
+      Autollenado por URL, más tipos de fuente e import BibTeX: próximamente.
     </p>
   </div>
 </div>
@@ -223,6 +311,53 @@
     display: flex;
     gap: 10px;
     align-items: end;
+  }
+
+  .lookup {
+    border: 1px dashed #a6c4fa;
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .lookup.filled {
+    border-style: solid;
+    background: #eaf1fe55;
+  }
+
+  .lookup .row {
+    align-items: center;
+  }
+
+  .find {
+    border: none;
+    background: #2158d6;
+    color: #fff;
+    font: inherit;
+    font-size: 0.78rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .find:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .lookup-error {
+    margin: 0;
+    color: #a32d2d;
+    font-size: 0.75rem;
+  }
+
+  .lookup-ok {
+    margin: 0;
+    color: #173a8c;
+    font-size: 0.75rem;
   }
 
   .head {
@@ -347,6 +482,22 @@
     .close,
     .hint {
       color: #8a887f;
+    }
+
+    .lookup {
+      border-color: #2f4d8f;
+    }
+
+    .lookup.filled {
+      background: #1d2c5055;
+    }
+
+    .lookup-error {
+      color: #f09595;
+    }
+
+    .lookup-ok {
+      color: #b7cdfa;
     }
   }
 </style>
