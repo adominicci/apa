@@ -1,4 +1,6 @@
 export { buildSpikeDocument, exportSpikeDocx } from "./spike.ts";
+export { buildDocContext, type DocContext } from "./runs.ts";
+export type { PMJson } from "./input.ts";
 export type {
   ExportInput,
   ExportSettings,

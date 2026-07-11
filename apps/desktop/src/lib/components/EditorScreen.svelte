@@ -7,6 +7,7 @@
   import CitationPopover from "$lib/components/CitationPopover.svelte";
   import EditorToolbar from "$lib/components/EditorToolbar.svelte";
   import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
+  import PrintPreview from "$lib/components/PrintPreview.svelte";
   import ReferencesPanel from "$lib/components/ReferencesPanel.svelte";
   import TitlePageForm from "$lib/components/TitlePageForm.svelte";
   import { collectCitedRefIds } from "$lib/editor/citedRefs";
@@ -49,10 +50,12 @@
   let essayTitle = $state(untrack(() => essay.titlePage.title));
   let exporting = $state(false);
   let exportMessage = $state("");
+  let previewOpen = $state(false);
+  let pageCount = $state(0);
   let citedCounts = $state<Map<string, number>>(
     untrack(() => collectCitedRefIds(essay.content)),
   );
-  let lastDoc: unknown = untrack(() => essay.content);
+  let lastDoc = $state<unknown>(untrack(() => essay.content));
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
   // Mutable env shared with the citation plugin; updated in place, then
@@ -224,6 +227,20 @@
       Añadir apéndice
     </button>
     <span class="divider"></span>
+    <button
+      class="act"
+      onclick={() => {
+        previewOpen = !previewOpen;
+        if (!previewOpen) pageCount = 0;
+      }}
+    >
+      {previewOpen ? "Volver al editor" : "Vista previa"}
+    </button>
+    {#if previewOpen}
+      <button class="act" onclick={() => window.print()}>
+        Imprimir / PDF
+      </button>
+    {/if}
     <button class="act" onclick={() => (panelOpen = !panelOpen)}>
       {panelOpen ? "Ocultar referencias" : "Referencias"}
     </button>
@@ -254,7 +271,7 @@
   </header>
   <EditorToolbar {editor} />
   <main>
-    <div class="editor-col">
+    <div class="editor-col" class:hidden={previewOpen}>
       <Editor
         initialDoc={essay.content}
         {documentLanguage}
@@ -263,7 +280,19 @@
         onReady={handleReady}
       />
     </div>
-    {#if panelOpen}
+    {#if previewOpen}
+      <div class="editor-col preview-col">
+        {#key documentLanguage}
+          <PrintPreview
+            {essay}
+            docJson={lastDoc ?? editor?.getJSON()}
+            references={snapshotCitedRefs()}
+            onPageCount={(pages) => (pageCount = pages)}
+          />
+        {/key}
+      </div>
+    {/if}
+    {#if panelOpen && !previewOpen}
       <ReferencesPanel
         references={library.references}
         {citedCounts}
@@ -276,6 +305,9 @@
   </main>
   <footer>
     <span>{words} {words === 1 ? "palabra" : "palabras"}</span>
+    {#if previewOpen && pageCount > 0}
+      <span>{pageCount} {pageCount === 1 ? "página" : "páginas"}</span>
+    {/if}
     <span>{library.references.length} referencias en la biblioteca</span>
     <span>Documento: {documentLanguage === "es" ? "Español" : "English"}</span>
     {#if exportMessage}
@@ -408,6 +440,10 @@
     flex: 1;
     overflow-y: auto;
     min-width: 0;
+  }
+
+  .editor-col.hidden {
+    display: none;
   }
 
   footer {
