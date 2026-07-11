@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install dependencies
+        run: deno install
+
+      - name: Format check (packages)
+        run: deno fmt --check packages vitest.config.ts
+
+      - name: Lint (packages)
+        run: deno lint packages
+
+      - name: Unit tests
+        run: deno task test
+
+      - name: Svelte check
+        run: deno task check

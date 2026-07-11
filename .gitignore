@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+.deno/
+
+# Build output
+dist/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+
+# Generated i18n output (Paraglide)
+apps/desktop/src/lib/paraglide/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Test / coverage
+coverage/
+
+# Generated manual-verification artifacts
+samples/
+
+# Local env
+.env
+.env.local

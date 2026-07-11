@@ -1,0 +1,21 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window: app-data file access, save/open dialogs, and reference-autofill HTTP endpoints.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "dialog:default",
+    "fs:default",
+    "fs:allow-appdata-read-recursive",
+    "fs:allow-appdata-write-recursive",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://api.crossref.org/*" },
+        { "url": "https://openlibrary.org/*" }
+      ]
+    }
+  ]
+}

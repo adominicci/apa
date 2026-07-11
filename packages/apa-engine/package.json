@@ -1,0 +1,11 @@
+{
+  "name": "@tesina/engine",
+  "version": "0.1.0",
+  "description": "APA 7 citation and reference-list formatting engine (English and Spanish)",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

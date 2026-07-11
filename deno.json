@@ -1,0 +1,33 @@
+{
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "dev": "cd apps/desktop && deno task tauri dev",
+    "build": "cd apps/desktop && deno task tauri build",
+    "test": "deno run -A npm:vitest run",
+    "test:watch": "deno run -A npm:vitest",
+    "check": "cd apps/desktop && deno task app:check",
+    "spike:docx": "cd packages/docx-export && deno run -A scripts/generate-sample.ts",
+    "fmt": "deno fmt",
+    "lint": "deno lint"
+  },
+  "fmt": {
+    "exclude": [
+      "**/node_modules",
+      "**/dist",
+      "**/build",
+      "**/.svelte-kit",
+      "apps/desktop/src-tauri/target",
+      "apps/desktop/src-tauri/gen",
+      "**/*.md"
+    ]
+  },
+  "lint": {
+    "exclude": [
+      "**/node_modules",
+      "**/dist",
+      "**/build",
+      "**/.svelte-kit",
+      "apps/desktop/src-tauri/target"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@tesina/docx-export",
+  "version": "0.1.0",
+  "description": "APA 7 DOCX exporter: ProseMirror JSON + references to a Word document",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "docx": "^9.5.0"
+  },
+  "devDependencies": {
+    "fflate": "^0.8.2"
+  }
+}
