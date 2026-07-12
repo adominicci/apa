@@ -8,6 +8,7 @@
     type Reference,
     type ReferenceType,
   } from "@tesina/engine";
+  import Modal from "$lib/components/Modal.svelte";
   import { detectInput } from "$lib/autofill/detect";
   import {
     type AutofillError,
@@ -734,13 +735,7 @@
   }
 </script>
 
-<div class="overlay" role="presentation">
-  <div class="modal" role="dialog" aria-label={m.form_title()}>
-    <div class="row head">
-      <strong>{m.form_title()}</strong>
-      <button class="close" onclick={onClose} aria-label={m.common_close()}>×</button>
-    </div>
-
+<Modal title={m.form_title()} {onClose} size="ref">
     <div class="lookup" class:filled={autofilled}>
       <div class="row">
         <input
@@ -1262,58 +1257,23 @@
       </div>
     {/if}
 
-    <button class="save" onclick={save} disabled={!canSave}>
-      {m.form_save()}
-    </button>
     <p class="hint">
       {m.form_hint()}
     </p>
-  </div>
-</div>
+
+  {#snippet footer()}
+    <button class="btn btn-ghost" onclick={onClose}>{m.common_close()}</button>
+    <button class="btn btn-primary" onclick={save} disabled={!canSave}>
+      {m.form_save()}
+    </button>
+  {/snippet}
+</Modal>
 
 <style>
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: var(--overlay);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 50;
-  }
-
-  .modal {
-    width: min(500px, calc(100vw - 2rem));
-    max-height: calc(100vh - 4rem);
-    overflow-y: auto;
-    background: var(--surface);
-    border-radius: 12px;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    font-size: 0.82rem;
-    color: var(--fg);
-    box-shadow: var(--elev-raised);
-  }
-
   .row {
     display: flex;
     gap: 10px;
     align-items: end;
-  }
-
-  .head {
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .close {
-    border: none;
-    background: transparent;
-    font-size: 1rem;
-    cursor: pointer;
-    color: var(--muted);
   }
 
   .grow {
@@ -1431,21 +1391,6 @@
     background: var(--accent-soft);
     color: var(--accent);
     font-weight: 600;
-  }
-
-  .save {
-    border: none;
-    background: var(--accent);
-    color: var(--accent-on);
-    font: inherit;
-    padding: 8px 10px;
-    border-radius: 7px;
-    cursor: pointer;
-  }
-
-  .save:disabled {
-    opacity: 0.5;
-    cursor: default;
   }
 
   .hint,

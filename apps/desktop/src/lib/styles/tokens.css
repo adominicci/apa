@@ -67,6 +67,7 @@
   --overlay: color-mix(in oklab, var(--fg), transparent 55%);
   --focus-ring: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 68%);
   --elev-raised: 0 8px 30px color-mix(in oklab, var(--fg), transparent 86%);
+  --elev-lg: 0 18px 50px color-mix(in oklab, var(--fg), transparent 80%);
   --shadow-paper:
     0 1px 2px color-mix(in oklab, var(--fg), transparent 90%), 0 12px 40px
     color-mix(in oklab, var(--fg), transparent 88%);

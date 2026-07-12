@@ -1,6 +1,7 @@
 <script lang="ts">
   import { untrack } from "svelte";
   import { m } from "$lib/paraglide/messages";
+  import Modal from "$lib/components/Modal.svelte";
   import type {
     EssaySettings,
     PaperVariant,
@@ -60,187 +61,73 @@
   }
 </script>
 
-<div class="overlay" role="presentation">
-  <div class="modal" role="dialog" aria-label={m.titlepage_title()}>
-    <div class="row head">
-      <strong>{m.titlepage_title()}</strong>
-      <button class="close" onclick={onClose} aria-label={m.common_close()}>×</button>
-    </div>
-
-    <div class="seg" role="group" aria-label={m.titlepage_variant_aria()}>
-      <button
-        class:active={variant === "student"}
-        onclick={() => (variant = "student")}
-      >
-        {m.titlepage_student()}
-      </button>
-      <button
-        class:active={variant === "professional"}
-        onclick={() => (variant = "professional")}
-      >
-        {m.titlepage_professional()}
-      </button>
-    </div>
-
-    <label>
-      {m.titlepage_essay_title()}
-      <input type="text" bind:value={title} />
-    </label>
-
-    <label>
-      {m.titlepage_authors()}
-      <textarea rows="2" bind:value={authorsText} placeholder="Ana María Ruiz"
-      ></textarea>
-    </label>
-
-    <label>
-      {m.titlepage_affiliations()}
-      <textarea
-        rows="2"
-        bind:value={affiliationsText}
-        placeholder="Departamento de Educación, Universidad del Valle"
-      ></textarea>
-    </label>
-
-    <div class="row">
-      <label class="grow">
-        {m.titlepage_course()}
-        <input type="text" bind:value={course} placeholder="EDU 301" />
-      </label>
-      <label class="grow">
-        {m.titlepage_instructor()}
-        <input type="text" bind:value={instructor} />
-      </label>
-    </div>
-
-    <label>
-      {m.titlepage_due_date()}
-      <input type="date" bind:value={dueDate} />
-    </label>
-
-    {#if variant === "professional"}
-      <label>
-        {m.titlepage_running_head()}
-        <input type="text" bind:value={runningHead} maxlength="50" />
-      </label>
-      <label>
-        {m.titlepage_author_note()}
-        <textarea rows="2" bind:value={authorNote}></textarea>
-      </label>
-    {/if}
-
-    <button class="save" onclick={save}>{m.titlepage_save()}</button>
-    <p class="hint">
-      {m.titlepage_hint()}
-    </p>
+<Modal title={m.titlepage_title()} {onClose}>
+  <div class="seg" role="group" aria-label={m.titlepage_variant_aria()}>
+    <button
+      class:active={variant === "student"}
+      onclick={() => (variant = "student")}
+    >
+      {m.titlepage_student()}
+    </button>
+    <button
+      class:active={variant === "professional"}
+      onclick={() => (variant = "professional")}
+    >
+      {m.titlepage_professional()}
+    </button>
   </div>
-</div>
 
-<style>
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: var(--overlay);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 50;
-  }
+  <label class="field">
+    <span>{m.titlepage_essay_title()}</span>
+    <input type="text" bind:value={title} />
+  </label>
 
-  .modal {
-    width: min(460px, calc(100vw - 2rem));
-    max-height: calc(100vh - 4rem);
-    overflow-y: auto;
-    background: var(--surface);
-    border-radius: 12px;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    font-size: 0.82rem;
-    color: var(--fg);
-    box-shadow: var(--elev-raised);
-  }
+  <label class="field">
+    <span>{m.titlepage_authors()}</span>
+    <textarea rows="2" bind:value={authorsText} placeholder="Ana María Ruiz"
+    ></textarea>
+  </label>
 
-  .row {
-    display: flex;
-    gap: 10px;
-  }
+  <label class="field">
+    <span>{m.titlepage_affiliations()}</span>
+    <textarea
+      rows="2"
+      bind:value={affiliationsText}
+      placeholder="Departamento de Educación, Universidad del Valle"
+    ></textarea>
+  </label>
 
-  .head {
-    align-items: center;
-    justify-content: space-between;
-  }
+  <div class="field-row">
+    <label class="field">
+      <span>{m.titlepage_course()}</span>
+      <input type="text" bind:value={course} placeholder="EDU 301" />
+    </label>
+    <label class="field">
+      <span>{m.titlepage_instructor()}</span>
+      <input type="text" bind:value={instructor} />
+    </label>
+  </div>
 
-  .close {
-    border: none;
-    background: transparent;
-    font-size: 1rem;
-    cursor: pointer;
-    color: var(--muted);
-  }
+  <label class="field">
+    <span>{m.titlepage_due_date()}</span>
+    <input type="date" bind:value={dueDate} />
+  </label>
 
-  .grow {
-    flex: 1;
-  }
+  {#if variant === "professional"}
+    <label class="field">
+      <span>{m.titlepage_running_head()}</span>
+      <input type="text" bind:value={runningHead} maxlength="50" />
+    </label>
+    <label class="field">
+      <span>{m.titlepage_author_note()}</span>
+      <textarea rows="2" bind:value={authorNote}></textarea>
+    </label>
+  {/if}
 
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    color: var(--fg-2);
-  }
+  <p class="hint">{m.titlepage_hint()}</p>
 
-  input,
-  textarea {
-    font: inherit;
-    padding: 6px 8px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    width: 100%;
-    box-sizing: border-box;
-    resize: vertical;
-  }
-
-  .seg {
-    display: flex;
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    overflow: hidden;
-    align-self: start;
-  }
-
-  .seg button {
-    border: none;
-    background: transparent;
-    font: inherit;
-    font-size: 0.78rem;
-    padding: 5px 12px;
-    cursor: pointer;
-    color: var(--muted);
-  }
-
-  .seg button.active {
-    background: var(--accent-soft);
-    color: var(--accent);
-    font-weight: 600;
-  }
-
-  .save {
-    border: none;
-    background: var(--accent);
-    color: var(--accent-on);
-    font: inherit;
-    padding: 8px 10px;
-    border-radius: 7px;
-    cursor: pointer;
-  }
-
-  .hint {
-    margin: 0;
-    color: var(--muted);
-    font-size: 0.75rem;
-  }
-
-  
-</style>
+  {#snippet footer()}
+    <button class="btn btn-ghost" onclick={onClose}>{m.common_close()}</button>
+    <button class="btn btn-primary" onclick={save}>{m.titlepage_save()}</button>
+  {/snippet}
+</Modal>

@@ -6,6 +6,7 @@
   import { library } from "$lib/state/library.svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
+  import Modal from "$lib/components/Modal.svelte";
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
@@ -373,29 +374,23 @@
 {/if}
 
 {#if settingsOpen}
-  <div class="overlay" role="presentation">
-    <div class="modal" role="dialog" aria-label={m.settings_title()}>
-      <div class="modal-head">
-        <strong>{m.settings_title()}</strong>
-        <button class="close" onclick={() => (settingsOpen = false)} aria-label={m.common_close()}>×</button>
-      </div>
-      <div class="setting">
-        <span>{m.settings_ui_language()}</span>
-        <div class="segmented">
-          <button class:active={uiLocale.current === "es"} onclick={() => uiLocale.set("es")}>ES</button>
-          <button class:active={uiLocale.current === "en"} onclick={() => uiLocale.set("en")}>EN</button>
-        </div>
-      </div>
-      <div class="setting">
-        <span>{m.settings_theme()}</span>
-        <div class="segmented">
-          <button class:active={uiLocale.theme === "light"} onclick={() => uiLocale.setTheme("light")}>{m.theme_light()}</button>
-          <button class:active={uiLocale.theme === "dark"} onclick={() => uiLocale.setTheme("dark")}>{m.theme_dark()}</button>
-          <button class:active={uiLocale.theme === "system"} onclick={() => uiLocale.setTheme("system")}>{m.theme_system()}</button>
-        </div>
+  <Modal title={m.settings_title()} onClose={() => (settingsOpen = false)}>
+    <div class="field">
+      <span>{m.settings_ui_language()}</span>
+      <div class="seg">
+        <button class:active={uiLocale.current === "es"} onclick={() => uiLocale.set("es")}>ES</button>
+        <button class:active={uiLocale.current === "en"} onclick={() => uiLocale.set("en")}>EN</button>
       </div>
     </div>
-  </div>
+    <div class="field">
+      <span>{m.settings_theme()}</span>
+      <div class="seg">
+        <button class:active={uiLocale.theme === "light"} onclick={() => uiLocale.setTheme("light")}>{m.theme_light()}</button>
+        <button class:active={uiLocale.theme === "dark"} onclick={() => uiLocale.setTheme("dark")}>{m.theme_dark()}</button>
+        <button class:active={uiLocale.theme === "system"} onclick={() => uiLocale.setTheme("system")}>{m.theme_system()}</button>
+      </div>
+    </div>
+  </Modal>
 {/if}
 
 <style>
@@ -1039,48 +1034,4 @@
     margin-top: 3rem;
   }
 
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: var(--overlay);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 50;
-  }
-
-  .modal {
-    width: min(380px, calc(100vw - 2rem));
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-md);
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    box-shadow: var(--elev-raised);
-  }
-
-  .modal-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .close {
-    border: none;
-    background: none;
-    font-size: 1rem;
-    cursor: pointer;
-    color: var(--muted);
-  }
-
-  .setting {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: 13.5px;
-    color: var(--fg-2);
-  }
 </style>
