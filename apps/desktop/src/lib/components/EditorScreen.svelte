@@ -100,6 +100,25 @@
 
   const wordGoal = $derived(essay.settings.wordGoal ?? 2500);
   const progress = $derived(Math.min(100, Math.round((words / wordGoal) * 100)));
+
+  // Inline-editable word goal (click the label in the outline progress card).
+  let editingGoal = $state(false);
+  let goalDraft = $state(2500);
+
+  function startEditGoal() {
+    goalDraft = wordGoal;
+    editingGoal = true;
+  }
+
+  function commitGoal() {
+    if (!editingGoal) return;
+    const raw = Number(goalDraft);
+    const n = Number.isFinite(raw) && raw > 0 ? Math.round(raw) : wordGoal;
+    const clamped = Math.min(100000, Math.max(100, n));
+    essay.settings = { ...essay.settings, wordGoal: clamped };
+    editingGoal = false;
+    scheduleSave();
+  }
   const pagesEst = $derived(Math.max(1, Math.ceil(words / 250)));
   /** Editor sheets render in the chosen APA font via inherited CSS vars. */
   const docFont = $derived(APA_FONTS[essay.settings.font]);
@@ -534,7 +553,38 @@
 
       <div class="out-progress">
         <div class="pl">
-          <span>{m.outline_progress({ goal: wordGoal.toLocaleString() })}</span>
+          {#if editingGoal}
+            <input
+              class="goal-input"
+              type="number"
+              min="100"
+              max="100000"
+              step="50"
+              bind:value={goalDraft}
+              aria-label={m.outline_goal_edit()}
+              onkeydown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commitGoal();
+                } else if (e.key === "Escape") {
+                  editingGoal = false;
+                }
+              }}
+              onblur={commitGoal}
+              {@attach (node) => {
+                node.focus();
+                node.select();
+              }}
+            />
+          {:else}
+            <button
+              class="goal-btn"
+              onclick={startEditGoal}
+              title={m.outline_goal_edit()}
+            >
+              {m.outline_progress({ goal: wordGoal.toLocaleString() })}
+            </button>
+          {/if}
           <span>{progress}%</span>
         </div>
         <div class="bar"><span style="width: {progress}%"></span></div>
@@ -1037,7 +1087,35 @@
     color: var(--muted);
     display: flex;
     justify-content: space-between;
+    align-items: center;
     margin-bottom: 8px;
+  }
+
+  .out-progress .goal-btn {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .out-progress .goal-btn:hover {
+    color: var(--fg);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .out-progress .goal-input {
+    font: inherit;
+    width: 6.5em;
+    padding: 1px 5px;
+    border: 1px solid var(--accent);
+    border-radius: var(--r-sm);
+    background: var(--bg);
+    color: var(--fg);
+    outline: none;
   }
 
   .bar {

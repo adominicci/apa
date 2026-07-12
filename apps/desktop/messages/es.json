@@ -279,6 +279,7 @@
   "outline_one_page": "1 p.",
   "outline_add": "Añadir sección",
   "outline_progress": "Progreso · meta {goal}",
+  "outline_goal_edit": "Editar meta de palabras",
   "fab_focus": "Enfoque",
   "fab_words": "{count} palabras",
   "status_pages_one": "1 pág.",
