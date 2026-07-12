@@ -28,6 +28,16 @@ export interface ExportTitlePage {
   authorNote?: string;
 }
 
+/** A figure image, pre-read and measured by the app layer (the exporter
+ * never touches Tauri/the filesystem). Keyed by the figure node's `src`. */
+export interface ExportImage {
+  data: Uint8Array;
+  type: "png" | "jpg" | "gif" | "bmp";
+  /** Display size in pixels, already scaled to fit the content column. */
+  width: number;
+  height: number;
+}
+
 export interface ExportInput {
   /** ProseMirror doc JSON with Tesina's sectioned schema. */
   content: unknown;
@@ -35,6 +45,8 @@ export interface ExportInput {
   titlePage: ExportTitlePage;
   /** Already filtered by the caller (cited only, or cited + uncited). */
   references: Reference[];
+  /** Figure image bytes keyed by node `src`; absent when there are none. */
+  images?: Record<string, ExportImage>;
 }
 
 /** Minimal structural view of ProseMirror JSON the visitor walks. */

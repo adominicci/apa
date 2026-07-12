@@ -1,5 +1,7 @@
 import {
+  AlignmentType,
   BorderStyle,
+  ImageRun,
   Paragraph,
   Table,
   TableCell,
@@ -110,6 +112,82 @@ export function apaTableBlocks(
       }),
     }),
   );
+
+  const noteRuns = noteNode
+    ? inlineToTextRuns(noteNode.content ?? [], ctx, citationCounter)
+    : [];
+  if (noteRuns.length > 0) {
+    out.push(
+      new Paragraph({
+        style: "Normal",
+        children: [
+          new TextRun({ text: `${t.headings.note} `, italics: true }),
+          ...noteRuns,
+        ],
+      }),
+    );
+  }
+
+  return out;
+}
+
+/**
+ * Builds an APA figure (APA 7.22): "Figure N" bold, italic title, the image
+ * centered, then an italic "Note." line. Image bytes arrive pre-read and
+ * pre-measured on the context (the exporter never touches the filesystem).
+ */
+export function apaFigureBlocks(
+  block: PMJson,
+  ctx: DocContext,
+  citationCounter: { next: number },
+  figureCounter: { n: number },
+): Paragraph[] {
+  figureCounter.n += 1;
+  const t = getTerms(ctx.locale);
+  const children = block.content ?? [];
+  const titleNode = children.find((c) => c.type === "figureTitle");
+  const imageNode = children.find((c) => c.type === "figureImage");
+  const noteNode = children.find((c) => c.type === "figureNote");
+
+  const out: Paragraph[] = [];
+  out.push(
+    new Paragraph({
+      style: "Normal",
+      children: [
+        new TextRun({
+          text: `${t.headings.figure} ${figureCounter.n}`,
+          bold: true,
+        }),
+      ],
+    }),
+  );
+  out.push(
+    new Paragraph({
+      style: "Normal",
+      children: titleNode
+        ? inlineToTextRuns(titleNode.content ?? [], ctx, citationCounter, {
+          italics: true,
+        })
+        : [],
+    }),
+  );
+
+  const src = imageNode?.attrs?.["src"] as string | undefined;
+  const image = src ? ctx.images[src] : undefined;
+  if (image) {
+    out.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new ImageRun({
+            data: image.data,
+            type: image.type,
+            transformation: { width: image.width, height: image.height },
+          }),
+        ],
+      }),
+    );
+  }
 
   const noteRuns = noteNode
     ? inlineToTextRuns(noteNode.content ?? [], ctx, citationCounter)

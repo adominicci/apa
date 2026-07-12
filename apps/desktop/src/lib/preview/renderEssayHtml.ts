@@ -48,6 +48,8 @@ interface RenderState {
   counter: { next: number };
   tableNo: { n: number };
   figureNo: { n: number };
+  /** Maps a figure's relative asset path to a resolved blob/object URL. */
+  imageUrls: Map<string, string>;
 }
 
 function inlineHtml(inline: readonly PMJson[], state: RenderState): string {
@@ -127,6 +129,32 @@ function apaTableHtml(block: PMJson, state: RenderState): string {
   return `${out}</figure>`;
 }
 
+/** Renders an APA figure: "Figure N" caption, italic title, image, note. */
+function apaFigureHtml(block: PMJson, state: RenderState): string {
+  state.figureNo.n += 1;
+  const t = getTerms(state.ctx.locale);
+  const children = block.content ?? [];
+  const titleNode = children.find((c) => c.type === "figureTitle");
+  const imageNode = children.find((c) => c.type === "figureImage");
+  const noteNode = children.find((c) => c.type === "figureNote");
+
+  let out = `<figure class="apa-figure"><p class="fig-cap">${
+    esc(t.headings.figure)
+  } ${state.figureNo.n}<br /><em>${
+    titleNode ? inlineHtml(titleNode.content ?? [], state) : ""
+  }</em></p>`;
+
+  const src = imageNode?.attrs?.["src"] as string | undefined;
+  const url = src ? state.imageUrls.get(src) : undefined;
+  if (url) out += `<img class="fig-img" src="${esc(url)}" alt="" />`;
+
+  const note = noteNode ? inlineHtml(noteNode.content ?? [], state) : "";
+  if (note.trim() !== "") {
+    out += `<p class="fig-note"><em>${esc(t.headings.note)}</em> ${note}</p>`;
+  }
+  return `${out}</figure>`;
+}
+
 /** Renders a list and its nested sublists (APA lettered lists use type="a"). */
 function listHtml(block: PMJson, state: RenderState): string {
   const ordered = block.type === "orderedList";
@@ -197,6 +225,8 @@ function blocksHtml(
       out += listHtml(block, state);
     } else if (block.type === "apaTable") {
       out += apaTableHtml(block, state);
+    } else if (block.type === "figure") {
+      out += apaFigureHtml(block, state);
     } else if (block.type === "keywordsLine") {
       const t = getTerms(state.ctx.locale);
       out += `<p class="keywords"><em>${esc(t.headings.keywords)}</em> ${
@@ -255,6 +285,10 @@ section.abstract, section.appendix, section.references { break-before: page; }
 .apa-table th, .apa-table td { padding: 3px 8px; text-align: left; vertical-align: top; }
 .apa-table th { border-bottom: 1px solid #131313; font-weight: normal; }
 .apa-table .tbl-note { text-indent: 0; }
+.apa-figure { margin: 1em 0; break-inside: avoid; text-align: center; }
+.apa-figure .fig-cap { text-indent: 0; text-align: left; }
+.apa-figure .fig-img { max-width: 100%; height: auto; }
+.apa-figure .fig-note { text-indent: 0; text-align: left; }
 `;
 }
 
@@ -262,6 +296,7 @@ export function renderEssayHtml(
   essay: Essay,
   docJson: unknown,
   references: Reference[],
+  imageUrls: Map<string, string> = new Map(),
 ): string {
   const locale = essay.settings.documentLanguage;
   const t = getTerms(locale);
@@ -271,6 +306,7 @@ export function renderEssayHtml(
     counter: { next: 0 },
     tableNo: { n: 0 },
     figureNo: { n: 0 },
+    imageUrls,
   };
   const { titlePage } = essay;
 

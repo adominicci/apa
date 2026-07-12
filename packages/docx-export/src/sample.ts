@@ -193,6 +193,23 @@ export function sampleEssayInput(
               ],
             },
             {
+              type: "figure",
+              content: [
+                {
+                  type: "figureTitle",
+                  content: [{ type: "text", text: "Distribución por curso" }],
+                },
+                {
+                  type: "figureImage",
+                  attrs: { src: "essays/assets/sample-fig.png" },
+                },
+                {
+                  type: "figureNote",
+                  content: [{ type: "text", text: "Elaboración propia." }],
+                },
+              ],
+            },
+            {
               type: "orderedList",
               attrs: { listStyle: "lower-alpha" },
               content: [

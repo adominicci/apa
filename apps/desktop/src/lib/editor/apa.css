@@ -262,6 +262,66 @@
   content: "Note. ";
 }
 
+/* APA figures (APA 7.22): "Figure N" bold, italic title, the image, "Note." */
+.apa-editor .tiptap .apa-figure {
+  counter-increment: apa-figure;
+  margin: 1em 0;
+  text-align: center;
+}
+
+.apa-editor .tiptap .fig-title {
+  margin: 0 0 0.5em;
+  text-indent: 0;
+  font-style: italic;
+  text-align: left;
+}
+
+.apa-editor .tiptap .fig-title::before {
+  display: block;
+  font-weight: bold;
+  font-style: normal;
+}
+
+.apa-editor[data-doclang="es"] .tiptap .fig-title::before {
+  content: "Figura " counter(apa-figure);
+}
+
+.apa-editor[data-doclang="en"] .tiptap .fig-title::before {
+  content: "Figure " counter(apa-figure);
+}
+
+.apa-editor .tiptap .fig-img {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+}
+
+.apa-editor .tiptap .fig-img--missing {
+  display: inline-block;
+  min-width: 120px;
+  min-height: 80px;
+  background: var(--hover);
+  border: 1px dashed var(--border);
+}
+
+.apa-editor .tiptap .fig-note {
+  margin: 0.5em 0 0;
+  text-indent: 0;
+  text-align: left;
+}
+
+.apa-editor .tiptap .fig-note::before {
+  font-style: italic;
+}
+
+.apa-editor[data-doclang="es"] .tiptap .fig-note::before {
+  content: "Nota. ";
+}
+
+.apa-editor[data-doclang="en"] .tiptap .fig-note::before {
+  content: "Note. ";
+}
+
 /* Selected-cell shading from prosemirror-tables. */
 .apa-editor .tiptap .selectedCell::after {
   content: "";

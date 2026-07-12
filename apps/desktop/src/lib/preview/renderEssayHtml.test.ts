@@ -202,6 +202,44 @@ describe("renderEssayHtml", () => {
     expect(html).toContain("Nota.");
   });
 
+  it("renders an APA figure with number, title, image URL, and note", () => {
+    const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    essay.content = {
+      type: "doc",
+      content: [
+        {
+          type: "sectionBody",
+          content: [
+            {
+              type: "figure",
+              content: [
+                {
+                  type: "figureTitle",
+                  content: [{ type: "text", text: "Distribución" }],
+                },
+                {
+                  type: "figureImage",
+                  attrs: { src: "essays/assets/x.png" },
+                },
+                {
+                  type: "figureNote",
+                  content: [{ type: "text", text: "Propia." }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const urls = new Map([["essays/assets/x.png", "blob:fake-url"]]);
+    const html = renderEssayHtml(essay, essay.content, [], urls);
+    expect(html).toContain('<figure class="apa-figure">');
+    expect(html).toContain("Figura 1");
+    expect(html).toContain("<em>Distribución</em>");
+    expect(html).toContain('src="blob:fake-url"');
+    expect(html).toContain("Nota.");
+  });
+
   it("renders lettered lists with type=a and nested sublists", () => {
     const essay = listEssay();
     const html = renderEssayHtml(essay, essay.content, []);

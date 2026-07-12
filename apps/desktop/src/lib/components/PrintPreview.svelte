@@ -6,6 +6,7 @@
     renderEssayCss,
     renderEssayHtml,
   } from "$lib/preview/renderEssayHtml";
+  import { imageObjectUrl } from "$lib/persist/assets";
 
   interface Props {
     essay: Essay;
@@ -16,18 +17,41 @@
 
   let { essay, docJson, references, onPageCount }: Props = $props();
 
+  /** Collects every figure image path in the doc. */
+  function figureSrcs(node: unknown, out: Set<string>): void {
+    if (!node || typeof node !== "object") return;
+    const n = node as { type?: string; attrs?: { src?: string };
+      content?: unknown[]; };
+    if (n.type === "figureImage" && n.attrs?.src) out.add(n.attrs.src);
+    for (const child of n.content ?? []) figureSrcs(child, out);
+  }
+
   let rendering = $state(true);
   let error = $state("");
 
   const paginate: Attachment<HTMLDivElement> = (container) => {
     let cancelled = false;
     let styleUrl = "";
+    const objectUrls: string[] = [];
 
     (async () => {
       try {
         const { Previewer } = await import("pagedjs");
         if (cancelled) return;
-        const html = renderEssayHtml(essay, docJson, references);
+        const srcs = new Set<string>();
+        figureSrcs(docJson, srcs);
+        const imageUrls = new Map<string, string>();
+        for (const src of srcs) {
+          try {
+            const url = await imageObjectUrl(src);
+            objectUrls.push(url);
+            imageUrls.set(src, url);
+          } catch {
+            // Missing asset — skip; the figure renders without an image.
+          }
+        }
+        if (cancelled) return;
+        const html = renderEssayHtml(essay, docJson, references, imageUrls);
         const css = renderEssayCss(essay.settings);
         styleUrl = URL.createObjectURL(
           new Blob([css], { type: "text/css" }),
@@ -50,6 +74,7 @@
     return () => {
       cancelled = true;
       if (styleUrl) URL.revokeObjectURL(styleUrl);
+      for (const url of objectUrls) URL.revokeObjectURL(url);
     };
   };
 </script>

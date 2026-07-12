@@ -3,7 +3,7 @@ import { getTerms } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
 import { type DocContext, inlineText, inlineToTextRuns } from "./runs.ts";
 import { LOWER_ALPHA_REF, ORDERED_LIST_REF } from "./styles.ts";
-import { apaTableBlocks } from "./blocks.ts";
+import { apaFigureBlocks, apaTableBlocks } from "./blocks.ts";
 
 interface VisitState {
   ctx: DocContext;
@@ -177,6 +177,18 @@ export function visitBlocks(
             state.ctx,
             state.citationCounter,
             state.tableCounter,
+          ),
+        );
+        break;
+      }
+      case "figure": {
+        emittedFirst = true;
+        out.push(
+          ...apaFigureBlocks(
+            block,
+            state.ctx,
+            state.citationCounter,
+            state.figureCounter,
           ),
         );
         break;

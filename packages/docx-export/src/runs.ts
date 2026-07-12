@@ -8,7 +8,7 @@ import {
   type Reference,
   type RichRun,
 } from "@tesina/engine";
-import type { PMJson } from "./input.ts";
+import type { ExportImage, PMJson } from "./input.ts";
 
 export interface DocContext {
   refsById: ReadonlyMap<string, Reference>;
@@ -16,6 +16,8 @@ export interface DocContext {
   citationCtx: CitationContext;
   /** Order index of the first citation mentioning each refId. */
   firstOccurrenceIndex: ReadonlyMap<string, number>;
+  /** Figure image bytes keyed by node `src`. */
+  images: Record<string, ExportImage>;
 }
 
 function collectCitationAttrs(node: PMJson, out: CitationAttrs[]): void {
@@ -33,6 +35,7 @@ export function buildDocContext(
   content: PMJson,
   references: readonly Reference[],
   locale: DocLocale,
+  images: Record<string, ExportImage> = {},
 ): DocContext {
   const refsById = new Map(references.map((r) => [r.id, r]));
   const citations: CitationAttrs[] = [];
@@ -50,6 +53,7 @@ export function buildDocContext(
     locale,
     citationCtx: buildCitationContext(citations, refsById, locale),
     firstOccurrenceIndex,
+    images,
   };
 }
 

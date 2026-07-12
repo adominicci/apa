@@ -2,6 +2,7 @@ export { buildSpikeDocument, exportSpikeDocx } from "./spike.ts";
 export { buildDocContext, type DocContext } from "./runs.ts";
 export type { PMJson } from "./input.ts";
 export type {
+  ExportImage,
   ExportInput,
   ExportSettings,
   ExportTitlePage,
@@ -70,7 +71,12 @@ function buildHeader(input: ExportInput): Header {
 export async function exportDocx(input: ExportInput): Promise<Uint8Array> {
   const content = input.content as PMJson;
   const locale = input.settings.documentLanguage;
-  const ctx = buildDocContext(content, input.references, locale);
+  const ctx = buildDocContext(
+    content,
+    input.references,
+    locale,
+    input.images ?? {},
+  );
 
   const doc = new Document({
     styles: buildStyles(input.settings.font),

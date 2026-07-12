@@ -19,7 +19,8 @@
   import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
   import TitlePageForm from "$lib/components/TitlePageForm.svelte";
   import { collectCitedRefIds } from "$lib/editor/citedRefs";
-  import { insertApaTable } from "$lib/editor/blocks";
+  import { insertApaTable, insertFigure } from "$lib/editor/blocks";
+  import { importImageFile } from "$lib/persist/assets";
   import { buildOutline, type OutlineItem } from "$lib/editor/outline";
   import {
     type CitationEnv,
@@ -335,6 +336,21 @@
     if (editor) insertCitation(editor, attrs);
   }
 
+  let figureInput = $state<HTMLInputElement | undefined>(undefined);
+
+  async function handleFigureFile(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file || !editor) return;
+    try {
+      const relPath = await importImageFile(file);
+      insertFigure(editor, relPath);
+    } catch (err) {
+      console.error("No se pudo insertar la figura:", err);
+    }
+  }
+
   function handleSaveReference(ref: Reference) {
     library.add(ref);
     refFormOpen = false;
@@ -639,6 +655,22 @@
         onToggle={() => (openMenu = openMenu === "table" ? null : "table")}
         onClose={() => (openMenu = null)}
         onInsert={() => editor && insertApaTable(editor)}
+      />
+      <button
+        class="fm-btn"
+        onclick={() => figureInput?.click()}
+        disabled={!editor}
+        title={m.fab_figure()}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="1" /><circle cx="8.5" cy="9" r="1.5" /><path d="M21 15l-5-5L5 20" /></svg>
+        {m.fab_figure()}
+      </button>
+      <input
+        bind:this={figureInput}
+        type="file"
+        accept="image/*"
+        style="display: none"
+        onchange={handleFigureFile}
       />
       <div class="fm-sep"></div>
       <button class="fm-btn" class:on={focusMode} onclick={() => (focusMode = !focusMode)}>

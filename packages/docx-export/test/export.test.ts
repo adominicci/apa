@@ -52,6 +52,102 @@ describe("exportDocx (student, es)", () => {
     expect(documentXml).toContain("Palabras clave:");
   });
 
+  it("renders an APA figure caption and note even without the image", () => {
+    expect(documentXml).toContain("Figura 1");
+    expect(documentXml).toContain("Distribución por curso");
+    expect(documentXml).toContain("Elaboración propia");
+  });
+
+  it("embeds the figure image when bytes are supplied", async () => {
+    // Smallest valid PNG (1x1 transparent pixel).
+    const png = Uint8Array.from([
+      137,
+      80,
+      78,
+      71,
+      13,
+      10,
+      26,
+      10,
+      0,
+      0,
+      0,
+      13,
+      73,
+      72,
+      68,
+      82,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      8,
+      6,
+      0,
+      0,
+      0,
+      31,
+      21,
+      196,
+      137,
+      0,
+      0,
+      0,
+      13,
+      73,
+      68,
+      65,
+      84,
+      120,
+      156,
+      99,
+      100,
+      96,
+      96,
+      96,
+      0,
+      0,
+      0,
+      5,
+      0,
+      1,
+      135,
+      165,
+      172,
+      137,
+      0,
+      0,
+      0,
+      0,
+      73,
+      69,
+      78,
+      68,
+      174,
+      66,
+      96,
+      130,
+    ]);
+    const input = sampleInput();
+    input.images = {
+      "essays/assets/sample-fig.png": {
+        data: png,
+        type: "png",
+        width: 120,
+        height: 90,
+      },
+    };
+    const files = unzipSync(await exportDocx(input));
+    const hasImage = Object.keys(files).some((n) =>
+      /^word\/media\/.+\.png$/.test(n)
+    );
+    expect(hasImage).toBe(true);
+  });
+
   it("renders an APA table with number, italic title, grid, and note", () => {
     expect(documentXml).toContain("Tabla 1");
     expect(documentXml).toContain("Horas de lectura por semana");
