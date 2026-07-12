@@ -288,5 +288,17 @@
   "tb_outline": "Estructura",
   "tb_refs": "Referencias",
   "tb_preview": "Vista previa",
-  "tb_back": "Volver a la biblioteca"
+  "tb_back": "Volver a la biblioteca",
+  "tb_headings": "Encabezados",
+  "tb_lists": "Listas",
+  "head_normal": "Texto normal",
+  "head_l1": "Nivel 1 · centrado",
+  "head_l2": "Nivel 2 · a la izquierda",
+  "head_l3": "Nivel 3 · cursiva",
+  "head_l4": "Nivel 4 · sangrado",
+  "head_l5": "Nivel 5 · sangrado cursiva",
+  "list_bulleted": "Viñetas",
+  "list_numbered": "Numerada",
+  "list_indent": "Aumentar sangría",
+  "list_outdent": "Reducir sangría"
 }

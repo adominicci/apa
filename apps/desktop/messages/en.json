@@ -288,5 +288,17 @@
   "tb_outline": "Structure",
   "tb_refs": "References",
   "tb_preview": "Preview",
-  "tb_back": "Back to the library"
+  "tb_back": "Back to the library",
+  "tb_headings": "Headings",
+  "tb_lists": "Lists",
+  "head_normal": "Normal text",
+  "head_l1": "Level 1 · centered",
+  "head_l2": "Level 2 · flush left",
+  "head_l3": "Level 3 · italic",
+  "head_l4": "Level 4 · indented",
+  "head_l5": "Level 5 · indented italic",
+  "list_bulleted": "Bulleted",
+  "list_numbered": "Numbered",
+  "list_indent": "Increase indent",
+  "list_outdent": "Decrease indent"
 }

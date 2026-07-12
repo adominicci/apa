@@ -6,6 +6,8 @@
   import type { Essay, EssaySettings, TitlePage } from "$lib/model/essay";
   import Editor from "$lib/components/Editor.svelte";
   import CitationPopover from "$lib/components/CitationPopover.svelte";
+  import HeadingMenu from "$lib/components/HeadingMenu.svelte";
+  import ListMenu from "$lib/components/ListMenu.svelte";
   import PrintPreview from "$lib/components/PrintPreview.svelte";
   import RefEntry from "$lib/components/RefEntry.svelte";
   import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
@@ -68,6 +70,11 @@
   );
   let selPos = $state(0);
   let bubble = $state<{ x: number; y: number } | null>(null);
+  /** Active block format at the cursor, for the Headings/Lists menus. */
+  let activeHeadingLevel = $state<number | null>(null);
+  let activeList = $state<"bullet" | "ordered" | null>(null);
+  /** Only one bottom-bar dropdown open at a time. */
+  let openMenu = $state<"headings" | "lists" | null>(null);
   let citedCounts = $state<Map<string, number>>(
     untrack(() => collectCitedRefIds(essay.content)),
   );
@@ -209,6 +216,19 @@
       inAppendix = selectionInAppendix(instance);
       selPos = instance.state.selection.from;
       updateBubble(instance);
+      let level: number | null = null;
+      for (let l = 1; l <= 5; l++) {
+        if (instance.isActive("heading", { level: l })) {
+          level = l;
+          break;
+        }
+      }
+      activeHeadingLevel = level;
+      activeList = instance.isActive("bulletList")
+        ? "bullet"
+        : instance.isActive("orderedList")
+        ? "ordered"
+        : null;
     };
     instance.on("selectionUpdate", track);
     instance.on("transaction", track);
@@ -549,12 +569,20 @@
         {m.fab_new_ref()}
       </button>
       <div class="fm-sep"></div>
-      <button class="fm-btn" onclick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} aria-label={m.toolbar_heading_level({ level: 2 })}>N2</button>
-      <button class="fm-btn" onclick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} aria-label={m.toolbar_heading_level({ level: 3 })}>N3</button>
-      <button class="fm-btn" onclick={() => editor?.chain().focus().setParagraph().run()} aria-label="¶">¶</button>
-      <button class="fm-btn" onclick={() => editor?.chain().focus().toggleBulletList().run()} aria-label={m.toolbar_bullet_list()}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="7" r="1" /><circle cx="5" cy="12" r="1" /><circle cx="5" cy="17" r="1" /><path d="M9 7h11M9 12h11M9 17h11" /></svg>
-      </button>
+      <HeadingMenu
+        {editor}
+        activeLevel={activeHeadingLevel}
+        open={openMenu === "headings"}
+        onToggle={() => (openMenu = openMenu === "headings" ? null : "headings")}
+        onClose={() => (openMenu = null)}
+      />
+      <ListMenu
+        {editor}
+        {activeList}
+        open={openMenu === "lists"}
+        onToggle={() => (openMenu = openMenu === "lists" ? null : "lists")}
+        onClose={() => (openMenu = null)}
+      />
       <div class="fm-sep"></div>
       <button class="fm-btn" class:on={focusMode} onclick={() => (focusMode = !focusMode)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4" /></svg>
