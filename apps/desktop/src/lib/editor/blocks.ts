@@ -120,10 +120,21 @@ export const ApaTable = Node.create({
           case "deleteColumn":
             chain.deleteColumn().run();
             break;
-          case "deleteTable":
-            chain.deleteTable().run();
-            break;
         }
+      };
+
+      /** Removes the whole apaTable (caption, grid, and note), not just the
+       * inner grid — deleteTable alone would leave an invalid wrapper. */
+      const deleteWholeTable = () => {
+        const pos = typeof getPos === "function" ? getPos() : undefined;
+        if (typeof pos !== "number") return;
+        const node = editor.state.doc.nodeAt(pos);
+        if (!node) return;
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from: pos, to: pos + node.nodeSize })
+          .run();
       };
 
       const ops: { cmd: string; label: string; danger?: boolean }[] = [
@@ -143,7 +154,8 @@ export const ApaTable = Node.create({
         item.addEventListener("mousedown", (e) => {
           e.preventDefault();
           closeMenu();
-          if (focusThisTable()) runCmd(op.cmd);
+          if (op.cmd === "deleteTable") deleteWholeTable();
+          else if (focusThisTable()) runCmd(op.cmd);
         });
         menu.append(item);
       }
