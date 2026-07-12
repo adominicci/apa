@@ -16,10 +16,11 @@
 .apa-editor .paper-sheet {
   background: var(--paper);
   color: var(--fg);
-  width: min(100%, 6.9in);
-  /* Exact US Letter proportion (8.5:11) at any width, so every sheet — cover,
-     body, references — reads as a full page and matches the paginated preview.
-     Content taller than one page just grows past the ratio. */
+  /* Real US Letter page: 8.5in wide with 1in margins, 12pt text — a true 1:1
+     mockup so the edit screen reads and wraps like the exported page. The
+     aspect ratio keeps proportion if the window is too narrow for 8.5in, and
+     content taller than one page grows past the ratio. */
+  width: min(100%, 8.5in);
   aspect-ratio: 8.5 / 11;
   box-sizing: border-box;
   display: flex;
@@ -27,7 +28,7 @@
   border: 1px solid var(--border-soft);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-paper);
-  padding: 0.81in;
+  padding: 1in;
 }
 
 .apa-editor .paper-body {
