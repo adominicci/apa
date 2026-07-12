@@ -13,6 +13,7 @@
   import HeadingMenu from "$lib/components/HeadingMenu.svelte";
   import ListMenu from "$lib/components/ListMenu.svelte";
   import TableMenu from "$lib/components/TableMenu.svelte";
+  import TableInsertDialog from "$lib/components/TableInsertDialog.svelte";
   import "$lib/components/float-menu.css";
   import PrintPreview from "$lib/components/PrintPreview.svelte";
   import RefEntry from "$lib/components/RefEntry.svelte";
@@ -82,6 +83,7 @@
   let activeHeadingLevel = $state<number | null>(null);
   let activeList = $state<"bullet" | "ordered" | "lettered" | null>(null);
   let inTable = $state(false);
+  let tableDialogOpen = $state(false);
   /** Only one bottom-bar dropdown open at a time. */
   let openMenu = $state<"headings" | "lists" | "table" | null>(null);
   let citedCounts = $state<Map<string, number>>(
@@ -658,7 +660,7 @@
         open={openMenu === "table"}
         onToggle={() => (openMenu = openMenu === "table" ? null : "table")}
         onClose={() => (openMenu = null)}
-        onInsert={() => editor && insertApaTable(editor)}
+        onInsert={() => (tableDialogOpen = true)}
       />
       <button
         class="fm-btn"
@@ -750,6 +752,16 @@
     settings={essay.settings}
     onSave={handleSaveTitlePage}
     onClose={() => (titleFormOpen = false)}
+  />
+{/if}
+
+{#if tableDialogOpen}
+  <TableInsertDialog
+    onInsert={(rows, cols, header) => {
+      tableDialogOpen = false;
+      if (editor) insertApaTable(editor, rows, cols, header);
+    }}
+    onClose={() => (tableDialogOpen = false)}
   />
 {/if}
 

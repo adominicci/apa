@@ -211,6 +211,74 @@
 .apa-editor .tiptap .apa-table {
   counter-increment: apa-table;
   margin: 1em 0;
+  position: relative;
+}
+
+/* Per-table pencil to edit the grid structure (rows/columns). */
+.apa-editor .tiptap .apa-table-edit {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease);
+}
+
+.apa-editor .tiptap .apa-table:hover .apa-table-edit,
+.apa-editor .tiptap .apa-table-edit:focus-visible {
+  opacity: 1;
+}
+
+.apa-editor .tiptap .apa-table-edit:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.apa-editor .tiptap .apa-table-edit svg {
+  width: 14px;
+  height: 14px;
+}
+
+.apa-editor .tiptap .apa-table-menu {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  z-index: 30;
+  flex-direction: column;
+  min-width: 160px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--elev-raised);
+}
+
+.apa-editor .tiptap .apa-table-menu-item {
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 13px;
+}
+
+.apa-editor .tiptap .apa-table-menu-item:hover {
+  background: var(--hover);
+}
+
+.apa-editor .tiptap .apa-table-menu-item.danger {
+  color: var(--danger);
 }
 
 .apa-editor .tiptap .tbl-title {

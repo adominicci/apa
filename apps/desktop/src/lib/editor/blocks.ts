@@ -6,6 +6,7 @@ import {
   TableRow,
 } from "@tiptap/extension-table";
 import { imageObjectUrl } from "../persist/assets.ts";
+import { m } from "../paraglide/messages.js";
 
 /**
  * APA tables (APA 7.8–7.21). The caption ("Table N", bold) and the "Note."
@@ -50,6 +51,119 @@ export const ApaTable = Node.create({
   },
   renderHTML() {
     return ["figure", { "data-apa-table": "true", class: "apa-table" }, 0];
+  },
+  addNodeView() {
+    return ({ editor, getPos }) => {
+      const dom = document.createElement("figure");
+      dom.className = "apa-table";
+      dom.setAttribute("data-apa-table", "true");
+
+      const contentDOM = document.createElement("div");
+      contentDOM.className = "apa-table-content";
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "apa-table-edit";
+      editBtn.contentEditable = "false";
+      editBtn.title = m.table_edit_structure();
+      editBtn.setAttribute("aria-label", m.table_edit_structure());
+      editBtn.innerHTML =
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`;
+
+      const menu = document.createElement("div");
+      menu.className = "apa-table-menu";
+      menu.contentEditable = "false";
+      menu.style.display = "none";
+
+      const closeMenu = () => (menu.style.display = "none");
+
+      /** Puts the cursor in a cell of THIS table so the command targets it. */
+      const focusThisTable = (): boolean => {
+        const pos = typeof getPos === "function" ? getPos() : undefined;
+        if (typeof pos !== "number") return false;
+        const node = editor.state.doc.nodeAt(pos);
+        if (!node) return false;
+        const from = editor.state.selection.from;
+        if (
+          from > pos && from < pos + node.nodeSize && editor.isActive("table")
+        ) {
+          return true;
+        }
+        let cellInner: number | null = null;
+        node.descendants((child, offset) => {
+          if (cellInner !== null) return false;
+          if (
+            child.type.name === "tableCell" || child.type.name === "tableHeader"
+          ) {
+            cellInner = pos + 1 + offset + 1;
+            return false;
+          }
+          return true;
+        });
+        if (cellInner === null) return false;
+        editor.chain().focus().setTextSelection(cellInner).run();
+        return true;
+      };
+
+      const runCmd = (cmd: string) => {
+        const chain = editor.chain().focus();
+        switch (cmd) {
+          case "addRowAfter":
+            chain.addRowAfter().run();
+            break;
+          case "addColumnAfter":
+            chain.addColumnAfter().run();
+            break;
+          case "deleteRow":
+            chain.deleteRow().run();
+            break;
+          case "deleteColumn":
+            chain.deleteColumn().run();
+            break;
+          case "deleteTable":
+            chain.deleteTable().run();
+            break;
+        }
+      };
+
+      const ops: { cmd: string; label: string; danger?: boolean }[] = [
+        { cmd: "addRowAfter", label: m.table_add_row() },
+        { cmd: "addColumnAfter", label: m.table_add_col() },
+        { cmd: "deleteRow", label: m.table_del_row() },
+        { cmd: "deleteColumn", label: m.table_del_col() },
+        { cmd: "deleteTable", label: m.table_delete(), danger: true },
+      ];
+
+      for (const op of ops) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "apa-table-menu-item";
+        if (op.danger) item.classList.add("danger");
+        item.textContent = op.label;
+        item.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          closeMenu();
+          if (focusThisTable()) runCmd(op.cmd);
+        });
+        menu.append(item);
+      }
+
+      editBtn.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        menu.style.display = menu.style.display === "none" ? "flex" : "none";
+      });
+
+      dom.append(editBtn, menu, contentDOM);
+
+      return {
+        dom,
+        contentDOM,
+        ignoreMutation: (mutation) =>
+          mutation.type !== "selection" &&
+          !contentDOM.contains(mutation.target),
+        deselectNode: closeMenu,
+      };
+    };
   },
 });
 
@@ -183,11 +297,23 @@ function row(header: boolean, cols: number) {
   };
 }
 
-/** Inserts a blank APA table: a header row plus `rows`-1 body rows. */
-export function insertApaTable(editor: Editor, rows = 3, cols = 3): void {
+/**
+ * Inserts a blank APA table. `rows` counts every row (header included when
+ * `header` is set); `cols` is the column count. With a header the first row
+ * uses header cells and the rest are body rows.
+ */
+export function insertApaTable(
+  editor: Editor,
+  rows = 3,
+  cols = 3,
+  header = true,
+): void {
+  const cols_ = Math.max(1, cols);
+  const rows_ = Math.max(header ? 2 : 1, rows);
+  const bodyRows = header ? rows_ - 1 : rows_;
   const tableRows = [
-    row(true, cols),
-    ...Array.from({ length: Math.max(1, rows - 1) }, () => row(false, cols)),
+    ...(header ? [row(true, cols_)] : []),
+    ...Array.from({ length: bodyRows }, () => row(false, cols_)),
   ];
   editor
     .chain()
