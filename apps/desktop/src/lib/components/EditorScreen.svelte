@@ -497,8 +497,12 @@
       </div>
 
       <button class="out-item" onclick={() => (titleFormOpen = true)}>
-        <span class="n">—</span>{m.outline_titlepage()}
-        <span class="wc">{m.outline_one_page()}</span>
+        <span class="n">—</span>{m.outline_titlepage(undefined, {
+          locale: documentLanguage,
+        })}
+        <span class="wc">{m.outline_one_page(undefined, {
+          locale: documentLanguage,
+        })}</span>
       </button>
       {#each outline as item, i (item.pos)}
         <button
@@ -709,7 +713,12 @@
     <span class="sep">·</span>
     <span>{m.status_refs({ count: citedCounts.size })}</span>
     <span class="sep">·</span>
-    <button class="lang" onclick={() => setLanguage(documentLanguage === "es" ? "en" : "es")}>
+    <button
+      class="lang"
+      title={m.doclang_switch()}
+      aria-label={m.doclang_switch()}
+      onclick={() => setLanguage(documentLanguage === "es" ? "en" : "es")}
+    >
       {documentLanguage.toUpperCase()}
     </button>
     <span class="sep">·</span>

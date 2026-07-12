@@ -7,6 +7,7 @@
     renderEssayHtml,
   } from "$lib/preview/renderEssayHtml";
   import { imageObjectUrl } from "$lib/persist/assets";
+  import { m } from "$lib/paraglide/messages";
 
   interface Props {
     essay: Essay;
@@ -66,7 +67,7 @@
         console.error("No se pudo paginar la vista previa:", err);
         if (!cancelled) {
           rendering = false;
-          error = "No se pudo generar la vista previa.";
+          error = m.preview_error();
         }
       }
     })();
@@ -81,7 +82,7 @@
 
 <div class="preview-wrap">
   {#if rendering}
-    <p class="msg">Paginando…</p>
+    <p class="msg">{m.preview_paginating()}</p>
   {/if}
   {#if error}
     <p class="msg error">{error}</p>

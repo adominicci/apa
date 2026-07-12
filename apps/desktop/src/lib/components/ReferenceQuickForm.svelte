@@ -492,7 +492,10 @@
       authors: parseContributors(f.authorsText),
       date: buildDate(),
       title: f.title.trim() ||
-        (f.type === "personalCommunication" ? "Comunicación personal" : ""),
+        (f.type === "personalCommunication"
+          ? terms.personalCommunication.charAt(0).toUpperCase() +
+            terms.personalCommunication.slice(1)
+          : ""),
       ...(opt(f.doi) ? { doi: opt(f.doi)! } : {}),
       ...(opt(f.url) ? { url: opt(f.url)! } : {}),
     };

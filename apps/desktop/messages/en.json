@@ -319,5 +319,8 @@
   "cover_running_head_ph": "RUNNING HEAD",
   "cover_author_note": "Author Note",
   "cover_author_note_ph": "Author note (ORCID, acknowledgments, disclosures…)",
-  "refsheet_empty": "Your references will appear here as you cite."
+  "refsheet_empty": "Your references will appear here as you cite.",
+  "preview_paginating": "Paginating…",
+  "preview_error": "Couldn't generate the preview.",
+  "doclang_switch": "Document language — click to switch between Spanish and English"
 }

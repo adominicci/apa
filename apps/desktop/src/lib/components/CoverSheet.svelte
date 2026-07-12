@@ -39,8 +39,8 @@
     <button
       class="cover-form-btn"
       onclick={onOpenForm}
-      title={m.cover_open_form()}
-      aria-label={m.cover_open_form()}
+      title={m.cover_open_form(undefined, { locale: language })}
+      aria-label={m.cover_open_form(undefined, { locale: language })}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
         <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
@@ -51,7 +51,7 @@
       <input
         class="cf running-head"
         value={settings.runningHead ?? ""}
-        placeholder={m.cover_running_head_ph()}
+        placeholder={m.cover_running_head_ph(undefined, { locale: language })}
         oninput={(e) => onChange({ runningHead: e.currentTarget.value })}
       />
     {/if}
@@ -61,7 +61,7 @@
     <input
       class="cf title"
       value={titlePage.title}
-      placeholder={m.cover_title_ph()}
+      placeholder={m.cover_title_ph(undefined, { locale: language })}
       oninput={(e) => onChange({ title: e.currentTarget.value })}
     />
 
@@ -71,14 +71,14 @@
       class="cf people"
       rows="1"
       value={titlePage.authors.join("\n")}
-      placeholder={m.cover_authors_ph()}
+      placeholder={m.cover_authors_ph(undefined, { locale: language })}
       oninput={(e) => onChange({ authors: lines(e.currentTarget.value) })}
     ></textarea>
     <textarea
       class="cf people"
       rows="1"
       value={titlePage.affiliations.join("\n")}
-      placeholder={m.cover_affil_ph()}
+      placeholder={m.cover_affil_ph(undefined, { locale: language })}
       oninput={(e) => onChange({ affiliations: lines(e.currentTarget.value) })}
     ></textarea>
 
@@ -86,14 +86,14 @@
       <input
         class="cf line"
         value={titlePage.course ?? ""}
-        placeholder={m.cover_course_ph()}
+        placeholder={m.cover_course_ph(undefined, { locale: language })}
         oninput={(e) =>
         onChange({ course: e.currentTarget.value.trim() || undefined })}
       />
       <input
         class="cf line"
         value={titlePage.instructor ?? ""}
-        placeholder={m.cover_instructor_ph()}
+        placeholder={m.cover_instructor_ph(undefined, { locale: language })}
         oninput={(e) =>
         onChange({ instructor: e.currentTarget.value.trim() || undefined })}
       />
@@ -108,12 +108,12 @@
 
     {#if professional}
       <div class="gap-lg"></div>
-      <p class="note-label">{m.cover_author_note()}</p>
+      <p class="note-label">{m.cover_author_note(undefined, { locale: language })}</p>
       <textarea
         class="cf note"
         rows="2"
         value={titlePage.authorNote ?? ""}
-        placeholder={m.cover_author_note_ph()}
+        placeholder={m.cover_author_note_ph(undefined, { locale: language })}
         oninput={(e) =>
         onChange({ authorNote: e.currentTarget.value.trim() || undefined })}
       ></textarea>

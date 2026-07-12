@@ -24,7 +24,7 @@
   <article class="paper-sheet references">
     <h1 class="ref-head">{heading}</h1>
     {#if entries.length === 0}
-      <p class="ref-empty">{m.refsheet_empty()}</p>
+      <p class="ref-empty">{m.refsheet_empty(undefined, { locale: language })}</p>
     {:else}
       {#each entries as entry (entry.refId)}
         <p class="ref-entry">
