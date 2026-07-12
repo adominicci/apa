@@ -88,6 +88,29 @@ function inlineHtml(inline: readonly PMJson[], state: RenderState): string {
   return out;
 }
 
+/** Renders a list and its nested sublists (APA lettered lists use type="a"). */
+function listHtml(block: PMJson, state: RenderState): string {
+  const ordered = block.type === "orderedList";
+  const tag = ordered ? "ol" : "ul";
+  const typeAttr = ordered && block.attrs?.["listStyle"] === "lower-alpha"
+    ? ' type="a"'
+    : "";
+  let out = `<${tag}${typeAttr}>`;
+  for (const item of block.content ?? []) {
+    out += "<li>";
+    for (const child of item.content ?? []) {
+      if (child.type === "bulletList" || child.type === "orderedList") {
+        out += listHtml(child, state);
+      } else {
+        out += inlineHtml(child.content ?? [], state);
+      }
+    }
+    out += "</li>";
+  }
+  out += `</${tag}>`;
+  return out;
+}
+
 function blocksHtml(
   blocks: readonly PMJson[],
   state: RenderState,
@@ -132,16 +155,7 @@ function blocksHtml(
       }
       out += "</blockquote>";
     } else if (block.type === "bulletList" || block.type === "orderedList") {
-      const tag = block.type === "orderedList" ? "ol" : "ul";
-      out += `<${tag}>`;
-      for (const item of block.content ?? []) {
-        out += "<li>";
-        for (const child of item.content ?? []) {
-          out += inlineHtml(child.content ?? [], state);
-        }
-        out += "</li>";
-      }
-      out += `</${tag}>`;
+      out += listHtml(block, state);
     } else if (block.type === "keywordsLine") {
       const t = getTerms(state.ctx.locale);
       out += `<p class="keywords"><em>${esc(t.headings.keywords)}</em> ${

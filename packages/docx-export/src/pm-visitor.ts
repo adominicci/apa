@@ -2,7 +2,7 @@ import { Paragraph, TextRun } from "docx";
 import { getTerms } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
 import { type DocContext, inlineText, inlineToTextRuns } from "./runs.ts";
-import { ORDERED_LIST_REF } from "./styles.ts";
+import { LOWER_ALPHA_REF, ORDERED_LIST_REF } from "./styles.ts";
 
 interface VisitState {
   ctx: DocContext;
@@ -47,6 +47,43 @@ export function visitBlocks(
         ...extra,
       }),
     );
+  };
+
+  /**
+   * Emits a list (and its nested lists) as paragraphs. `depth` maps to the
+   * docx numbering/bullet level so sink/liftListItem nesting survives; each
+   * ordered list gets a fresh instance so its counter restarts. Lettered
+   * lists (listStyle "lower-alpha") switch to the lower-letter numbering.
+   */
+  const visitList = (listBlock: PMJson, depth: number) => {
+    const isOrdered = listBlock.type === "orderedList";
+    let instance = 0;
+    if (isOrdered) {
+      state.orderedListInstance += 1;
+      instance = state.orderedListInstance;
+    }
+    const reference = listBlock.attrs?.["listStyle"] === "lower-alpha"
+      ? LOWER_ALPHA_REF
+      : ORDERED_LIST_REF;
+    for (const item of listBlock.content ?? []) {
+      for (const child of item.content ?? []) {
+        if (child.type === "bulletList" || child.type === "orderedList") {
+          visitList(child, depth + 1);
+        } else {
+          emit(
+            "Normal",
+            inlineToTextRuns(
+              child.content ?? [],
+              state.ctx,
+              state.citationCounter,
+            ),
+            isOrdered
+              ? { numbering: { reference, level: depth, instance } }
+              : { bullet: { level: depth } },
+          );
+        }
+      }
+    }
   };
 
   for (let i = 0; i < blocks.length; i++) {
@@ -126,29 +163,7 @@ export function visitBlocks(
       }
       case "bulletList":
       case "orderedList": {
-        const isOrdered = block.type === "orderedList";
-        if (isOrdered) state.orderedListInstance += 1;
-        for (const item of block.content ?? []) {
-          for (const child of item.content ?? []) {
-            emit(
-              "Normal",
-              inlineToTextRuns(
-                child.content ?? [],
-                state.ctx,
-                state.citationCounter,
-              ),
-              isOrdered
-                ? {
-                  numbering: {
-                    reference: ORDERED_LIST_REF,
-                    level: 0,
-                    instance: state.orderedListInstance,
-                  },
-                }
-                : { bullet: { level: 0 } },
-            );
-          }
-        }
+        visitList(block, 0);
         break;
       }
       case "keywordsLine": {

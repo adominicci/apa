@@ -5,7 +5,7 @@
   interface Props {
     editor: Editor | undefined;
     /** List type at the cursor, or null when not in a list. */
-    activeList: "bullet" | "ordered" | null;
+    activeList: "bullet" | "ordered" | "lettered" | null;
     open: boolean;
     onToggle: () => void;
     onClose: () => void;
@@ -18,9 +18,37 @@
     editor?.chain().focus().toggleBulletList().run();
   }
 
+  /** Numbered = decimal ordered list; toggles off if already decimal. */
   function toggleNumbered() {
     onClose();
-    editor?.chain().focus().toggleOrderedList().run();
+    const ed = editor;
+    if (!ed) return;
+    if (activeList === "ordered") {
+      ed.chain().focus().toggleOrderedList().run();
+      return;
+    }
+    if (!ed.isActive("orderedList")) {
+      ed.chain().focus().toggleOrderedList().run();
+    }
+    ed.chain().focus().updateAttributes("orderedList", { listStyle: "decimal" })
+      .run();
+  }
+
+  /** Lettered = ordered list with lower-alpha style; toggles off if active. */
+  function toggleLettered() {
+    onClose();
+    const ed = editor;
+    if (!ed) return;
+    if (activeList === "lettered") {
+      ed.chain().focus().toggleOrderedList().run();
+      return;
+    }
+    if (!ed.isActive("orderedList")) {
+      ed.chain().focus().toggleOrderedList().run();
+    }
+    ed.chain().focus().updateAttributes("orderedList", {
+      listStyle: "lower-alpha",
+    }).run();
   }
 
   function indent() {
@@ -76,6 +104,17 @@
           <path d="M10 7h10M10 12h10M10 17h10M4 6v3M4 9h1M3.5 6H4M3 13h2l-2 3h2" />
         </svg>
         {m.list_numbered()}
+      </button>
+      <button
+        class="mi"
+        class:active={activeList === "lettered"}
+        role="menuitem"
+        onclick={toggleLettered}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M10 7h10M10 12h10M10 17h10M3 10l1.4-4L6 10M3.3 9h2.2" />
+        </svg>
+        {m.list_lettered()}
       </button>
       <div class="mi-sep"></div>
       <button class="mi" role="menuitem" onclick={outdent}>

@@ -78,6 +78,50 @@ function sampleEssay() {
   return essay;
 }
 
+function listEssay() {
+  const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+  essay.content = {
+    type: "doc",
+    content: [
+      {
+        type: "sectionBody",
+        content: [
+          {
+            type: "orderedList",
+            attrs: { listStyle: "lower-alpha" },
+            content: [
+              {
+                type: "listItem",
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [{ type: "text", text: "Primer criterio" }],
+                  },
+                  {
+                    type: "bulletList",
+                    content: [
+                      {
+                        type: "listItem",
+                        content: [
+                          {
+                            type: "paragraph",
+                            content: [{ type: "text", text: "Matiz anidado" }],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  return essay;
+}
+
 describe("renderEssayHtml", () => {
   it("renders title page, sections, citations, and references", () => {
     const html = renderEssayHtml(sampleEssay(), sampleEssay().content, [
@@ -93,6 +137,15 @@ describe("renderEssayHtml", () => {
     expect(html).toContain("<h1>Referencias</h1>");
     expect(html).toContain('class="ref-entry"');
     expect(html).toContain("<em>Revista de Estudios Imaginarios, 12</em>");
+  });
+
+  it("renders lettered lists with type=a and nested sublists", () => {
+    const essay = listEssay();
+    const html = renderEssayHtml(essay, essay.content, []);
+    expect(html).toContain('<ol type="a">');
+    expect(html).toContain("Primer criterio");
+    // The nested bullet list stays inside its parent <li>.
+    expect(html).toMatch(/<li>Primer criterio<ul><li>Matiz anidado<\/li><\/ul>/);
   });
 
   it("emits the running-head setter only for professional essays", () => {

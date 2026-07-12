@@ -98,25 +98,37 @@ export function buildStyles(font: FontChoice) {
 }
 
 export const ORDERED_LIST_REF = "tesina-ordered";
+export const LOWER_ALPHA_REF = "tesina-lower-alpha";
+
+/** Nine indent levels so nested lists (sink/liftListItem) render correctly. */
+function numberingLevels(
+  format: (typeof LevelFormat)[keyof typeof LevelFormat],
+) {
+  return Array.from({ length: 9 }, (_, level) => ({
+    level,
+    format,
+    // Each level shows only its own counter (APA nested lists aren't legal
+    // "1.a.i" style), so the template references this level's number.
+    text: `%${level + 1}.`,
+    alignment: AlignmentType.START,
+    style: {
+      paragraph: {
+        indent: { left: ONE_INCH + level * HALF_INCH, hanging: 360 },
+      },
+    },
+  }));
+}
 
 export function buildNumbering() {
   return {
     config: [
       {
         reference: ORDERED_LIST_REF,
-        levels: [
-          {
-            level: 0,
-            format: LevelFormat.DECIMAL,
-            text: "%1.",
-            alignment: AlignmentType.START,
-            style: {
-              paragraph: {
-                indent: { left: ONE_INCH, hanging: 360 },
-              },
-            },
-          },
-        ],
+        levels: numberingLevels(LevelFormat.DECIMAL),
+      },
+      {
+        reference: LOWER_ALPHA_REF,
+        levels: numberingLevels(LevelFormat.LOWER_LETTER),
       },
     ],
   };

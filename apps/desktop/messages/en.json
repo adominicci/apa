@@ -299,6 +299,7 @@
   "head_l5": "Level 5 · indented italic",
   "list_bulleted": "Bulleted",
   "list_numbered": "Numbered",
+  "list_lettered": "Lettered (a, b, c)",
   "list_indent": "Increase indent",
   "list_outdent": "Decrease indent"
 }

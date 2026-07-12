@@ -299,6 +299,7 @@
   "head_l5": "Nivel 5 · sangrado cursiva",
   "list_bulleted": "Viñetas",
   "list_numbered": "Numerada",
+  "list_lettered": "Con letras (a, b, c)",
   "list_indent": "Aumentar sangría",
   "list_outdent": "Reducir sangría"
 }

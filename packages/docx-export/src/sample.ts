@@ -130,6 +130,47 @@ export function sampleEssayInput(
                 },
               ],
             },
+            {
+              type: "orderedList",
+              attrs: { listStyle: "lower-alpha" },
+              content: [
+                {
+                  type: "listItem",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [{ type: "text", text: "Primer criterio" }],
+                    },
+                    {
+                      type: "bulletList",
+                      content: [
+                        {
+                          type: "listItem",
+                          content: [
+                            {
+                              type: "paragraph",
+                              content: [{
+                                type: "text",
+                                text: "Matiz anidado",
+                              }],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: "listItem",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [{ type: "text", text: "Segundo criterio" }],
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
         {

@@ -72,7 +72,7 @@
   let bubble = $state<{ x: number; y: number } | null>(null);
   /** Active block format at the cursor, for the Headings/Lists menus. */
   let activeHeadingLevel = $state<number | null>(null);
-  let activeList = $state<"bullet" | "ordered" | null>(null);
+  let activeList = $state<"bullet" | "ordered" | "lettered" | null>(null);
   /** Only one bottom-bar dropdown open at a time. */
   let openMenu = $state<"headings" | "lists" | null>(null);
   let citedCounts = $state<Map<string, number>>(
@@ -227,7 +227,9 @@
       activeList = instance.isActive("bulletList")
         ? "bullet"
         : instance.isActive("orderedList")
-        ? "ordered"
+        ? (instance.isActive("orderedList", { listStyle: "lower-alpha" })
+          ? "lettered"
+          : "ordered")
         : null;
     };
     instance.on("selectionUpdate", track);

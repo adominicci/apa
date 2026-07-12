@@ -5,6 +5,7 @@ import { sampleEssayInput as sampleInput } from "../src/sample.ts";
 
 let documentXml = "";
 let stylesXml = "";
+let numberingXml = "";
 let headerXml = "";
 
 beforeAll(async () => {
@@ -12,6 +13,7 @@ beforeAll(async () => {
   const files = unzipSync(bytes);
   documentXml = strFromU8(files["word/document.xml"]!);
   stylesXml = strFromU8(files["word/styles.xml"]!);
+  numberingXml = strFromU8(files["word/numbering.xml"]!);
   const headerName = Object.keys(files).find((n) =>
     /^word\/header\d*\.xml$/.test(n)
   )!;
@@ -48,6 +50,15 @@ describe("exportDocx (student, es)", () => {
 
   it("renders the keywords label in italics", () => {
     expect(documentXml).toContain("Palabras clave:");
+  });
+
+  it("renders a lettered list with a nested bullet at a deeper level", () => {
+    expect(documentXml).toContain("Primer criterio");
+    expect(documentXml).toContain("Matiz anidado");
+    // Lettered list uses the lower-letter numbering reference.
+    expect(numberingXml).toMatch(/w:numFmt w:val="lowerLetter"/);
+    // The nested bullet sits one level deeper than its parent item.
+    expect(documentXml).toMatch(/w:ilvl w:val="1"/);
   });
 
   it("renders reference entries with hanging indent and engine formatting", () => {

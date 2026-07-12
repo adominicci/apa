@@ -190,3 +190,13 @@
   margin: 0;
   padding-left: 1in;
 }
+
+.apa-editor .tiptap ol[data-list-style="lower-alpha"] {
+  list-style-type: lower-alpha;
+}
+
+/* Nested lists indent further but drop the outer padding block. */
+.apa-editor .tiptap li ul,
+.apa-editor .tiptap li ol {
+  padding-left: 0.5in;
+}
