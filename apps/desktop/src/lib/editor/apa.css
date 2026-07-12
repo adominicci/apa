@@ -17,10 +17,10 @@
   background: var(--paper);
   color: var(--fg);
   width: min(100%, 6.9in);
-  /* US Letter proportion (8.5:11) at this width, so every sheet — cover,
-     body, references — reads as a full page even when its content is short.
-     Content taller than one page just grows past it. */
-  min-height: 8.93in;
+  /* Exact US Letter proportion (8.5:11) at any width, so every sheet — cover,
+     body, references — reads as a full page and matches the paginated preview.
+     Content taller than one page just grows past the ratio. */
+  aspect-ratio: 8.5 / 11;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;

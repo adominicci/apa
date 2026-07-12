@@ -159,8 +159,10 @@
     height: 15px;
   }
 
+  /* Proportional to the preview's title-page spacer so the title sits in the
+     same upper-third position in edit and preview modes. */
   .cover-spacer {
-    height: 2.4in;
+    height: 0.81in;
   }
 
   .gap {
