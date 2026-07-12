@@ -54,24 +54,32 @@ export function visitBlocks(
 
   /**
    * Emits a list (and its nested lists) as paragraphs. `depth` maps to the
-   * docx numbering/bullet level so sink/liftListItem nesting survives; each
-   * ordered list gets a fresh instance so its counter restarts. Lettered
-   * lists (listStyle "lower-alpha") switch to the lower-letter numbering.
+   * docx numbering/bullet level so sink/liftListItem nesting survives and the
+   * numbering reference's per-level formats cascade (1. → a. → i.). The
+   * outermost ordered list's `listStyle` picks the reference (decimal- or
+   * letter-start); nested ordered lists inherit it so the cascade is
+   * continuous. Each ordered list gets a fresh instance so its counter
+   * restarts at that level.
    */
-  const visitList = (listBlock: PMJson, depth: number) => {
+  const visitList = (
+    listBlock: PMJson,
+    depth: number,
+    inheritedRef?: string,
+  ) => {
     const isOrdered = listBlock.type === "orderedList";
+    const reference = inheritedRef ??
+      (listBlock.attrs?.["listStyle"] === "lower-alpha"
+        ? LOWER_ALPHA_REF
+        : ORDERED_LIST_REF);
     let instance = 0;
     if (isOrdered) {
       state.orderedListInstance += 1;
       instance = state.orderedListInstance;
     }
-    const reference = listBlock.attrs?.["listStyle"] === "lower-alpha"
-      ? LOWER_ALPHA_REF
-      : ORDERED_LIST_REF;
     for (const item of listBlock.content ?? []) {
       for (const child of item.content ?? []) {
         if (child.type === "bulletList" || child.type === "orderedList") {
-          visitList(child, depth + 1);
+          visitList(child, depth + 1, isOrdered ? reference : inheritedRef);
         } else {
           emit(
             "Normal",

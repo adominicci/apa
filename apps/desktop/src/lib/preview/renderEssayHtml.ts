@@ -155,19 +155,32 @@ function apaFigureHtml(block: PMJson, state: RenderState): string {
   return `${out}</figure>`;
 }
 
-/** Renders a list and its nested sublists (APA lettered lists use type="a"). */
-function listHtml(block: PMJson, state: RenderState): string {
+/** HTML `type` for an ordered list, cascading 1 → a → i by nesting depth. */
+const OL_TYPE_CYCLE = ["1", "a", "i"] as const;
+function olType(seedLettered: boolean, depth: number): string {
+  return OL_TYPE_CYCLE[(depth + (seedLettered ? 1 : 0)) % 3]!;
+}
+
+/**
+ * Renders a list and its nested sublists. Ordered lists cascade their marker
+ * by depth (1 → a → i, or a → i → 1 when the outer list is lettered) so nested
+ * items don't repeat the same number.
+ */
+function listHtml(
+  block: PMJson,
+  state: RenderState,
+  depth = 0,
+  seedLettered = block.attrs?.["listStyle"] === "lower-alpha",
+): string {
   const ordered = block.type === "orderedList";
   const tag = ordered ? "ol" : "ul";
-  const typeAttr = ordered && block.attrs?.["listStyle"] === "lower-alpha"
-    ? ' type="a"'
-    : "";
+  const typeAttr = ordered ? ` type="${olType(seedLettered, depth)}"` : "";
   let out = `<${tag}${typeAttr}>`;
   for (const item of block.content ?? []) {
     out += "<li>";
     for (const child of item.content ?? []) {
       if (child.type === "bulletList" || child.type === "orderedList") {
-        out += listHtml(child, state);
+        out += listHtml(child, state, depth + 1, seedLettered);
       } else {
         out += inlineHtml(child.content ?? [], state);
       }

@@ -167,6 +167,14 @@ describe("exportDocx (student, es)", () => {
     expect(documentXml).toMatch(/w:ilvl w:val="1"/);
   });
 
+  it("cascades ordered-list markers by depth (decimal → letter → roman)", () => {
+    // The numbered reference defines all three formats down its levels so
+    // nested items switch marker instead of repeating "1.".
+    expect(numberingXml).toMatch(/w:numFmt w:val="decimal"/);
+    expect(numberingXml).toMatch(/w:numFmt w:val="lowerLetter"/);
+    expect(numberingXml).toMatch(/w:numFmt w:val="lowerRoman"/);
+  });
+
   it("renders reference entries with hanging indent and engine formatting", () => {
     expect(stylesXml).toMatch(/w:hanging="720"/);
     expect(documentXml).toContain("Salgado, N. (2020). Hábitos de lectura");

@@ -100,13 +100,23 @@ export function buildStyles(font: FontChoice) {
 export const ORDERED_LIST_REF = "tesina-ordered";
 export const LOWER_ALPHA_REF = "tesina-lower-alpha";
 
+/**
+ * Ordered-list marker cascade by nesting depth: number → letter → roman,
+ * repeating. Nested items therefore switch format (1. → a. → i.) instead of
+ * repeating "1.", matching common word processors. `startOffset` shifts the
+ * cycle so a lettered list starts at letters (offset 1).
+ */
+const FORMAT_CYCLE = [
+  LevelFormat.DECIMAL,
+  LevelFormat.LOWER_LETTER,
+  LevelFormat.LOWER_ROMAN,
+] as const;
+
 /** Nine indent levels so nested lists (sink/liftListItem) render correctly. */
-function numberingLevels(
-  format: (typeof LevelFormat)[keyof typeof LevelFormat],
-) {
+function numberingLevels(startOffset: number) {
   return Array.from({ length: 9 }, (_, level) => ({
     level,
-    format,
+    format: FORMAT_CYCLE[(level + startOffset) % 3],
     // Each level shows only its own counter (APA nested lists aren't legal
     // "1.a.i" style), so the template references this level's number.
     text: `%${level + 1}.`,
@@ -124,11 +134,11 @@ export function buildNumbering() {
     config: [
       {
         reference: ORDERED_LIST_REF,
-        levels: numberingLevels(LevelFormat.DECIMAL),
+        levels: numberingLevels(0),
       },
       {
         reference: LOWER_ALPHA_REF,
-        levels: numberingLevels(LevelFormat.LOWER_LETTER),
+        levels: numberingLevels(1),
       },
     ],
   };

@@ -251,6 +251,54 @@ describe("renderEssayHtml", () => {
     );
   });
 
+  it("cascades a nested numbered list to letters (1 → a)", () => {
+    const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    essay.content = {
+      type: "doc",
+      content: [
+        {
+          type: "sectionBody",
+          content: [
+            {
+              type: "orderedList",
+              attrs: { listStyle: "decimal" },
+              content: [
+                {
+                  type: "listItem",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [{ type: "text", text: "Paso uno" }],
+                    },
+                    {
+                      type: "orderedList",
+                      attrs: { listStyle: "decimal" },
+                      content: [
+                        {
+                          type: "listItem",
+                          content: [
+                            {
+                              type: "paragraph",
+                              content: [{ type: "text", text: "Subpaso" }],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const html = renderEssayHtml(essay, essay.content, []);
+    // Top level numbered, nested level lettered.
+    expect(html).toContain('<ol type="1"><li>Paso uno');
+    expect(html).toContain('<ol type="a"><li>Subpaso');
+  });
+
   it("emits the running-head setter only for professional essays", () => {
     const student = sampleEssay();
     expect(renderEssayHtml(student, student.content, [])).not.toContain(

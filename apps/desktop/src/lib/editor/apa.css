@@ -350,7 +350,38 @@
   position: relative;
 }
 
+/* Ordered-list marker cascades by nesting depth (1 → a → i → …) so nested
+   items switch format instead of repeating the same number. */
+.apa-editor .tiptap ol {
+  list-style-type: decimal;
+}
+
+.apa-editor .tiptap ol ol {
+  list-style-type: lower-alpha;
+}
+
+.apa-editor .tiptap ol ol ol {
+  list-style-type: lower-roman;
+}
+
+.apa-editor .tiptap ol ol ol ol {
+  list-style-type: decimal;
+}
+
+/* Lettered list starts at letters, then a → i → 1 down the levels. */
 .apa-editor .tiptap ol[data-list-style="lower-alpha"] {
+  list-style-type: lower-alpha;
+}
+
+.apa-editor .tiptap ol[data-list-style="lower-alpha"] ol {
+  list-style-type: lower-roman;
+}
+
+.apa-editor .tiptap ol[data-list-style="lower-alpha"] ol ol {
+  list-style-type: decimal;
+}
+
+.apa-editor .tiptap ol[data-list-style="lower-alpha"] ol ol ol {
   list-style-type: lower-alpha;
 }
 
