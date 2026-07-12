@@ -390,3 +390,10 @@
 .apa-editor .tiptap li ol {
   padding-left: 0.5in;
 }
+
+/* List item paragraphs must not inherit the body first-line indent, or the
+   text sits far from its marker (unlike the exported page / preview). */
+.apa-editor .tiptap li p {
+  text-indent: 0;
+  margin: 0;
+}
