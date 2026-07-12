@@ -1,5 +1,70 @@
 import { describe, expect, it } from "vitest";
-import { createEmptyEssay, essayFromLegacyDraft, summarize } from "./essay.ts";
+import {
+  createEmptyEssay,
+  docPreview,
+  essayFromLegacyDraft,
+  summarize,
+} from "./essay.ts";
+
+describe("docPreview", () => {
+  const doc = {
+    type: "doc",
+    content: [
+      {
+        type: "sectionBody",
+        content: [
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "  Primera   línea del cuerpo. " }],
+          },
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "Segunda línea." }],
+          },
+        ],
+      },
+    ],
+  };
+
+  it("joins and collapses the running text", () => {
+    expect(docPreview(doc)).toBe("Primera línea del cuerpo. Segunda línea.");
+  });
+
+  it("truncates with an ellipsis past the limit", () => {
+    expect(docPreview(doc, 10)).toBe("Primera lí…");
+  });
+
+  it("returns empty for a blank doc", () => {
+    expect(docPreview(createEmptyEssay("es").content)).toBe("");
+  });
+});
+
+describe("summarize with title-page fields and preview", () => {
+  it("includes course, instructor, and a text preview when present", () => {
+    const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    essay.titlePage.course = "EDU 301";
+    essay.titlePage.instructor = "Dra. Solís";
+    essay.content = {
+      type: "doc",
+      content: [
+        {
+          type: "sectionBody",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Hola mundo." }],
+            },
+          ],
+        },
+      ],
+    };
+    expect(summarize(essay)).toMatchObject({
+      course: "EDU 301",
+      instructor: "Dra. Solís",
+      preview: "Hola mundo.",
+    });
+  });
+});
 
 describe("createEmptyEssay", () => {
   it("creates a sectioned doc with student defaults", () => {
@@ -52,6 +117,7 @@ describe("summarize", () => {
       updatedAt: "2026-07-11T12:00:00.000Z",
       language: "es",
       words: 0,
+      preview: "",
     });
   });
 });

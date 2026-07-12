@@ -294,10 +294,11 @@
                   }}
                 >
                   <div class="essay-thumb">
-                    <div class="ln title"></div>
-                    <div class="ln"></div>
-                    <div class="ln"></div>
-                    <div class="ln short"></div>
+                    {#if summary.preview}
+                      <p class="thumb-text">{summary.preview}</p>
+                    {:else}
+                      <p class="thumb-empty">{m.home_blank_doc()}</p>
+                    {/if}
                   </div>
                   <div class="essay-top">
                     {#if renamingId === summary.id}
@@ -317,6 +318,13 @@
                     {/if}
                     <span class="badge">{summary.language.toUpperCase()}</span>
                   </div>
+                  {#if summary.course || summary.instructor}
+                    <p class="course-line">
+                      {[summary.course, summary.instructor].filter(Boolean).join(
+                        " · ",
+                      )}
+                    </p>
+                  {/if}
                   <div class="meta">
                     <span>{formatDate(summary.updatedAt)}</span>
                     <span>{m.home_words_meta({ count: summary.words })}</span>
@@ -833,6 +841,36 @@
 
   .ln.short {
     width: 40%;
+  }
+
+  /* Real first-lines preview of the document (essay cards). */
+  .thumb-text {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--fg-2);
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .thumb-empty {
+    margin: 0;
+    font-size: 11px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .course-line {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .badge {

@@ -50,6 +50,11 @@ export interface EssaySummary {
   updatedAt: string;
   language: DocLocale;
   words: number;
+  /** Title-page fields, shown on the library card when present. */
+  course?: string;
+  instructor?: string;
+  /** First words of the body text, for the card's document preview. */
+  preview: string;
 }
 
 /** Word count of a ProseMirror doc JSON (text nodes only, pure walk). */
@@ -66,6 +71,26 @@ export function countDocWords(docJson: unknown): number {
   };
   walk(docJson);
   return count;
+}
+
+/** First `maxChars` of the doc's running text, for a card preview snippet. */
+export function docPreview(docJson: unknown, maxChars = 180): string {
+  const parts: string[] = [];
+  let total = 0;
+  const walk = (node: unknown): void => {
+    if (total >= maxChars || !node || typeof node !== "object") return;
+    const n = node as { text?: string; content?: unknown[] };
+    if (typeof n.text === "string" && n.text.trim() !== "") {
+      parts.push(n.text.trim());
+      total += n.text.length;
+    }
+    for (const child of n.content ?? []) walk(child);
+  };
+  walk(docJson);
+  const text = parts.join(" ").replace(/\s+/g, " ").trim();
+  return text.length > maxChars
+    ? `${text.slice(0, maxChars).trimEnd()}…`
+    : text;
 }
 
 export function defaultSettings(language: DocLocale): EssaySettings {
@@ -109,6 +134,11 @@ export function summarize(essay: Essay): EssaySummary {
     updatedAt: essay.updatedAt,
     language: essay.settings.documentLanguage,
     words: countDocWords(essay.content),
+    ...(essay.titlePage.course ? { course: essay.titlePage.course } : {}),
+    ...(essay.titlePage.instructor
+      ? { instructor: essay.titlePage.instructor }
+      : {}),
+    preview: docPreview(essay.content),
   };
 }
 
