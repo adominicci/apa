@@ -1,0 +1,51 @@
+/*
+ * Shared flat pill button for the editor's floating bottom bar. Global (not
+ * scoped) so the standalone HeadingMenu/ListMenu components render triggers
+ * identical to the buttons defined directly in EditorScreen. All values come
+ * from the design tokens.
+ */
+.fm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 14px;
+  border: none;
+  background: none;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.fm-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.fm-btn:hover:enabled {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.fm-btn.primary {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.fm-btn.primary:hover:enabled {
+  background: var(--accent-hover);
+}
+
+.fm-btn.on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.fm-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

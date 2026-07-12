@@ -12,6 +12,7 @@
   import CitationPopover from "$lib/components/CitationPopover.svelte";
   import HeadingMenu from "$lib/components/HeadingMenu.svelte";
   import ListMenu from "$lib/components/ListMenu.svelte";
+  import "$lib/components/float-menu.css";
   import PrintPreview from "$lib/components/PrintPreview.svelte";
   import RefEntry from "$lib/components/RefEntry.svelte";
   import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
@@ -1173,51 +1174,8 @@
     z-index: 40;
   }
 
-  .fm-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    height: 38px;
-    padding: 0 14px;
-    border: none;
-    background: none;
-    border-radius: var(--r-pill);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--fg-2);
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
-  }
-
-  .fm-btn :global(svg) {
-    width: 16px;
-    height: 16px;
-  }
-
-  .fm-btn:hover:enabled {
-    background: var(--hover);
-    color: var(--fg);
-  }
-
-  .fm-btn.primary {
-    background: var(--accent);
-    color: var(--accent-on);
-  }
-
-  .fm-btn.primary:hover:enabled {
-    background: var(--accent-hover);
-  }
-
-  .fm-btn.on {
-    background: var(--accent-soft);
-    color: var(--accent);
-  }
-
-  .fm-btn:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
+  /* .fm-btn lives in the shared float-menu.css (imported above) so the
+     standalone Heading/List menu components style their triggers identically. */
 
   .fm-sep {
     width: 1px;
