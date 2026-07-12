@@ -1,4 +1,7 @@
 <script lang="ts">
+  // Self-host Inter (SIL OFL) so --font renders the design's intended face
+  // instead of falling back to the system sans, matching the prototype.
+  import "@fontsource-variable/inter";
   import "$lib/styles/tokens.css";
   import type { Snippet } from "svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";

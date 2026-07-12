@@ -1,6 +1,7 @@
 {
   "version": "4",
   "specifiers": {
+    "npm:@fontsource-variable/inter@^5.1.0": "5.2.8",
     "npm:@inlang/paraglide-js@2.21.0": "2.21.0_typescript@5.6.3",
     "npm:@inlang/paraglide-js@^2.4.0": "2.21.0_typescript@5.6.3",
     "npm:@sveltejs/adapter-static@^3.0.6": "3.0.10_@sveltejs+kit@2.69.2__@sveltejs+vite-plugin-svelte@5.1.1___svelte@5.56.4____acorn@8.17.0___vite@6.4.3____picomatch@4.0.5__svelte@5.56.4___acorn@8.17.0__typescript@5.6.3__vite@6.4.3___picomatch@4.0.5__acorn@8.17.0_@sveltejs+vite-plugin-svelte@5.1.1__svelte@5.56.4___acorn@8.17.0__vite@6.4.3___picomatch@4.0.5_svelte@5.56.4__acorn@8.17.0_typescript@5.6.3_vite@6.4.3__picomatch@4.0.5",
@@ -137,6 +138,9 @@
     },
     "@esbuild/win32-x64@0.25.12": {
       "integrity": "sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA=="
+    },
+    "@fontsource-variable/inter@5.2.8": {
+      "integrity": "sha512-kOfP2D+ykbcX/P3IFnokOhVRNoTozo5/JxhAIVYLpea/UBmCQ/YWPBfWIDuBImXX/15KH+eKh4xpEUyS2sQQGQ=="
     },
     "@inlang/paraglide-js@2.21.0_typescript@5.6.3": {
       "integrity": "sha512-t+OOui1i5p73zQ2Dk28yFzu6rZhh7hsDOCHjkXDmSwFFsUsS5HyUD4CvPJ+wf02qgmlCMu2z1qffJ5aWwgx1CA==",
@@ -1468,6 +1472,7 @@
       "apps/desktop": {
         "packageJson": {
           "dependencies": [
+            "npm:@fontsource-variable/inter@^5.1.0",
             "npm:@inlang/paraglide-js@^2.4.0",
             "npm:@sveltejs/adapter-static@^3.0.6",
             "npm:@sveltejs/kit@^2.9.0",

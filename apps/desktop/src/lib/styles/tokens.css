@@ -56,7 +56,9 @@
     0 1px 2px color-mix(in oklab, var(--fg), transparent 90%), 0 12px 40px
     color-mix(in oklab, var(--fg), transparent 88%);
 
-  --font: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font:
+    "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, system-ui,
+    sans-serif;
   --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
   --serif: "Iowan Old Style", "Charter", Georgia, "Times New Roman", serif;
 
