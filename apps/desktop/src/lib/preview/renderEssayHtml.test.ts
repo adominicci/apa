@@ -327,4 +327,20 @@ describe("renderEssayCss", () => {
     expect(proCss).toContain("size: A4;");
     expect(proCss).toContain("@top-left");
   });
+
+  it("applies the chosen APA font family and point size", () => {
+    const essay = sampleEssay();
+    // Default: Times New Roman 12 pt.
+    expect(renderEssayCss(essay.settings)).toContain(
+      `font-family: "Times New Roman", Times, Georgia, serif; font-size: 12pt`,
+    );
+    essay.settings.font = "georgia-11";
+    expect(renderEssayCss(essay.settings)).toContain(
+      `font-family: Georgia, "Times New Roman", serif; font-size: 11pt`,
+    );
+    essay.settings.font = "lucida-sans-unicode-10";
+    const css = renderEssayCss(essay.settings);
+    expect(css).toContain("Lucida Sans Unicode");
+    expect(css).toContain("font-size: 10pt");
+  });
 });

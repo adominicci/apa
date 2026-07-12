@@ -4,6 +4,7 @@
   import type { CitationAttrs, DocLocale, Reference } from "@tesina/engine";
   import { getTerms } from "@tesina/engine";
   import type { Essay, EssaySettings, TitlePage } from "$lib/model/essay";
+  import { APA_FONTS } from "$lib/model/fonts";
   import Editor from "$lib/components/Editor.svelte";
   import CoverSheet, {
     type CoverPatch,
@@ -100,6 +101,11 @@
   const wordGoal = $derived(essay.settings.wordGoal ?? 2500);
   const progress = $derived(Math.min(100, Math.round((words / wordGoal) * 100)));
   const pagesEst = $derived(Math.max(1, Math.ceil(words / 250)));
+  /** Editor sheets render in the chosen APA font via inherited CSS vars. */
+  const docFont = $derived(APA_FONTS[essay.settings.font]);
+  const sheetFontStyle = $derived(
+    `--doc-font: ${docFont.stack}; --doc-font-size: ${docFont.sizePt}pt`,
+  );
   /** References shown on the live references sheet, matching the export. */
   const sheetReferences = $derived.by(() => {
     if (essay.settings.includeUncitedReferences) {
@@ -548,7 +554,7 @@
           {/key}
         </div>
       {:else}
-        <div class="sheet-stack">
+        <div class="sheet-stack" style={sheetFontStyle}>
           <CoverSheet
             titlePage={essay.titlePage}
             settings={essay.settings}

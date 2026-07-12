@@ -6,7 +6,14 @@ import type { DocLocale, Reference } from "@tesina/engine";
  * depends only on @tesina/engine and docx (plan §5.1).
  */
 export type PaperVariant = "student" | "professional";
-export type FontChoice = "times-new-roman-12" | "calibri-11" | "arial-11";
+/** The six APA 7-accepted fonts; keep in sync with the app's FontChoice. */
+export type FontChoice =
+  | "times-new-roman-12"
+  | "georgia-11"
+  | "computer-modern-10"
+  | "calibri-11"
+  | "arial-11"
+  | "lucida-sans-unicode-10";
 export type PaperSize = "us-letter" | "a4";
 
 export interface ExportSettings {

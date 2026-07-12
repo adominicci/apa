@@ -4,9 +4,11 @@
   import Modal from "$lib/components/Modal.svelte";
   import type {
     EssaySettings,
+    FontChoice,
     PaperVariant,
     TitlePage,
   } from "$lib/model/essay";
+  import { APA_FONTS, APA_FONT_ORDER } from "$lib/model/fonts";
 
   interface Props {
     titlePage: TitlePage;
@@ -27,8 +29,16 @@
   let instructor = $state(untrack(() => titlePage.instructor ?? ""));
   let dueDate = $state(untrack(() => titlePage.dueDate ?? ""));
   let variant = $state<PaperVariant>(untrack(() => settings.variant));
+  let font = $state<FontChoice>(untrack(() => settings.font));
   let runningHead = $state(untrack(() => settings.runningHead ?? ""));
   let authorNote = $state(untrack(() => titlePage.authorNote ?? ""));
+
+  const serifFonts = APA_FONT_ORDER.filter((f) => APA_FONTS[f].kind === "serif");
+  const sansFonts = APA_FONT_ORDER.filter((f) => APA_FONTS[f].kind === "sans");
+
+  function fontLabel(f: FontChoice): string {
+    return `${APA_FONTS[f].family}, ${APA_FONTS[f].sizePt} pt`;
+  }
 
   function lines(text: string): string[] {
     return text
@@ -52,6 +62,7 @@
     const nextSettings: EssaySettings = {
       ...settings,
       variant,
+      font,
       ...(variant === "professional" && runningHead.trim() !== ""
         ? { runningHead: runningHead.trim().toUpperCase().slice(0, 50) }
         : {}),
@@ -76,6 +87,22 @@
       {m.titlepage_professional()}
     </button>
   </div>
+
+  <label class="field">
+    <span>{m.titlepage_font()}</span>
+    <select bind:value={font}>
+      <optgroup label={m.font_group_serif()}>
+        {#each serifFonts as f (f)}
+          <option value={f}>{fontLabel(f)}</option>
+        {/each}
+      </optgroup>
+      <optgroup label={m.font_group_sans()}>
+        {#each sansFonts as f (f)}
+          <option value={f}>{fontLabel(f)}</option>
+        {/each}
+      </optgroup>
+    </select>
+  </label>
 
   <label class="field">
     <span>{m.titlepage_essay_title()}</span>

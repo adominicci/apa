@@ -66,8 +66,8 @@
 }
 
 .apa-editor .tiptap {
-  font-family: var(--serif);
-  font-size: 12pt;
+  font-family: var(--doc-font, var(--serif));
+  font-size: var(--doc-font-size, 12pt);
   line-height: 2;
   flex: 1;
   min-height: 3in;

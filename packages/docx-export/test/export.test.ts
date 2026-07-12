@@ -209,3 +209,26 @@ describe("exportDocx (professional, en)", () => {
     expect(doc).toContain("(Salgado, 2020)");
   });
 });
+
+describe("exportDocx font choice", () => {
+  it("defaults to Times New Roman at 12 pt (size 24 half-points)", () => {
+    // Uses the module-level sample export (times-new-roman-12).
+    expect(stylesXml).toContain(`w:ascii="Times New Roman"`);
+    expect(stylesXml).toMatch(/w:sz w:val="24"/);
+  });
+
+  it("applies a chosen APA font family and point size to the styles", async () => {
+    const bytes = await exportDocx(sampleInput({ font: "georgia-11" }));
+    const styles = strFromU8(unzipSync(bytes)["word/styles.xml"]!);
+    expect(styles).toContain(`w:ascii="Georgia"`);
+    expect(styles).toMatch(/w:sz w:val="22"/); // 11 pt
+    expect(styles).not.toContain("Times New Roman");
+  });
+
+  it("maps Computer Modern to CMU Serif at 10 pt (size 20)", async () => {
+    const bytes = await exportDocx(sampleInput({ font: "computer-modern-10" }));
+    const styles = strFromU8(unzipSync(bytes)["word/styles.xml"]!);
+    expect(styles).toContain(`w:ascii="CMU Serif"`);
+    expect(styles).toMatch(/w:sz w:val="20"/); // 10 pt
+  });
+});

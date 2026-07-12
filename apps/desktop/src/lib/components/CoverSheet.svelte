@@ -174,10 +174,10 @@
     min-height: 1in;
   }
 
-  /* Editable fields blend into the serif page; APA double-spaced and centered. */
+  /* Editable fields blend into the page in the chosen APA font, double-spaced. */
   .cf {
-    font-family: var(--serif);
-    font-size: 12pt;
+    font-family: var(--doc-font, var(--serif));
+    font-size: var(--doc-font-size, 12pt);
     line-height: 2;
     color: var(--fg);
     background: transparent;
@@ -229,7 +229,7 @@
   .note-label {
     font-weight: 700;
     margin: 0;
-    font-family: var(--serif);
-    font-size: 12pt;
+    font-family: var(--doc-font, var(--serif));
+    font-size: var(--doc-font-size, 12pt);
   }
 </style>

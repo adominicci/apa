@@ -12,6 +12,7 @@ import {
   type PMJson,
 } from "@tesina/docx-export";
 import type { Essay } from "$lib/model/essay";
+import { fontFamilyCss } from "$lib/model/fonts";
 
 /**
  * Pure assembly of the whole essay as print-ready HTML + CSS for Paged.js.
@@ -251,31 +252,20 @@ function blocksHtml(
   return out;
 }
 
-const FONT_CSS: Record<Essay["settings"]["font"], string> = {
-  "times-new-roman-12": `"Times New Roman", Georgia, serif; font-size: 12pt`,
-  "calibri-11": `Calibri, "Segoe UI", sans-serif; font-size: 11pt`,
-  "arial-11": `Arial, Helvetica, sans-serif; font-size: 11pt`,
-};
-
 export function renderEssayCss(settings: Essay["settings"]): string {
   const size = settings.paperSize === "a4" ? "A4" : "letter";
+  const font = fontFamilyCss(settings.font);
   const topLeft = settings.variant === "professional"
-    ? `@top-left { content: string(runhead); font-family: ${
-      FONT_CSS[settings.font]
-    }; }`
+    ? `@top-left { content: string(runhead); font-family: ${font}; }`
     : "";
   return `
 @page {
   size: ${size};
   margin: 1in;
-  @top-right { content: counter(page); font-family: ${
-    FONT_CSS[settings.font]
-  }; }
+  @top-right { content: counter(page); font-family: ${font}; }
   ${topLeft}
 }
-body { font-family: ${
-    FONT_CSS[settings.font]
-  }; line-height: 2; color: #131313; }
+body { font-family: ${font}; line-height: 2; color: #131313; }
 p { margin: 0; text-indent: 0.5in; }
 p.no-indent { text-indent: 0; }
 p.keywords { text-indent: 0.5in; }

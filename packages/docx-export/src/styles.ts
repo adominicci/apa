@@ -5,10 +5,14 @@ export const HALF_INCH = 720; // twips
 export const ONE_INCH = 1440;
 export const DOUBLE_SPACING = 480; // 240 = single
 
+// size is in half-points (docx unit): 12pt = 24, 11pt = 22, 10pt = 20.
 export const FONT_MAP: Record<FontChoice, { name: string; size: number }> = {
   "times-new-roman-12": { name: "Times New Roman", size: 24 },
+  "georgia-11": { name: "Georgia", size: 22 },
+  "computer-modern-10": { name: "CMU Serif", size: 20 },
   "calibri-11": { name: "Calibri", size: 22 },
   "arial-11": { name: "Arial", size: 22 },
+  "lucida-sans-unicode-10": { name: "Lucida Sans Unicode", size: 20 },
 };
 
 export const PAGE_SIZE: Record<PaperSize, { width: number; height: number }> = {
@@ -31,7 +35,11 @@ const doubleSpaced = {
  * mapping verified against Word in the M0 spike.
  */
 export function buildStyles(font: FontChoice) {
-  const run = FONT_MAP[font];
+  // docx's run option for the typeface is `font` (emits <w:rFonts w:ascii>);
+  // FONT_MAP stores it neutrally as `name`, so translate here — otherwise the
+  // family is silently dropped and only the size survives.
+  const meta = FONT_MAP[font];
+  const run = { font: meta.name, size: meta.size };
   return {
     default: { document: { run } },
     paragraphStyles: [

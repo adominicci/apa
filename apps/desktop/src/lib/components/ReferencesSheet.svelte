@@ -44,15 +44,15 @@
 
   .ref-head {
     text-align: center;
-    font-family: var(--serif);
-    font-size: 12pt;
+    font-family: var(--doc-font, var(--serif));
+    font-size: var(--doc-font-size, 12pt);
     font-weight: 700;
     margin: 0 0 1em;
   }
 
   .ref-entry {
-    font-family: var(--serif);
-    font-size: 12pt;
+    font-family: var(--doc-font, var(--serif));
+    font-size: var(--doc-font-size, 12pt);
     line-height: 2;
     margin: 0;
     padding-left: 0.5in;

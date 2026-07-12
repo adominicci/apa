@@ -1,7 +1,14 @@
 import type { DocLocale, Reference } from "@tesina/engine";
 
 export type PaperVariant = "student" | "professional";
-export type FontChoice = "times-new-roman-12" | "calibri-11" | "arial-11";
+/** The six fonts APA 7 accepts (see model/fonts.ts for the descriptors). */
+export type FontChoice =
+  | "times-new-roman-12"
+  | "georgia-11"
+  | "computer-modern-10"
+  | "calibri-11"
+  | "arial-11"
+  | "lucida-sans-unicode-10";
 export type PaperSize = "us-letter" | "a4";
 
 export interface EssaySettings {
