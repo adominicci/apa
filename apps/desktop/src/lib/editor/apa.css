@@ -17,10 +17,23 @@
   background: var(--paper);
   color: var(--fg);
   width: min(100%, 6.9in);
+  /* US Letter proportion (8.5:11) at this width, so every sheet — cover,
+     body, references — reads as a full page even when its content is short.
+     Content taller than one page just grows past it. */
+  min-height: 8.93in;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--border-soft);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-paper);
-  padding: 0.7in 0.85in 0.9in;
+  padding: 0.81in;
+}
+
+.apa-editor .paper-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .apa-editor .paper-head {
@@ -55,7 +68,8 @@
   font-family: var(--serif);
   font-size: 12pt;
   line-height: 2;
-  min-height: 5in;
+  flex: 1;
+  min-height: 3in;
   outline: none;
 }
 
