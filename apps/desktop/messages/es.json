@@ -301,5 +301,15 @@
   "list_numbered": "Numerada",
   "list_lettered": "Con letras (a, b, c)",
   "list_indent": "Aumentar sangría",
-  "list_outdent": "Reducir sangría"
+  "list_outdent": "Reducir sangría",
+  "cover_open_form": "Editar la portada en el formulario",
+  "cover_title_ph": "Título del trabajo",
+  "cover_authors_ph": "Autor(es) — uno por línea",
+  "cover_affil_ph": "Afiliación — una por línea",
+  "cover_course_ph": "Curso",
+  "cover_instructor_ph": "Profesor(a)",
+  "cover_running_head_ph": "TITULILLO",
+  "cover_author_note": "Nota del autor",
+  "cover_author_note_ph": "Nota del autor (ORCID, agradecimientos, conflictos…)",
+  "refsheet_empty": "Tus referencias aparecerán aquí a medida que cites."
 }

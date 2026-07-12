@@ -145,7 +145,9 @@ describe("renderEssayHtml", () => {
     expect(html).toContain('<ol type="a">');
     expect(html).toContain("Primer criterio");
     // The nested bullet list stays inside its parent <li>.
-    expect(html).toMatch(/<li>Primer criterio<ul><li>Matiz anidado<\/li><\/ul>/);
+    expect(html).toMatch(
+      /<li>Primer criterio<ul><li>Matiz anidado<\/li><\/ul>/,
+    );
   });
 
   it("emits the running-head setter only for professional essays", () => {

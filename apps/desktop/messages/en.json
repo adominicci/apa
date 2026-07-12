@@ -301,5 +301,15 @@
   "list_numbered": "Numbered",
   "list_lettered": "Lettered (a, b, c)",
   "list_indent": "Increase indent",
-  "list_outdent": "Decrease indent"
+  "list_outdent": "Decrease indent",
+  "cover_open_form": "Edit the title page in the form",
+  "cover_title_ph": "Paper title",
+  "cover_authors_ph": "Author(s) — one per line",
+  "cover_affil_ph": "Affiliation — one per line",
+  "cover_course_ph": "Course",
+  "cover_instructor_ph": "Instructor",
+  "cover_running_head_ph": "RUNNING HEAD",
+  "cover_author_note": "Author Note",
+  "cover_author_note_ph": "Author note (ORCID, acknowledgments, disclosures…)",
+  "refsheet_empty": "Your references will appear here as you cite."
 }

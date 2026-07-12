@@ -10,10 +10,6 @@
     initialDoc?: unknown;
     documentLanguage?: DocLocale;
     citationEnv: CitationEnv;
-    /** Rendered on the sheet above the text, like the prototype's paper. */
-    headTitle?: string;
-    byline?: string;
-    onHeadClick?: () => void;
     onUpdate?: (docJson: unknown, words: number) => void;
     onReady?: (editor: Editor) => void;
   }
@@ -22,9 +18,6 @@
     initialDoc,
     documentLanguage = "es",
     citationEnv,
-    headTitle = "",
-    byline = "",
-    onHeadClick,
     onUpdate,
     onReady,
   }: Props = $props();
@@ -43,14 +36,6 @@
 
 <div class="apa-editor" data-doclang={documentLanguage}>
   <article class="paper-sheet">
-    {#if headTitle}
-      <button class="paper-head" onclick={() => onHeadClick?.()}>
-        <h1 class="title-line">{headTitle}</h1>
-        {#if byline}
-          <p class="byline">{byline}</p>
-        {/if}
-      </button>
-    {/if}
     <div class="paper-body" {@attach mountEditor}></div>
   </article>
 </div>

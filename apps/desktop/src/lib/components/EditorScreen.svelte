@@ -5,6 +5,10 @@
   import { getTerms } from "@tesina/engine";
   import type { Essay, EssaySettings, TitlePage } from "$lib/model/essay";
   import Editor from "$lib/components/Editor.svelte";
+  import CoverSheet, {
+    type CoverPatch,
+  } from "$lib/components/CoverSheet.svelte";
+  import ReferencesSheet from "$lib/components/ReferencesSheet.svelte";
   import CitationPopover from "$lib/components/CitationPopover.svelte";
   import HeadingMenu from "$lib/components/HeadingMenu.svelte";
   import ListMenu from "$lib/components/ListMenu.svelte";
@@ -89,12 +93,19 @@
   const wordGoal = $derived(essay.settings.wordGoal ?? 2500);
   const progress = $derived(Math.min(100, Math.round((words / wordGoal) * 100)));
   const pagesEst = $derived(Math.max(1, Math.ceil(words / 250)));
-  const byline = $derived.by(() => {
-    const parts = [
-      ...essay.titlePage.authors.slice(0, 1),
-      ...essay.titlePage.affiliations.slice(0, 1),
-    ];
-    return parts.join(" · ");
+  /** References shown on the live references sheet, matching the export. */
+  const sheetReferences = $derived.by(() => {
+    if (essay.settings.includeUncitedReferences) {
+      return [...library.byId().values()];
+    }
+    // Recompute from the reactive cited counts + library.
+    const byId = library.byId();
+    const out: Reference[] = [];
+    for (const refId of citedCounts.keys()) {
+      const ref = byId.get(refId);
+      if (ref) out.push(ref);
+    }
+    return out;
   });
 
   const abstractLabel = $derived(
@@ -360,6 +371,27 @@
     titleFormOpen = false;
     scheduleSave();
   }
+
+  /** Applies an inline cover edit, splitting title-page vs settings fields. */
+  function handleCoverChange(patch: CoverPatch) {
+    const { variant, runningHead, ...tp } = patch;
+    if (Object.keys(tp).length > 0) {
+      essay.titlePage = { ...essay.titlePage, ...tp };
+      if (tp.title !== undefined) essayTitle = essay.titlePage.title;
+    }
+    if (variant !== undefined || runningHead !== undefined) {
+      const next: EssaySettings = { ...essay.settings };
+      if (variant !== undefined) next.variant = variant;
+      if (runningHead !== undefined) {
+        const rh = runningHead.trim().toUpperCase().slice(0, 50);
+        if (rh) next.runningHead = rh;
+        else delete next.runningHead;
+      }
+      if (next.variant === "student") delete next.runningHead;
+      essay.settings = next;
+    }
+    scheduleSave();
+  }
 </script>
 
 <div class="app">
@@ -489,16 +521,26 @@
           {/key}
         </div>
       {:else}
-        <Editor
-          initialDoc={essay.content}
-          {documentLanguage}
-          {citationEnv}
-          headTitle={essayTitle}
-          {byline}
-          onHeadClick={() => (titleFormOpen = true)}
-          onUpdate={handleUpdate}
-          onReady={handleReady}
-        />
+        <div class="sheet-stack">
+          <CoverSheet
+            titlePage={essay.titlePage}
+            settings={essay.settings}
+            language={documentLanguage}
+            onChange={handleCoverChange}
+            onOpenForm={() => (titleFormOpen = true)}
+          />
+          <Editor
+            initialDoc={essay.content}
+            {documentLanguage}
+            {citationEnv}
+            onUpdate={handleUpdate}
+            onReady={handleReady}
+          />
+          <ReferencesSheet
+            references={sheetReferences}
+            language={documentLanguage}
+          />
+        </div>
       {/if}
     </main>
 
@@ -945,6 +987,21 @@
     overflow-y: auto;
     scroll-behavior: smooth;
     min-width: 0;
+  }
+
+  /* The three stacked page-sheets (cover, body, references). */
+  .sheet-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    padding: 2.5rem 1.5rem 8rem;
+  }
+
+  .sheet-stack :global(.apa-editor) {
+    padding: 0;
+    width: 100%;
+    min-height: 0;
   }
 
   .preview-host {
