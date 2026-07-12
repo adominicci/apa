@@ -13,6 +13,7 @@
     type AutofillError,
     lookupDoi,
     lookupIsbn,
+    lookupUrl,
   } from "$lib/autofill/client";
   import {
     emptyQuickFields,
@@ -379,6 +380,7 @@
       "not-found": m.form_err_not_found,
       unsupported: m.form_err_unsupported,
       parse: m.form_err_parse,
+      "url-unreadable": m.form_err_url_unreadable,
       "unknown-input": m.form_err_unknown_input,
     };
 
@@ -420,7 +422,10 @@
     lookupError = "";
     autofilled = false;
     const detected = detectInput(lookupText);
-    if (detected.kind !== "doi" && detected.kind !== "isbn") {
+    if (
+      detected.kind !== "doi" && detected.kind !== "isbn" &&
+      detected.kind !== "url"
+    ) {
       lookupError = ERROR_MESSAGES["unknown-input"]();
       return;
     }
@@ -428,7 +433,9 @@
     try {
       const result = detected.kind === "doi"
         ? await lookupDoi(detected.value)
-        : await lookupIsbn(detected.value);
+        : detected.kind === "isbn"
+        ? await lookupIsbn(detected.value)
+        : await lookupUrl(detected.value);
       if (!result.ok) {
         lookupError = ERROR_MESSAGES[result.error]();
         return;

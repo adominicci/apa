@@ -2,8 +2,18 @@ import { fetch } from "@tauri-apps/plugin-http";
 import type { Reference } from "@tesina/engine";
 import { type CrossrefWork, mapCrossrefWork } from "./crossref.ts";
 import { mapOpenLibraryBook, type OpenLibraryBook } from "./openlibrary.ts";
+import {
+  extractUrlMeta,
+  hasUsableMeta,
+  urlMetaToReference,
+} from "./urlMeta.ts";
 
-export type AutofillError = "offline" | "not-found" | "unsupported" | "parse";
+export type AutofillError =
+  | "offline"
+  | "not-found"
+  | "unsupported"
+  | "parse"
+  | "url-unreadable";
 
 export type AutofillResult =
   | { ok: true; ref: Reference }
@@ -76,4 +86,41 @@ export async function lookupIsbn(isbn: string): Promise<AutofillResult> {
 
   const ref = mapOpenLibraryBook(data, names, crypto.randomUUID());
   return ref ? { ok: true, ref } : { ok: false, error: "parse" };
+}
+
+/**
+ * Scrapes a web page for citation metadata. Any failure to read a usable page
+ * (network error, blocked/anti-bot response, or a JS-only shell with no real
+ * metadata) returns "url-unreadable" so the UI can ask the user to type the
+ * reference by hand. When the page exposes a DOI, CrossRef's clean record wins.
+ */
+export async function lookupUrl(url: string): Promise<AutofillResult> {
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "text/html,application/xhtml+xml",
+      },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch {
+    return { ok: false, error: "url-unreadable" };
+  }
+  if (!res.ok) return { ok: false, error: "url-unreadable" };
+
+  let html: string;
+  try {
+    html = await res.text();
+  } catch {
+    return { ok: false, error: "url-unreadable" };
+  }
+
+  const meta = extractUrlMeta(html);
+  if (meta.doi) {
+    const byDoi = await lookupDoi(meta.doi);
+    if (byDoi.ok) return byDoi;
+  }
+  if (!hasUsableMeta(meta)) return { ok: false, error: "url-unreadable" };
+  return { ok: true, ref: urlMetaToReference(meta, url, crypto.randomUUID()) };
 }

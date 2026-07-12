@@ -14,7 +14,8 @@
       "identifier": "http:default",
       "allow": [
         { "url": "https://api.crossref.org/*" },
-        { "url": "https://openlibrary.org/*" }
+        { "url": "https://openlibrary.org/*" },
+        { "url": "https://*/*" }
       ]
     }
   ]
