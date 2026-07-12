@@ -799,7 +799,9 @@
 
   .menu {
     position: absolute;
-    left: 0;
+    /* Anchored to the button's right edge so it opens into the column, not
+       past it — the .outline column clips horizontal overflow. */
+    right: 0;
     top: 115%;
     background: var(--surface);
     border: 1px solid var(--border);
