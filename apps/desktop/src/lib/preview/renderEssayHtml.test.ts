@@ -139,6 +139,69 @@ describe("renderEssayHtml", () => {
     expect(html).toContain("<em>Revista de Estudios Imaginarios, 12</em>");
   });
 
+  it("renders an APA table with number, title, grid, and note", () => {
+    const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    essay.content = {
+      type: "doc",
+      content: [
+        {
+          type: "sectionBody",
+          content: [
+            {
+              type: "apaTable",
+              content: [
+                {
+                  type: "tableTitle",
+                  content: [{ type: "text", text: "Horas de lectura" }],
+                },
+                {
+                  type: "table",
+                  content: [
+                    {
+                      type: "tableRow",
+                      content: [
+                        {
+                          type: "tableHeader",
+                          content: [{
+                            type: "paragraph",
+                            content: [{ type: "text", text: "Grupo" }],
+                          }],
+                        },
+                      ],
+                    },
+                    {
+                      type: "tableRow",
+                      content: [
+                        {
+                          type: "tableCell",
+                          content: [{
+                            type: "paragraph",
+                            content: [{ type: "text", text: "Primer año" }],
+                          }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: "tableNote",
+                  content: [{ type: "text", text: "Datos inventados." }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const html = renderEssayHtml(essay, essay.content, []);
+    expect(html).toContain('<figure class="apa-table">');
+    expect(html).toContain("Tabla 1");
+    expect(html).toContain("<em>Horas de lectura</em>");
+    expect(html).toContain("<th>Grupo</th>");
+    expect(html).toContain("<td>Primer año</td>");
+    expect(html).toContain("Nota.");
+  });
+
   it("renders lettered lists with type=a and nested sublists", () => {
     const essay = listEssay();
     const html = renderEssayHtml(essay, essay.content, []);

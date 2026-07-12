@@ -12,12 +12,14 @@
   import CitationPopover from "$lib/components/CitationPopover.svelte";
   import HeadingMenu from "$lib/components/HeadingMenu.svelte";
   import ListMenu from "$lib/components/ListMenu.svelte";
+  import TableMenu from "$lib/components/TableMenu.svelte";
   import "$lib/components/float-menu.css";
   import PrintPreview from "$lib/components/PrintPreview.svelte";
   import RefEntry from "$lib/components/RefEntry.svelte";
   import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
   import TitlePageForm from "$lib/components/TitlePageForm.svelte";
   import { collectCitedRefIds } from "$lib/editor/citedRefs";
+  import { insertApaTable } from "$lib/editor/blocks";
   import { buildOutline, type OutlineItem } from "$lib/editor/outline";
   import {
     type CitationEnv,
@@ -78,8 +80,9 @@
   /** Active block format at the cursor, for the Headings/Lists menus. */
   let activeHeadingLevel = $state<number | null>(null);
   let activeList = $state<"bullet" | "ordered" | "lettered" | null>(null);
+  let inTable = $state(false);
   /** Only one bottom-bar dropdown open at a time. */
-  let openMenu = $state<"headings" | "lists" | null>(null);
+  let openMenu = $state<"headings" | "lists" | "table" | null>(null);
   let citedCounts = $state<Map<string, number>>(
     untrack(() => collectCitedRefIds(essay.content)),
   );
@@ -243,6 +246,7 @@
           ? "lettered"
           : "ordered")
         : null;
+      inTable = instance.isActive("table");
     };
     instance.on("selectionUpdate", track);
     instance.on("transaction", track);
@@ -627,6 +631,14 @@
         open={openMenu === "lists"}
         onToggle={() => (openMenu = openMenu === "lists" ? null : "lists")}
         onClose={() => (openMenu = null)}
+      />
+      <TableMenu
+        {editor}
+        {inTable}
+        open={openMenu === "table"}
+        onToggle={() => (openMenu = openMenu === "table" ? null : "table")}
+        onClose={() => (openMenu = null)}
+        onInsert={() => editor && insertApaTable(editor)}
       />
       <div class="fm-sep"></div>
       <button class="fm-btn" class:on={focusMode} onclick={() => (focusMode = !focusMode)}>

@@ -23,6 +23,7 @@
     "@tesina/docx-export": "*",
     "@tesina/engine": "*",
     "@tiptap/core": "^3.6.5",
+    "@tiptap/extension-table": "^3.6.5",
     "@tiptap/pm": "^3.6.5",
     "@tiptap/starter-kit": "^3.6.5",
     "pagedjs": "^0.4.3"

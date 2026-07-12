@@ -92,7 +92,7 @@
 }
 
 .apa-editor .tiptap {
-  counter-reset: appendix;
+  counter-reset: appendix apa-table apa-figure;
 }
 
 .apa-editor .tiptap .sec + .sec {
@@ -189,6 +189,91 @@
 .apa-editor .tiptap ol {
   margin: 0;
   padding-left: 1in;
+}
+
+/* APA tables (APA 7.8): "Table N" bold, italic title, plain grid with a
+   border above the table, under the header row, and at the bottom only. */
+.apa-editor .tiptap .apa-table {
+  counter-increment: apa-table;
+  margin: 1em 0;
+}
+
+.apa-editor .tiptap .tbl-title {
+  margin: 0 0 0.5em;
+  text-indent: 0;
+  font-style: italic;
+}
+
+.apa-editor .tiptap .tbl-title::before {
+  display: block;
+  font-weight: bold;
+  font-style: normal;
+}
+
+.apa-editor[data-doclang="es"] .tiptap .tbl-title::before {
+  content: "Tabla " counter(apa-table);
+}
+
+.apa-editor[data-doclang="en"] .tiptap .tbl-title::before {
+  content: "Table " counter(apa-table);
+}
+
+.apa-editor .tiptap .apa-table table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0;
+  border-top: 1px solid var(--fg);
+  border-bottom: 1px solid var(--fg);
+}
+
+.apa-editor .tiptap .apa-table th,
+.apa-editor .tiptap .apa-table td {
+  padding: 4px 8px;
+  text-align: left;
+  vertical-align: top;
+  border: none;
+}
+
+.apa-editor .tiptap .apa-table th {
+  border-bottom: 1px solid var(--fg);
+  font-weight: normal;
+}
+
+.apa-editor .tiptap .apa-table th p,
+.apa-editor .tiptap .apa-table td p {
+  text-indent: 0;
+  margin: 0;
+}
+
+.apa-editor .tiptap .tbl-note {
+  margin: 0.5em 0 0;
+  text-indent: 0;
+}
+
+.apa-editor .tiptap .tbl-note::before {
+  font-style: italic;
+}
+
+.apa-editor[data-doclang="es"] .tiptap .tbl-note::before {
+  content: "Nota. ";
+}
+
+.apa-editor[data-doclang="en"] .tiptap .tbl-note::before {
+  content: "Note. ";
+}
+
+/* Selected-cell shading from prosemirror-tables. */
+.apa-editor .tiptap .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--accent-soft);
+  pointer-events: none;
+}
+
+.apa-editor .tiptap .apa-table td,
+.apa-editor .tiptap .apa-table th {
+  position: relative;
 }
 
 .apa-editor .tiptap ol[data-list-style="lower-alpha"] {

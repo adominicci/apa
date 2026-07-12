@@ -15,6 +15,7 @@
     "npm:@tauri-apps/plugin-http@2": "2.5.9",
     "npm:@tauri-apps/plugin-opener@2": "2.5.4",
     "npm:@tiptap/core@^3.6.5": "3.27.3_@tiptap+pm@3.27.3",
+    "npm:@tiptap/extension-table@^3.6.5": "3.27.3_@tiptap+core@3.27.3__@tiptap+pm@3.27.3_@tiptap+pm@3.27.3",
     "npm:@tiptap/pm@^3.6.5": "3.27.3",
     "npm:@tiptap/starter-kit@^3.6.5": "3.27.3_@tiptap+pm@3.27.3_@tiptap+core@3.27.3__@tiptap+pm@3.27.3_@tiptap+extension-list@3.27.3__@tiptap+core@3.27.3___@tiptap+pm@3.27.3__@tiptap+pm@3.27.3_@tiptap+extensions@3.27.3__@tiptap+core@3.27.3___@tiptap+pm@3.27.3__@tiptap+pm@3.27.3",
     "npm:ccusage@latest": "20.0.17",
@@ -552,6 +553,13 @@
       "integrity": "sha512-dp6Rs3I4zLVJPvAw2Q9yrNuYKcX5LTONH3/oyULvGsrqq5DKz7pqscfwhwnDSzrgm/3aCz6B9r1BVHlYI/DXlA==",
       "dependencies": [
         "@tiptap/core"
+      ]
+    },
+    "@tiptap/extension-table@3.27.3_@tiptap+core@3.27.3__@tiptap+pm@3.27.3_@tiptap+pm@3.27.3": {
+      "integrity": "sha512-P7iQ0SkkDWZwnXzQDOVFLXktXlX67VQ3s2YxoJYKTHlc8rPZ4UCaSogFq0G2APyBlizlY3LbMNrDeZAVFOD8wQ==",
+      "dependencies": [
+        "@tiptap/core",
+        "@tiptap/pm"
       ]
     },
     "@tiptap/extension-text@3.27.3_@tiptap+core@3.27.3__@tiptap+pm@3.27.3_@tiptap+pm@3.27.3": {
@@ -1473,6 +1481,7 @@
             "npm:@tesina/docx-export@*",
             "npm:@tesina/engine@*",
             "npm:@tiptap/core@^3.6.5",
+            "npm:@tiptap/extension-table@^3.6.5",
             "npm:@tiptap/pm@^3.6.5",
             "npm:@tiptap/starter-kit@^3.6.5",
             "npm:pagedjs@~0.4.3",

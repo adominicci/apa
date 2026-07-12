@@ -4,6 +4,7 @@ import type { Node as PMNode } from "@tiptap/pm/model";
 import { sectionExtensions } from "./sections.ts";
 import { type CitationEnv, createCitationExtension } from "./citation.ts";
 import { OrderedListStyleAttr } from "./lists.ts";
+import { blockExtensions } from "./blocks.ts";
 import { defaultDoc, ensureSectionedDoc } from "./migrate.ts";
 
 export interface CreateEditorArgs {
@@ -43,6 +44,7 @@ export function createTesinaEditor(
       }),
       ...sectionExtensions,
       OrderedListStyleAttr,
+      ...blockExtensions,
       createCitationExtension(citationEnv),
     ],
     content: (content !== undefined

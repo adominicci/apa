@@ -131,6 +131,68 @@ export function sampleEssayInput(
               ],
             },
             {
+              type: "apaTable",
+              content: [
+                {
+                  type: "tableTitle",
+                  content: [{
+                    type: "text",
+                    text: "Horas de lectura por semana",
+                  }],
+                },
+                {
+                  type: "table",
+                  content: [
+                    {
+                      type: "tableRow",
+                      content: [
+                        {
+                          type: "tableHeader",
+                          content: [{
+                            type: "paragraph",
+                            content: [{ type: "text", text: "Grupo" }],
+                          }],
+                        },
+                        {
+                          type: "tableHeader",
+                          content: [{
+                            type: "paragraph",
+                            content: [{ type: "text", text: "Media" }],
+                          }],
+                        },
+                      ],
+                    },
+                    {
+                      type: "tableRow",
+                      content: [
+                        {
+                          type: "tableCell",
+                          content: [{
+                            type: "paragraph",
+                            content: [{ type: "text", text: "Primer año" }],
+                          }],
+                        },
+                        {
+                          type: "tableCell",
+                          content: [{
+                            type: "paragraph",
+                            content: [{ type: "text", text: "4.2" }],
+                          }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: "tableNote",
+                  content: [{
+                    type: "text",
+                    text: "Datos inventados para el ejemplo.",
+                  }],
+                },
+              ],
+            },
+            {
               type: "orderedList",
               attrs: { listStyle: "lower-alpha" },
               content: [

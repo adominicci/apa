@@ -46,6 +46,8 @@ function isoToLongDate(iso: string, locale: DocLocale): string {
 interface RenderState {
   ctx: DocContext;
   counter: { next: number };
+  tableNo: { n: number };
+  figureNo: { n: number };
 }
 
 function inlineHtml(inline: readonly PMJson[], state: RenderState): string {
@@ -86,6 +88,43 @@ function inlineHtml(inline: readonly PMJson[], state: RenderState): string {
     }
   }
   return out;
+}
+
+/** Renders an APA table figure: "Table N" caption, italic title, grid, note. */
+function apaTableHtml(block: PMJson, state: RenderState): string {
+  state.tableNo.n += 1;
+  const t = getTerms(state.ctx.locale);
+  const children = block.content ?? [];
+  const titleNode = children.find((c) => c.type === "tableTitle");
+  const tableNode = children.find((c) => c.type === "table");
+  const noteNode = children.find((c) => c.type === "tableNote");
+
+  let out = `<figure class="apa-table"><p class="tbl-cap">${
+    esc(t.headings.table)
+  } ${state.tableNo.n}<br /><em>${
+    titleNode ? inlineHtml(titleNode.content ?? [], state) : ""
+  }</em></p>`;
+
+  out += "<table>";
+  for (const rowNode of tableNode?.content ?? []) {
+    out += "<tr>";
+    for (const cellNode of rowNode.content ?? []) {
+      const tag = cellNode.type === "tableHeader" ? "th" : "td";
+      let inner = "";
+      for (const child of cellNode.content ?? []) {
+        inner += inlineHtml(child.content ?? [], state);
+      }
+      out += `<${tag}>${inner}</${tag}>`;
+    }
+    out += "</tr>";
+  }
+  out += "</table>";
+
+  const note = noteNode ? inlineHtml(noteNode.content ?? [], state) : "";
+  if (note.trim() !== "") {
+    out += `<p class="tbl-note"><em>${esc(t.headings.note)}</em> ${note}</p>`;
+  }
+  return `${out}</figure>`;
 }
 
 /** Renders a list and its nested sublists (APA lettered lists use type="a"). */
@@ -156,6 +195,8 @@ function blocksHtml(
       out += "</blockquote>";
     } else if (block.type === "bulletList" || block.type === "orderedList") {
       out += listHtml(block, state);
+    } else if (block.type === "apaTable") {
+      out += apaTableHtml(block, state);
     } else if (block.type === "keywordsLine") {
       const t = getTerms(state.ctx.locale);
       out += `<p class="keywords"><em>${esc(t.headings.keywords)}</em> ${
@@ -208,6 +249,12 @@ ul, ol { margin: 0; padding-left: 1in; }
 .rh-set { string-set: runhead content(text); display: none; }
 section.abstract, section.appendix, section.references { break-before: page; }
 .ref-entry { padding-left: 0.5in; text-indent: -0.5in; }
+.apa-table { margin: 1em 0; break-inside: avoid; }
+.apa-table .tbl-cap { text-indent: 0; }
+.apa-table table { border-collapse: collapse; width: 100%; border-top: 1px solid #131313; border-bottom: 1px solid #131313; }
+.apa-table th, .apa-table td { padding: 3px 8px; text-align: left; vertical-align: top; }
+.apa-table th { border-bottom: 1px solid #131313; font-weight: normal; }
+.apa-table .tbl-note { text-indent: 0; }
 `;
 }
 
@@ -219,7 +266,12 @@ export function renderEssayHtml(
   const locale = essay.settings.documentLanguage;
   const t = getTerms(locale);
   const ctx = buildDocContext(docJson as PMJson, references, locale);
-  const state: RenderState = { ctx, counter: { next: 0 } };
+  const state: RenderState = {
+    ctx,
+    counter: { next: 0 },
+    tableNo: { n: 0 },
+    figureNo: { n: 0 },
+  };
   const { titlePage } = essay;
 
   let html = "";

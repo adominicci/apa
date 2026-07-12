@@ -1,0 +1,130 @@
+import {
+  BorderStyle,
+  Paragraph,
+  Table,
+  TableCell,
+  TableRow,
+  TextRun,
+  WidthType,
+} from "docx";
+import { getTerms } from "@tesina/engine";
+import type { PMJson } from "./input.ts";
+import { type DocContext, inlineToTextRuns } from "./runs.ts";
+
+const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: "auto" };
+const RULE = { style: BorderStyle.SINGLE, size: 4, color: "000000" };
+
+/**
+ * Builds an APA table (APA 7.8–7.21): "Table N" bold, italic title, a grid
+ * ruled only above the table, under the header row, and at the bottom, then
+ * an italic "Note." line. Numbering is a running counter (never stored).
+ */
+export function apaTableBlocks(
+  block: PMJson,
+  ctx: DocContext,
+  citationCounter: { next: number },
+  tableCounter: { n: number },
+): (Paragraph | Table)[] {
+  tableCounter.n += 1;
+  const t = getTerms(ctx.locale);
+  const children = block.content ?? [];
+  const titleNode = children.find((c) => c.type === "tableTitle");
+  const tableNode = children.find((c) => c.type === "table");
+  const noteNode = children.find((c) => c.type === "tableNote");
+
+  const out: (Paragraph | Table)[] = [];
+
+  out.push(
+    new Paragraph({
+      style: "Normal",
+      children: [
+        new TextRun({
+          text: `${t.headings.table} ${tableCounter.n}`,
+          bold: true,
+        }),
+      ],
+    }),
+  );
+  out.push(
+    new Paragraph({
+      style: "Normal",
+      children: titleNode
+        ? inlineToTextRuns(titleNode.content ?? [], ctx, citationCounter, {
+          italics: true,
+        })
+        : [],
+    }),
+  );
+
+  const rows = tableNode?.content ?? [];
+  out.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: {
+        top: RULE,
+        bottom: RULE,
+        left: NO_BORDER,
+        right: NO_BORDER,
+        insideHorizontal: NO_BORDER,
+        insideVertical: NO_BORDER,
+      },
+      rows: rows.map((rowNode) => {
+        const isHeaderRow = (rowNode.content ?? []).every(
+          (c) => c.type === "tableHeader",
+        );
+        return new TableRow({
+          tableHeader: isHeaderRow,
+          children: (rowNode.content ?? []).map((cellNode) => {
+            const paragraphs = (cellNode.content ?? []).map(
+              (para) =>
+                new Paragraph({
+                  style: "Normal",
+                  children: inlineToTextRuns(
+                    para.content ?? [],
+                    ctx,
+                    citationCounter,
+                  ),
+                }),
+            );
+            return new TableCell({
+              children: paragraphs.length > 0
+                ? paragraphs
+                : [new Paragraph({ style: "Normal" })],
+              // The header row draws the rule beneath it (APA 7.8).
+              borders: cellNode.type === "tableHeader"
+                ? {
+                  bottom: RULE,
+                  top: NO_BORDER,
+                  left: NO_BORDER,
+                  right: NO_BORDER,
+                }
+                : {
+                  top: NO_BORDER,
+                  bottom: NO_BORDER,
+                  left: NO_BORDER,
+                  right: NO_BORDER,
+                },
+            });
+          }),
+        });
+      }),
+    }),
+  );
+
+  const noteRuns = noteNode
+    ? inlineToTextRuns(noteNode.content ?? [], ctx, citationCounter)
+    : [];
+  if (noteRuns.length > 0) {
+    out.push(
+      new Paragraph({
+        style: "Normal",
+        children: [
+          new TextRun({ text: `${t.headings.note} `, italics: true }),
+          ...noteRuns,
+        ],
+      }),
+    );
+  }
+
+  return out;
+}

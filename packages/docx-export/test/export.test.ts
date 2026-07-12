@@ -52,6 +52,16 @@ describe("exportDocx (student, es)", () => {
     expect(documentXml).toContain("Palabras clave:");
   });
 
+  it("renders an APA table with number, italic title, grid, and note", () => {
+    expect(documentXml).toContain("Tabla 1");
+    expect(documentXml).toContain("Horas de lectura por semana");
+    expect(documentXml).toContain("Primer año");
+    expect(documentXml).toContain("Nota.");
+    // A real table element with a bottom rule under the header row.
+    expect(documentXml).toMatch(/<w:tbl>/);
+    expect(documentXml).toMatch(/w:val="single"/);
+  });
+
   it("renders a lettered list with a nested bullet at a deeper level", () => {
     expect(documentXml).toContain("Primer criterio");
     expect(documentXml).toContain("Matiz anidado");

@@ -1,13 +1,16 @@
-import { Paragraph, TextRun } from "docx";
+import { Paragraph, Table, TextRun } from "docx";
 import { getTerms } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
 import { type DocContext, inlineText, inlineToTextRuns } from "./runs.ts";
 import { LOWER_ALPHA_REF, ORDERED_LIST_REF } from "./styles.ts";
+import { apaTableBlocks } from "./blocks.ts";
 
 interface VisitState {
   ctx: DocContext;
   citationCounter: { next: number };
   orderedListInstance: number;
+  tableCounter: { n: number };
+  figureCounter: { n: number };
 }
 
 interface VisitOptions {
@@ -28,8 +31,8 @@ export function visitBlocks(
   blocks: readonly PMJson[],
   state: VisitState,
   options: VisitOptions = {},
-): Paragraph[] {
-  const out: Paragraph[] = [];
+): (Paragraph | Table)[] {
+  const out: (Paragraph | Table)[] = [];
   let emittedFirst = false;
 
   const emit = (
@@ -166,6 +169,18 @@ export function visitBlocks(
         visitList(block, 0);
         break;
       }
+      case "apaTable": {
+        emittedFirst = true;
+        out.push(
+          ...apaTableBlocks(
+            block,
+            state.ctx,
+            state.citationCounter,
+            state.tableCounter,
+          ),
+        );
+        break;
+      }
       case "keywordsLine": {
         const t = getTerms(state.ctx.locale);
         emit("BodyText", [
@@ -191,19 +206,24 @@ export function visitBlocks(
  * appendices (own page each; letters only when there are two or more,
  * APA 2.14).
  */
-export function visitDocument(content: PMJson, ctx: DocContext): Paragraph[] {
+export function visitDocument(
+  content: PMJson,
+  ctx: DocContext,
+): (Paragraph | Table)[] {
   const t = getTerms(ctx.locale);
   const state: VisitState = {
     ctx,
     citationCounter: { next: 0 },
     orderedListInstance: 0,
+    tableCounter: { n: 0 },
+    figureCounter: { n: 0 },
   };
   const sections = content.content ?? [];
   const appendixCount = sections.filter(
     (s) => s.type === "sectionAppendix",
   ).length;
   let appendixIndex = 0;
-  const out: Paragraph[] = [];
+  const out: (Paragraph | Table)[] = [];
 
   for (const section of sections) {
     if (section.type === "sectionAbstract") {
