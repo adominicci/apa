@@ -10,7 +10,7 @@
  * --font renders the prototype's face deterministically. This does NOT rely on
  * Vite optimizing the @fontsource npm package (which was flaky under Deno's
  * symlinked node_modules and kept falling back to the system sans). Do not
- * revert to a bare `import "@fontsource-*"` — see CLAUDE.md.
+ * revert to a bare `import "@fontsource-*"` — see AGENTS.md.
  */
 @font-face {
   font-family: "Inter";
