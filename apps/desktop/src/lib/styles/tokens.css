@@ -4,6 +4,21 @@
  * blocks. Theme is driven by :root[data-theme] (set from the settings
  * store; "system" resolves via matchMedia in the layout).
  */
+
+/*
+ * Inter self-hosted from static/fonts (SIL OFL) via an explicit @font-face so
+ * --font renders the prototype's face deterministically. This does NOT rely on
+ * Vite optimizing the @fontsource npm package (which was flaky under Deno's
+ * symlinked node_modules and kept falling back to the system sans). Do not
+ * revert to a bare `import "@fontsource-*"` — see CLAUDE.md.
+ */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-latin-variable.woff2") format("woff2-variations");
+}
 :root {
   --bg: #fafafa;
   --surface: #ffffff;
@@ -56,9 +71,7 @@
     0 1px 2px color-mix(in oklab, var(--fg), transparent 90%), 0 12px 40px
     color-mix(in oklab, var(--fg), transparent 88%);
 
-  --font:
-    "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, system-ui,
-    sans-serif;
+  --font: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
   --serif: "Iowan Old Style", "Charter", Georgia, "Times New Roman", serif;
 

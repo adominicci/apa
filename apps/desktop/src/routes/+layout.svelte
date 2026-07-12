@@ -1,7 +1,6 @@
 <script lang="ts">
-  // Self-host Inter (SIL OFL) so --font renders the design's intended face
-  // instead of falling back to the system sans, matching the prototype.
-  import "@fontsource-variable/inter";
+  // Inter is self-hosted via an @font-face in tokens.css (static/fonts) — no
+  // npm-font import here, which was flaky under Deno's node_modules. See CLAUDE.md.
   import "$lib/styles/tokens.css";
   import type { Snippet } from "svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
