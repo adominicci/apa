@@ -76,7 +76,25 @@ export const ApaTable = Node.create({
       menu.contentEditable = "false";
       menu.style.display = "none";
 
-      const closeMenu = () => (menu.style.display = "none");
+      /** Closes when the user interacts anywhere outside the pencil/menu —
+       * deselectNode alone misses plain clicks into text. */
+      const onOutsideDown = (e: MouseEvent) => {
+        const target = e.target as globalThis.Node | null;
+        if (target && (menu.contains(target) || editBtn.contains(target))) {
+          return;
+        }
+        closeMenu();
+      };
+
+      const closeMenu = () => {
+        menu.style.display = "none";
+        document.removeEventListener("mousedown", onOutsideDown, true);
+      };
+
+      const openMenu = () => {
+        menu.style.display = "flex";
+        document.addEventListener("mousedown", onOutsideDown, true);
+      };
 
       /** Puts the cursor in a cell of THIS table so the command targets it. */
       const focusThisTable = (): boolean => {
@@ -144,8 +162,10 @@ export const ApaTable = Node.create({
         item.className = "apa-table-menu-item";
         if (op.danger) item.classList.add("danger");
         item.textContent = op.label;
-        item.addEventListener("mousedown", (e) => {
-          e.preventDefault();
+        // preventDefault on mousedown keeps the editor selection; the action
+        // runs on click so keyboard activation (Enter/Space) works too.
+        item.addEventListener("mousedown", (e) => e.preventDefault());
+        item.addEventListener("click", () => {
           closeMenu();
           if (op.cmd === "deleteTable") deleteWholeTable();
           else if (focusThisTable()) runCmd(op.cmd);
@@ -153,9 +173,10 @@ export const ApaTable = Node.create({
         menu.append(item);
       }
 
-      editBtn.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        menu.style.display = menu.style.display === "none" ? "flex" : "none";
+      editBtn.addEventListener("mousedown", (e) => e.preventDefault());
+      editBtn.addEventListener("click", () => {
+        if (menu.style.display === "none") openMenu();
+        else closeMenu();
       });
 
       dom.append(editBtn, menu, contentDOM);
@@ -167,6 +188,7 @@ export const ApaTable = Node.create({
           mutation.type !== "selection" &&
           !contentDOM.contains(mutation.target),
         deselectNode: closeMenu,
+        destroy: closeMenu,
       };
     };
   },
