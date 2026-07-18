@@ -106,4 +106,6 @@ renumbers automatically. The editor uses CSS counters + `data-doclang`.
   (citation_* / JSON-LD / Open Graph; DOI-first) over the Tauri http plugin.
   Because URL autofill fetches user-pasted pages, the http capability scope is
   deliberately broad (`https://*/*` + `http://*/*`). BibTeX import is the only
-  "coming soon" item.
+  "coming soon" item *in the reference-input flow*; the broader pending list
+  (reference manager, collections, signing/updater, post-v1 items) lives in
+  README → Hoja de ruta.

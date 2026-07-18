@@ -16,15 +16,16 @@ A diferencia de otras herramientas, el **idioma del documento** es independiente
 
 - **Entorno de tres hojas**: cada proyecto abre como tres hojas tamaño carta apiladas — portada editable sobre la propia página, cuerpo, y página de referencias que se llena sola al citar.
 - **Biblioteca de ensayos**: crear (ES/EN), renombrar, duplicar; las tarjetas muestran curso, profesor y las primeras líneas; eliminar guarda respaldo en `backups/`.
-- **Editor APA seccionado**: resumen con palabras clave, cuerpo con los 5 niveles de encabezado, apéndices con letra automática; hoja blanca con serif, doble espacio y sangrías correctas.
+- **Editor APA seccionado**: resumen con palabras clave, cuerpo con los 5 niveles de encabezado, apéndices con letra automática; hoja blanca con la fuente APA que elijas (serif o sans serif entre las 6 aprobadas), doble espacio y sangrías correctas.
 - **Estructura**: menús de encabezados (N1–N5) y listas (viñeta, número o letra, con sangrar/reducir y numeración anidada 1 → a → i), más **tablas** con bordes APA y **figuras** con imagen, autonumeradas ("Tabla 1", "Figura 1") en editor, vista previa y Word.
 - **Citas vivas**: inserta citas parentéticas o narrativas desde tu biblioteca (multi-obra, localizadores de página/párrafo); el motor aplica et al., sufijos 2020a/b, iniciales por apellidos repetidos y abreviaturas de grupo — y se re-renderizan solas al editar la biblioteca o cambiar el idioma.
 - **Bibliografía automática**: ordenada y formateada por el motor, con avisos de obras sin citar.
+- **Meta de palabras**: la tarjeta de progreso del esquema muestra el conteo actual frente a una meta editable, guardada con cada ensayo.
 - **Catálogo APA completo**: todos los formatos de la página de ejemplos de APA Style, agrupados por categoría — periódicos (revista académica, magacín, periódico, blog), libros (incl. ilustrados, obras religiosas, partituras), capítulos y entradas de diccionario/Wikipedia, informes y literatura gris (folleto, hoja informativa, comunicado, white paper, normas ISO, códigos de ética), congresos (ponencia, póster, sesión, conferencia magistral, actas) y tesis, preprints/ERIC y manuscritos no publicados, datos/software/apps/modelos de IA, audiovisual (película, serie y episodio, YouTube, TED, MOOC, seminario web, diapositivas, radio, transcripciones, pódcast completo o episodio, álbum, canción, obras de arte e imágenes) y en línea (web, redes sociales, foros, comunicación personal).
 - **Portada**: variantes estudiante y profesional (con titulillo y nota del autor).
 - **Autollenado**: pega un DOI, un ISBN o una URL y el formulario se rellena solo (CrossRef / OpenLibrary / metadatos de la página, sin API keys); si una web no es legible, un aviso claro te pide escribirla a mano.
 - **Vista previa e impresión**: paginado real con Paged.js, conteo de páginas e impresión / guardar como PDF.
-- **Export a Word**: un clic → `.docx` con portada, secciones en páginas nuevas, encabezados reales de Word, listas anidadas, tablas con bordes APA, figuras con imagen, citas y referencias con sangría francesa. 233 tests automatizados, incluidos asserts sobre el XML del documento.
+- **Export a Word**: un clic → `.docx` con portada, secciones en páginas nuevas, encabezados reales de Word, listas anidadas, tablas con bordes APA, figuras con imagen, citas y referencias con sangría francesa. 247 tests automatizados, incluidos asserts sobre el XML del documento.
 
 ## Instalación (builds sin firmar)
 
