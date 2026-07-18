@@ -86,12 +86,14 @@ describe("buildImportPlan — duplicates", () => {
 });
 
 describe("buildImportPlan — parsing", () => {
-  it("keeps the readable entries and reports the broken one", () => {
+  it("keeps the readable entries, reports the broken one, and drops its empty stub", () => {
     const { rows, errors } = plan(
       `@article{ok, title={Entrada válida}, journal={J}, year={2020}}
        @article{bad, title={Rota, year={2021}`,
     );
     expect(rows.map((r) => r.key)).toContain("ok");
+    // The broken entry is counted as unreadable, not shown as an empty row.
+    expect(rows.map((r) => r.key)).not.toContain("bad");
     expect(errors.length).toBeGreaterThan(0);
   });
 

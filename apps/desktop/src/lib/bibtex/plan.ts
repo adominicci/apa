@@ -70,6 +70,12 @@ export function buildImportPlan(
 
   for (const entry of lib.entries) {
     const { ref, warnings } = mapBibEntry(entry, crypto.randomUUID());
+
+    // A malformed entry can survive parsing as a stub with no usable fields
+    // (the parser also records it under `errors`). Drop it rather than show a
+    // confusing empty row — it's already counted as an unreadable entry.
+    if (ref.title === "" && ref.authors.length === 0) continue;
+
     const doiKey = ref.doi ? normalizeDoi(ref.doi) : "";
     const titleKey = ref.title
       ? normalizeTitleKey(ref.title, ref.date.year)
