@@ -6,19 +6,14 @@
  */
 
 /*
- * Inter self-hosted from static/fonts (SIL OFL) via an explicit @font-face so
- * --font renders the prototype's face deterministically. This does NOT rely on
- * Vite optimizing the @fontsource npm package (which was flaky under Deno's
- * symlinked node_modules and kept falling back to the system sans). Do not
- * revert to a bare `import "@fontsource-*"` — see AGENTS.md.
+ * The Inter @font-face is NOT here. It lives inline (base64) in the static
+ * document head (src/app.html), deliberately outside Vite's module graph:
+ * a JS-imported @font-face kept getting dropped in `deno task dev` (HMR
+ * re-injection in WKWebView + url() 404s on the dev server), which is why
+ * `--font` repeatedly fell back to the system sans. Do NOT move the
+ * @font-face back into this file or any imported CSS, and do NOT switch to a
+ * bare `import "@fontsource-*"`. See AGENTS.md → Fonts.
  */
-@font-face {
-  font-family: "Inter";
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url("/fonts/inter-latin-variable.woff2") format("woff2-variations");
-}
 :root {
   --bg: #fafafa;
   --surface: #ffffff;

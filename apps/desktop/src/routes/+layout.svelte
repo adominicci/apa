@@ -1,6 +1,7 @@
 <script lang="ts">
-  // Inter is self-hosted via an @font-face in tokens.css (static/fonts) — no
-  // npm-font import here, which was flaky under Deno's node_modules. See AGENTS.md.
+  // Inter's @font-face is embedded (base64) in the static document head
+  // (app.html), NOT imported here — a Vite-processed @font-face kept getting
+  // dropped in dev (WKWebView HMR + dev-server url() 404s). See AGENTS.md.
   import "$lib/styles/tokens.css";
   import type { Snippet } from "svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
