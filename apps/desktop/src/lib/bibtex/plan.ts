@@ -34,15 +34,17 @@ export function parseBib(text: string): Library {
 
 /**
  * Fuzzy key for title+year duplicate matching: case-folded, diacritics
- * stripped, non-alphanumerics dropped. Guards against the same work arriving
- * with hand-typed vs LaTeX-escaped accents.
+ * stripped, punctuation and whitespace dropped. Guards against the same work
+ * arriving with hand-typed vs LaTeX-escaped accents. Keeps letters and digits
+ * of every script (Unicode-aware), so distinct non-Latin titles — e.g.
+ * 研究方法 vs 数据分析 — don't collapse to the same key.
  */
 export function normalizeTitleKey(title: string, year?: number): string {
   const norm = title
     .toLowerCase()
     .normalize("NFD")
     .replace(/\p{M}/gu, "")
-    .replace(/[^a-z0-9]+/g, "");
+    .replace(/[^\p{L}\p{N}]+/gu, "");
   return `${norm}|${year ?? "?"}`;
 }
 

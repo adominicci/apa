@@ -224,18 +224,46 @@ function buildTyped(
 ): Reference {
   const edition = str(fields.edition);
   const pages = splitBibPages(str(fields.pages) ?? "");
+  const subtype = (str(fields.entrysubtype) ?? "").toLowerCase();
+
+  // Preprints/eprints (arXiv, PsyArXiv, bioRxiv…), whatever the declared type,
+  // unless the entry is a published article (i.e. it names a journal).
+  const eprint = str(fields.eprint);
+  if (eprint && !(str(fields.journaltitle) ?? str(fields.journal))) {
+    return {
+      ...base,
+      type: "preprint",
+      repository: str(fields.archiveprefix) ?? str(fields.eprinttype) ??
+        str(fields.publisher) ?? "",
+      itemNumber: eprint,
+    };
+  }
 
   switch (type.toLowerCase()) {
-    case "article":
+    case "article": {
+      const container = (str(fields.journaltitle) ?? str(fields.journal) ?? "")
+        .trim();
+      // biblatex marks non-scholarly periodicals with entrysubtype.
+      if (/magazine|newspaper/.test(subtype)) {
+        return {
+          ...base,
+          type: "newspaperArticle",
+          publication: container,
+          ...(str(fields.volume) ? { volume: str(fields.volume) } : {}),
+          ...(str(fields.number) ? { issue: str(fields.number) } : {}),
+          ...pages,
+        };
+      }
       return {
         ...base,
         type: "journalArticle",
-        journal: (str(fields.journaltitle) ?? str(fields.journal) ?? "").trim(),
+        journal: container,
         ...(str(fields.volume) ? { volume: str(fields.volume) } : {}),
         ...(str(fields.number) ? { issue: str(fields.number) } : {}),
         ...(str(fields.eid) ? { articleNumber: str(fields.eid) } : {}),
         ...pages,
       };
+    }
 
     case "book":
     case "mvbook":
@@ -376,6 +404,19 @@ function buildTyped(
     case "online":
     case "electronic":
     case "www": {
+      const url = str(fields.url) ?? "";
+      if (
+        /social|post|tweet/.test(subtype) ||
+        /twitter\.com|x\.com|mastodon|facebook\.com|instagram\.com|threads\.net|tiktok\.com|linkedin\.com/i
+          .test(url)
+      ) {
+        return {
+          ...base,
+          type: "socialMedia",
+          platform: str(fields.organization) ?? "",
+          contentType: str(fields.type) ?? "",
+        };
+      }
       const siteName = str(fields.organization) ?? str(fields.publisher);
       return { ...base, type: "website", ...(siteName ? { siteName } : {}) };
     }
@@ -402,12 +443,26 @@ function buildTyped(
           : {}),
       };
 
-    case "video":
+    case "video": {
+      // A recording that names a containing series is a single TV episode.
+      const series = str(fields.maintitle) ?? str(fields.booktitle);
+      if (series) {
+        return {
+          ...base,
+          type: "tvEpisode",
+          seriesTitle: series,
+          ...(str(fields.number) ? { episode: str(fields.number) } : {}),
+          ...(str(fields.organization)
+            ? { productionCompany: str(fields.organization) }
+            : {}),
+        };
+      }
       return {
         ...base,
         type: "video",
         platform: str(fields.organization) ?? str(fields.publisher) ?? "",
       };
+    }
     case "movie":
       return {
         ...base,
@@ -416,6 +471,52 @@ function buildTyped(
         ...(str(fields.organization)
           ? { productionCompany: str(fields.organization) }
           : {}),
+      };
+
+    case "music":
+    case "audio": {
+      if (/podcast/.test(subtype)) {
+        const showTitle = str(fields.booktitle) ?? str(fields.maintitle);
+        return {
+          ...base,
+          type: "podcastEpisode",
+          kind: "episode",
+          ...(showTitle ? { showTitle } : {}),
+          ...(str(fields.number) ? { episodeNumber: str(fields.number) } : {}),
+          ...(str(fields.organization)
+            ? { platform: str(fields.organization) }
+            : {}),
+        };
+      }
+      const albumTitle = str(fields.booktitle) ?? str(fields.maintitle);
+      return {
+        ...base,
+        type: "music",
+        kind: albumTitle ? "song" : "album",
+        ...(albumTitle ? { albumTitle } : {}),
+        ...(str(fields.publisher) ? { label: str(fields.publisher) } : {}),
+      };
+    }
+
+    case "artwork":
+    case "art":
+      return {
+        ...base,
+        type: "artwork",
+        ...(str(fields.type) ? { medium: str(fields.type) } : {}),
+        ...(str(fields.organization) ?? str(fields.howpublished)
+          ? { venue: str(fields.organization) ?? str(fields.howpublished) }
+          : {}),
+        ...(str(fields.location) ?? str(fields.address)
+          ? { location: str(fields.location) ?? str(fields.address) }
+          : {}),
+      };
+
+    case "letter":
+      return {
+        ...base,
+        type: "personalCommunication",
+        ...(str(fields.type) ? { medium: str(fields.type) } : {}),
       };
 
     case "misc":
@@ -434,10 +535,6 @@ export function mapBibEntry(entry: Entry, id: string): MappedEntry {
   if (!title) warnings.push({ code: "noTitle" });
 
   const authors = creators(fields.author);
-  if (authors.length === 0 && creators(fields.editor).length === 0) {
-    warnings.push({ code: "noAuthors" });
-  }
-
   const date = parseBibDate(fields, warnings);
 
   const bareDoi = stripDoiPrefix(str(fields.doi) ?? "");
@@ -458,5 +555,15 @@ export function mapBibEntry(entry: Entry, id: string): MappedEntry {
     ...(retrievedDate ? { retrievedDate } : {}),
   };
 
-  return { ref: buildTyped(entry.type, base, fields, warnings), warnings };
+  const ref = buildTyped(entry.type, base, fields, warnings);
+
+  // Judge "no authors" on the mapped reference, not the raw fields: a patent
+  // promotes its holder into `authors`, and an edited work carries its people
+  // in `editors` (both would otherwise be mis-flagged).
+  const editorCount = "editors" in ref ? (ref.editors?.length ?? 0) : 0;
+  if (ref.authors.length === 0 && editorCount === 0) {
+    warnings.push({ code: "noAuthors" });
+  }
+
+  return { ref, warnings };
 }

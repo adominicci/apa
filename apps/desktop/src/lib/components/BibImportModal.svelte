@@ -81,6 +81,14 @@
         return m.form_type_film();
       case "unpublishedWork":
         return m.form_type_unpublishedWork();
+      case "artwork":
+        return m.form_type_artwork();
+      case "music":
+        return m.form_type_music();
+      case "tvEpisode":
+        return m.form_type_tvEpisode();
+      case "preprint":
+        return m.form_type_preprint();
       case "personalCommunication":
         return m.form_type_personalCommunication();
       default:

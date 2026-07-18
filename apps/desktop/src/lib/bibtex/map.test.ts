@@ -159,13 +159,66 @@ describe("mapBibEntry — types", () => {
     expect(ref.retrievedDate).toEqual({ year: 2024, month: 3, day: 11 });
   });
 
-  it("warns and falls back to report for an unmapped type", () => {
+  it("maps @artwork to an artwork with venue and medium", () => {
     const { ref, warnings } = mapBibEntry(
-      entry(`@artwork{w, author={Vega, Leo}, title={Mural}, year={2015}}`),
+      entry(
+        `@artwork{w, author={Vega, Leo}, title={Mural}, type={Pintura},
+          organization={Museo Inventado}, year={2015}}`,
+      ),
       "ref-10",
     );
+    expect(ref.type).toBe("artwork");
+    if (ref.type === "artwork") {
+      expect(ref.medium).toBe("Pintura");
+      expect(ref.venue).toBe("Museo Inventado");
+    }
+    expect(warnings).not.toContainEqual({ code: "mappedAs", from: "artwork" });
+  });
+
+  it("maps @music, @letter, magazine articles, and eprints to their real types", () => {
+    const music = mapBibEntry(
+      entry(
+        `@music{m, author={Coro Test}, title={Álbum}, publisher={Sello X}, year={2020}}`,
+      ),
+      "ref-m",
+    ).ref;
+    expect(music.type).toBe("music");
+
+    const letter = mapBibEntry(
+      entry(
+        `@letter{l, author={Paz, Ola}, title={Carta personal}, year={2021}}`,
+      ),
+      "ref-l",
+    ).ref;
+    expect(letter.type).toBe("personalCommunication");
+
+    const mag = mapBibEntry(
+      entry(
+        `@article{a, author={Ríos, Ada}, title={Reportaje}, journal={Magacín X},
+          entrysubtype={magazine}, year={2022}}`,
+      ),
+      "ref-mag",
+    ).ref;
+    expect(mag.type).toBe("newspaperArticle");
+
+    const pre = mapBibEntry(
+      entry(
+        `@online{p, author={Sol, Uma}, title={Preprint}, eprint={2401.00123},
+          archiveprefix={arXiv}, year={2024}}`,
+      ),
+      "ref-pre",
+    ).ref;
+    expect(pre.type).toBe("preprint");
+    if (pre.type === "preprint") expect(pre.repository).toBe("arXiv");
+  });
+
+  it("warns and falls back to report for a genuinely unknown type", () => {
+    const { ref, warnings } = mapBibEntry(
+      entry(`@thingamajig{x, author={Paz, Ola}, title={Algo}, year={2020}}`),
+      "ref-10b",
+    );
     expect(ref.type).toBe("report");
-    expect(warnings).toContainEqual({ code: "mappedAs", from: "artwork" });
+    expect(warnings).toContainEqual({ code: "mappedAs", from: "thingamajig" });
   });
 });
 
@@ -194,6 +247,19 @@ describe("mapBibEntry — dates and fields", () => {
     expect(warns(`@misc{n, author={Paz, Ola}, year={2020}}`)).toContainEqual({
       code: "noTitle",
     });
+  });
+
+  it("judges no-authors on the mapped reference, not the raw fields", () => {
+    // Edited book: people live in `editors`, so it is not author-less.
+    expect(
+      warns(`@book{b, editor={Ruiz, Ema}, title={Libro editado}, year={2020}}`),
+    ).not.toContainEqual({ code: "noAuthors" });
+    // Patent: the holder is promoted into `authors` before the check.
+    expect(
+      warns(
+        `@patent{p, holder={Vega, Leo}, title={Invento}, number={US-1}, year={2020}}`,
+      ),
+    ).not.toContainEqual({ code: "noAuthors" });
   });
 
   it("drops note and other APA-irrelevant fields", () => {

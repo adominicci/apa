@@ -28,6 +28,14 @@ describe("normalizeTitleKey", () => {
     );
     expect(normalizeTitleKey("Sin año")).toBe("sinano|?");
   });
+
+  it("keeps non-Latin scripts distinct instead of collapsing them", () => {
+    // Two different Chinese titles from the same year must not collide.
+    const a = normalizeTitleKey("研究方法", 2024);
+    const b = normalizeTitleKey("数据分析", 2024);
+    expect(a).not.toBe(b);
+    expect(a).toBe("研究方法|2024");
+  });
 });
 
 describe("buildImportPlan — duplicates", () => {
@@ -81,6 +89,16 @@ describe("buildImportPlan — duplicates", () => {
       `@article{a, title={Igual}, journal={J}, year={2020}, doi={10.1/a}}
        @article{b, title={Igual}, journal={J}, year={2020}, doi={10.1/b}}`,
     );
+    expect(rows[1].duplicate).toBeUndefined();
+  });
+
+  it("does not treat two different non-Latin titles as duplicates", () => {
+    const { rows } = plan(
+      `@book{a, title={研究方法}, year={2024}}
+       @book{b, title={数据分析}, year={2024}}`,
+    );
+    expect(rows).toHaveLength(2);
+    expect(rows[0].duplicate).toBeUndefined();
     expect(rows[1].duplicate).toBeUndefined();
   });
 });
