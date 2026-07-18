@@ -6,8 +6,15 @@
  * so line breaks approximate the final page.
  */
 .apa-editor {
-  display: flex;
-  justify-content: center;
+  /* Block, NOT flex — this is load-bearing. The sheet derives its height from
+     `aspect-ratio`, and WebKit (WKWebView) mis-computes the cross-size (height)
+     of a flex ITEM with aspect-ratio inside an auto-height flex container: the
+     page renders square/short on first paint and only corrects after a reflow
+     (e.g. opening + closing the preview). As a plain block centred with auto
+     margins the sheet is no longer a flex item, so aspect-ratio is honoured on
+     first paint. See WebKit bug 209983 / 265243. Do NOT switch back to
+     display:flex + justify-content. */
+  display: block;
   padding: 3rem 1.5rem 10rem;
   min-height: 100%;
   box-sizing: border-box;
@@ -22,6 +29,8 @@
      content taller than one page grows past the ratio. */
   width: min(100%, 8.5in);
   aspect-ratio: 8.5 / 11;
+  /* Horizontal centring (replaces the parent's old flex justify-content). */
+  margin-inline: auto;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
