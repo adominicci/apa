@@ -250,6 +250,10 @@
     } catch (err) {
       console.error("No se pudo guardar el ensayo:", err);
       status = "error";
+      // Stay in the editor so the error is visible and the user can retry —
+      // the debounce is already cleared, so navigating away would lose the
+      // unpersisted content/snapshot.
+      return;
     }
     onOpenLibrary();
   }

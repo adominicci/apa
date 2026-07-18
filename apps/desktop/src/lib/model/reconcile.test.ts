@@ -80,12 +80,12 @@ describe("missingCitedRefs", () => {
   });
 
   it("returns [] when the snapshot is missing (pre-snapshot essays)", () => {
-    expect(
-      missingCitedRefs(
-        docCiting("r1"),
-        undefined as unknown as Reference[],
-        new Set(),
-      ),
-    ).toEqual([]);
+    expect(missingCitedRefs(docCiting("r1"), undefined, new Set())).toEqual([]);
+  });
+
+  it("skips corrupt snapshot entries instead of crashing", () => {
+    const snapshot = [null, "nope", { id: 5 }, ref("r1")];
+    const result = missingCitedRefs(docCiting("r1"), snapshot, new Set());
+    expect(result.map((r) => r.id)).toEqual(["r1"]);
   });
 });

@@ -12,17 +12,22 @@ import { collectCitedRefIds } from "$lib/editor/citedRefs";
  */
 export function missingCitedRefs(
   content: unknown,
-  snapshot: Reference[],
+  snapshot: unknown,
   existingIds: Set<string>,
 ): Reference[] {
   if (!Array.isArray(snapshot)) return [];
   const cited = collectCitedRefIds(content);
   const seen = new Set<string>();
   const missing: Reference[] = [];
-  for (const ref of snapshot) {
+  for (const candidate of snapshot) {
+    // The snapshot comes off disk; skip any corrupt (null / non-object /
+    // id-less) entry rather than dereferencing it.
     if (
-      cited.has(ref.id) && !existingIds.has(ref.id) && !seen.has(ref.id)
-    ) {
+      candidate === null || typeof candidate !== "object" ||
+      typeof (candidate as { id?: unknown }).id !== "string"
+    ) continue;
+    const ref = candidate as Reference;
+    if (cited.has(ref.id) && !existingIds.has(ref.id) && !seen.has(ref.id)) {
       seen.add(ref.id);
       missing.push(ref);
     }

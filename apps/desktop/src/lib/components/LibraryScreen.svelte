@@ -331,7 +331,10 @@
               tabindex="0"
               onclick={() => selectRef(item.ref)}
               onkeydown={(e) => {
-                if (e.key === "Enter") selectRef(item.ref);
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  selectRef(item.ref);
+                }
               }}
             >
               {#if item.personal}
@@ -596,7 +599,8 @@
     gap: 2px;
   }
 
-  .coll-row:hover .coll-actions {
+  .coll-row:hover .coll-actions,
+  .coll-row:focus-within .coll-actions {
     display: flex;
   }
 
