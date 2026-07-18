@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Editor } from "@tiptap/core";
+  import { deleteWholeApaTable } from "$lib/editor/tableCommands.ts";
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
@@ -15,9 +16,16 @@
 
   let { editor, inTable, open, onToggle, onClose, onInsert }: Props = $props();
 
-  function run(command: "addRowAfter" | "addColumnAfter" | "deleteRow" | "deleteColumn" | "deleteTable") {
+  function run(command: "addRowAfter" | "addColumnAfter" | "deleteRow" | "deleteColumn") {
     onClose();
     editor?.chain().focus()[command]().run();
+  }
+
+  /** Removes the whole apaTable (caption, grid, and note) — TipTap's
+   * deleteTable() only targets the inner grid, which the wrapper forbids. */
+  function deleteTable() {
+    onClose();
+    if (editor) deleteWholeApaTable(editor);
   }
 </script>
 
@@ -68,7 +76,7 @@
           {m.table_del_col()}
         </button>
         <div class="mi-sep"></div>
-        <button class="mi danger" role="menuitem" onclick={() => run("deleteTable")}>
+        <button class="mi danger" role="menuitem" onclick={deleteTable}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M6 7l1 13h10l1-13M10 11v6M14 11v6M9 4h6" /></svg>
           {m.table_delete()}
         </button>

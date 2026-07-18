@@ -7,6 +7,7 @@ import {
 } from "@tiptap/extension-table";
 import { imageObjectUrl } from "../persist/assets.ts";
 import { m } from "../paraglide/messages.js";
+import { deleteApaTableAt } from "./tableCommands.ts";
 
 /**
  * APA tables (APA 7.8–7.21). The caption ("Table N", bold) and the "Note."
@@ -123,18 +124,10 @@ export const ApaTable = Node.create({
         }
       };
 
-      /** Removes the whole apaTable (caption, grid, and note), not just the
-       * inner grid — deleteTable alone would leave an invalid wrapper. */
       const deleteWholeTable = () => {
         const pos = typeof getPos === "function" ? getPos() : undefined;
         if (typeof pos !== "number") return;
-        const node = editor.state.doc.nodeAt(pos);
-        if (!node) return;
-        editor
-          .chain()
-          .focus()
-          .deleteRange({ from: pos, to: pos + node.nodeSize })
-          .run();
+        deleteApaTableAt(editor, pos);
       };
 
       const ops: { cmd: string; label: string; danger?: boolean }[] = [
