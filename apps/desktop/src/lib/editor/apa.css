@@ -323,10 +323,16 @@
   padding: 4px 8px;
   text-align: left;
   vertical-align: top;
-  border: none;
+  /* Faint dashed "ghost" gridlines: an editing-only aid so the row and
+     column structure stays visible while writing. With border-collapse the
+     real APA rules (solid top, header, bottom below) win wherever they
+     coincide; the preview and DOCX render from their own stylesheets, so
+     these lines never reach the printed/exported table. */
+  border: 1px dashed #cdd2d8;
 }
 
 .apa-editor .tiptap .apa-table th {
+  /* The real APA header rule — solid, overrides the ghost bottom above. */
   border-bottom: 1px solid var(--fg);
   font-weight: normal;
 }
