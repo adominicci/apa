@@ -14,6 +14,11 @@ import type { ResolvedPos } from "@tiptap/pm/model";
 export function apaTableRange(
   $pos: ResolvedPos,
 ): { from: number; to: number } | null {
+  // A NodeSelection of the apaTable itself resolves *before* the node, so
+  // the ancestor walk below would miss it.
+  if ($pos.nodeAfter?.type.name === "apaTable") {
+    return { from: $pos.pos, to: $pos.pos + $pos.nodeAfter.nodeSize };
+  }
   for (let depth = $pos.depth; depth > 0; depth--) {
     const node = $pos.node(depth);
     if (node.type.name === "apaTable") {

@@ -20,8 +20,10 @@ export type AutofillResult =
   | { ok: false; error: AutofillError };
 
 const TIMEOUT_MS = 10_000;
-// Citation metadata lives in <head>; anything past this is never useful and
-// a pathological page shouldn't be held in memory whole.
+// Citation metadata lives in <head>; anything past this is never useful.
+// Caps what is retained and regex-scanned, and the content-length check
+// rejects absurd declared sizes — a chunked response is still buffered
+// once by res.text() before the slice.
 const MAX_HTML_CHARS = 2_000_000;
 // TODO: add a mailto/URL for CrossRef's polite pool once the repo is public.
 // Deliberately no personal data in the UA string.

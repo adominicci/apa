@@ -100,6 +100,20 @@ describe("apaTableRange", () => {
     expect(range!.to - range!.from).toBe(node!.nodeSize);
   });
 
+  it("covers the node when the apaTable itself is node-selected", () => {
+    const doc = schema.nodeFromJSON(docJson);
+    // NodeSelection resolves before the node; find the apaTable's position.
+    let tablePos = -1;
+    doc.descendants((node, pos) => {
+      if (node.type.name === "apaTable") tablePos = pos;
+      return tablePos === -1;
+    });
+    const range = apaTableRange(doc.resolve(tablePos));
+    expect(range).not.toBeNull();
+    expect(range!.from).toBe(tablePos);
+    expect(range!.to - range!.from).toBe(doc.nodeAt(tablePos)!.nodeSize);
+  });
+
   it("returns null when the cursor is not inside a table", () => {
     const doc = schema.nodeFromJSON(docJson);
     const $pos = doc.resolve(posOf(doc, "Antes"));

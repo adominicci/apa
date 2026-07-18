@@ -16,6 +16,9 @@
     /** Close on overlay click. Turn off for forms where a stray click
      * outside would silently discard in-progress edits. */
     dismissOnOverlay?: boolean;
+    /** Close on Escape; follows dismissOnOverlay unless set, so protected
+     * forms don't gain a silent-discard path through the keyboard. */
+    dismissOnEscape?: boolean;
     onClose: () => void;
     children: Snippet;
     /** Optional right-aligned footer (buttons). */
@@ -27,6 +30,7 @@
     subtitle,
     size = "default",
     dismissOnOverlay = true,
+    dismissOnEscape = dismissOnOverlay,
     onClose,
     children,
     footer,
@@ -42,10 +46,7 @@
   };
 
   function onWindowKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") {
-      e.stopPropagation();
-      onClose();
-    }
+    if (e.key === "Escape" && dismissOnEscape) onClose();
   }
 </script>
 
