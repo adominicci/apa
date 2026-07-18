@@ -4,6 +4,7 @@
 
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import type { Attachment } from "svelte/attachments";
   import { m } from "$lib/paraglide/messages";
   import "./modal.css";
 
@@ -12,21 +13,49 @@
     subtitle?: string;
     /** "ref" is the wide, scroll-in-body variant (reference form). */
     size?: ModalSize;
+    /** Close on overlay click. Turn off for forms where a stray click
+     * outside would silently discard in-progress edits. */
+    dismissOnOverlay?: boolean;
     onClose: () => void;
     children: Snippet;
     /** Optional right-aligned footer (buttons). */
     footer?: Snippet;
   }
 
-  let { title, subtitle, size = "default", onClose, children, footer }: Props =
-    $props();
+  let {
+    title,
+    subtitle,
+    size = "default",
+    dismissOnOverlay = true,
+    onClose,
+    children,
+    footer,
+  }: Props = $props();
+
+  // Move focus into the dialog on open; give it back to the opener on close.
+  const focusDialog: Attachment<HTMLDivElement> = (node) => {
+    const opener = document.activeElement;
+    node.focus();
+    return () => {
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
+  };
+
+  function onWindowKeydown(e: KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      onClose();
+    }
+  }
 </script>
+
+<svelte:window onkeydown={onWindowKeydown} />
 
 <div
   class="modal-overlay"
   role="presentation"
   onclick={(e) => {
-    if (e.target === e.currentTarget) onClose();
+    if (dismissOnOverlay && e.target === e.currentTarget) onClose();
   }}
 >
   <div
@@ -35,6 +64,8 @@
     role="dialog"
     aria-modal="true"
     aria-label={title}
+    tabindex="-1"
+    {@attach focusDialog}
   >
     <header class="modal-head">
       <div>
