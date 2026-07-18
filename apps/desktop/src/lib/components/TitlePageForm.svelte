@@ -72,7 +72,7 @@
   }
 </script>
 
-<Modal title={m.titlepage_title()} {onClose}>
+<Modal title={m.titlepage_title()} {onClose} dismissOnOverlay={false}>
   <div class="seg" role="group" aria-label={m.titlepage_variant_aria()}>
     <button
       class:active={variant === "student"}

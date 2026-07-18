@@ -20,6 +20,9 @@ export type AutofillResult =
   | { ok: false; error: AutofillError };
 
 const TIMEOUT_MS = 10_000;
+// Citation metadata lives in <head>; anything past this is never useful.
+// Enforced while streaming, so a pathological page is never buffered whole.
+const MAX_HTML_BYTES = 4_000_000;
 // TODO: add a mailto/URL for CrossRef's polite pool once the repo is public.
 // Deliberately no personal data in the UA string.
 const USER_AGENT = "Tesina/0.1 (academic writing app)";
@@ -89,6 +92,34 @@ export async function lookupIsbn(isbn: string): Promise<AutofillResult> {
 }
 
 /**
+ * Reads at most `maxBytes` of a response body, then cancels the rest — the
+ * Tauri http plugin's stream is pull-based, so cancelling stops the Rust-side
+ * read too. Decodes as UTF-8 like `Response.text()` does, chunk-safely.
+ * Exported for tests.
+ */
+export async function readCapped(
+  res: Response,
+  maxBytes: number,
+): Promise<string> {
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  let bytes = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes += value.byteLength;
+    text += decoder.decode(value, { stream: true });
+    if (bytes >= maxBytes) {
+      await reader.cancel();
+      break;
+    }
+  }
+  return text + decoder.decode();
+}
+
+/**
  * Scrapes a web page for citation metadata. Any failure to read a usable page
  * (network error, blocked/anti-bot response, or a JS-only shell with no real
  * metadata) returns "url-unreadable" so the UI can ask the user to type the
@@ -111,7 +142,7 @@ export async function lookupUrl(url: string): Promise<AutofillResult> {
 
   let html: string;
   try {
-    html = await res.text();
+    html = await readCapped(res, MAX_HTML_BYTES);
   } catch {
     return { ok: false, error: "url-unreadable" };
   }

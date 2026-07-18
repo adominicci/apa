@@ -735,7 +735,7 @@
   }
 </script>
 
-<Modal title={m.form_title()} {onClose} size="ref">
+<Modal title={m.form_title()} {onClose} size="ref" dismissOnOverlay={false}>
     <div class="lookup" class:filled={autofilled}>
       <div class="row">
         <input

@@ -13,13 +13,17 @@
   let cols = $state(3);
   let header = $state(true);
 
-  function clamp(n: number): number {
-    if (Number.isNaN(n)) return 1;
-    return Math.min(20, Math.max(1, Math.round(n)));
+  // A header row needs at least one body row, so the real minimum is 2 —
+  // mirror insertApaTable's clamp here instead of silently exceeding the input.
+  const minRows = $derived(header ? 2 : 1);
+
+  function clamp(n: number, min = 1): number {
+    if (Number.isNaN(n)) return min;
+    return Math.min(20, Math.max(min, Math.round(n)));
   }
 
   function insert() {
-    onInsert(clamp(rows), clamp(cols), header);
+    onInsert(clamp(rows, minRows), clamp(cols), header);
   }
 </script>
 
@@ -27,7 +31,7 @@
   <div class="field-row">
     <label class="field">
       <span>{m.table_rows()}</span>
-      <input type="number" min="1" max="20" bind:value={rows} />
+      <input type="number" min={minRows} max="20" bind:value={rows} />
     </label>
     <label class="field">
       <span>{m.table_cols()}</span>
@@ -36,12 +40,18 @@
   </div>
 
   <label class="check">
-    <input type="checkbox" bind:checked={header} />
+    <input
+      type="checkbox"
+      bind:checked={header}
+      onchange={() => {
+        if (header && clamp(rows) < 2) rows = 2;
+      }}
+    />
     {m.table_header_row()}
   </label>
 
   <div class="grid-preview" aria-hidden="true">
-    {#each Array(Math.min(6, clamp(rows))) as _, r (r)}
+    {#each Array(Math.min(6, clamp(rows, minRows))) as _, r (r)}
       <div class="pv-row">
         {#each Array(Math.min(8, clamp(cols))) as _, c (c)}
           <div class="pv-cell" class:hd={header && r === 0}></div>

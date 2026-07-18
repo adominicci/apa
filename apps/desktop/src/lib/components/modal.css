@@ -39,6 +39,11 @@
   font-size: 13.5px;
 }
 
+/* The dialog itself takes programmatic focus on open (tabindex="-1"). */
+.modal:focus {
+  outline: none;
+}
+
 /* Wide, scroll-in-body variant (e.g. the reference form). */
 .modal.modal-ref {
   width: min(564px, 100%);

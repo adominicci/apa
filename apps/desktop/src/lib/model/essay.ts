@@ -89,14 +89,18 @@ export function docPreview(docJson: unknown, maxChars = 180): string {
     const n = node as { text?: string; content?: unknown[] };
     if (typeof n.text === "string" && n.text.trim() !== "") {
       parts.push(n.text.trim());
-      total += n.text.length;
+      // Code points, matching the slice below — UTF-16 units would stop the
+      // walk early on emoji-heavy text and drop words without an ellipsis.
+      total += [...n.text].length;
     }
     for (const child of n.content ?? []) walk(child);
   };
   walk(docJson);
   const text = parts.join(" ").replace(/\s+/g, " ").trim();
-  return text.length > maxChars
-    ? `${text.slice(0, maxChars).trimEnd()}…`
+  // Slice by code points so an emoji at the cut never splits into U+FFFD.
+  const chars = [...text];
+  return chars.length > maxChars
+    ? `${chars.slice(0, maxChars).join("").trimEnd()}…`
     : text;
 }
 
