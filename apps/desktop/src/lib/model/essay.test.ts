@@ -37,6 +37,21 @@ describe("docPreview", () => {
   it("returns empty for a blank doc", () => {
     expect(docPreview(createEmptyEssay("es").content)).toBe("");
   });
+
+  it("never splits a surrogate pair at the cut", () => {
+    const emojiDoc = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [{
+          type: "paragraph",
+          content: [{ type: "text", text: "ab😀cd" }],
+        }],
+      }],
+    };
+    expect(docPreview(emojiDoc, 3)).toBe("ab😀…");
+    expect(docPreview(emojiDoc, 3)).not.toContain("�");
+  });
 });
 
 describe("summarize with title-page fields and preview", () => {

@@ -20,6 +20,9 @@ export type AutofillResult =
   | { ok: false; error: AutofillError };
 
 const TIMEOUT_MS = 10_000;
+// Citation metadata lives in <head>; anything past this is never useful and
+// a pathological page shouldn't be held in memory whole.
+const MAX_HTML_CHARS = 2_000_000;
 // TODO: add a mailto/URL for CrossRef's polite pool once the repo is public.
 // Deliberately no personal data in the UA string.
 const USER_AGENT = "Tesina/0.1 (academic writing app)";
@@ -108,10 +111,14 @@ export async function lookupUrl(url: string): Promise<AutofillResult> {
     return { ok: false, error: "url-unreadable" };
   }
   if (!res.ok) return { ok: false, error: "url-unreadable" };
+  const length = Number(res.headers.get("content-length"));
+  if (Number.isFinite(length) && length > MAX_HTML_CHARS * 4) {
+    return { ok: false, error: "url-unreadable" };
+  }
 
   let html: string;
   try {
-    html = await res.text();
+    html = (await res.text()).slice(0, MAX_HTML_CHARS);
   } catch {
     return { ok: false, error: "url-unreadable" };
   }

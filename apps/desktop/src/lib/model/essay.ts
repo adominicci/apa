@@ -95,8 +95,10 @@ export function docPreview(docJson: unknown, maxChars = 180): string {
   };
   walk(docJson);
   const text = parts.join(" ").replace(/\s+/g, " ").trim();
-  return text.length > maxChars
-    ? `${text.slice(0, maxChars).trimEnd()}…`
+  // Slice by code points so an emoji at the cut never splits into U+FFFD.
+  const chars = [...text];
+  return chars.length > maxChars
+    ? `${chars.slice(0, maxChars).join("").trimEnd()}…`
     : text;
 }
 
