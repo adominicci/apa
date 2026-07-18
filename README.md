@@ -25,8 +25,9 @@ A diferencia de otras herramientas, el **idioma del documento** es independiente
 - **Catálogo APA completo**: todos los formatos de la página de ejemplos de APA Style, agrupados por categoría — periódicos (revista académica, magacín, periódico, blog), libros (incl. ilustrados, obras religiosas, partituras), capítulos y entradas de diccionario/Wikipedia, informes y literatura gris (folleto, hoja informativa, comunicado, white paper, normas ISO, códigos de ética), congresos (ponencia, póster, sesión, conferencia magistral, actas) y tesis, preprints/ERIC y manuscritos no publicados, datos/software/apps/modelos de IA, audiovisual (película, serie y episodio, YouTube, TED, MOOC, seminario web, diapositivas, radio, transcripciones, pódcast completo o episodio, álbum, canción, obras de arte e imágenes) y en línea (web, redes sociales, foros, comunicación personal).
 - **Portada**: variantes estudiante y profesional (con titulillo y nota del autor).
 - **Autollenado**: pega un DOI, un ISBN o una URL y el formulario se rellena solo (CrossRef / OpenLibrary / metadatos de la página, sin API keys); si una web no es legible, un aviso claro te pide escribirla a mano.
+- **Importar BibTeX**: trae de golpe la bibliografía exportada de Zotero, Mendeley o Google Scholar (`.bib`), con una revisión previa que mapea cada entrada al tipo APA correcto, avisa de duplicados y datos faltantes, y te deja elegir qué importar y a qué colección.
 - **Vista previa e impresión**: paginado real con Paged.js, conteo de páginas e impresión / guardar como PDF.
-- **Export a Word**: un clic → `.docx` con portada, secciones en páginas nuevas, encabezados reales de Word, listas anidadas, tablas con bordes APA, figuras con imagen, citas y referencias con sangría francesa. 247 tests automatizados, incluidos asserts sobre el XML del documento.
+- **Export a Word**: un clic → `.docx` con portada, secciones en páginas nuevas, encabezados reales de Word, listas anidadas, tablas con bordes APA, figuras con imagen, citas y referencias con sangría francesa. 290 tests automatizados, incluidos asserts sobre el XML del documento.
 
 ## Instalación (builds sin firmar)
 
@@ -50,7 +51,6 @@ Requisitos: Deno 2.x, Rust estable ≥ 1.88 (`rustup update stable`), y en Linux
 
 ## Hoja de ruta
 
-- Import BibTeX
 - Firma y notarización de los instaladores (requiere cuenta de Apple Developer) + actualizador automático
 - Después de v1: paginación en vivo, búsqueda académica integrada, ecuaciones
 

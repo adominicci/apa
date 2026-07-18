@@ -10,7 +10,11 @@
   import RefEntry from "$lib/components/RefEntry.svelte";
   import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
   import Modal from "$lib/components/Modal.svelte";
+  import BibImportModal from "$lib/components/BibImportModal.svelte";
   import { m } from "$lib/paraglide/messages";
+
+  /** Largest .bib we'll read into memory (huge for a bibliography). */
+  const MAX_BIB_BYTES = 5_000_000;
 
   interface Props {
     /** Return to whatever opened the manager (Home or the editor). */
@@ -99,6 +103,29 @@
     } else {
       library.add(ref);
       addNonce += 1;
+    }
+  }
+
+  // ── BibTeX import ───────────────────────────────────────────────
+  let bibInput = $state<HTMLInputElement | undefined>(undefined);
+  let bibText = $state<string | null>(null);
+  let bibError = $state<string | null>(null);
+
+  async function handleBibFile(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    bibError = null;
+    if (!file) return;
+    if (file.size > MAX_BIB_BYTES) {
+      bibError = m.bib_file_too_big();
+      return;
+    }
+    try {
+      bibText = await file.text();
+    } catch (err) {
+      console.error("No se pudo leer el archivo .bib:", err);
+      bibError = m.bib_read_error();
     }
   }
 
@@ -301,6 +328,22 @@
             aria-label={m.libm_search()}
           />
         </div>
+        <button class="btn btn-secondary" onclick={() => bibInput?.click()}>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          ><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" /></svg>
+          {m.libm_import_bibtex()}
+        </button>
+        <input
+          bind:this={bibInput}
+          type="file"
+          accept=".bib"
+          class="hidden-file"
+          onchange={handleBibFile}
+        />
         <button class="btn btn-primary" onclick={newReference}>
           <svg
             viewBox="0 0 24 24"
@@ -311,6 +354,9 @@
           {m.libm_new_ref()}
         </button>
       </div>
+      {#if bibError}
+        <p class="bib-error" role="alert">{bibError}</p>
+      {/if}
       <div class="list-count">{countLabel}</div>
 
       <div class="list-scroll">
@@ -384,6 +430,7 @@
           language={uiLocale.current}
           initial={selected}
           onSave={handleSave}
+          onImportBibtex={() => bibInput?.click()}
           onClose={newReference}
         />
       {/key}
@@ -417,6 +464,14 @@
       </button>
     {/snippet}
   </Modal>
+{/if}
+
+{#if bibText !== null}
+  <BibImportModal
+    {bibText}
+    onDone={() => (bibText = null)}
+    onClose={() => (bibText = null)}
+  />
 {/if}
 
 <style>
@@ -744,6 +799,29 @@
 
   .btn-primary:hover {
     background: var(--accent-hover);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--fg);
+    border-color: var(--border);
+  }
+
+  .btn-secondary:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .hidden-file {
+    display: none;
+  }
+
+  .bib-error {
+    margin: 0;
+    padding: 6px 20px 0;
+    color: var(--warn-strong);
+    font-size: 13px;
   }
 
   .list-count {

@@ -1,6 +1,7 @@
 import type { Reference } from "@tesina/engine";
 import { readJson, writeJsonAtomic } from "$lib/persist/atomic";
 import {
+  addAllToCollection,
   createCollection,
   deleteCollection,
   pruneRefId,
@@ -63,6 +64,24 @@ class LibraryStore {
 
   add(ref: Reference): void {
     this.references = [...this.references, ref];
+    this.#persist();
+  }
+
+  /**
+   * Append a batch of references (BibTeX import) and, if a collection is given,
+   * file them all into it — persisting once for the whole batch. Callers are
+   * responsible for de-duplication; the import plan handles that upstream.
+   */
+  addMany(refs: Reference[], collectionId?: string): void {
+    if (refs.length === 0) return;
+    this.references = [...this.references, ...refs];
+    if (collectionId) {
+      this.collections = addAllToCollection(
+        this.collections,
+        collectionId,
+        refs.map((r) => r.id),
+      );
+    }
     this.#persist();
   }
 

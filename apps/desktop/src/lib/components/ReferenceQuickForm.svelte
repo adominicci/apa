@@ -33,9 +33,18 @@
     inline?: boolean;
     onSave: (ref: Reference) => void;
     onClose: () => void;
+    /** When set, shows a "import from BibTeX" shortcut below the form. */
+    onImportBibtex?: () => void;
   }
 
-  let { language, initial, inline = false, onSave, onClose }: Props = $props();
+  let {
+    language,
+    initial,
+    inline = false,
+    onSave,
+    onClose,
+    onImportBibtex,
+  }: Props = $props();
 
   const terms = $derived(getTerms(language));
   const editing = $derived(initial !== undefined);
@@ -1275,9 +1284,13 @@
       </div>
     {/if}
 
-    <p class="hint">
-      {m.form_hint()}
-    </p>
+    {#if onImportBibtex}
+      <p class="hint">
+        <button type="button" class="bibtex-link" onclick={onImportBibtex}>
+          {m.bib_import_link()}
+        </button>
+      </p>
+    {/if}
 
 {/snippet}
 
@@ -1430,6 +1443,19 @@
     margin: 0;
     color: var(--muted);
     font-size: 0.75rem;
+  }
+
+  .bibtex-link {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: var(--accent);
+    cursor: pointer;
+  }
+
+  .bibtex-link:hover {
+    text-decoration: underline;
   }
 
   /* Embedded pane variant (reference manager edit column). Mirrors the modal

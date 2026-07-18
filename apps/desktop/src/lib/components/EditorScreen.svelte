@@ -19,6 +19,7 @@
   import PrintPreview from "$lib/components/PrintPreview.svelte";
   import RefEntry from "$lib/components/RefEntry.svelte";
   import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
+  import BibImportModal from "$lib/components/BibImportModal.svelte";
   import TitlePageForm from "$lib/components/TitlePageForm.svelte";
   import { collectCitedRefIds } from "$lib/editor/citedRefs";
   import { insertApaTable, insertFigure } from "$lib/editor/blocks";
@@ -414,6 +415,32 @@
       insertFigure(editor, relPath);
     } catch (err) {
       console.error("No se pudo insertar la figura:", err);
+    }
+  }
+
+  // ── BibTeX import (shared modal; opened from the reference form) ──
+  /** Largest .bib we'll read into memory (huge for a bibliography). */
+  const MAX_BIB_BYTES = 5_000_000;
+  let bibInput = $state<HTMLInputElement | undefined>(undefined);
+  let bibText = $state<string | null>(null);
+  let bibError = $state<string | null>(null);
+
+  async function handleBibFile(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    bibError = null;
+    if (!file) return;
+    if (file.size > MAX_BIB_BYTES) {
+      bibError = m.bib_file_too_big();
+      return;
+    }
+    try {
+      bibText = await file.text();
+      refFormOpen = false;
+    } catch (err) {
+      console.error("No se pudo leer el archivo .bib:", err);
+      bibError = m.bib_read_error();
     }
   }
 
@@ -839,11 +866,42 @@
   <ReferenceQuickForm
     language={documentLanguage}
     onSave={handleSaveReference}
+    onImportBibtex={() => bibInput?.click()}
     onClose={() => {
       refFormOpen = false;
       citeOnSave = false;
     }}
   />
+{/if}
+
+<input
+  bind:this={bibInput}
+  type="file"
+  accept=".bib"
+  style="display: none"
+  onchange={handleBibFile}
+/>
+
+{#if bibText !== null}
+  <BibImportModal
+    {bibText}
+    onDone={() => {
+      bibText = null;
+      syncCitationEnv();
+    }}
+    onClose={() => (bibText = null)}
+  />
+{/if}
+
+{#if bibError}
+  <div class="bib-error-toast" role="alert">
+    <span>{bibError}</span>
+    <button
+      class="bib-error-x"
+      onclick={() => (bibError = null)}
+      aria-label={m.common_close()}
+    >×</button>
+  </div>
 {/if}
 
 {#if titleFormOpen}
@@ -1540,5 +1598,35 @@
     height: 6px;
     border-radius: 50%;
     background: currentColor;
+  }
+
+  /* BibTeX file-read errors (too big / unreadable), mirroring the library. */
+  .bib-error-toast {
+    position: fixed;
+    top: 52px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: min(90vw, 520px);
+    padding: 10px 12px 10px 16px;
+    border-radius: var(--r-md);
+    background: var(--warn-soft);
+    color: var(--warn-strong);
+    border: 1px solid var(--warn);
+    box-shadow: var(--elev-raised);
+    font-size: 13px;
+  }
+
+  .bib-error-x {
+    border: none;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 2px;
   }
 </style>
