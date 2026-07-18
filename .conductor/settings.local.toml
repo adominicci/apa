@@ -1,0 +1,29 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+[scripts]
+# Deno 2 monorepo (nodeModulesDir = "auto"). Fetches + caches all JS/npm deps
+# and populates node_modules for the workspace. Rust/Tauri toolchain is a
+# machine-level prerequisite, not installed per workspace.
+setup = "deno install"
+
+# The Tauri dev server binds Vite to a fixed port (1420, strictPort) and opens a
+# native desktop window, so two workspaces cannot run `dev` at the same time.
+run_mode = "nonconcurrent"
+
+# Launches the Tauri 2 desktop app (native window). Local only — a cloud
+# workspace can't open a GUI window.
+[scripts.run.dev]
+command = "deno task dev"
+available_in = [ "local" ]
+default = true
+icon = "rocket"
+
+# Full type/lint gate from AGENTS.md: svelte-check + tsc. Must be 0/0.
+[scripts.run.check]
+command = "deno task check"
+icon = "wrench"
+
+# Vitest in watch mode (engine goldens, DOCX golden XML, preview snapshots).
+[scripts.run.test]
+command = "deno task test:watch"
+icon = "test-tube"
