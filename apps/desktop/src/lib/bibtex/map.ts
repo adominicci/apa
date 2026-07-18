@@ -89,11 +89,15 @@ export function creatorToContributor(creator: Creator): Contributor {
   };
 }
 
-/** Read a scalar field; join biblatex list fields (publisher, institution…). */
+/**
+ * Read a scalar field; join biblatex list fields (publisher, institution…).
+ * Runs `stripMarkup`, so the parser's emphasis/bold/nocase markup never leaks
+ * into any field — not just titles — and everything is folded to NFC.
+ */
 function str(value: FieldValue | undefined): string | undefined {
-  if (typeof value === "string") return value.normalize("NFC");
+  if (typeof value === "string") return stripMarkup(value);
   if (Array.isArray(value) && value.every((v) => typeof v === "string")) {
-    return (value as string[]).map((v) => v.normalize("NFC")).join("; ");
+    return (value as string[]).map((v) => stripMarkup(v)).join("; ");
   }
   return undefined;
 }
@@ -115,8 +119,10 @@ function parseYmd(value: string | undefined): APADate | undefined {
   const match = value.trim().match(/^(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?/);
   if (!match) return undefined;
   const date: APADate = { year: Number(match[1]) };
-  if (match[2]) date.month = Number(match[2]);
-  if (match[3]) date.day = Number(match[3]);
+  const month = match[2] ? Number(match[2]) : undefined;
+  const day = match[3] ? Number(match[3]) : undefined;
+  if (month !== undefined && month >= 1 && month <= 12) date.month = month;
+  if (day !== undefined && day >= 1 && day <= 31) date.day = day;
   return date;
 }
 
@@ -224,9 +230,7 @@ function buildTyped(
       return {
         ...base,
         type: "journalArticle",
-        journal: stripMarkup(
-          str(fields.journaltitle) ?? str(fields.journal) ?? "",
-        ).trim(),
+        journal: (str(fields.journaltitle) ?? str(fields.journal) ?? "").trim(),
         ...(str(fields.volume) ? { volume: str(fields.volume) } : {}),
         ...(str(fields.number) ? { issue: str(fields.number) } : {}),
         ...(str(fields.eid) ? { articleNumber: str(fields.eid) } : {}),
@@ -239,7 +243,9 @@ function buildTyped(
     case "collection":
     case "mvcollection":
     case "proceedings":
-    case "reference": {
+    case "mvproceedings":
+    case "reference":
+    case "mvreference": {
       const editors = base.authors.length === 0 ? creators(fields.editor) : [];
       const translators = creators(fields.translator);
       return {
@@ -261,7 +267,7 @@ function buildTyped(
         ...base,
         type: "bookChapter",
         editors: creators(fields.editor),
-        bookTitle: stripMarkup(str(fields.booktitle) ?? "").trim(),
+        bookTitle: (str(fields.booktitle) ?? "").trim(),
         ...(edition ? { edition: parseEdition(edition) } : {}),
         ...(str(fields.volume) ? { volume: str(fields.volume) } : {}),
         ...(str(fields.publisher) ? { publisher: str(fields.publisher) } : {}),
@@ -272,7 +278,7 @@ function buildTyped(
       return {
         ...base,
         type: "referenceEntry",
-        workTitle: stripMarkup(str(fields.booktitle) ?? "").trim(),
+        workTitle: (str(fields.booktitle) ?? "").trim(),
         ...(edition ? { edition: parseEdition(edition) } : {}),
         ...(str(fields.publisher) ? { publisher: str(fields.publisher) } : {}),
       };
@@ -284,9 +290,8 @@ function buildTyped(
       return {
         ...base,
         type: "conferencePaper",
-        conferenceName: stripMarkup(
-          str(fields.eventtitle) ?? str(fields.booktitle) ?? "",
-        ).trim(),
+        conferenceName: (str(fields.eventtitle) ?? str(fields.booktitle) ?? "")
+          .trim(),
         ...(location ? { location } : {}),
       };
     }
@@ -425,7 +430,7 @@ export function mapBibEntry(entry: Entry, id: string): MappedEntry {
   const warnings: BibWarning[] = [];
   const fields = entry.fields;
 
-  const title = stripMarkup(str(fields.title) ?? "").trim();
+  const title = (str(fields.title) ?? "").trim();
   if (!title) warnings.push({ code: "noTitle" });
 
   const authors = creators(fields.author);

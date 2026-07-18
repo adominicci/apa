@@ -206,6 +206,27 @@ describe("mapBibEntry — dates and fields", () => {
     expect(ref.extra).toBeUndefined();
     expect(JSON.stringify(ref)).not.toContain("léeme");
   });
+
+  it("strips markup from non-title fields too, not only titles", () => {
+    const { ref } = mapBibEntry(
+      entry(
+        `@book{b, title={T}, publisher={\\emph{Prensa} Test}, year={2020}}`,
+      ),
+      "ref-14",
+    );
+    expect(ref.type).toBe("book");
+    if (ref.type === "book") expect(ref.publisher).toBe("Prensa Test");
+  });
+
+  it("ignores an out-of-range urldate month/day", () => {
+    const { ref } = mapBibEntry(
+      entry(
+        `@misc{m, title={T}, url={http://x.test}, urldate={2024-13-40}, year={2023}}`,
+      ),
+      "ref-15",
+    );
+    expect(ref.retrievedDate).toEqual({ year: 2024 });
+  });
 });
 
 describe("bibtex helpers", () => {

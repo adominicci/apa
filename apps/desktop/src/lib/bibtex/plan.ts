@@ -73,8 +73,12 @@ export function buildImportPlan(
 
     // A malformed entry can survive parsing as a stub with no usable fields
     // (the parser also records it under `errors`). Drop it rather than show a
-    // confusing empty row — it's already counted as an unreadable entry.
-    if (ref.title === "" && ref.authors.length === 0) continue;
+    // confusing empty row — it's already counted as an unreadable entry. An
+    // edited work puts its people in `editors`, so check that too.
+    const editors = "editors" in ref ? ref.editors ?? [] : [];
+    if (ref.title === "" && ref.authors.length === 0 && editors.length === 0) {
+      continue;
+    }
 
     const doiKey = ref.doi ? normalizeDoi(ref.doi) : "";
     const titleKey = ref.title
