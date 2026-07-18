@@ -119,7 +119,13 @@ renumbers automatically. The editor uses CSS counters + `data-doclang`.
 - Autofill is real: CrossRef (DOI) + OpenLibrary (ISBN) + URL scraping
   (citation_* / JSON-LD / Open Graph; DOI-first) over the Tauri http plugin.
   Because URL autofill fetches user-pasted pages, the http capability scope is
-  deliberately broad (`https://*/*` + `http://*/*`). BibTeX import is the only
-  "coming soon" item *in the reference-input flow*; the broader pending list
-  (reference manager, collections, signing/updater, post-v1 items) lives in
-  README → Hoja de ruta.
+  deliberately broad (`https://*/*` + `http://*/*`). The reference-input flow is
+  now complete; the broader pending list (signing/updater, post-v1 items) lives
+  in README → Hoja de ruta.
+- BibTeX import (`.bib`) is real: `@retorquere/bibtex-parser` (ISC) parses,
+  `src/lib/bibtex/map.ts` maps each entry onto the 20 engine types (pure,
+  mirroring the autofill mappers), and `plan.ts` builds a review plan with
+  DOI/title dedupe. The file is read via `<input type=file>` + `file.text()`
+  (no new capabilities); `BibImportModal.svelte` is the shared review UI, opened
+  from the library toolbar and the reference form. The published parser tarball
+  ships no `.d.ts`, so `bibtex-parser.d.ts` declares the surface we use.

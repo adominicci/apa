@@ -19,6 +19,7 @@
   import PrintPreview from "$lib/components/PrintPreview.svelte";
   import RefEntry from "$lib/components/RefEntry.svelte";
   import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
+  import BibImportModal from "$lib/components/BibImportModal.svelte";
   import TitlePageForm from "$lib/components/TitlePageForm.svelte";
   import { collectCitedRefIds } from "$lib/editor/citedRefs";
   import { insertApaTable, insertFigure } from "$lib/editor/blocks";
@@ -414,6 +415,25 @@
       insertFigure(editor, relPath);
     } catch (err) {
       console.error("No se pudo insertar la figura:", err);
+    }
+  }
+
+  // ── BibTeX import (shared modal; opened from the reference form) ──
+  /** Largest .bib we'll read into memory (huge for a bibliography). */
+  const MAX_BIB_BYTES = 5_000_000;
+  let bibInput = $state<HTMLInputElement | undefined>(undefined);
+  let bibText = $state<string | null>(null);
+
+  async function handleBibFile(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file || file.size > MAX_BIB_BYTES) return;
+    try {
+      bibText = await file.text();
+      refFormOpen = false;
+    } catch (err) {
+      console.error("No se pudo leer el archivo .bib:", err);
     }
   }
 
@@ -839,10 +859,30 @@
   <ReferenceQuickForm
     language={documentLanguage}
     onSave={handleSaveReference}
+    onImportBibtex={() => bibInput?.click()}
     onClose={() => {
       refFormOpen = false;
       citeOnSave = false;
     }}
+  />
+{/if}
+
+<input
+  bind:this={bibInput}
+  type="file"
+  accept=".bib"
+  style="display: none"
+  onchange={handleBibFile}
+/>
+
+{#if bibText !== null}
+  <BibImportModal
+    {bibText}
+    onDone={() => {
+      bibText = null;
+      syncCitationEnv();
+    }}
+    onClose={() => (bibText = null)}
   />
 {/if}
 

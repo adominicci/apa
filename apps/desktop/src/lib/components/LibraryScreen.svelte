@@ -430,6 +430,7 @@
           language={uiLocale.current}
           initial={selected}
           onSave={handleSave}
+          onImportBibtex={() => bibInput?.click()}
           onClose={newReference}
         />
       {/key}
