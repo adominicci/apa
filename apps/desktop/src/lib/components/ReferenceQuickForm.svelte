@@ -8,6 +8,7 @@
     type Reference,
     type ReferenceType,
   } from "@tesina/engine";
+  import { untrack } from "svelte";
   import Modal from "$lib/components/Modal.svelte";
   import { detectInput } from "$lib/autofill/detect";
   import {
@@ -26,13 +27,19 @@
   interface Props {
     /** Document language: preset descriptors are typed into the document. */
     language: DocLocale;
+    /** When set, edit this reference (keeping its id) instead of adding. */
+    initial?: Reference;
+    /** Render as an embedded pane (reference manager) instead of a modal. */
+    inline?: boolean;
     onSave: (ref: Reference) => void;
     onClose: () => void;
   }
 
-  let { language, onSave, onClose }: Props = $props();
+  let { language, initial, inline = false, onSave, onClose }: Props = $props();
 
   const terms = $derived(getTerms(language));
+  const editing = $derived(initial !== undefined);
+  const title = $derived(editing ? m.form_title_edit() : m.form_title());
 
   interface CatalogItem {
     id: string;
@@ -351,8 +358,19 @@
     CATALOG.flatMap((g) => g.items).map((item) => [item.id, item]),
   );
 
-  let f = $state<QuickFields>(emptyQuickFields());
-  let formatId = $state("journalArticle");
+  // Prefill from the reference under edit (same path autofill uses); read once
+  // — the wrapper remounts via {#key} when the selected reference changes.
+  let f = $state<QuickFields>(
+    untrack(() => initial ? refToQuickFields(initial) : emptyQuickFields()),
+  );
+  let formatId = $state(
+    untrack(() =>
+      (initial &&
+        CATALOG.flatMap((g) => g.items).find((i) => i.type === initial.type)
+          ?.id) ||
+      "journalArticle"
+    ),
+  );
   let lookupText = $state("");
   let looking = $state(false);
   let lookupError = $state("");
@@ -496,7 +514,7 @@
   function save() {
     if (!canSave) return;
     const base = {
-      id: crypto.randomUUID(),
+      id: initial?.id ?? crypto.randomUUID(),
       authors: parseContributors(f.authorsText),
       date: buildDate(),
       title: f.title.trim() ||
@@ -735,7 +753,7 @@
   }
 </script>
 
-<Modal title={m.form_title()} {onClose} size="ref" dismissOnOverlay={false}>
+{#snippet body()}
     <div class="lookup" class:filled={autofilled}>
       <div class="row">
         <input
@@ -1261,13 +1279,27 @@
       {m.form_hint()}
     </p>
 
-  {#snippet footer()}
-    <button class="btn btn-ghost" onclick={onClose}>{m.common_close()}</button>
-    <button class="btn btn-primary" onclick={save} disabled={!canSave}>
-      {m.form_save()}
-    </button>
-  {/snippet}
-</Modal>
+{/snippet}
+
+{#snippet formFooter()}
+  <button class="btn btn-ghost" onclick={onClose}>{m.common_close()}</button>
+  <button class="btn btn-primary" onclick={save} disabled={!canSave}>
+    {editing ? m.form_save_changes() : m.form_save()}
+  </button>
+{/snippet}
+
+{#if inline}
+  <section class="inline-form" aria-label={title}>
+    <header class="inline-head"><h3>{title}</h3></header>
+    <div class="inline-body">{@render body()}</div>
+    <footer class="inline-foot">{@render formFooter()}</footer>
+  </section>
+{:else}
+  <Modal {title} {onClose} size="ref" dismissOnOverlay={false}>
+    {@render body()}
+    {#snippet footer()}{@render formFooter()}{/snippet}
+  </Modal>
+{/if}
 
 <style>
   .row {
@@ -1398,5 +1430,92 @@
     margin: 0;
     color: var(--muted);
     font-size: 0.75rem;
+  }
+
+  /* Embedded pane variant (reference manager edit column). Mirrors the modal
+     chrome; the shared .btn styles in modal.css are scoped to .modal, so the
+     footer buttons are restyled here. */
+  .inline-form {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    font-family: var(--font);
+    font-size: 13.5px;
+    color: var(--fg);
+  }
+
+  .inline-head {
+    flex: 0 0 auto;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .inline-head h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .inline-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .inline-foot {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+  }
+
+  .inline-foot .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: var(--r-sm);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      background var(--fast) var(--ease),
+      border-color var(--fast) var(--ease);
+  }
+
+  .inline-foot .btn-primary {
+    background: var(--accent);
+    color: var(--accent-on);
+  }
+
+  .inline-foot .btn-primary:hover:enabled {
+    background: var(--accent-hover);
+  }
+
+  .inline-foot .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .inline-foot .btn-ghost {
+    color: var(--fg-2);
+    border-color: var(--border);
+    background: var(--surface);
+  }
+
+  .inline-foot .btn-ghost:hover:enabled {
+    border-color: var(--muted);
   }
 </style>

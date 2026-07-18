@@ -1,21 +1,19 @@
 <script lang="ts">
-  import type { DocLocale, Reference } from "@tesina/engine";
-  import { buildReferenceList } from "@tesina/engine";
+  import type { DocLocale } from "@tesina/engine";
   import type { EssaySummary, PaperVariant } from "$lib/model/essay";
   import { essays } from "$lib/state/essays.svelte";
-  import { library } from "$lib/state/library.svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
-  import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
   import Modal from "$lib/components/Modal.svelte";
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
     onOpen: (id: string) => void;
+    onOpenLibrary: () => void;
   }
 
-  let { onOpen }: Props = $props();
+  let { onOpen, onOpenLibrary }: Props = $props();
 
-  type View = "all" | "recent" | "drafts" | "refs" | "templates";
+  type View = "all" | "recent" | "drafts" | "templates";
   type Chip = "all" | "es" | "en" | "unfinished";
 
   let view = $state<View>("all");
@@ -23,7 +21,6 @@
   let search = $state("");
   let creating = $state(false);
   let settingsOpen = $state(false);
-  let refFormOpen = $state(false);
   let renamingId = $state<string | null>(null);
   let renameValue = $state("");
   let confirmingDelete = $state<string | null>(null);
@@ -39,10 +36,6 @@
     if (q !== "") list = list.filter((s) => s.title.toLowerCase().includes(q));
     return list;
   });
-
-  const grefEntries = $derived(
-    buildReferenceList(library.references, uiLocale.current).entries,
-  );
 
   async function createEssay(
     language: DocLocale,
@@ -90,11 +83,6 @@
       return iso;
     }
   }
-
-  function saveGlobalRef(ref: Reference) {
-    library.add(ref);
-    refFormOpen = false;
-  }
 </script>
 
 <div class="app">
@@ -138,7 +126,7 @@
       </button>
 
       <div class="nav-label">{m.side_resources()}</div>
-      <button class="nav-item" class:active={view === "refs"} onclick={() => (view = "refs")}>
+      <button class="nav-item" onclick={onOpenLibrary}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 4h11a2 2 0 0 1 2 2v14l-4-2-4 2V6H6z" /><path d="M6 4v16" /></svg>
         {m.side_global_refs()}
       </button>
@@ -156,48 +144,7 @@
     </aside>
 
     <div class="home-main">
-      {#if view === "refs"}
-        <header class="home-head">
-          <div>
-            <h1>{m.grefs_title()}</h1>
-            <p>{m.grefs_sub()}</p>
-          </div>
-          <div class="head-tools">
-            <button class="btn btn-primary" onclick={() => (refFormOpen = true)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" /></svg>
-              {m.panel_add()}
-            </button>
-          </div>
-        </header>
-        <div class="lib">
-          {#if grefEntries.length === 0}
-            <p class="empty">{m.panel_empty_library()}</p>
-          {:else}
-            <div class="gref-list">
-              {#each grefEntries as entry (entry.refId)}
-                <div class="ref-card">
-                  <p class="rtxt">
-                    {#each entry.runs as run, i (i)}
-                      {#if run.italic}<em>{run.text}</em>{:else}{run.text}{/if}
-                    {/each}
-                  </p>
-                  <div class="ref-foot">
-                    <button
-                      class="del"
-                      onclick={() => handleDelete(entry.refId)}
-                      onblur={() => (confirmingDelete = null)}
-                    >
-                      {confirmingDelete === entry.refId
-                        ? m.panel_delete_confirm()
-                        : m.panel_delete()}
-                    </button>
-                  </div>
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
-      {:else if view === "templates"}
+      {#if view === "templates"}
         <header class="home-head">
           <div>
             <h1>{m.templates_title()}</h1>
@@ -364,14 +311,6 @@
     </div>
   </section>
 </div>
-
-{#if refFormOpen}
-  <ReferenceQuickForm
-    language={uiLocale.current}
-    onSave={saveGlobalRef}
-    onClose={() => (refFormOpen = false)}
-  />
-{/if}
 
 {#if settingsOpen}
   <Modal title={m.settings_title()} onClose={() => (settingsOpen = false)}>
@@ -977,55 +916,6 @@
     border-radius: 6px;
     background: var(--surface);
     color: var(--fg);
-  }
-
-  .gref-list {
-    max-width: 720px;
-  }
-
-  .ref-card {
-    padding: 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--r-md);
-    background: var(--surface);
-    margin-bottom: 10px;
-    transition: border-color var(--fast) var(--ease);
-  }
-
-  .ref-card:hover {
-    border-color: color-mix(in oklab, var(--accent), var(--border) 55%);
-  }
-
-  .rtxt {
-    margin: 0;
-    font-family: var(--serif);
-    font-size: 12.5px;
-    line-height: 1.5;
-    color: var(--fg-2);
-    padding-left: 14px;
-    text-indent: -14px;
-    overflow-wrap: anywhere;
-  }
-
-  .ref-foot {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 6px;
-  }
-
-  .ref-foot .del {
-    font-size: 12px;
-    border: none;
-    background: none;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 3px 8px;
-    border-radius: 6px;
-  }
-
-  .ref-foot .del:hover {
-    background: color-mix(in oklab, var(--danger), transparent 90%);
-    color: var(--danger);
   }
 
   .empty {
