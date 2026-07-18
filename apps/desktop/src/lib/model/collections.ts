@@ -51,6 +51,24 @@ export function toggleMembership(
   });
 }
 
+/**
+ * Add every id in `refIds` to one collection, skipping ids already present.
+ * Used by BibTeX import to file a whole batch into the chosen collection at
+ * once; returns the same array reference when nothing changes.
+ */
+export function addAllToCollection(
+  collections: RefCollection[],
+  collectionId: string,
+  refIds: string[],
+): RefCollection[] {
+  return collections.map((c) => {
+    if (c.id !== collectionId) return c;
+    const present = new Set(c.refIds);
+    const additions = refIds.filter((id) => !present.has(id));
+    return additions.length ? { ...c, refIds: [...c.refIds, ...additions] } : c;
+  });
+}
+
 /** Remove `refId` from every collection (called when a reference is deleted). */
 export function pruneRefId(
   collections: RefCollection[],

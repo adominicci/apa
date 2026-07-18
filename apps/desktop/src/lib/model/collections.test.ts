@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addAllToCollection,
   createCollection,
   deleteCollection,
   pruneRefId,
@@ -72,5 +73,23 @@ describe("pruneRefId", () => {
   it("leaves collections without the id unchanged", () => {
     const next = pruneRefId(base(), "missing");
     expect(next).toEqual(base());
+  });
+});
+
+describe("addAllToCollection", () => {
+  it("appends only the ids not already present, in order", () => {
+    const next = addAllToCollection(base(), "c1", ["r2", "r3", "r4"]);
+    expect(next[0].refIds).toEqual(["r1", "r2", "r3", "r4"]);
+  });
+
+  it("only touches the named collection", () => {
+    const next = addAllToCollection(base(), "c1", ["r9"]);
+    expect(next[1].refIds).toEqual(["r2"]);
+  });
+
+  it("returns the same collection object when nothing is added", () => {
+    const input = base();
+    const next = addAllToCollection(input, "c2", ["r2"]);
+    expect(next[1]).toBe(input[1]);
   });
 });
