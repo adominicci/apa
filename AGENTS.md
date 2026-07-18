@@ -102,5 +102,8 @@ renumbers automatically. The editor uses CSS counters + `data-doclang`.
   i/hi, "s. f.", "párr.", "2.ª ed.", localized brackets.
 - Nested ordered-list markers cascade 1 → a → i by depth (Word/Docs convention;
   APA's online guidelines don't mandate a specific cascade).
-- Autofill is real: CrossRef (DOI) + OpenLibrary (ISBN) over the Tauri http
-  plugin. URL autofill and BibTeX import are the only "coming soon" items.
+- Autofill is real: CrossRef (DOI) + OpenLibrary (ISBN) + URL scraping
+  (citation_* / JSON-LD / Open Graph; DOI-first) over the Tauri http plugin.
+  Because URL autofill fetches user-pasted pages, the http capability scope is
+  deliberately broad (`https://*/*` + `http://*/*`). BibTeX import is the only
+  "coming soon" item.
