@@ -52,6 +52,28 @@ describe("docPreview", () => {
     expect(docPreview(emojiDoc, 3)).toBe("ab😀…");
     expect(docPreview(emojiDoc, 3)).not.toContain("�");
   });
+
+  it("counts code points during the walk, not UTF-16 units", () => {
+    // 6 emojis = 12 UTF-16 units but 6 code points: a unit-based walk would
+    // stop at maxChars=10 and drop the second paragraph with no ellipsis.
+    const emojiDoc = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "😀😀😀😀😀😀" }],
+          },
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "y más texto" }],
+          },
+        ],
+      }],
+    };
+    expect(docPreview(emojiDoc, 10)).toBe("😀😀😀😀😀😀 y m…");
+  });
 });
 
 describe("summarize with title-page fields and preview", () => {
