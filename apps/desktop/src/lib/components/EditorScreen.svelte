@@ -47,9 +47,10 @@
   interface Props {
     essay: Essay;
     onBack: () => void;
+    onOpenLibrary: () => void;
   }
 
-  let { essay, onBack }: Props = $props();
+  let { essay, onBack, onOpenLibrary }: Props = $props();
 
   // Remounted per essay via {#key essay.id}; initial captures are deliberate.
   let documentLanguage = $state<DocLocale>(
@@ -202,6 +203,22 @@
     return cited;
   }
 
+  // What we persist as the essay's denormalized snapshot: the live cited refs
+  // PLUS the prior snapshot copy of any still-cited reference that has since
+  // been deleted from the shared library. Without this, the first autosave
+  // after deleting a cited ref would drop its copy and defeat the reconcile
+  // restore on reopen (model/reconcile.ts). The live sheet keeps using the
+  // plain snapshot above.
+  function snapshotForPersist(): Reference[] {
+    const live = snapshotCitedRefs();
+    const have = new Set(live.map((r) => r.id));
+    const merged = [...live];
+    for (const r of essay.referencesSnapshot ?? []) {
+      if (!have.has(r.id) && citedCounts.has(r.id)) merged.push(r);
+    }
+    return merged;
+  }
+
   function scheduleSave() {
     status = "guardando";
     clearTimeout(saveTimer);
@@ -209,7 +226,7 @@
       try {
         essay.settings.documentLanguage = documentLanguage;
         essay.content = lastDoc;
-        essay.referencesSnapshot = snapshotCitedRefs();
+        essay.referencesSnapshot = snapshotForPersist();
         await essays.persist(essay);
         status = "guardado";
       } catch (err) {
@@ -217,6 +234,28 @@
         status = "error";
       }
     }, 500);
+  }
+
+  // Flush the debounced autosave before the editor unmounts for the manager;
+  // otherwise the pending 500 ms timer would race the navigation and lose the
+  // latest content + snapshot.
+  async function openLibrary() {
+    clearTimeout(saveTimer);
+    try {
+      essay.settings.documentLanguage = documentLanguage;
+      essay.content = lastDoc;
+      essay.referencesSnapshot = snapshotForPersist();
+      await essays.persist(essay);
+      status = "guardado";
+    } catch (err) {
+      console.error("No se pudo guardar el ensayo:", err);
+      status = "error";
+      // Stay in the editor so the error is visible and the user can retry —
+      // the debounce is already cleared, so navigating away would lose the
+      // unpersisted content/snapshot.
+      return;
+    }
+    onOpenLibrary();
   }
 
   function handleUpdate(docJson: unknown, wordCount: number) {
@@ -630,10 +669,15 @@
     <aside class="refs">
       <div class="panel-head">
         <h4>{referencesLabel}</h4>
-        <button class="btn btn-primary btn-sm" onclick={() => openRefForm(false)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" /></svg>
-          {m.panel_add().replace("+ ", "")}
-        </button>
+        <div class="panel-head-actions">
+          <button class="btn btn-ghost btn-sm" onclick={openLibrary}>
+            {m.libm_manage()}
+          </button>
+          <button class="btn btn-primary btn-sm" onclick={() => openRefForm(false)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" /></svg>
+            {m.panel_add().replace("+ ", "")}
+          </button>
+        </div>
       </div>
       <div class="search-ref">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
@@ -968,6 +1012,29 @@
     text-transform: uppercase;
     color: var(--muted);
     font-weight: 600;
+  }
+
+  .panel-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-ghost {
+    background: var(--surface);
+    color: var(--fg-2);
+    border-color: var(--border);
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--muted);
+    color: var(--fg);
+  }
+
+  .btn-sm {
+    height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
   }
 
   .add-wrap {

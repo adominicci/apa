@@ -6,6 +6,7 @@ import {
   summarize,
 } from "$lib/model/essay";
 import type { DocLocale } from "@tesina/engine";
+import { collectCitedRefIds } from "$lib/editor/citedRefs";
 import {
   fileExists,
   listJsonFiles,
@@ -108,6 +109,24 @@ class EssaysStore {
     };
     await writeJsonAtomic(essayPath(copy.id), copy);
     this.#upsertSummary(copy);
+  }
+
+  /**
+   * Which essays cite `refId`, for the reference-manager delete guard. Full
+   * scan of the essays directory (files are small); only real essays
+   * (`schemaVersion === 2`) count. Returns id + title of each citing essay.
+   */
+  async essaysCiting(refId: string): Promise<{ id: string; title: string }[]> {
+    const names = await listJsonFiles("essays");
+    const citing: { id: string; title: string }[] = [];
+    for (const name of names) {
+      const essay = await readJson<Essay>(`essays/${name}`);
+      if (!essay || essay.schemaVersion !== 2 || !essay.id) continue;
+      if (collectCitedRefIds(essay.content).has(refId)) {
+        citing.push({ id: essay.id, title: essay.titlePage.title });
+      }
+    }
+    return citing;
   }
 
   async remove(id: string): Promise<void> {

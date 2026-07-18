@@ -33,14 +33,28 @@ deno lint         # lint
 ## Fonts — do NOT regress this
 
 `--font` (Inter), `--serif` (Iowan/Charter — macOS system), `--mono` (SF Mono).
-Inter is **self-hosted** via an explicit `@font-face` in
-`apps/desktop/src/lib/styles/tokens.css` pointing at
-`static/fonts/inter-latin-variable.woff2` (SIL OFL, committed).
 
-**Never** switch to a bare `import "@fontsource-*"` — that relies on Vite
-optimizing an npm font package through Deno's symlinked `node_modules`, which is
-flaky and repeatedly fell back to the system sans (SF Pro). Keep the woff2 in
-`static/` + explicit `@font-face`.
+Inter's `@font-face` is **embedded as a base64 `data:` URI inside the static
+document head — `apps/desktop/src/app.html`** — using `format("woff2")`. The
+canonical source is `static/fonts/inter-latin-variable.woff2` (variable, SIL
+OFL, committed); `app.html` carries the regeneration one-liner in a comment.
+
+**Why it lives there and nowhere else** (this broke repeatedly): the
+`@font-face` must NOT go through Vite's module graph. When it lived in a
+JS-imported CSS (`tokens.css`, imported by `+layout.svelte`), `deno task dev`
+kept dropping it — HMR re-injects the rule and WKWebView then falls back to the
+system sans (SF Pro), and `url()` font assets can 404 on the Vite dev server
+(known Tauri/Vite issue). Embedding the bytes in `app.html` means there is
+**nothing to fetch and nothing for HMR to invalidate**, so the UI font is
+deterministic in dev and in the packaged build.
+
+**Never** (a) move the `@font-face` back into `tokens.css` or any
+JS-imported/Svelte-`<style>` CSS, (b) switch to a bare `import "@fontsource-*"`
+(relies on Vite optimizing an npm font through Deno's symlinked `node_modules`
+— flaky, falls back to SF Pro), or (c) use the non-standard
+`format("woff2-variations")` hint. If the UI font looks like SF Pro, the
+`@font-face` is being delivered through Vite again — fix the delivery, don't
+just clean-restart.
 
 ## i18n — two independent axes, never mixed within one surface
 
