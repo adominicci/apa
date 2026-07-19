@@ -27,6 +27,10 @@ Spec: `docs/superpowers/specs/2026-07-19-toolbar-dock-design.md`
   Estas cadenas son eje **UI**, no eje documento.
 - **Nunca** hardcodear color: todo pasa por los tokens de
   `lib/styles/tokens.css`. Hex crudo solo dentro de los bloques de tema.
+- Todo botón cuya etiqueta pueda ocultarse en modo solo-íconos lleva
+  `aria-label`. `data-tip` alimenta el tooltip visual y **no** es leído por la
+  tecnología asistiva; `display: none` saca la etiqueta del árbol de
+  accesibilidad. Un botón sin nombre accesible es un defecto, no un detalle.
 - **No** tocar `essay.schemaVersion` (es `2` y debe seguir así). El
   `schemaVersion` de `settings.json` también se queda en `1`: el campo nuevo es
   opcional.
@@ -742,13 +746,59 @@ Al final de `apps/desktop/src/lib/components/float-menu.css`:
   right: calc(100% + 10px);
   transform: none;
 }
+
+/*
+ * CitationPopover (.pop) sigue la misma regla, pero necesita las cuatro
+ * variantes explícitas: su CSS propio es `top:100%; right:0` (abre hacia abajo
+ * a la derecha), así que sin estas reglas quedaría mal en TODAS las posiciones.
+ * Reemplaza al override `.fab-cite :global(.pop)` que vivía en EditorScreen.
+ * Mide 340px de ancho, así que en los laterales importa especialmente que salga
+ * hacia el canvas y no fuera de la ventana.
+ */
+.float-menu[data-dock="bottom"] .pop {
+  top: auto;
+  bottom: calc(100% + 12px);
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.float-menu[data-dock="top"] .pop {
+  top: calc(100% + 12px);
+  bottom: auto;
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.float-menu[data-dock="left"] .pop {
+  top: 0;
+  bottom: auto;
+  right: auto;
+  left: calc(100% + 12px);
+  transform: none;
+}
+
+.float-menu[data-dock="right"] .pop {
+  top: 0;
+  bottom: auto;
+  left: auto;
+  right: calc(100% + 12px);
+  transform: none;
+}
 ```
 
-- [ ] **Step 5: Quitar el `.float-menu` scoped de EditorScreen**
+- [ ] **Step 5: Quitar de EditorScreen lo que pasó al CSS global**
 
-En `EditorScreen.svelte`, **borrar** el bloque `.float-menu { … }` del `<style>`
-(pasó al CSS global en el paso anterior). Dejar `.fm-sep`, `.fm-count` y
-`.fab-cite` donde están.
+En `EditorScreen.svelte`, **borrar** dos bloques del `<style>`:
+
+1. `.float-menu { … }` — pasó al CSS global en el paso anterior.
+2. `.fab-cite :global(.pop) { … }` — lo reemplazan las cuatro variantes de
+   `.pop` del paso anterior. Si se deja, su `transform: translateX(-50%)`
+   compite con las variantes laterales.
+
+**Conservar** `.fab-cite { position: relative; }` (es el ancla del popover),
+`.fm-sep` y `.fm-count`.
 
 - [ ] **Step 6: Importar Toolbar y usarlo**
 
@@ -796,8 +846,8 @@ de un `.fm-btn` de EditorScreen va en un `<span class="fm-label">`. Son cuatro:
       <span class="fm-label">{exporting ? m.editor_exporting() : m.editor_export()}</span>
 ```
 
-Y agregar `data-tip` a cada uno de esos botones con la misma cadena, para el
-tooltip de Task 6. Ejemplo sobre el botón de figura:
+Y agregar a cada uno de esos botones **`data-tip` y `aria-label`** con la misma
+cadena. Ejemplo sobre el botón de figura:
 
 ```svelte
       <button
@@ -805,16 +855,29 @@ tooltip de Task 6. Ejemplo sobre el botón de figura:
         onclick={() => figureInput?.click()}
         disabled={!editor}
         data-tip={m.fab_figure()}
+        aria-label={m.fab_figure()}
       >
 ```
 
-Nota: el `title={m.fab_figure()}` que ya tenía se **quita** — lo reemplaza el
-tooltip propio, y dejar ambos mostraría dos tooltips.
+Dos notas, ambas obligatorias:
+
+- El `title={m.fab_figure()}` que ya tenía se **quita** — lo reemplaza el
+  tooltip propio, y dejar ambos mostraría dos tooltips superpuestos.
+- El `aria-label` **no es opcional**. En los laterales la etiqueta se oculta con
+  `display: none`, lo que la saca del árbol de accesibilidad, y `data-tip` es un
+  atributo cualquiera que la tecnología asistiva no lee. Sin `aria-label` cada
+  botón quedaría **sin nombre accesible** en modo solo-íconos: hoy el `title`
+  cumple ese rol, así que quitarlo sin reemplazo sería una regresión.
 
 - [ ] **Step 8: Agregar `data-tip` y `fm-label` a los triggers de los 4 menús**
 
-En cada uno: cambiar `title={…}` por `data-tip={…}` (dejar ambos mostraría dos
-tooltips) y envolver el texto en `<span class="fm-label">`.
+En cada uno: cambiar `title={…}` por **`data-tip={…}` más `aria-label={…}`**
+(misma cadena en los dos) y envolver el texto en `<span class="fm-label">`.
+
+El `aria-label` es obligatorio por la misma razón que en el paso anterior: en
+los laterales la etiqueta se oculta con `display: none` y sale del árbol de
+accesibilidad, y `data-tip` no lo lee la tecnología asistiva. Hoy el `title`
+provee el nombre accesible; quitarlo sin reemplazo sería una regresión.
 
 `HeadingMenu.svelte` (línea ~37) — reemplazar `title={m.tb_headings()}` por
 `data-tip={m.tb_headings()}`, y la línea suelta `{m.tb_headings()}` por:
@@ -1062,6 +1125,15 @@ Al final de `apps/desktop/src/lib/components/float-menu.css`:
     top: auto;
     right: auto;
     bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .float-menu[data-dock="left"] .pop,
+  .float-menu[data-dock="right"] .pop {
+    top: auto;
+    right: auto;
+    bottom: calc(100% + 12px);
     left: 50%;
     transform: translateX(-50%);
   }
