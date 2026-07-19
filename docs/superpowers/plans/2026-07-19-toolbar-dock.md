@@ -635,6 +635,15 @@ Crear `apps/desktop/src/lib/components/Toolbar.svelte`:
 </div>
 
 <style>
+  /* Ancla del popover. Sin esto .menu-pop (position:absolute, definido en el
+     float-menu.css global) se resolvería contra .float-menu, que es fixed, y
+     el desplegable aparecería despegado del botón que lo abre. Los otros
+     cuatro menús declaran esto mismo en su propio <style>. No se declara
+     --pop-min-w: el fallback de 200px del CSS global es el ancho buscado. */
+  .menu-wrap {
+    position: relative;
+  }
+
   /*
    * .mi propio en lugar de reusar el de los otros menús: esos tres bloques no
    * son idénticos entre sí (HeadingMenu alinea por baseline para sus previews
