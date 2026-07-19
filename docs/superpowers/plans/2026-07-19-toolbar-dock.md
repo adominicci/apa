@@ -459,11 +459,12 @@ Reemplazar el bloque `.app { … }`:
     background: var(--canvas);
     /* Anchos de los paneles laterales y alto del header. Viven acá (y no en
        .shell) porque la barra flotante es hermana del shell y necesita leerlos
-       para anclarse al borde del canvas. --header-h es el height:40px del
-       .titlebar más su borde inferior de 1px. */
+       para anclarse al borde del canvas. --header-h son los 40px del .titlebar,
+       borde inferior incluido: tokens.css aplica box-sizing:border-box a todo,
+       así que el border-bottom de 1px va DENTRO de height:40px, no encima. */
     --outline-w: 248px;
     --refs-w: 312px;
-    --header-h: 41px;
+    --header-h: 40px;
   }
 
   .app.no-outline { --outline-w: 0px; }

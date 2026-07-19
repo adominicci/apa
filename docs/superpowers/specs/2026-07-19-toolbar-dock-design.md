@@ -80,7 +80,7 @@ Los offsets laterales salen de variables definidas en `.app` (el contenedor raí
 que envuelve header, shell, barra y footer):
 
 ```css
-.app            { --outline-w: 248px; --refs-w: 312px; --header-h: 41px; }
+.app            { --outline-w: 248px; --refs-w: 312px; --header-h: 40px; }
 .app.no-outline { --outline-w: 0px; }
 .app.no-refs    { --refs-w: 0px; }
 .app.focus      { --outline-w: 0px; --refs-w: 0px; }
@@ -92,9 +92,14 @@ Las clases de estado (`no-outline`, `no-refs`, `focus`) hoy están en `.shell`;
 se suben a `.app` para que tanto el grid como la barra lean las mismas
 variables.
 
-`--header-h` es 41 px: el `.titlebar` mide `height: 40px` más 1 px de
-`border-bottom`. La barra es `position: fixed`, así que sin este offset el dock
-superior quedaría **encima del header**.
+`--header-h` es 40 px: el `.titlebar` declara `height: 40px` y su
+`border-bottom: 1px` queda **dentro** de esa altura, porque `tokens.css` aplica
+`box-sizing: border-box` a todo (`*, *::before, *::after`). La barra es
+`position: fixed`, así que sin este offset el dock superior quedaría **encima
+del header**.
+
+> Corregido durante la implementación: una primera versión decía 41 px, sumando
+> el borde a la altura. Ese es el modelo content-box, que acá no aplica.
 
 Posiciones:
 
