@@ -520,7 +520,12 @@
   }
 </script>
 
-<div class="app">
+<div
+  class="app"
+  class:no-outline={!outlineOpen}
+  class:no-refs={!refsOpen}
+  class:focus={focusMode}
+>
   <header class="titlebar" data-tauri-drag-region>
     <div class="tb-left">
       <div class="traffic-space"></div>
@@ -573,12 +578,7 @@
     </div>
   </header>
 
-  <div
-    class="shell"
-    class:no-outline={!outlineOpen}
-    class:no-refs={!refsOpen}
-    class:focus={focusMode}
-  >
+  <div class="shell">
     <aside class="outline">
       <div class="panel-head">
         <h4>{m.outline_title()}</h4>
@@ -948,6 +948,22 @@
     display: flex;
     flex-direction: column;
     background: var(--canvas);
+    /* Anchos de los paneles laterales y alto del header. Viven acá (y no en
+       .shell) porque la barra flotante es hermana del shell y necesita leerlos
+       para anclarse al borde del canvas. --header-h es el height:40px del
+       .titlebar más su borde inferior de 1px. */
+    --outline-w: 248px;
+    --refs-w: 312px;
+    --header-h: 41px;
+  }
+
+  .app.no-outline { --outline-w: 0px; }
+  .app.no-refs { --refs-w: 0px; }
+
+  .app.no-outline.no-refs,
+  .app.focus {
+    --outline-w: 0px;
+    --refs-w: 0px;
   }
 
   .titlebar {
@@ -1044,21 +1060,8 @@
     flex: 1 1 auto;
     min-height: 0;
     display: grid;
-    grid-template-columns: 248px 1fr 312px;
+    grid-template-columns: var(--outline-w) 1fr var(--refs-w);
     transition: grid-template-columns 220ms var(--ease);
-  }
-
-  .shell.no-outline {
-    grid-template-columns: 0 1fr 312px;
-  }
-
-  .shell.no-refs {
-    grid-template-columns: 248px 1fr 0;
-  }
-
-  .shell.no-outline.no-refs,
-  .shell.focus {
-    grid-template-columns: 0 1fr 0;
   }
 
   .outline {
