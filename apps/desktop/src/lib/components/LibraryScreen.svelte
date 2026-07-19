@@ -603,8 +603,11 @@
     align-items: center;
   }
 
-  .coll {
+  .coll-row .coll {
     flex: 1 1 auto;
+  }
+
+  .coll {
     display: flex;
     align-items: center;
     gap: 8px;
