@@ -169,7 +169,7 @@ Esperado: PASS — 4 tests.
 deno task check && deno task test && deno fmt && deno lint
 ```
 
-Esperado: check con `0 ERRORS 0 WARNINGS`; test con 305 pasando (301 previos + 4).
+Esperado: check con `0 ERRORS 0 WARNINGS`; test con 304 pasando (300 previos + 4).
 
 - [ ] **Step 6: Commit**
 
@@ -268,7 +268,7 @@ Tras `setTheme`:
 deno task check && deno task test && deno fmt && deno lint
 ```
 
-Esperado: `0 ERRORS 0 WARNINGS`, 305 tests pasando.
+Esperado: `0 ERRORS 0 WARNINGS`, 304 tests pasando.
 
 - [ ] **Step 8: Commit**
 
@@ -920,7 +920,7 @@ No se agregan claves a los JSON: las cuatro cadenas ya existen.
 deno task check && deno task test && deno fmt && deno lint
 ```
 
-Esperado: `0 ERRORS 0 WARNINGS`, 305 tests pasando.
+Esperado: `0 ERRORS 0 WARNINGS`, 304 tests pasando.
 
 - [ ] **Step 10: Autofixer de Svelte**
 
@@ -1146,7 +1146,7 @@ Al final de `apps/desktop/src/lib/components/float-menu.css`:
 deno task check && deno task test && deno fmt && deno lint
 ```
 
-Esperado: `0 ERRORS 0 WARNINGS`, 305 tests pasando.
+Esperado: `0 ERRORS 0 WARNINGS`, 304 tests pasando.
 
 - [ ] **Step 3: Verificación visual final**
 
