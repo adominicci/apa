@@ -223,8 +223,10 @@
   position: relative;
 }
 
-/* Per-table pencil to edit the grid structure (rows/columns). */
-.apa-editor .tiptap .apa-table-edit {
+/* Per-table/figure pencil: tables edit the grid structure; figures offer a
+   single "delete figure" action. Same control, shared styling. */
+.apa-editor .tiptap .apa-table-edit,
+.apa-editor .tiptap .apa-figure-edit {
   position: absolute;
   top: 0;
   right: 0;
@@ -242,21 +244,26 @@
 }
 
 .apa-editor .tiptap .apa-table:hover .apa-table-edit,
-.apa-editor .tiptap .apa-table-edit:focus-visible {
+.apa-editor .tiptap .apa-table-edit:focus-visible,
+.apa-editor .tiptap .apa-figure:hover .apa-figure-edit,
+.apa-editor .tiptap .apa-figure-edit:focus-visible {
   opacity: 1;
 }
 
-.apa-editor .tiptap .apa-table-edit:hover {
+.apa-editor .tiptap .apa-table-edit:hover,
+.apa-editor .tiptap .apa-figure-edit:hover {
   color: var(--accent);
   border-color: var(--accent);
 }
 
-.apa-editor .tiptap .apa-table-edit svg {
+.apa-editor .tiptap .apa-table-edit svg,
+.apa-editor .tiptap .apa-figure-edit svg {
   width: 14px;
   height: 14px;
 }
 
-.apa-editor .tiptap .apa-table-menu {
+.apa-editor .tiptap .apa-table-menu,
+.apa-editor .tiptap .apa-figure-menu {
   position: absolute;
   top: 30px;
   right: 0;
@@ -270,7 +277,8 @@
   box-shadow: var(--elev-raised);
 }
 
-.apa-editor .tiptap .apa-table-menu-item {
+.apa-editor .tiptap .apa-table-menu-item,
+.apa-editor .tiptap .apa-figure-menu-item {
   border: none;
   background: none;
   text-align: left;
@@ -282,11 +290,13 @@
   font-size: 13px;
 }
 
-.apa-editor .tiptap .apa-table-menu-item:hover {
+.apa-editor .tiptap .apa-table-menu-item:hover,
+.apa-editor .tiptap .apa-figure-menu-item:hover {
   background: var(--hover);
 }
 
-.apa-editor .tiptap .apa-table-menu-item.danger {
+.apa-editor .tiptap .apa-table-menu-item.danger,
+.apa-editor .tiptap .apa-figure-menu-item.danger {
   color: var(--danger);
 }
 
@@ -365,6 +375,7 @@
   counter-increment: apa-figure;
   margin: 1em 0;
   text-align: center;
+  position: relative;
 }
 
 .apa-editor .tiptap .fig-title {
