@@ -262,3 +262,70 @@
 .float-menu[data-dock="right"] .fm-btn:focus-visible::after {
   opacity: 1;
 }
+
+/*
+ * Con ambos paneles abiertos (248 + 312 = 560px) más el papel de 8.5in (816px)
+ * más la barra lateral hacen falta ~1400px. Por debajo de 1280px la barra
+ * vuelve abajo. La preferencia guardada NO se toca: al agrandar la ventana la
+ * barra regresa sola a su lado.
+ */
+@media (max-width: 1280px) {
+  .float-menu[data-dock="left"],
+  .float-menu[data-dock="right"] {
+    top: auto;
+    right: auto;
+    bottom: 40px;
+    left: 50%;
+    margin-block: 0;
+    transform: translateX(-50%);
+    flex-direction: row;
+  }
+
+  .float-menu[data-dock="left"] .fm-label,
+  .float-menu[data-dock="right"] .fm-label,
+  .float-menu[data-dock="left"] .fm-count,
+  .float-menu[data-dock="right"] .fm-count {
+    display: inline;
+  }
+
+  .float-menu[data-dock="left"] .caret,
+  .float-menu[data-dock="right"] .caret {
+    display: block;
+  }
+
+  .float-menu[data-dock="left"] .fm-btn,
+  .float-menu[data-dock="right"] .fm-btn {
+    width: auto;
+    padding: 0 14px;
+  }
+
+  .float-menu[data-dock="left"] .fm-btn::after,
+  .float-menu[data-dock="right"] .fm-btn::after {
+    content: none;
+  }
+
+  .float-menu[data-dock="left"] .fm-sep,
+  .float-menu[data-dock="right"] .fm-sep {
+    width: 1px;
+    height: 22px;
+    margin: 0 3px;
+  }
+
+  .float-menu[data-dock="left"] .menu-pop,
+  .float-menu[data-dock="right"] .menu-pop {
+    top: auto;
+    right: auto;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .float-menu[data-dock="left"] .pop,
+  .float-menu[data-dock="right"] .pop {
+    top: auto;
+    right: auto;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
