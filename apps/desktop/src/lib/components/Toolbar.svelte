@@ -61,6 +61,13 @@
 </div>
 
 <style>
+  /* Ancla del popover. Sin esto .menu-pop (position:absolute, definido en el
+     float-menu.css global) se resolvería contra .float-menu, que es fixed, y
+     el desplegable aparecería despegado del botón que lo abre. */
+  .menu-wrap {
+    position: relative;
+  }
+
   /*
    * .mi propio en lugar de reusar el de los otros menús: esos tres bloques no
    * son idénticos entre sí (HeadingMenu alinea por baseline para sus previews
