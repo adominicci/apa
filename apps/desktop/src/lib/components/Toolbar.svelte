@@ -31,7 +31,7 @@
   <div class="fm-sep"></div>
   <div class="menu-wrap">
     <button
-      class="fm-btn"
+      class="fm-btn fm-btn-icon"
       data-tip={m.toolbar_position()}
       aria-label={m.toolbar_position()}
       aria-expanded={open}
@@ -41,7 +41,6 @@
         <rect x="3" y="3" width="18" height="18" rx="2" />
         <path d="M3 16h18" />
       </svg>
-      <span class="fm-label">{m.toolbar_position()}</span>
     </button>
     {#if open}
       <div class="menu-pop" role="menu">

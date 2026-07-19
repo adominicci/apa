@@ -45,7 +45,7 @@
     class:on={open}
     onclick={onToggle}
     data-tip={m.tb_font()}
-    aria-label={m.tb_font()}
+    aria-label={`${m.tb_font()}: ${APA_FONTS[current].family}`}
     aria-haspopup="menu"
     aria-expanded={open}
   >

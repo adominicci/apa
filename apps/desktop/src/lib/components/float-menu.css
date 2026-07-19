@@ -75,6 +75,13 @@
   bottom: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%);
+  /*
+   * Sin tope, un popover largo (Font, selector de posición) se sale del
+   * viewport en la altura mínima de la ventana (600px) sin forma de hacer
+   * scroll hasta sus últimas opciones. 32px deja aire arriba/abajo.
+   */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
 }
 
 /*
@@ -264,6 +271,56 @@
 }
 
 /*
+ * El selector de posición (Toolbar.svelte) es icon-only en las cuatro
+ * posiciones, no solo en las laterales, así que abajo/arriba también
+ * necesitan su propio tooltip por ::after. Se apunta a `.fm-btn-icon` (no a
+ * todo `.fm-btn`) para no agregarles tooltip a los demás botones de estos
+ * docks horizontales: esos siguen mostrando su etiqueta de texto y no deben
+ * ganar uno.
+ */
+.float-menu[data-dock="bottom"] .fm-btn-icon,
+.float-menu[data-dock="top"] .fm-btn-icon {
+  position: relative;
+}
+
+.float-menu[data-dock="bottom"] .fm-btn-icon::after,
+.float-menu[data-dock="top"] .fm-btn-icon::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--elev-raised);
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--fast) var(--ease);
+  z-index: 70;
+}
+
+/* Vertical, no lateral: hacia arriba en la barra de abajo, hacia abajo en la de arriba. */
+.float-menu[data-dock="bottom"] .fm-btn-icon::after {
+  bottom: calc(100% + 8px);
+}
+
+.float-menu[data-dock="top"] .fm-btn-icon::after {
+  top: calc(100% + 8px);
+}
+
+.float-menu[data-dock="bottom"] .fm-btn-icon:hover::after,
+.float-menu[data-dock="bottom"] .fm-btn-icon:focus-visible::after,
+.float-menu[data-dock="top"] .fm-btn-icon:hover::after,
+.float-menu[data-dock="top"] .fm-btn-icon:focus-visible::after {
+  opacity: 1;
+}
+
+/*
  * Con ambos paneles abiertos (248 + 312 = 560px) más el papel de 8.5in (816px)
  * más la barra lateral hacen falta ~1400px. Por debajo de 1280px la barra
  * vuelve abajo. La preferencia guardada NO se toca: al agrandar la ventana la
@@ -299,9 +356,24 @@
     padding: 0 14px;
   }
 
-  .float-menu[data-dock="left"] .fm-btn::after,
-  .float-menu[data-dock="right"] .fm-btn::after {
+  /*
+   * El selector de posición sigue siendo icon-only acá (no tiene .fm-label
+   * que recuperar), así que conserva su tooltip; se lo excluye de este
+   * apagado general y se reposiciona debajo, igual que en el dock "bottom"
+   * al que esta vuelta imita.
+   */
+  .float-menu[data-dock="left"] .fm-btn:not(.fm-btn-icon)::after,
+  .float-menu[data-dock="right"] .fm-btn:not(.fm-btn-icon)::after {
     content: none;
+  }
+
+  .float-menu[data-dock="left"] .fm-btn-icon::after,
+  .float-menu[data-dock="right"] .fm-btn-icon::after {
+    top: auto;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
   }
 
   .float-menu[data-dock="left"] .fm-sep,
