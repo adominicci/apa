@@ -787,7 +787,7 @@
       <button
         class="fm-btn"
         onclick={() => openRefForm(true)}
-        data-tip={m.fab_new_ref()}
+        data-tip={m.fab_new_ref_hint()}
         aria-label={m.fab_new_ref()}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4h11a2 2 0 0 1 2 2v14l-4-2-4 2V6H6z" /><path d="M6 4v16" /></svg>
