@@ -194,3 +194,71 @@
   right: calc(100% + 12px);
   transform: none;
 }
+
+/*
+ * Laterales: solo íconos. El texto se oculta y lo reemplaza un tooltip propio
+ * (no el title= nativo, que tarda ~1s, no se puede estilizar y no aparece al
+ * navegar con teclado). Se dispara con :hover Y :focus-visible.
+ */
+.float-menu[data-dock="left"] .fm-label,
+.float-menu[data-dock="right"] .fm-label,
+.float-menu[data-dock="left"] .fm-count,
+.float-menu[data-dock="right"] .fm-count,
+/* El caret de los desplegables sobra junto a un ícono solo: agrega ancho y
+   ya no apunta hacia donde el menú se abre. */
+.float-menu[data-dock="left"] .caret,
+.float-menu[data-dock="right"] .caret {
+  display: none;
+}
+
+.float-menu[data-dock="left"] .fm-btn,
+.float-menu[data-dock="right"] .fm-btn {
+  width: 38px;
+  padding: 0;
+  justify-content: center;
+  position: relative;
+}
+
+.float-menu[data-dock="left"] .fm-sep,
+.float-menu[data-dock="right"] .fm-sep {
+  width: 22px;
+  height: 1px;
+  margin: 3px 0;
+}
+
+.float-menu[data-dock="left"] .fm-btn::after,
+.float-menu[data-dock="right"] .fm-btn::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--elev-raised);
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--fast) var(--ease);
+  z-index: 70;
+}
+
+/* Sale hacia el canvas, nunca hacia afuera de la ventana. */
+.float-menu[data-dock="left"] .fm-btn::after {
+  left: calc(100% + 8px);
+}
+
+.float-menu[data-dock="right"] .fm-btn::after {
+  right: calc(100% + 8px);
+}
+
+.float-menu[data-dock="left"] .fm-btn:hover::after,
+.float-menu[data-dock="left"] .fm-btn:focus-visible::after,
+.float-menu[data-dock="right"] .fm-btn:hover::after,
+.float-menu[data-dock="right"] .fm-btn:focus-visible::after {
+  opacity: 1;
+}
