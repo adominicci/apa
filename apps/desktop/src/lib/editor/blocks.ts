@@ -8,6 +8,7 @@ import {
 import { imageObjectUrl } from "../persist/assets.ts";
 import { m } from "../paraglide/messages.js";
 import { deleteApaTableAt } from "./tableCommands.ts";
+import { deleteApaFigureAt } from "./figureCommands.ts";
 
 /**
  * APA tables (APA 7.8–7.21). The caption ("Table N", bold) and the "Note."
@@ -227,7 +228,10 @@ export const FigureNote = Node.create({
 export const FigureImage = Node.create({
   name: "figureImage",
   atom: true,
-  selectable: true,
+  // Not directly selectable: deleting the required image node would leave the
+  // figure with an empty <img> placeholder (the schema forces one to exist).
+  // The image is removed only by deleting the whole figure via the pencil menu.
+  selectable: false,
   draggable: false,
   addAttributes() {
     return {
@@ -287,6 +291,90 @@ export const ApaFigure = Node.create({
   },
   renderHTML() {
     return ["figure", { "data-apa-figure": "true", class: "apa-figure" }, 0];
+  },
+  // Per-figure pencil, mirroring the table pencil: the only edit for a figure
+  // is removing it whole (title + image + note), since the image can't be
+  // deleted on its own without leaving an empty placeholder.
+  addNodeView() {
+    return ({ editor, getPos }) => {
+      const dom = document.createElement("figure");
+      dom.className = "apa-figure";
+      dom.setAttribute("data-apa-figure", "true");
+
+      const contentDOM = document.createElement("div");
+      contentDOM.className = "apa-figure-content";
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "apa-figure-edit";
+      editBtn.contentEditable = "false";
+      editBtn.title = m.figure_edit();
+      editBtn.setAttribute("aria-label", m.figure_edit());
+      editBtn.innerHTML =
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`;
+
+      const menu = document.createElement("div");
+      menu.className = "apa-figure-menu";
+      menu.contentEditable = "false";
+      menu.style.display = "none";
+
+      /** Closes when the user interacts anywhere outside the pencil/menu. */
+      const onOutsideDown = (e: MouseEvent) => {
+        const target = e.target as globalThis.Node | null;
+        if (target && (menu.contains(target) || editBtn.contains(target))) {
+          return;
+        }
+        closeMenu();
+      };
+
+      const closeMenu = () => {
+        menu.style.display = "none";
+        document.removeEventListener("mousedown", onOutsideDown, true);
+      };
+
+      const openMenu = () => {
+        menu.style.display = "flex";
+        document.addEventListener("mousedown", onOutsideDown, true);
+      };
+
+      /** Deletes this whole figure by its node range (isolating wrapper). */
+      const deleteWholeFigure = () => {
+        const pos = typeof getPos === "function" ? getPos() : undefined;
+        if (typeof pos !== "number") return;
+        deleteApaFigureAt(editor, pos);
+      };
+
+      const delItem = document.createElement("button");
+      delItem.type = "button";
+      delItem.className = "apa-figure-menu-item danger";
+      delItem.textContent = m.figure_delete();
+      // preventDefault on mousedown keeps the editor selection; the action
+      // runs on click so keyboard activation (Enter/Space) works too.
+      delItem.addEventListener("mousedown", (e) => e.preventDefault());
+      delItem.addEventListener("click", () => {
+        closeMenu();
+        deleteWholeFigure();
+      });
+      menu.append(delItem);
+
+      editBtn.addEventListener("mousedown", (e) => e.preventDefault());
+      editBtn.addEventListener("click", () => {
+        if (menu.style.display === "none") openMenu();
+        else closeMenu();
+      });
+
+      dom.append(editBtn, menu, contentDOM);
+
+      return {
+        dom,
+        contentDOM,
+        ignoreMutation: (mutation) =>
+          mutation.type !== "selection" &&
+          !contentDOM.contains(mutation.target),
+        deselectNode: closeMenu,
+        destroy: closeMenu,
+      };
+    };
   },
 });
 

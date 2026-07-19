@@ -373,6 +373,8 @@
   "table_header_row": "Primera fila como encabezado",
   "table_dialog_hint": "Podrás editar la estructura después con el lápiz de la tabla.",
   "table_edit_structure": "Editar estructura de la tabla",
+  "figure_edit": "Editar figura",
+  "figure_delete": "Eliminar figura",
   "fab_figure": "Figura",
   "cover_open_form": "Editar la portada en el formulario",
   "cover_title_ph": "Título del trabajo",
