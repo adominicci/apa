@@ -108,7 +108,20 @@ renumbers automatically. The editor uses CSS counters + `data-doclang`.
 - Fixtures/examples are invented — never copied from the APA manual or "normas"
   sites.
 - Distribution: unsigned DMG (macOS) / MSI (Windows) via GitHub Releases only.
-  **No Mac App Store.** Updater/signing deferred until there's a dev account.
+  **No Mac App Store.** The in-app updater is live: `tauri-plugin-updater`
+  checks GitHub Releases (`…/releases/latest/download/latest.json`) on launch
+  and updates on one click; artifacts are signed in CI with a minisign updater
+  key (public key in `tauri.conf.json`, private key + password in the
+  `TAURI_SIGNING_PRIVATE_KEY`/`_PASSWORD` repo secrets — never committed).
+  Releases stay drafts (`releaseDraft: true`) so publishing is the manual gate
+  that ships an update. Apple codesigning/notarization is still deferred until
+  there's a dev account (that only removes the first-launch Gatekeeper warning).
+- Because `createUpdaterArtifacts` is on, a **local** `deno task build` now tries
+  to sign the updater `.tar.gz` and fails with "no private key" unless the key is
+  in the env: `export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/tesina-updater.key)"`
+  (empty password). For just running the app locally use `deno task dev` — it
+  doesn't bundle, so no key is needed. The `.app`/`.dmg` are produced before the
+  signing step, so they still appear even if that final step errors.
 
 ## APA notes
 

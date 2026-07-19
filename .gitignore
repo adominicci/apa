@@ -15,6 +15,7 @@ apps/desktop/src/lib/paraglide/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+.conductor/
 
 # Test / coverage
 coverage/
@@ -25,3 +26,6 @@ samples/
 # Local env
 .env
 .env.local
+
+# Tauri updater signing keys (private — never commit; live outside the repo)
+*.key
