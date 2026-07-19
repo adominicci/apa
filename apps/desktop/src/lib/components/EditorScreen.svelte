@@ -3,7 +3,12 @@
   import type { Editor as TiptapEditor } from "@tiptap/core";
   import type { CitationAttrs, DocLocale, Reference } from "@tesina/engine";
   import { getTerms } from "@tesina/engine";
-  import type { Essay, EssaySettings, TitlePage } from "$lib/model/essay";
+  import type {
+    Essay,
+    EssaySettings,
+    FontChoice,
+    TitlePage,
+  } from "$lib/model/essay";
   import { APA_FONTS } from "$lib/model/fonts";
   import Editor from "$lib/components/Editor.svelte";
   import CoverSheet, {
@@ -14,6 +19,7 @@
   import HeadingMenu from "$lib/components/HeadingMenu.svelte";
   import ListMenu from "$lib/components/ListMenu.svelte";
   import TableMenu from "$lib/components/TableMenu.svelte";
+  import FontMenu from "$lib/components/FontMenu.svelte";
   import TableInsertDialog from "$lib/components/TableInsertDialog.svelte";
   import "$lib/components/float-menu.css";
   import PrintPreview from "$lib/components/PrintPreview.svelte";
@@ -88,7 +94,7 @@
   let inTable = $state(false);
   let tableDialogOpen = $state(false);
   /** Only one bottom-bar dropdown open at a time. */
-  let openMenu = $state<"headings" | "lists" | "table" | null>(null);
+  let openMenu = $state<"headings" | "lists" | "table" | "font" | null>(null);
   let citedCounts = $state<Map<string, number>>(
     untrack(() => collectCitedRefIds(essay.content)),
   );
@@ -122,6 +128,12 @@
     scheduleSave();
   }
   const pagesEst = $derived(Math.max(1, Math.ceil(words / 250)));
+
+  function setFont(font: FontChoice) {
+    essay.settings = { ...essay.settings, font };
+    scheduleSave();
+  }
+
   /** Editor sheets render in the chosen APA font via inherited CSS vars. */
   const docFont = $derived(APA_FONTS[essay.settings.font]);
   const sheetFontStyle = $derived(
@@ -804,6 +816,13 @@
         accept="image/*"
         style="display: none"
         onchange={handleFigureFile}
+      />
+      <FontMenu
+        current={essay.settings.font}
+        open={openMenu === "font"}
+        onToggle={() => (openMenu = openMenu === "font" ? null : "font")}
+        onClose={() => (openMenu = null)}
+        onSelect={setFont}
       />
       <div class="fm-sep"></div>
       <button class="fm-btn" class:on={focusMode} onclick={() => (focusMode = !focusMode)}>

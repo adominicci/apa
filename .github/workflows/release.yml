@@ -53,6 +53,11 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Updater signing: the private key + password live in repo secrets.
+          # With these present and plugins.updater configured, tauri-action
+          # signs the artifacts and uploads latest.json for the in-app updater.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
           tauriScript: deno task tauri

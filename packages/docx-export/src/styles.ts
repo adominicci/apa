@@ -10,6 +10,7 @@ export const FONT_MAP: Record<FontChoice, { name: string; size: number }> = {
   "times-new-roman-12": { name: "Times New Roman", size: 24 },
   "georgia-11": { name: "Georgia", size: 22 },
   "computer-modern-10": { name: "CMU Serif", size: 20 },
+  "aptos-12": { name: "Aptos", size: 24 },
   "calibri-11": { name: "Calibri", size: 22 },
   "arial-11": { name: "Arial", size: 22 },
   "lucida-sans-unicode-10": { name: "Lucida Sans Unicode", size: 20 },

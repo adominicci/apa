@@ -15,6 +15,8 @@
     "npm:@tauri-apps/plugin-fs@2": "2.5.1",
     "npm:@tauri-apps/plugin-http@2": "2.5.9",
     "npm:@tauri-apps/plugin-opener@2": "2.5.4",
+    "npm:@tauri-apps/plugin-process@2": "2.3.1",
+    "npm:@tauri-apps/plugin-updater@2": "2.10.1",
     "npm:@tiptap/core@^3.6.5": "3.27.3_@tiptap+pm@3.27.3",
     "npm:@tiptap/extension-table@^3.6.5": "3.27.3_@tiptap+core@3.27.3__@tiptap+pm@3.27.3_@tiptap+pm@3.27.3",
     "npm:@tiptap/pm@^3.6.5": "3.27.3",
@@ -446,6 +448,18 @@
     },
     "@tauri-apps/plugin-opener@2.5.4": {
       "integrity": "sha512-1HnPkb+AmgO29HBazm4uPLKB+r7zzcTBW1d0fyYp1uP+jwtpoiNDGKMMzz58SFp49nOIrxdE3aUJtT57lfO9CQ==",
+      "dependencies": [
+        "@tauri-apps/api"
+      ]
+    },
+    "@tauri-apps/plugin-process@2.3.1": {
+      "integrity": "sha512-nCa4fGVaDL/B9ai03VyPOjfAHRHSBz5v6F/ObsB73r/dA3MHHhZtldaDMIc0V/pnUw9ehzr2iEG+XkSEyC0JJA==",
+      "dependencies": [
+        "@tauri-apps/api"
+      ]
+    },
+    "@tauri-apps/plugin-updater@2.10.1": {
+      "integrity": "sha512-NFYMg+tWOZPJdzE/PpFj2qfqwAWwNS3kXrb1tm1gnBJ9mYzZ4WDRrwy8udzWoAnfGCHLuePNLY1WVCNHnh3eRA==",
       "dependencies": [
         "@tauri-apps/api"
       ]
@@ -1665,6 +1679,8 @@
             "npm:@tauri-apps/plugin-fs@2",
             "npm:@tauri-apps/plugin-http@2",
             "npm:@tauri-apps/plugin-opener@2",
+            "npm:@tauri-apps/plugin-process@2",
+            "npm:@tauri-apps/plugin-updater@2",
             "npm:@tesina/docx-export@*",
             "npm:@tesina/engine@*",
             "npm:@tiptap/core@^3.6.5",

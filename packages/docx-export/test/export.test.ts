@@ -231,4 +231,12 @@ describe("exportDocx font choice", () => {
     expect(styles).toContain(`w:ascii="CMU Serif"`);
     expect(styles).toMatch(/w:sz w:val="20"/); // 10 pt
   });
+
+  it("applies Aptos at 12 pt (size 24)", async () => {
+    const bytes = await exportDocx(sampleInput({ font: "aptos-12" }));
+    const styles = strFromU8(unzipSync(bytes)["word/styles.xml"]!);
+    expect(styles).toContain(`w:ascii="Aptos"`);
+    expect(styles).toMatch(/w:sz w:val="24"/); // 12 pt
+    expect(styles).not.toContain("Times New Roman");
+  });
 });

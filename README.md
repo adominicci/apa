@@ -16,8 +16,9 @@ A diferencia de otras herramientas, el **idioma del documento** es independiente
 
 - **Entorno de tres hojas**: cada proyecto abre como tres hojas tamaño carta apiladas — portada editable sobre la propia página, cuerpo, y página de referencias que se llena sola al citar.
 - **Biblioteca de ensayos**: crear (ES/EN), renombrar, duplicar; las tarjetas muestran curso, profesor y las primeras líneas; eliminar guarda respaldo en `backups/`.
-- **Editor APA seccionado**: resumen con palabras clave, cuerpo con los 5 niveles de encabezado, apéndices con letra automática; hoja blanca con la fuente APA que elijas (serif o sans serif entre las 6 aprobadas), doble espacio y sangrías correctas.
+- **Editor APA seccionado**: resumen con palabras clave, cuerpo con los 5 niveles de encabezado, apéndices con letra automática; hoja blanca con la fuente APA que elijas, doble espacio y sangrías correctas.
 - **Estructura**: menús de encabezados (N1–N5) y listas (viñeta, número o letra, con sangrar/reducir y numeración anidada 1 → a → i), más **tablas** con bordes APA y **figuras** con imagen, autonumeradas ("Tabla 1", "Figura 1") en editor, vista previa y Word.
+- **Selector de fuente**: un menú en la barra flotante muestra la fuente actual y cambia todo el ensayo —editor, portada, referencias, vista previa y Word— a cualquiera de las 7 fuentes que APA 7 aprueba (serif: Times New Roman, Georgia, Computer Modern; sans serif: Aptos, Calibri, Arial, Lucida Sans Unicode), cada una en su tamaño prescrito.
 - **Citas vivas**: inserta citas parentéticas o narrativas desde tu biblioteca (multi-obra, localizadores de página/párrafo); el motor aplica et al., sufijos 2020a/b, iniciales por apellidos repetidos y abreviaturas de grupo — y se re-renderizan solas al editar la biblioteca o cambiar el idioma.
 - **Bibliografía automática**: ordenada y formateada por el motor, con avisos de obras sin citar.
 - **Gestor de referencias**: una **Biblioteca a pantalla completa** (desde Inicio o desde el editor con "Gestionar") para **editar** cualquier referencia existente, agruparlas en **colecciones** reutilizables (una referencia puede estar en varias) y eliminarlas con seguridad — el aviso te dice en cuántos ensayos se cita, y como cada ensayo guarda su propia copia, las citas no se rompen: al reabrir un ensayo, una referencia borrada se restaura desde esa copia.
@@ -27,7 +28,8 @@ A diferencia de otras herramientas, el **idioma del documento** es independiente
 - **Autollenado**: pega un DOI, un ISBN o una URL y el formulario se rellena solo (CrossRef / OpenLibrary / metadatos de la página, sin API keys); si una web no es legible, un aviso claro te pide escribirla a mano.
 - **Importar BibTeX**: trae de golpe la bibliografía exportada de Zotero, Mendeley o Google Scholar (`.bib`), con una revisión previa que mapea cada entrada al tipo APA correcto, avisa de duplicados y datos faltantes, y te deja elegir qué importar y a qué colección.
 - **Vista previa e impresión**: paginado real con Paged.js, conteo de páginas e impresión / guardar como PDF.
-- **Export a Word**: un clic → `.docx` con portada, secciones en páginas nuevas, encabezados reales de Word, listas anidadas, tablas con bordes APA, figuras con imagen, citas y referencias con sangría francesa. 290 tests automatizados, incluidos asserts sobre el XML del documento.
+- **Export a Word**: un clic → `.docx` con portada, secciones en páginas nuevas, encabezados reales de Word, listas anidadas, tablas con bordes APA, figuras con imagen, citas y referencias con sangría francesa. 300 tests automatizados, incluidos asserts sobre el XML del documento.
+- **Actualización automática**: al abrir, Tesina comprueba si hay una versión más nueva publicada y muestra un aviso para **actualizar y reiniciar** con un clic; los paquetes se firman en CI con una clave propia y tus ensayos no se tocan.
 
 ## Instalación (builds sin firmar)
 
@@ -51,7 +53,7 @@ Requisitos: Deno 2.x, Rust estable ≥ 1.88 (`rustup update stable`), y en Linux
 
 ## Hoja de ruta
 
-- Firma y notarización de los instaladores (requiere cuenta de Apple Developer) + actualizador automático
+- Firma y notarización de los instaladores con cuenta de Apple Developer (el actualizador automático dentro de la app ya funciona; falta la firma de Apple para evitar el aviso de Gatekeeper)
 - Después de v1: paginación en vivo, búsqueda académica integrada, ecuaciones
 
 ### Notas de toolchain

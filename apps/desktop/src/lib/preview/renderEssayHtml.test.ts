@@ -342,5 +342,9 @@ describe("renderEssayCss", () => {
     const css = renderEssayCss(essay.settings);
     expect(css).toContain("Lucida Sans Unicode");
     expect(css).toContain("font-size: 10pt");
+    essay.settings.font = "aptos-12";
+    const aptosCss = renderEssayCss(essay.settings);
+    expect(aptosCss).toContain("Aptos");
+    expect(aptosCss).toContain("font-size: 12pt");
   });
 });

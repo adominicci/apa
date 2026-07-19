@@ -8,6 +8,7 @@
   import { library } from "$lib/state/library.svelte";
   import { missingCitedRefs } from "$lib/model/reconcile";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
+  import { updater } from "$lib/state/updater.svelte";
 
   // Router-less shell (plan §app shell): a desktop app, not a website.
   let currentEssay = $state<Essay | null>(null);
@@ -21,6 +22,8 @@
       uiLocale.load(),
     ]);
     booted = true;
+    // Non-blocking: never delay first paint on the network check.
+    void updater.check();
   });
 
   async function openEssay(id: string) {
