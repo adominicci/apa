@@ -76,6 +76,7 @@
 <style>
   .menu-wrap {
     position: relative;
+    --pop-min-w: 220px;
   }
 
   .caret {
@@ -83,23 +84,6 @@
     height: 12px;
     margin-left: -3px;
     opacity: 0.6;
-  }
-
-  .menu-pop {
-    position: absolute;
-    bottom: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%);
-    min-width: 220px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-md);
-    box-shadow: var(--elev-raised);
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    z-index: 60;
   }
 
   .mi {

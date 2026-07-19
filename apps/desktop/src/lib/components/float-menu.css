@@ -49,3 +49,30 @@
   opacity: 0.5;
   cursor: default;
 }
+
+/*
+ * Popover compartido de los menús de la barra (Headings, Lists, Table, Font y
+ * el selector de posición). Vive acá, global, por la misma razón que .fm-btn:
+ * los menús son componentes sueltos, pero su popover es descendiente del DOM
+ * de .float-menu, así que las variantes por posición (abajo) pueden alcanzarlo
+ * cruzando la frontera de componentes sin props ni contexto.
+ *
+ * Cada .menu-wrap declara su propio ancho vía --pop-min-w.
+ */
+.menu-pop {
+  position: absolute;
+  min-width: var(--pop-min-w, 200px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--elev-raised);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 60;
+  /* Colocación por defecto (barra abajo): abre hacia arriba y centrado. */
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+}
