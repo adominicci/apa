@@ -393,5 +393,10 @@
   "refsheet_empty": "Your references will appear here as you cite.",
   "preview_paginating": "Paginating…",
   "preview_error": "Couldn't generate the preview.",
-  "doclang_switch": "Document language — click to switch between Spanish and English"
+  "doclang_switch": "Document language — click to switch between Spanish and English",
+  "toolbar_position": "Toolbar position",
+  "toolbar_pos_bottom": "Bottom",
+  "toolbar_pos_top": "Top",
+  "toolbar_pos_left": "Left",
+  "toolbar_pos_right": "Right"
 }

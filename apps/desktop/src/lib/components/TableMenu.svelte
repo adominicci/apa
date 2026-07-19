@@ -35,13 +35,14 @@
     class:on={open}
     onclick={onToggle}
     disabled={!editor}
-    title={m.tb_table()}
+    data-tip={m.tb_table()}
+    aria-label={m.tb_table()}
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
       <rect x="3" y="4" width="18" height="16" rx="1" />
       <path d="M3 10h18M3 15h18M9 4v16M15 4v16" />
     </svg>
-    {m.tb_table()}
+    <span class="fm-label">{m.tb_table()}</span>
     <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M6 15l6-6 6 6" />
     </svg>

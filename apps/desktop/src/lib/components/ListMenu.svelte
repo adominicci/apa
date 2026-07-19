@@ -66,7 +66,8 @@
     class:on={open}
     onclick={onToggle}
     disabled={!editor}
-    title={m.tb_lists()}
+    data-tip={m.tb_lists()}
+    aria-label={m.tb_lists()}
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
       <circle cx="5" cy="7" r="1" />
@@ -74,7 +75,7 @@
       <circle cx="5" cy="17" r="1" />
       <path d="M9 7h11M9 12h11M9 17h11" />
     </svg>
-    {m.tb_lists()}
+    <span class="fm-label">{m.tb_lists()}</span>
     <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M6 15l6-6 6 6" />
     </svg>

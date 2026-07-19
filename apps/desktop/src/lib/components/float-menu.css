@@ -76,3 +76,121 @@
   left: 50%;
   transform: translateX(-50%);
 }
+
+/*
+ * Posición de la barra. Es position:fixed y no absolute: .canvas es
+ * overflow-y:auto, así que un absolute adentro se iría con el scroll.
+ * Los offsets laterales salen de las variables que .app mantiene en sincronía
+ * con las columnas del grid, así la barra se desliza junto con los paneles.
+ */
+.float-menu {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  background: color-mix(in oklab, var(--surface), transparent 8%);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  box-shadow: var(--elev-raised);
+  z-index: 40;
+  transition: left 220ms var(--ease), right 220ms var(--ease);
+}
+
+.float-menu[data-dock="bottom"] {
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+}
+
+.float-menu[data-dock="top"] {
+  left: 50%;
+  top: calc(var(--header-h) + 16px);
+  transform: translateX(-50%);
+}
+
+/*
+ * Centrado vertical con top+bottom+margin-block:auto en vez de
+ * top:50%/translateY(-50%): el .statusbar no tiene alto fijo (es padding más
+ * tamaño de fuente), así que no hay un --footer-h confiable que restar. Así la
+ * barra se centra en la banda bajo el header sin depender del footer, y si
+ * fuera más alta que la banda crece hacia abajo en lugar de tapar el header.
+ */
+.float-menu[data-dock="left"],
+.float-menu[data-dock="right"] {
+  top: calc(var(--header-h) + 16px);
+  bottom: 16px;
+  margin-block: auto;
+  height: max-content;
+  flex-direction: column;
+}
+
+.float-menu[data-dock="left"] {
+  left: calc(var(--outline-w) + 16px);
+}
+
+.float-menu[data-dock="right"] {
+  right: calc(var(--refs-w) + 16px);
+}
+
+/* Volteo de los popovers según el borde donde esté la barra. */
+.float-menu[data-dock="top"] .menu-pop {
+  bottom: auto;
+  top: calc(100% + 10px);
+}
+
+.float-menu[data-dock="left"] .menu-pop {
+  bottom: auto;
+  top: 0;
+  left: calc(100% + 10px);
+  transform: none;
+}
+
+.float-menu[data-dock="right"] .menu-pop {
+  bottom: auto;
+  top: 0;
+  left: auto;
+  right: calc(100% + 10px);
+  transform: none;
+}
+
+/*
+ * CitationPopover (.pop) sigue la misma regla, pero necesita las cuatro
+ * variantes explícitas: su CSS propio es `top:100%; right:0` (abre hacia abajo
+ * a la derecha), así que sin estas reglas quedaría mal en TODAS las posiciones.
+ * Reemplaza al override `.fab-cite :global(.pop)` que vivía en EditorScreen.
+ * Mide 340px de ancho, así que en los laterales importa especialmente que salga
+ * hacia el canvas y no fuera de la ventana.
+ */
+.float-menu[data-dock="bottom"] .pop {
+  top: auto;
+  bottom: calc(100% + 12px);
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.float-menu[data-dock="top"] .pop {
+  top: calc(100% + 12px);
+  bottom: auto;
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.float-menu[data-dock="left"] .pop {
+  top: 0;
+  bottom: auto;
+  right: auto;
+  left: calc(100% + 12px);
+  transform: none;
+}
+
+.float-menu[data-dock="right"] .pop {
+  top: 0;
+  bottom: auto;
+  left: auto;
+  right: calc(100% + 12px);
+  transform: none;
+}

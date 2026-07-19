@@ -393,5 +393,10 @@
   "refsheet_empty": "Tus referencias aparecerán aquí a medida que cites.",
   "preview_paginating": "Paginando…",
   "preview_error": "No se pudo generar la vista previa.",
-  "doclang_switch": "Idioma del documento — clic para cambiar entre español e inglés"
+  "doclang_switch": "Idioma del documento — clic para cambiar entre español e inglés",
+  "toolbar_position": "Posición de la barra",
+  "toolbar_pos_bottom": "Abajo",
+  "toolbar_pos_top": "Arriba",
+  "toolbar_pos_left": "Izquierda",
+  "toolbar_pos_right": "Derecha"
 }

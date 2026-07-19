@@ -44,14 +44,15 @@
     class="fm-btn"
     class:on={open}
     onclick={onToggle}
-    title={m.tb_font()}
+    data-tip={m.tb_font()}
+    aria-label={m.tb_font()}
     aria-haspopup="menu"
     aria-expanded={open}
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
       <path d="M4 7V4h16v3M9 20h6M12 4v16" />
     </svg>
-    <span class="fam">{APA_FONTS[current].family}</span>
+    <span class="fam fm-label">{APA_FONTS[current].family}</span>
     <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M6 15l6-6 6 6" />
     </svg>

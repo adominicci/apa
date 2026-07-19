@@ -38,12 +38,13 @@
     class:on={open}
     onclick={onToggle}
     disabled={!editor}
-    title={m.tb_headings()}
+    data-tip={m.tb_headings()}
+    aria-label={m.tb_headings()}
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
       <path d="M6 4v16M18 4v16M6 12h12" />
     </svg>
-    {m.tb_headings()}
+    <span class="fm-label">{m.tb_headings()}</span>
     <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M6 15l6-6 6 6" />
     </svg>

@@ -11,6 +11,7 @@
   } from "$lib/model/essay";
   import { APA_FONTS } from "$lib/model/fonts";
   import Editor from "$lib/components/Editor.svelte";
+  import Toolbar from "$lib/components/Toolbar.svelte";
   import CoverSheet, {
     type CoverPatch,
   } from "$lib/components/CoverSheet.svelte";
@@ -759,11 +760,20 @@
   </div>
 
   {#if !previewOpen}
-    <div class="float-menu">
+    <Toolbar
+      dock={uiLocale.dock}
+      onDockChange={(next) => uiLocale.setDock(next)}
+    >
       <div class="fab-cite">
-        <button class="fm-btn primary" onclick={() => (citePopoverOpen = !citePopoverOpen)} disabled={!editor}>
+        <button
+          class="fm-btn primary"
+          onclick={() => (citePopoverOpen = !citePopoverOpen)}
+          disabled={!editor}
+          data-tip={m.editor_insert_citation()}
+          aria-label={m.editor_insert_citation()}
+        >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 5v14M5 12h14" /></svg>
-          {m.editor_insert_citation()}
+          <span class="fm-label">{m.editor_insert_citation()}</span>
         </button>
         {#if citePopoverOpen}
           <CitationPopover
@@ -774,9 +784,14 @@
           />
         {/if}
       </div>
-      <button class="fm-btn" onclick={() => openRefForm(true)} title={m.fab_new_ref_hint()}>
+      <button
+        class="fm-btn"
+        onclick={() => openRefForm(true)}
+        data-tip={m.fab_new_ref()}
+        aria-label={m.fab_new_ref()}
+      >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 4h11a2 2 0 0 1 2 2v14l-4-2-4 2V6H6z" /><path d="M6 4v16" /></svg>
-        {m.fab_new_ref()}
+        <span class="fm-label">{m.fab_new_ref()}</span>
       </button>
       <div class="fm-sep"></div>
       <HeadingMenu
@@ -805,10 +820,11 @@
         class="fm-btn"
         onclick={() => figureInput?.click()}
         disabled={!editor}
-        title={m.fab_figure()}
+        data-tip={m.fab_figure()}
+        aria-label={m.fab_figure()}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="1" /><circle cx="8.5" cy="9" r="1.5" /><path d="M21 15l-5-5L5 20" /></svg>
-        {m.fab_figure()}
+        <span class="fm-label">{m.fab_figure()}</span>
       </button>
       <input
         bind:this={figureInput}
@@ -825,17 +841,29 @@
         onSelect={setFont}
       />
       <div class="fm-sep"></div>
-      <button class="fm-btn" class:on={focusMode} onclick={() => (focusMode = !focusMode)}>
+      <button
+        class="fm-btn"
+        class:on={focusMode}
+        onclick={() => (focusMode = !focusMode)}
+        data-tip={m.fab_focus()}
+        aria-label={m.fab_focus()}
+      >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4" /></svg>
-        {m.fab_focus()}
+        <span class="fm-label">{m.fab_focus()}</span>
       </button>
       <div class="fm-sep"></div>
-      <button class="fm-btn" onclick={handleExport} disabled={!editor || exporting}>
+      <button
+        class="fm-btn"
+        onclick={handleExport}
+        disabled={!editor || exporting}
+        data-tip={exporting ? m.editor_exporting() : m.editor_export()}
+        aria-label={exporting ? m.editor_exporting() : m.editor_export()}
+      >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M8 11l4 4 4-4M5 21h14" /></svg>
-        {exporting ? m.editor_exporting() : m.editor_export()}
+        <span class="fm-label">{exporting ? m.editor_exporting() : m.editor_export()}</span>
       </button>
       <span class="fm-count">{m.fab_words({ count: words.toLocaleString() })}</span>
-    </div>
+    </Toolbar>
   {/if}
 
   {#if bubble && !previewOpen}
@@ -1453,23 +1481,6 @@
     cursor: pointer;
   }
 
-  .float-menu {
-    position: fixed;
-    left: 50%;
-    bottom: 40px;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px;
-    background: color-mix(in oklab, var(--surface), transparent 8%);
-    backdrop-filter: blur(16px);
-    border: 1px solid var(--border);
-    border-radius: var(--r-pill);
-    box-shadow: var(--elev-raised);
-    z-index: 40;
-  }
-
   /* .fm-btn lives in the shared float-menu.css (imported above) so the
      standalone Heading/List menu components style their triggers identically. */
 
@@ -1490,14 +1501,6 @@
 
   .fab-cite {
     position: relative;
-  }
-
-  .fab-cite :global(.pop) {
-    top: auto;
-    bottom: calc(100% + 12px);
-    right: auto;
-    left: 50%;
-    transform: translateX(-50%);
   }
 
   .bubble {
