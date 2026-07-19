@@ -275,6 +275,7 @@ h3 { font-style: italic; }
 blockquote { margin: 0 0 0 0.5in; }
 blockquote p { text-indent: 0; }
 ul, ol { margin: 0; padding-left: 1in; }
+li ul, li ol { padding-left: 0.5in; }
 .title-page { text-align: center; break-after: page; }
 .title-page .spacer { height: 6em; }
 .title-page .tp-title { font-weight: bold; }
