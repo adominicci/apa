@@ -67,6 +67,14 @@
     0 1px 2px color-mix(in oklab, var(--fg), transparent 90%), 0 12px 40px
     color-mix(in oklab, var(--fg), transparent 88%);
 
+  /* The print preview's sheet. Deliberately theme-INDEPENDENT (no dark
+     override): the preview shows the page as it will print, and the document
+     CSS hardcodes near-black text (`color: #131313` in renderEssayCss, which
+     also drives @media print). Following --surface/--paper here would darken
+     the sheet in dark mode while the text stayed near-black — unreadable.
+     The editor sheet is a different surface and does follow --paper. */
+  --paper-print: #ffffff;
+
   --font: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
   --serif: "Iowan Old Style", "Charter", Georgia, "Times New Roman", serif;

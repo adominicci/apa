@@ -106,7 +106,8 @@
   }
 
   .pages :global(.pagedjs_page) {
-    background: var(--surface);
+    /* Always white, in both themes — see --paper-print in tokens.css. */
+    background: var(--paper-print);
     margin: 0 auto 1.25rem;
     box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
   }
