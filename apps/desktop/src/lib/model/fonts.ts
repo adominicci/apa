@@ -1,9 +1,9 @@
 import type { FontChoice } from "$lib/model/essay";
 
 /**
- * The six fonts APA 7 accepts, per
+ * The seven fonts APA 7 accepts, per
  * https://apastyle.apa.org/style-grammar-guidelines/paper-format/font — three
- * serif and three sans serif, each at its prescribed point size. This map is
+ * serif and four sans serif, each at its prescribed point size. This map is
  * the single source of truth for on-screen (editor) and preview rendering; the
  * DOCX side keeps its own parallel table in `@tesina/docx-export` (styles.ts)
  * because that package must not depend on the app. Keep the two in sync — any
@@ -40,6 +40,12 @@ export const APA_FONTS: Record<FontChoice, FontDescriptor> = {
     sizePt: 10,
     kind: "serif",
   },
+  "aptos-12": {
+    family: "Aptos",
+    stack: `Aptos, Calibri, "Segoe UI", "Helvetica Neue", sans-serif`,
+    sizePt: 12,
+    kind: "sans",
+  },
   "calibri-11": {
     family: "Calibri",
     stack: `Calibri, "Segoe UI", "Helvetica Neue", sans-serif`,
@@ -65,6 +71,7 @@ export const APA_FONT_ORDER: FontChoice[] = [
   "times-new-roman-12",
   "georgia-11",
   "computer-modern-10",
+  "aptos-12",
   "calibri-11",
   "arial-11",
   "lucida-sans-unicode-10",
