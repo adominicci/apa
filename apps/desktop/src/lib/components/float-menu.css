@@ -321,12 +321,19 @@
 }
 
 /*
- * Con ambos paneles abiertos (248 + 312 = 560px) más el papel de 8.5in (816px)
- * más la barra lateral hacen falta ~1400px. Por debajo de 1280px la barra
- * vuelve abajo. La preferencia guardada NO se toca: al agrandar la ventana la
- * barra regresa sola a su lado.
+ * Por debajo de 1100px la barra vuelve abajo. La preferencia guardada NO se
+ * toca: al agrandar la ventana la barra regresa sola a su lado.
+ *
+ * Por qué 1100 y no ~1400 (que sería el ancho "ideal": 248 + 312 de paneles
+ * más 816px de papel a 8.5in más la barra): el papel es `width: min(100%,
+ * 8.5in)`, así que ya se achica solo cuando no hay lugar — nunca exige sus
+ * 816px. El límite real es la ventana de la app, que arranca en 1200px
+ * (tauri.conf.json). Un breakpoint por encima de eso dejaba la feature muerta
+ * al tamaño por defecto: elegir "Izquierda" guardaba la preferencia pero no
+ * movía nada. A 1200px con ambos paneles abiertos el papel queda en ~568px
+ * (angosto pero legible) y colapsando un panel vuelve a ancho completo.
  */
-@media (max-width: 1280px) {
+@media (max-width: 1100px) {
   .float-menu[data-dock="left"],
   .float-menu[data-dock="right"] {
     top: auto;

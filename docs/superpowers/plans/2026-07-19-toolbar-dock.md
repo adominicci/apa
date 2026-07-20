@@ -1165,7 +1165,7 @@ app arrastra bugs conocidos de WKWebView con `backdrop-filter` y flex:
 
 1. 4 posiciones × tema claro y oscuro.
 2. En cada posición, abrir los 5 desplegables.
-3. Achicar la ventana por debajo de 1280px con la barra en un lateral: debe
+3. Achicar la ventana por debajo de 1100px con la barra en un lateral: debe
    saltar abajo con sus textos; al agrandar, vuelve al lateral.
 4. Colapsar esquema y referencias, y modo foco, con la barra en cada lateral: la
    barra se desliza en sincronía con los paneles.

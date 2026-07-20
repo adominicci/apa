@@ -217,7 +217,7 @@ solo re-afirmen el string de la regla sin probar comportamiento.
   dentro de Tauri, no en el navegador.
 - **Ventanas angostas:** con ambos paneles abiertos (248 + 312 = 560 px) más el
   papel de 8.5 in (816 px) más la barra lateral, hacen falta ~1400 px. Por
-  debajo de eso el papel se aprieta. Mitigación: `@media (max-width: 1280px)`
+  debajo de eso el papel se aprieta. Mitigación: `@media (max-width: 1100px)`
   fuerza `bottom` aunque la preferencia guardada sea lateral (la preferencia no
   se sobrescribe: al agrandar la ventana vuelve a su lado).
 - **Colapso de paneles:** al ocultar el esquema con la barra a la izquierda, esta
