@@ -328,6 +328,16 @@ describe("renderEssayCss", () => {
     expect(proCss).toContain("@top-left");
   });
 
+  it("indents nested lists 0.5in per level, matching the editor and DOCX", () => {
+    const essay = sampleEssay();
+    const css = renderEssayCss(essay.settings);
+    // Top-level lists sit one inch in from the page margin.
+    expect(css).toContain("ul, ol { margin: 0; padding-left: 1in; }");
+    // Each nested level adds only half an inch (as apa.css and styles.ts do),
+    // instead of inheriting a full inch per level and over-indenting.
+    expect(css).toContain("li ul, li ol { padding-left: 0.5in; }");
+  });
+
   it("applies the chosen APA font family and point size", () => {
     const essay = sampleEssay();
     // Default: Times New Roman 12 pt.
