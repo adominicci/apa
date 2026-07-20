@@ -158,6 +158,47 @@ describe("exportDocx (student, es)", () => {
     expect(documentXml).toMatch(/w:val="single"/);
   });
 
+  it("exports a mapped equation as native, centered OMML numbered (1)", () => {
+    // "E = mc^2" has an entry in `equations` whose tree maps cleanly through
+    // mathTreeToOmml: mi/mo/mi runs plus an msup superscript. Asserting the
+    // walked structure (not just that *some* <m:oMath> exists) is what
+    // proves the visitor actually consumes the mapper's output.
+    expect(documentXml).toContain(
+      '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><m:oMath>' +
+        "<m:r><m:t>E</m:t></m:r><m:r><m:t>=</m:t></m:r>" +
+        "<m:r><m:t>m</m:t></m:r>",
+    );
+    expect(documentXml).toContain(
+      "<m:sSup><m:sSupPr/><m:e><m:r><m:t>c</m:t></m:r></m:e>" +
+        "<m:sup><m:r><m:t>2</m:t></m:r></m:sup></m:sSup>",
+    );
+    // The number sits right after </m:oMath> as plain text "(1)" — never
+    // through getTerms, unlike "Tabla N"/"Figura N" (same in ES and EN).
+    expect(documentXml).toContain(
+      '</m:sSup></m:oMath><w:r><w:t xml:space="preserve"> (1)</w:t></w:r>',
+    );
+  });
+
+  it("falls back to raw LaTeX for an unmapped equation without breaking the rest of the export", () => {
+    // A 2x2 matrix: docx has no matrix type, so mathTreeToOmml rejects the
+    // `mtable` tag (ok: false). This is the branch that rots silently if a
+    // golden only ever exercises the happy path — the raw LaTeX (with its
+    // "&" escaped by the XML writer) must appear as plain paragraph text,
+    // immediately followed by its own running number "(2)".
+    expect(documentXml).toContain(
+      "\\begin{pmatrix} 1 &amp; 0 \\\\ 0 &amp; 1 \\end{pmatrix}" +
+        '</w:t></w:r><w:r><w:t xml:space="preserve"> (2)</w:t></w:r>',
+    );
+    // Exactly one native <m:oMath> in the whole document: the unsupported
+    // equation must NOT have produced a second one alongside the fallback.
+    const oMathCount = (documentXml.match(/<m:oMath>/g) ?? []).length;
+    expect(oMathCount).toBe(1);
+    // The appendix and references after it still render — one bad equation
+    // must not fail the whole export.
+    expect(documentXml).toContain("Apéndice");
+    expect(documentXml).toContain("Referencias");
+  });
+
   it("renders a lettered list with a nested bullet at a deeper level", () => {
     expect(documentXml).toContain("Primer criterio");
     expect(documentXml).toContain("Matiz anidado");

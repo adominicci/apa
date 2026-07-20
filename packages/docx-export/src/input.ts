@@ -55,6 +55,9 @@ export interface ExportInput {
   references: Reference[];
   /** Figure image bytes keyed by node `src`; absent when there are none. */
   images?: Record<string, ExportImage>;
+  /** Árboles de MathML ya parseados, indexados por su LaTeX. Los produce la
+   *  capa app, que es la que tiene DOMParser. */
+  equations?: Record<string, MathNode>;
 }
 
 /** Minimal structural view of ProseMirror JSON the visitor walks. */

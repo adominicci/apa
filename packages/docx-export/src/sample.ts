@@ -1,5 +1,36 @@
 import type { Reference } from "@tesina/engine";
-import type { ExportInput } from "./input.ts";
+import type { ExportInput, MathNode } from "./input.ts";
+
+/** Shorthand mirroring the MathML tag/children shape (see math.test.ts). */
+function el(tag: string, ...children: MathNode[]): MathNode {
+  return { tag, children };
+}
+function leaf(tag: string, text: string): MathNode {
+  return { tag, text };
+}
+
+/** "E = mc^2": mapea limpio a OMML (mi/mo/mi + msup). */
+const SUPPORTED_EQUATION_LATEX = "E = mc^2";
+const supportedEquationTree: MathNode = el(
+  "mrow",
+  leaf("mi", "E"),
+  leaf("mo", "="),
+  leaf("mi", "m"),
+  el("msup", leaf("mi", "c"), leaf("mn", "2")),
+);
+
+/**
+ * Una matriz 2x2: `docx` no expone ningún tipo `m:m` (matriz) — techo real de
+ * la librería, no recorte del mapeador — así que `mathTreeToOmml` la rechaza
+ * y el exportador debe caer al LaTeX crudo en vez de fallar todo el export.
+ */
+const UNSUPPORTED_EQUATION_LATEX =
+  "\\begin{pmatrix} 1 & 0 \\\\ 0 & 1 \\end{pmatrix}";
+const unsupportedEquationTree: MathNode = el(
+  "mtable",
+  el("mtr", leaf("mn", "1"), leaf("mn", "0")),
+  el("mtr", leaf("mn", "0"), leaf("mn", "1")),
+);
 
 /**
  * A complete invented sample essay exercising every exporter feature:
@@ -50,6 +81,10 @@ export function sampleEssayInput(
       dueDate: "2026-07-11",
     },
     references: [salgado, padilla],
+    equations: {
+      [SUPPORTED_EQUATION_LATEX]: supportedEquationTree,
+      [UNSUPPORTED_EQUATION_LATEX]: unsupportedEquationTree,
+    },
     content: {
       type: "doc",
       content: [
@@ -249,6 +284,14 @@ export function sampleEssayInput(
                   ],
                 },
               ],
+            },
+            {
+              type: "apaEquation",
+              attrs: { latex: SUPPORTED_EQUATION_LATEX },
+            },
+            {
+              type: "apaEquation",
+              attrs: { latex: UNSUPPORTED_EQUATION_LATEX },
             },
           ],
         },

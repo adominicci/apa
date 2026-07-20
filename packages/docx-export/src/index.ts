@@ -78,6 +78,7 @@ export async function exportDocx(input: ExportInput): Promise<Uint8Array> {
     input.references,
     locale,
     input.images ?? {},
+    input.equations ?? {},
   );
 
   const doc = new Document({
