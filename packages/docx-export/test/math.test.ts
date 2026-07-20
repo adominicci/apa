@@ -1,4 +1,13 @@
 import { describe, expect, it } from "vitest";
+import type { IContext } from "docx";
+import {
+  MathFraction,
+  MathRadical,
+  MathSubScript,
+  MathSubSuperScript,
+  MathSum,
+  MathSuperScript,
+} from "docx";
 import { mathTreeToOmml } from "../src/math.ts";
 import type { MathNode } from "../src/input.ts";
 
@@ -10,26 +19,82 @@ function leaf(tag: string, text: string): MathNode {
   return { tag, text };
 }
 
+/**
+ * `prepForXml` es público en `docx` (lo llama el Formatter interno de la
+ * librería); un `IContext` real solo aporta `file`/`viewWrapper`, que los
+ * componentes de math no tocan, así que un `stack` vacío basta.
+ */
+function xmlOf(component: unknown): unknown {
+  const withPrep = component as {
+    prepForXml(context: IContext): unknown;
+  };
+  return withPrep.prepForXml({ stack: [] } as unknown as IContext);
+}
+
+/**
+ * Recorre el objeto que produce `prepForXml` y junta el texto de cada
+ * `m:r`/`m:t` (run) en el orden en que quedaría serializado en el XML. Esto
+ * es lo que permite a un test distinguir "numerador y denominador en el
+ * orden correcto" de "numerador y denominador intercambiados" — dos
+ * instancias de la misma clase docx con el mismo largo de `children` que,
+ * sin esto, se verían idénticas para el test.
+ */
+function runTextsInOrder(node: unknown, out: string[] = []): string[] {
+  if (Array.isArray(node)) {
+    for (const item of node) runTextsInOrder(item, out);
+  } else if (node !== null && typeof node === "object") {
+    for (
+      const [key, value] of Object.entries(node as Record<string, unknown>)
+    ) {
+      if (key === "m:t" && Array.isArray(value)) {
+        for (const v of value) if (typeof v === "string") out.push(v);
+      } else {
+        runTextsInOrder(value, out);
+      }
+    }
+  }
+  return out;
+}
+
 describe("mathTreeToOmml — construcciones soportadas", () => {
   it("mapea una hoja de texto a un MathRun", () => {
     const result = mathTreeToOmml(leaf("mi", "x"));
     expect(result.ok).toBe(true);
   });
 
-  it("mapea una fracción", () => {
+  it("mapea una fracción con numerador y denominador en el orden correcto", () => {
     const frac = el("mfrac", leaf("mn", "1"), leaf("mn", "2"));
-    expect(mathTreeToOmml(frac).ok).toBe(true);
+    const result = mathTreeToOmml(frac);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.children).toHaveLength(1);
+    const [component] = result.children;
+    expect(component).toBeInstanceOf(MathFraction);
+    expect(runTextsInOrder(xmlOf(component))).toEqual(["1", "2"]);
   });
 
   it("mapea una raíz cuadrada", () => {
     expect(mathTreeToOmml(el("msqrt", leaf("mi", "x"))).ok).toBe(true);
   });
 
-  it("mapea superíndice y subíndice", () => {
-    expect(mathTreeToOmml(el("msup", leaf("mi", "e"), leaf("mi", "x"))).ok)
-      .toBe(true);
-    expect(mathTreeToOmml(el("msub", leaf("mi", "x"), leaf("mn", "1"))).ok)
-      .toBe(true);
+  it("mapea superíndice y subíndice con base y script en el orden correcto", () => {
+    const sup = mathTreeToOmml(el("msup", leaf("mi", "e"), leaf("mi", "x")));
+    expect(sup.ok).toBe(true);
+    if (sup.ok) {
+      expect(sup.children).toHaveLength(1);
+      const [component] = sup.children;
+      expect(component).toBeInstanceOf(MathSuperScript);
+      expect(runTextsInOrder(xmlOf(component))).toEqual(["e", "x"]);
+    }
+
+    const sub = mathTreeToOmml(el("msub", leaf("mi", "x"), leaf("mn", "1")));
+    expect(sub.ok).toBe(true);
+    if (sub.ok) {
+      expect(sub.children).toHaveLength(1);
+      const [component] = sub.children;
+      expect(component).toBeInstanceOf(MathSubScript);
+      expect(runTextsInOrder(xmlOf(component))).toEqual(["x", "1"]);
+    }
   });
 
   it("aplana un mrow en sus hijos", () => {
@@ -54,7 +119,7 @@ describe("mathTreeToOmml — no soportado", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("mapea la sumatoria con límites que emite Temml", () => {
+  it("mapea la sumatoria con límites que emite Temml (base ∑)", () => {
     // Temml usa munderover para \\sum_{i=1}^{n}. Medido en el spike: sin este
     // caso la primera ecuación realista de una tesina ya falla.
     const sum = el(
@@ -63,22 +128,75 @@ describe("mathTreeToOmml — no soportado", () => {
       el("mrow", leaf("mi", "i"), leaf("mo", "="), leaf("mn", "1")),
       leaf("mi", "n"),
     );
-    expect(mathTreeToOmml(sum).ok).toBe(true);
+    const result = mathTreeToOmml(sum);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.children).toHaveLength(1);
+    const [component] = result.children;
+    expect(component).toBeInstanceOf(MathSum);
+    // subíndice antes que superíndice, en ese orden — "i", "=", "1", "n".
+    expect(runTextsInOrder(xmlOf(component))).toEqual(["i", "=", "1", "n"]);
   });
 
-  it("mapea la integral con límites (msubsup)", () => {
+  it("rechaza munderover con base ∏ en vez de mapearlo a MathSum (∑)", () => {
+    // Regresión del hallazgo: `MathSum` de docx tiene el glifo "∑"
+    // hardcodeado (`accent: "∑"`), así que mapear CUALQUIER munderover a
+    // MathSum convertía un \\prod en una sumatoria en Word, en silencio. Este
+    // es el guardia: solo se acepta cuando la base es literalmente "∑".
+    const prod = el(
+      "munderover",
+      leaf("mo", "∏"),
+      el("mrow", leaf("mi", "i"), leaf("mo", "="), leaf("mn", "1")),
+      leaf("mi", "n"),
+    );
+    const result = mathTreeToOmml(prod);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toContain("∏");
+  });
+
+  it("rechaza munderover con base ⋃ (bigcup) por la misma razón", () => {
+    const union = el(
+      "munderover",
+      leaf("mo", "⋃"),
+      leaf("mi", "i"),
+      leaf("mi", "n"),
+    );
+    const result = mathTreeToOmml(union);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toContain("⋃");
+  });
+
+  it("mapea la integral con límites (msubsup) con base, inferior y superior en orden", () => {
     const integral = el(
       "msubsup",
       leaf("mo", "∫"),
       leaf("mn", "0"),
       leaf("mi", "∞"),
     );
-    expect(mathTreeToOmml(integral).ok).toBe(true);
+    const result = mathTreeToOmml(integral);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.children).toHaveLength(1);
+    const [component] = result.children;
+    expect(component).toBeInstanceOf(MathSubSuperScript);
+    expect(runTextsInOrder(xmlOf(component))).toEqual(["∫", "0", "∞"]);
   });
 
-  it("mapea la raíz n-ésima (mroot)", () => {
-    expect(mathTreeToOmml(el("mroot", leaf("mi", "x"), leaf("mn", "3"))).ok)
-      .toBe(true);
+  it("mapea la raíz n-ésima (mroot) con base y grado en el orden correcto", () => {
+    const result = mathTreeToOmml(
+      el("mroot", leaf("mi", "x"), leaf("mn", "3")),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.children).toHaveLength(1);
+    const [component] = result.children;
+    expect(component).toBeInstanceOf(MathRadical);
+    // OMML serializa el grado (m:deg) ANTES que la base (m:e) — al revés del
+    // orden de MathML (mroot > base, índice). Por eso importa comprobar el
+    // orden real y no solo que la clase sea MathRadical: un swap de
+    // base/degree en la implementación produce igual clase e igual cantidad
+    // de children, y este assert es el único que lo distingue.
+    expect(runTextsInOrder(xmlOf(component))).toEqual(["3", "x"]);
   });
 
   it("ignora mspace sin romper ni emitir nada", () => {

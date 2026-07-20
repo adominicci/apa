@@ -24,6 +24,19 @@ export type MathResult =
 /** Hojas: su texto va tal cual a un MathRun. */
 const LEAF_TAGS = new Set(["mi", "mn", "mo", "mtext", "ms"]);
 
+/**
+ * Texto del operador base de un munderover: una hoja directa, o (por si
+ * Temml lo envuelve) un mrow de un único hijo que sea hoja. undefined si no
+ * se puede determinar con certeza — en ese caso NO es "∑" y se rechaza.
+ */
+function baseOperatorGlyph(node: MathNode): string | undefined {
+  if (LEAF_TAGS.has(node.tag)) return node.text;
+  if (node.tag === "mrow" && node.children?.length === 1) {
+    return baseOperatorGlyph(node.children[0]!);
+  }
+  return undefined;
+}
+
 export function mathTreeToOmml(node: MathNode): MathResult {
   const children = node.children ?? [];
 
@@ -137,7 +150,28 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   // Sumatoria con límites: munderover > base, inferior, superior. Es lo que
   // Temml emite para \sum_{i=1}^{n}; sin este caso la primera ecuación
   // realista de una tesina ya falla.
+  //
+  // OJO: la clase `MathSum` de docx tiene el glifo "∑" hardcodeado
+  // (`accent: "∑"` en createMathNAryProperties, docx/dist/index.mjs) — no
+  // recibe el operador como parámetro. munderover también es lo que Temml
+  // emite para \prod (∏), \bigcup (⋃), \bigcap, \bigvee, etc., y docx no
+  // tiene una clase equivalente para ninguno de esos. Mapear todo
+  // munderover a MathSum sin mirar la base convertiría un producto o una
+  // unión en una sumatoria en Word, en silencio: la peor forma de fallar,
+  // porque matemáticamente es simplemente incorrecto y nadie lo nota. Este
+  // gate es lo que lo evita: solo se acepta cuando la base es literalmente
+  // "∑"; cualquier otro operador cae a `unsupported` (LaTeX crudo + aviso
+  // del editor) en vez de renderizar el símbolo equivocado.
   if (node.tag === "munderover" && children.length === 3) {
+    const glyph = baseOperatorGlyph(children[0]!);
+    if (glyph !== "∑") {
+      return {
+        ok: false,
+        reason: `Operador munderover no soportado: "${
+          glyph ?? children[0]!.tag
+        }". docx solo expone MathSum, que fija el glifo "∑"; \\prod, \\bigcup y \\bigcap no tienen equivalente en la librería.`,
+      };
+    }
     const sub = mathTreeToOmml(children[1]!);
     if (!sub.ok) return sub;
     const sup = mathTreeToOmml(children[2]!);
