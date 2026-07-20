@@ -115,6 +115,21 @@ Que el subconjunto coincida con lo que la librería ya modela no es casualidad
 buscada sino una señal de que está bien calibrado: no hay que inventar
 representación para nada de lo que se soporta.
 
+### Matrices: techo de la librería, no decisión de alcance
+
+`docx@9` **no expone ningún tipo de matriz** — no hay `MathMatrix`,
+`MathEqArray` ni equivalente. Así que matrices y sistemas de ecuaciones quedan
+afuera por un límite de la herramienta, no por recorte nuestro, y "ampliar el
+subconjunto más adelante" no alcanza para cubrirlos.
+
+Sí hay escotilla conocida para una versión futura: `ImportedXmlComponent
+.fromXmlString()` permite inyectar OMML crudo, con lo que se podría emitir el
+elemento `<m:m>` a mano. Es un camino distinto al de las clases tipadas —
+más frágil, sin ayuda del compilador — y por eso no entra en v1.
+
+Mientras tanto una matriz cae en el fallback como cualquier otra construcción
+no soportada: aviso en el editor y LaTeX crudo en el `.docx`.
+
 ## El aviso y la exportación no pueden discrepar
 
 No hay un predicado `esExportable()` aparte del mapeador: **es el mapeador
