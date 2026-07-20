@@ -4,7 +4,7 @@ import type { Node as PMNode } from "@tiptap/pm/model";
 import { sectionExtensions } from "./sections.ts";
 import { type CitationEnv, createCitationExtension } from "./citation.ts";
 import { OrderedListStyleAttr } from "./lists.ts";
-import { blockExtensions } from "./blocks.ts";
+import { blockExtensions, createApaEquationExtension } from "./blocks.ts";
 import { defaultDoc, ensureSectionedDoc } from "./migrate.ts";
 
 export interface CreateEditorArgs {
@@ -14,6 +14,10 @@ export interface CreateEditorArgs {
   /** Live library + document language; mutated by the app, see citation.ts. */
   citationEnv: CitationEnv;
   onUpdate?: (docJson: unknown, words: number) => void;
+  /** Opens the LaTeX dialog pre-filled with an equation's current LaTeX, from
+   * its pencil menu. External callback threaded into the schema, same shape
+   * as `citationEnv`: the app layer owns the dialog, the node view doesn't. */
+  onEditEquation?: (pos: number, latex: string) => void;
 }
 
 export function countWords(doc: PMNode): number {
@@ -29,7 +33,7 @@ export function countWords(doc: PMNode): number {
  * Citations, figures, and footnotes land in later M2 iterations.
  */
 export function createTesinaEditor(
-  { element, content, citationEnv, onUpdate }: CreateEditorArgs,
+  { element, content, citationEnv, onUpdate, onEditEquation }: CreateEditorArgs,
 ): Editor {
   return new Editor({
     element,
@@ -45,6 +49,7 @@ export function createTesinaEditor(
       ...sectionExtensions,
       OrderedListStyleAttr,
       ...blockExtensions,
+      createApaEquationExtension(onEditEquation ?? (() => {})),
       createCitationExtension(citationEnv),
     ],
     content: (content !== undefined

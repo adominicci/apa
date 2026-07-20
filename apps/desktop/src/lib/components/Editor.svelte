@@ -12,6 +12,7 @@
     citationEnv: CitationEnv;
     onUpdate?: (docJson: unknown, words: number) => void;
     onReady?: (editor: Editor) => void;
+    onEditEquation?: (pos: number, latex: string) => void;
   }
 
   let {
@@ -20,6 +21,7 @@
     citationEnv,
     onUpdate,
     onReady,
+    onEditEquation,
   }: Props = $props();
 
   const mountEditor: Attachment<HTMLDivElement> = (element) => {
@@ -28,6 +30,7 @@
       content: initialDoc,
       citationEnv,
       onUpdate,
+      onEditEquation,
     });
     onReady?.(editor);
     return () => editor.destroy();

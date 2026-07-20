@@ -533,6 +533,32 @@
   color: var(--danger);
 }
 
+/* Ecuación válida pero sin mapeo a OMML (una matriz, \prod…): mathTreeToOmml
+   —el mismo que usa el exportador, sin predicado propio, ver blocks.ts—
+   devolvió ok:false. Se marca con un borde de advertencia y un ícono cuyo
+   tooltip nativo trae el motivo, para que editor y .docx nunca discrepen. */
+.apa-editor .tiptap .apa-equation-unsupported .apa-equation-math {
+  border: 1px dashed var(--warn);
+  border-radius: var(--r-sm);
+  padding: 0.3em 0.6em;
+}
+
+.apa-editor .tiptap .apa-equation-warn {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--warn-soft);
+  color: var(--warn-strong);
+  font-size: 11px;
+  line-height: 1;
+}
+
 /* Selected-cell shading from prosemirror-tables. */
 .apa-editor .tiptap .selectedCell::after {
   content: "";
