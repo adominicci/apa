@@ -401,6 +401,7 @@
   "toolbar_pos_left": "Izquierda",
   "toolbar_pos_right": "Derecha",
   "equation_edit": "Editar ecuación",
+  "equation_save": "Guardar ecuación",
   "equation_delete": "Eliminar ecuación",
   "equation_insert": "Insertar ecuación",
   "equation_latex_label": "Código LaTeX",

@@ -163,8 +163,12 @@ describe("exportDocx (student, es)", () => {
     // mathTreeToOmml: mi/mo/mi runs plus an msup superscript. Asserting the
     // walked structure (not just that *some* <m:oMath> exists) is what
     // proves the visitor actually consumes the mapper's output.
+    // The paragraph must also carry `w:pStyle w:val="Normal"` — without it
+    // the equation line falls back to single spacing in Word even though
+    // every other body paragraph is double-spaced (Normal isn't the
+    // document default; see styles.ts's empty w:pPrDefault).
     expect(documentXml).toContain(
-      '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><m:oMath>' +
+      '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="center"/></w:pPr><m:oMath>' +
         "<m:r><m:t>E</m:t></m:r><m:r><m:t>=</m:t></m:r>" +
         "<m:r><m:t>m</m:t></m:r>",
     );
@@ -196,11 +200,11 @@ describe("exportDocx (student, es)", () => {
   });
 
   it("falls back to raw LaTeX for an equation with no entry in the equations map", () => {
-    // "\sigma_x" is never added to `equations` in sample.ts — this is the
-    // path every real export takes today, since exportEssay.ts doesn't
-    // populate the map yet. Missing key must fall back exactly like a
-    // rejected tree: raw LaTeX text, its own running number "(3)", no
-    // native OMML produced for it.
+    // "\sigma_x" is never added to `equations` in sample.ts, so it exercises
+    // the same path a real LaTeX construct `latexToMathTree` can't handle
+    // would take even though exportEssay.ts does populate the map. Missing
+    // key must fall back exactly like a rejected tree: raw LaTeX text, its
+    // own running number "(3)", no native OMML produced for it.
     expect(documentXml).toContain(
       "\\sigma_x</w:t></w:r>" +
         '<w:r><w:t xml:space="preserve"> (3)</w:t></w:r>',

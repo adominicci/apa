@@ -93,7 +93,7 @@
       onclick={confirm}
       disabled={latex.trim() === ""}
     >
-      {editing ? m.equation_edit() : m.equation_insert()}
+      {editing ? m.equation_save() : m.equation_insert()}
     </button>
   {/snippet}
 </Modal>

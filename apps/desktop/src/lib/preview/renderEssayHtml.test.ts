@@ -273,6 +273,38 @@ describe("renderEssayHtml", () => {
     );
   });
 
+  it("falls back to escaped raw LaTeX when an equation has no MathML entry", () => {
+    // Mirrors the editor (raw LaTeX in red mono) and the DOCX export (raw
+    // LaTeX text run) for a construct Temml couldn't render — the preview
+    // must not silently show an empty line with just the number, since it's
+    // the pre-export check the user relies on to catch this.
+    const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    essay.content = {
+      type: "doc",
+      content: [
+        {
+          type: "sectionBody",
+          content: [
+            {
+              type: "apaEquation",
+              attrs: { latex: "\\begin{matrix}a<b\\end{matrix}" },
+            },
+          ],
+        },
+      ],
+    };
+    const html = renderEssayHtml(
+      essay,
+      essay.content,
+      [],
+      new Map(),
+      new Map(),
+    );
+    expect(html).toContain(
+      '<div class="apa-equation">\\begin{matrix}a&lt;b\\end{matrix}<span class="eq-no">(1)</span></div>',
+    );
+  });
+
   it("renders an equation number the same way in English and Spanish", () => {
     // Unlike "Tabla N"/"Table N", "(1)" does not go through getTerms.
     const essayEs = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");

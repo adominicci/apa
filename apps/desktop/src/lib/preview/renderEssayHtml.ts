@@ -170,7 +170,12 @@ function apaFigureHtml(block: PMJson, state: RenderState): string {
 function apaEquationHtml(block: PMJson, state: RenderState): string {
   state.equationNo.n += 1;
   const latex = (block.attrs?.["latex"] as string | undefined) ?? "";
-  const mathml = state.mathml.get(latex) ?? "";
+  // Falls back to the escaped raw LaTeX when Temml couldn't render it (no
+  // entry in `state.mathml`) — matching the editor (raw LaTeX in red mono)
+  // and the DOCX export (raw LaTeX text run). Without this the preview
+  // shows an empty line with just the number, and it's the one surface the
+  // user checks right before exporting.
+  const mathml = state.mathml.get(latex) ?? esc(latex);
   return `<div class="apa-equation">${mathml}<span class="eq-no">(${state.equationNo.n})</span></div>`;
 }
 

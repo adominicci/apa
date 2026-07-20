@@ -220,6 +220,7 @@ export function visitBlocks(
           : [new TextRun(latex)];
         out.push(
           new Paragraph({
+            style: "Normal",
             alignment: AlignmentType.CENTER,
             children: [
               ...equationChildren,

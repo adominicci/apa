@@ -53,7 +53,10 @@ function collectEquationLatex(node: unknown, out: Set<string>): void {
 function collectEquations(docJson: unknown): Record<string, MathNode> {
   const latexes = new Set<string>();
   collectEquationLatex(docJson, latexes);
-  const equations: Record<string, MathNode> = {};
+  // Object.create(null) instead of `{}`: the key is arbitrary user LaTeX, and
+  // a literal like "__proto__" or "constructor" on a plain object literal
+  // would reach Object.prototype instead of becoming a real entry.
+  const equations: Record<string, MathNode> = Object.create(null);
   for (const latex of latexes) {
     const tree = latexToMathTree(latex);
     if (tree) equations[latex] = tree;
