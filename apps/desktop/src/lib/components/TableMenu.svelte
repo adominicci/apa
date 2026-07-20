@@ -2,6 +2,7 @@
   import type { Editor } from "@tiptap/core";
   import { deleteWholeApaTable } from "$lib/editor/tableCommands.ts";
   import { m } from "$lib/paraglide/messages";
+  import { dismissable } from "$lib/actions/dismissable";
 
   interface Props {
     editor: Editor | undefined;
@@ -29,7 +30,7 @@
   }
 </script>
 
-<div class="menu-wrap">
+<div class="menu-wrap" {@attach open && dismissable(onClose)}>
   <button
     class="fm-btn"
     class:on={open}

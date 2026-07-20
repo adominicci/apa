@@ -49,6 +49,7 @@
   import { library } from "$lib/state/library.svelte";
   import { essays } from "$lib/state/essays.svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
+  import { dismissable } from "$lib/actions/dismissable";
   import { exportEssayToDocx } from "$lib/export/exportEssay";
   import { m } from "$lib/paraglide/messages";
 
@@ -768,7 +769,10 @@
       dock={uiLocale.dock}
       onDockChange={(next) => uiLocale.setDock(next)}
     >
-      <div class="fab-cite">
+      <div
+        class="fab-cite"
+        {@attach citePopoverOpen && dismissable(() => (citePopoverOpen = false))}
+      >
         <button
           class="fm-btn primary"
           onclick={() => (citePopoverOpen = !citePopoverOpen)}
