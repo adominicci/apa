@@ -35,15 +35,28 @@ Spec: `docs/superpowers/specs/2026-07-20-equations-design.md`
   `temml.renderToString(latex, { displayMode: true })` devuelve el MathML como
   string; `temml.render(latex, elemento, opciones)` renderiza dentro de un
   elemento del DOM.
-- **La fuente de Temml, si hace falta, se empotra en base64 en `app.html`** —
-  nunca como `import` de CSS ni asset suelto de Vite. AGENTS.md prohíbe ese
-  camino explícitamente tras romperse varias veces.
+- **RESUELTO por el spike: la fuente de Temml NO hace falta.** WKWebView
+  renderiza el MathML nativo y correcto con las fuentes del sistema. La Task 4
+  **no toca `app.html`**. (Si algún día hiciera falta, el único camino admitido
+  es empotrarla en base64 en `app.html` como Inter — nunca como `import` de CSS
+  ni asset de Vite; AGENTS.md lo prohíbe tras romperse varias veces.)
 - Baseline actual: **316 tests**.
 - Do NOT `git push`.
 
 ---
 
-### Task 1: Spike — MathML y fuente en WKWebView
+### Task 1: Spike — MathML y fuente en WKWebView  ✅ HECHO (caso A)
+
+> **Resultado (2026-07-20):** WKWebView renderiza el MathML de Temml de forma
+> nativa y correcta **sin su fuente**: fracciones apiladas con raya, radicales
+> con techo, `∑` e `∫` con límites arriba y abajo, raíz n-ésima con índice en
+> el ángulo, y glifos `∑ ∫ ∞ α` completos. **Caso A** — la Task 4 no toca
+> `app.html`.
+>
+> El spike además midió qué MathML emite Temml y encontró cuatro elementos que
+> el mapeador de la Task 2 no cubría (`munderover`, `msubsup`, `mroot`,
+> `mspace`). Ya están incorporados abajo; sin ellos la primera ecuación
+> realista fallaba.
 
 **Es una compuerta, no una entrega.** Si WKWebView no renderiza el MathML de
 Temml de forma aceptable, se cae la elección de Temml y con ella el diseño
@@ -215,6 +228,32 @@ describe("mathTreeToOmml — no soportado", () => {
     expect(result.ok).toBe(false);
   });
 
+  it("mapea la sumatoria con límites que emite Temml", () => {
+    // Temml usa munderover para \\sum_{i=1}^{n}. Medido en el spike: sin este
+    // caso la primera ecuación realista de una tesina ya falla.
+    const sum = el("munderover", leaf("mo", "∑"),
+      el("mrow", leaf("mi", "i"), leaf("mo", "="), leaf("mn", "1")),
+      leaf("mi", "n"));
+    expect(mathTreeToOmml(sum).ok).toBe(true);
+  });
+
+  it("mapea la integral con límites (msubsup)", () => {
+    const integral = el("msubsup", leaf("mo", "∫"), leaf("mn", "0"), leaf("mi", "∞"));
+    expect(mathTreeToOmml(integral).ok).toBe(true);
+  });
+
+  it("mapea la raíz n-ésima (mroot)", () => {
+    expect(mathTreeToOmml(el("mroot", leaf("mi", "x"), leaf("mn", "3"))).ok).toBe(true);
+  });
+
+  it("ignora mspace sin romper ni emitir nada", () => {
+    // Temml lo intercala por espaciado; OMML hace el suyo. Ignorarlo es
+    // correcto, y por eso se afirma que no produce hijos.
+    const result = mathTreeToOmml(el("mrow", leaf("mi", "x"), { tag: "mspace" }));
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.children).toHaveLength(1);
+  });
+
   it("propaga el rechazo desde un hijo anidado", () => {
     // Lo importante: que un mtable enterrado no pase inadvertido porque el
     // padre sí es soportado.
@@ -244,6 +283,8 @@ import {
   MathRadical,
   MathRun,
   MathSubScript,
+  MathSubSuperScript,
+  MathSum,
   MathSuperScript,
   type MathComponent,
 } from "docx";
@@ -328,6 +369,63 @@ export function mathTreeToOmml(node: MathNode): MathResult {
     };
   }
 
+  // Raíz n-ésima: en MathML el índice va SEGUNDO (mroot > base, índice), al
+  // revés de como se lee.
+  if (node.tag === "mroot" && children.length === 2) {
+    const base = mathTreeToOmml(children[0]!);
+    if (!base.ok) return base;
+    const degree = mathTreeToOmml(children[1]!);
+    if (!degree.ok) return degree;
+    return {
+      ok: true,
+      children: [
+        new MathRadical({ children: base.children, degree: degree.children }),
+      ],
+    };
+  }
+
+  // Integral con límites: msubsup > base, inferior, superior.
+  if (node.tag === "msubsup" && children.length === 3) {
+    const base = mathTreeToOmml(children[0]!);
+    if (!base.ok) return base;
+    const sub = mathTreeToOmml(children[1]!);
+    if (!sub.ok) return sub;
+    const sup = mathTreeToOmml(children[2]!);
+    if (!sup.ok) return sup;
+    return {
+      ok: true,
+      children: [
+        new MathSubSuperScript({
+          children: base.children,
+          subScript: sub.children,
+          superScript: sup.children,
+        }),
+      ],
+    };
+  }
+
+  // Sumatoria con límites: munderover > base, inferior, superior. Es lo que
+  // Temml emite para \sum_{i=1}^{n}; sin este caso la primera ecuación
+  // realista de una tesina ya falla.
+  if (node.tag === "munderover" && children.length === 3) {
+    const sub = mathTreeToOmml(children[1]!);
+    if (!sub.ok) return sub;
+    const sup = mathTreeToOmml(children[2]!);
+    if (!sup.ok) return sup;
+    return {
+      ok: true,
+      children: [
+        new MathSum({ children: [], subScript: sub.children, superScript: sup.children }),
+      ],
+    };
+  }
+
+  // Temml intercala mspace por espaciado tipográfico. No aporta nada al OMML,
+  // que hace su propio espaciado; ignorarlo es correcto, no una omisión.
+  if (node.tag === "mspace") {
+    return { ok: true, children: [] };
+  }
+
   return {
     ok: false,
     reason: `Elemento MathML no soportado: <${node.tag}>`,
@@ -376,7 +474,7 @@ para su aviso (Task 7). Es lo que garantiza que editor y `.docx` no discrepen.
 deno task test -- math
 ```
 
-Esperado: PASS. Total de la suite: **324** (316 + 8).
+Esperado: PASS. Total de la suite: **328** (316 + 12).
 
 - [ ] **Step 7: Verificación completa y commit**
 
@@ -500,7 +598,7 @@ git add apps/desktop/src/lib/editor/mathml.ts apps/desktop/src/lib/editor/mathml
 git commit -m "Ecuaciones: LaTeX a árbol de MathML en la capa app"
 ```
 
-Esperado: **328** tests (324 + 4).
+Esperado: **332** tests (328 + 4).
 
 ---
 

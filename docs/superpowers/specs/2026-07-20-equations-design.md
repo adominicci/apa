@@ -46,19 +46,18 @@ y otra vez —HMR las descartaba, los `url()` daban 404 en el dev server de
 Tauri— hasta que Inter terminó **empotrada en base64 dentro de `app.html`**,
 fuera del grafo de módulos de Vite.
 
-Así que la fuente de Temml tiene dos caminos posibles, y cuál corresponde lo
-decide el spike:
+**Resuelto por el spike (2026-07-20): no hacen falta.** WKWebView renderiza el
+MathML de Temml de forma nativa y correcta con las fuentes del sistema —
+fracciones apiladas con su raya, radicales con techo, `∑` e `∫` con sus límites
+arriba y abajo, raíz n-ésima con el índice en el ángulo, y los glifos `∑ ∫ ∞ α`
+completos, sin cuadrados ni faltantes.
 
-1. **No hacen falta**: WKWebView renderiza el MathML de Temml de forma
-   aceptable con la fuente del sistema. El más barato, pero hay que probarlo,
-   no suponerlo.
-2. **Hacen falta**: la `.woff2` se empotra en base64 en `app.html` siguiendo
-   exactamente el patrón ya documentado para Inter, que es el único que
-   demostró ser estable acá.
+Así que **no se toca `app.html`** y no hay `.woff2` que empotrar. Nos ahorramos
+entero el riesgo de fuentes que documenta AGENTS.md.
 
-**Nunca** entregarla como un `import` de CSS ni como asset suelto de Vite: es
-el camino que AGENTS.md prohíbe explícitamente después de que rompiera varias
-veces.
+Si algún día hiciera falta, el único camino admitido sigue siendo empotrarla en
+base64 en `app.html` como Inter. **Nunca** como `import` de CSS ni asset suelto
+de Vite: es lo que AGENTS.md prohíbe explícitamente tras romperse varias veces.
 
 ## Arquitectura
 
@@ -131,15 +130,42 @@ MathSubScript | MathSubSuperScript | MathRadical | MathFunction |
 MathRoundBrackets | MathCurlyBrackets | MathAngledBrackets | MathSquareBrackets
 ```
 
-El subconjunto de v1 es exactamente esa unión: fracciones, raíces,
-sub/superíndices, sumatorias, integrales, funciones, los cuatro tipos de
-paréntesis, y texto/símbolos sueltos (griegas y operadores entran como
-`MathRun`). Cubre la matemática de una tesina de ciencias sociales, que es el
-usuario real de esta app.
+### Corrección: el subconjunto lo dicta Temml, no `docx`
 
-Que el subconjunto coincida con lo que la librería ya modela no es casualidad
-buscada sino una señal de que está bien calibrado: no hay que inventar
-representación para nada de lo que se soporta.
+Una primera versión de este spec decía que el subconjunto de v1 «es exactamente
+esa unión». **Está al revés.** El spike midió qué MathML emite Temml de verdad,
+y el subconjunto real lo determina la **salida** de Temml, no la **entrada** de
+`docx`:
+
+| Construcción | Elementos que emite Temml |
+|---|---|
+| fracción, potencia, raíz | `mfrac` `msup` `msqrt` `mi` `mn` `mo` `mrow` `mspace` |
+| sumatoria con límites | `munderover` |
+| integral con límites | `msubsup` |
+| raíz n-ésima | `mroot` |
+| texto | `mtext` |
+| paréntesis `\left(…\right)` | `mo` `mrow` — **sin elemento de fence** |
+| matriz | `mtable` `mtr` `mtd` → no soportado |
+
+Dos consecuencias que no se ven razonando sobre las APIs por separado:
+
+1. **`mspace` aparece en ecuaciones básicas.** Sin manejarlo, la primera
+   ecuación realista falla.
+2. **Los cuatro tipos de paréntesis de `docx` son inalcanzables.** Temml emite
+   `<mo>(</mo>`, un operador suelto, no un elemento de agrupación. Así que
+   `MathRoundBrackets` y sus tres hermanos nunca se construyen: los paréntesis
+   llegan a Word como caracteres dentro de un `MathRun`.
+
+   El spike visual mostró la consecuencia exacta: en la app **los paréntesis sí
+   se estiran** alrededor de la fracción, porque WebKit estira el `<mo>` por su
+   cuenta. En Word serán caracteres de altura fija. Es la única discrepancia
+   conocida donde **la app se ve mejor que el `.docx`**, y conviene tenerla
+   presente antes de que aparezca como "bug" de exportación. Aceptable en v1.
+
+El subconjunto real, entonces: `math` `mrow` `mstyle` `mspace`, las hojas
+(`mi` `mn` `mo` `mtext` `ms`), `mfrac`, `msqrt`, `mroot`, `msup`, `msub`,
+`msubsup` y `munderover`. Cubre la matemática de una tesina de ciencias
+sociales, que es el usuario real de esta app.
 
 ### Matrices: techo de la librería, no decisión de alcance
 
