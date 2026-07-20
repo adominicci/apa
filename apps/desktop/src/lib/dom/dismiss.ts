@@ -35,12 +35,28 @@ export interface DismissOptions {
 }
 
 /**
+ * The one anchored popover currently open, if any. Registering a new one
+ * dismisses it.
+ *
+ * Without this, mutual exclusion held only for the pointer: opening a second
+ * menu with the mouse fires a `pointerdown` outside the first, which closes
+ * it. Opening with the keyboard fires no pointer event at all, so two menus
+ * could be open at once — and then Escape ran *both* keydown handlers, closing
+ * both and calling `focus()` twice, leaving focus on whichever registered last
+ * instead of the menu the user was actually on.
+ */
+let activePopover: (() => void) | null = null;
+
+/**
  * Starts listening; returns the function that stops. Call it while the popover
  * is open and stop it when it closes — the listeners are global, so leaving
  * them attached would let a closed menu keep reacting.
  */
 export function watchDismiss(options: DismissOptions): () => void {
   const { inside, onDismiss, focusOnEscape } = options;
+
+  // Only one anchored popover at a time, whichever way it was opened.
+  activePopover?.();
 
   /**
    * `pointerdown`, not `click` or `mousedown`: it fires before the browser
@@ -54,22 +70,39 @@ export function watchDismiss(options: DismissOptions): () => void {
     for (const element of inside) {
       if (element.contains(target)) return;
     }
-    onDismiss();
+    dismiss();
   }
 
   function onKeyDown(event: KeyboardEvent) {
     if (event.key !== "Escape") return;
-    onDismiss();
+    dismiss();
     focusOnEscape?.focus();
+  }
+
+  /**
+   * Idempotent: the caller's `onDismiss` normally closes the popover, which
+   * runs this again through the returned stop function (a Svelte attachment
+   * tears down when its condition goes falsy). Removing a listener twice is a
+   * no-op, and the identity check keeps a later popover's registration from
+   * being cleared by an earlier one's teardown.
+   */
+  function stop() {
+    document.removeEventListener("pointerdown", onPointerDown, true);
+    window.removeEventListener("keydown", onKeyDown);
+    if (activePopover === dismiss) activePopover = null;
+  }
+
+  /** Detach first, so `onDismiss` can't re-enter through its own teardown. */
+  function dismiss() {
+    stop();
+    onDismiss();
   }
 
   document.addEventListener("pointerdown", onPointerDown, true);
   window.addEventListener("keydown", onKeyDown);
+  activePopover = dismiss;
 
-  return () => {
-    document.removeEventListener("pointerdown", onPointerDown, true);
-    window.removeEventListener("keydown", onKeyDown);
-  };
+  return stop;
 }
 
 /**
