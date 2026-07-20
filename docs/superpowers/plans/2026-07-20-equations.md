@@ -771,34 +771,47 @@ clic en overlay). Un `<textarea>` con el LaTeX y una **vista previa en vivo**
 del MathML debajo, usando `latexToMathml`. Si el LaTeX es inválido,
 `latexToMathTree` devuelve `null` y el cuadro lo dice sin romperse.
 
-- [ ] **Step 2: Botón en la barra**
+- [ ] **Step 2: Conectar el mapa de ecuaciones en la exportación**
+
+Hueco detectado por el implementador de la Task 6: `ExportInput.equations`
+existe y el visitor lo consume, pero **nadie lo llena**, así que hoy toda
+exportación real cae al fallback de LaTeX crudo aunque la ecuación sea
+perfectamente mapeable.
+
+En `apps/desktop/src/lib/export/exportEssay.ts`, recorrer el documento
+juntando los `latex` de cada `apaEquation`, convertir cada uno con
+`latexToMathTree` (de `$lib/editor/mathml.ts`) y pasar el `Record` resultante
+como `equations`. Es el mismo patrón con el que ya se juntan los bytes de las
+imágenes de figuras.
+
+- [ ] **Step 3: Botón en la barra**
 
 Junto al de Figura en `EditorScreen.svelte`, con `data-tip` y `aria-label`
 (obligatorio: en los docks laterales la etiqueta se oculta con `display: none`
 y sale del árbol de accesibilidad). Abre el cuadro; al confirmar inserta
 `{ type: "apaEquation", attrs: { latex } }`.
 
-- [ ] **Step 3: El lápiz abre el mismo cuadro**
+- [ ] **Step 4: El lápiz abre el mismo cuadro**
 
 El node view ya tiene lápiz. Su menú hoy solo borra; se le agrega "editar",
 que abre el cuadro con el LaTeX actual y al confirmar actualiza el atributo.
 
-- [ ] **Step 4: La marca de no exportable**
+- [ ] **Step 5: La marca de no exportable**
 
 El node view llama `mathTreeToOmml` —**el mismo que usa el exportador**— y si
 devuelve `ok: false` marca la ecuación con un estilo de advertencia y el
 `reason` como tooltip. Sin predicado aparte: es la garantía de que el editor y
 el `.docx` no puedan discrepar.
 
-- [ ] **Step 5: Cadenas en ambos JSON**
+- [ ] **Step 6: Cadenas en ambos JSON**
 
 En lenguaje no técnico, como el aviso del autollenado por URL: el usuario no
 tiene por qué saber qué es OMML. Hacen falta al menos: título del cuadro,
 etiqueta del textarea, insertar, cancelar, editar, y el aviso de no exportable.
 
-- [ ] **Step 6: Verificar, autofixer, commitear**
+- [ ] **Step 7: Verificar, autofixer, commitear**
 
-- [ ] **Step 7: Verificación manual final**
+- [ ] **Step 8: Verificación manual final**
 
 1. Insertar desde la barra una ecuación simple → se ve en editor y preview.
 2. Editarla con el lápiz → cambia.
