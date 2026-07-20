@@ -111,7 +111,7 @@ describe("mathTreeToOmml — no soportado", () => {
     // recorte nuestro. Ver el spec.
     const result = mathTreeToOmml(el("mtable", el("mtr", leaf("mn", "1"))));
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toContain("mtable");
+    if (!result.ok) expect(result.unsupported).toBe("mtable");
   });
 
   it("rechaza un elemento desconocido en vez de ignorarlo en silencio", () => {
@@ -151,7 +151,7 @@ describe("mathTreeToOmml — no soportado", () => {
     );
     const result = mathTreeToOmml(prod);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toContain("∏");
+    if (!result.ok) expect(result.unsupported).toBe("∏");
   });
 
   it("rechaza munderover con base ⋃ (bigcup) por la misma razón", () => {
@@ -163,7 +163,7 @@ describe("mathTreeToOmml — no soportado", () => {
     );
     const result = mathTreeToOmml(union);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toContain("⋃");
+    if (!result.ok) expect(result.unsupported).toBe("⋃");
   });
 
   it("mapea la integral con límites (msubsup) con base, inferior y superior en orden", () => {

@@ -16,10 +16,17 @@ import type { MathNode } from "./input.ts";
  * aparte: sería una segunda implementación de las mismas reglas y con el
  * tiempo se desincronizaría. El exportador usa `children`; el editor llama
  * exactamente esto y se queda solo con `ok`.
+ *
+ * En el caso `false`, `unsupported` es SOLO un identificador — el tag del
+ * elemento (`"mtable"`) o el glifo del operador (`"∏"`) — sin prosa, sin
+ * puntuación y sin idioma. Este paquete es puro (ver AGENTS.md: nada de DOM,
+ * nada de imports de la app) y no tiene por qué decidir en qué idioma ni con
+ * qué palabras se le avisa al usuario; eso es responsabilidad de la capa de
+ * app, que arma el texto del badge vía Paraglide a partir de este nombre.
  */
 export type MathResult =
   | { ok: true; children: MathComponent[] }
-  | { ok: false; reason: string };
+  | { ok: false; unsupported: string };
 
 /** Hojas: su texto va tal cual a un MathRun. */
 const LEAF_TAGS = new Set(["mi", "mn", "mo", "mtext", "ms"]);
@@ -165,12 +172,7 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   if (node.tag === "munderover" && children.length === 3) {
     const glyph = baseOperatorGlyph(children[0]!);
     if (glyph !== "∑") {
-      return {
-        ok: false,
-        reason: `Operador munderover no soportado: "${
-          glyph ?? children[0]!.tag
-        }". docx solo expone MathSum, que fija el glifo "∑"; \\prod, \\bigcup y \\bigcap no tienen equivalente en la librería.`,
-      };
+      return { ok: false, unsupported: glyph ?? children[0]!.tag };
     }
     const sub = mathTreeToOmml(children[1]!);
     if (!sub.ok) return sub;
@@ -194,10 +196,7 @@ export function mathTreeToOmml(node: MathNode): MathResult {
     return { ok: true, children: [] };
   }
 
-  return {
-    ok: false,
-    reason: `Elemento MathML no soportado: <${node.tag}>`,
-  };
+  return { ok: false, unsupported: node.tag };
 }
 
 /** Envuelve el resultado en el `Math` que va dentro de un párrafo. */

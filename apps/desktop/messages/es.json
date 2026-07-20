@@ -407,5 +407,5 @@
   "equation_preview_label": "Vista previa",
   "equation_preview_empty": "Escribí una ecuación para ver la vista previa.",
   "equation_preview_error": "No se pudo leer este LaTeX. Revisá la sintaxis.",
-  "equation_not_exportable": "No se exportará como ecuación editable de Word: se mantendrá su texto original"
+  "equation_not_exportable": "No se exportará como ecuación editable de Word ({element}): se mantendrá su texto original"
 }

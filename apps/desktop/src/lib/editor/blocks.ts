@@ -455,7 +455,7 @@ export function createApaEquationExtension(
          * El fallback muestra el LaTeX crudo, igual que hace la exportación
          * cuando no puede mapear: mismo comportamiento en los dos lados.
          */
-        let unsupportedReason: string | null = null;
+        let unsupportedElement: string | null = null;
         try {
           mathHost.innerHTML = latexToMathml(latex);
           /*
@@ -470,14 +470,14 @@ export function createApaEquationExtension(
           const tree = latexToMathTree(latex);
           if (tree) {
             const mathResult = mathTreeToOmml(tree);
-            if (!mathResult.ok) unsupportedReason = mathResult.reason;
+            if (!mathResult.ok) unsupportedElement = mathResult.unsupported;
           }
         } catch {
           mathHost.classList.add("apa-equation-invalid");
           mathHost.textContent = latex;
         }
 
-        if (unsupportedReason) dom.classList.add("apa-equation-unsupported");
+        if (unsupportedElement) dom.classList.add("apa-equation-unsupported");
 
         const editBtn = document.createElement("button");
         editBtn.type = "button";
@@ -545,14 +545,20 @@ export function createApaEquationExtension(
 
         dom.append(mathHost, editBtn, menu);
 
-        if (unsupportedReason) {
+        if (unsupportedElement) {
           const warnBadge = document.createElement("span");
           warnBadge.className = "apa-equation-warn";
           warnBadge.setAttribute("role", "img");
-          warnBadge.setAttribute("aria-label", m.equation_not_exportable());
-          // El motivo que devuelve el mismo mapeador que usa el exportador,
-          // como tooltip nativo — por qué el .docx cae al LaTeX crudo acá.
-          warnBadge.title = unsupportedReason;
+          // Un solo texto localizado para aria-label y tooltip nativo, armado
+          // acá (capa app) a partir del identificador puro que devuelve el
+          // mismo mapeador que usa el exportador (math.ts) — por qué el
+          // .docx cae al LaTeX crudo acá. El paquete solo nombra QUÉ no se
+          // pudo mapear (el tag o el glifo); esta capa decide CÓMO decirlo.
+          const message = m.equation_not_exportable({
+            element: unsupportedElement,
+          });
+          warnBadge.setAttribute("aria-label", message);
+          warnBadge.title = message;
           warnBadge.textContent = "⚠";
           dom.append(warnBadge);
         }
