@@ -2,7 +2,7 @@
   import type { Editor } from "@tiptap/core";
   import { deleteWholeApaTable } from "$lib/editor/tableCommands.ts";
   import { m } from "$lib/paraglide/messages";
-  import { dismissable } from "$lib/actions/dismissable";
+  import { dismissable } from "$lib/dom/dismiss";
 
   interface Props {
     editor: Editor | undefined;

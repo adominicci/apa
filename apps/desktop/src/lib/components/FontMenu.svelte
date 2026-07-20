@@ -2,7 +2,7 @@
   import type { FontChoice } from "$lib/model/essay";
   import { APA_FONT_ORDER, APA_FONTS } from "$lib/model/fonts";
   import { m } from "$lib/paraglide/messages";
-  import { dismissable } from "$lib/actions/dismissable";
+  import { dismissable } from "$lib/dom/dismiss";
 
   interface Props {
     /** The essay's current document-wide font choice. */

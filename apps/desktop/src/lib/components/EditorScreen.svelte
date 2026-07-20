@@ -49,7 +49,7 @@
   import { library } from "$lib/state/library.svelte";
   import { essays } from "$lib/state/essays.svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
-  import { dismissable } from "$lib/actions/dismissable";
+  import { dismissable } from "$lib/dom/dismiss";
   import { exportEssayToDocx } from "$lib/export/exportEssay";
   import { m } from "$lib/paraglide/messages";
 

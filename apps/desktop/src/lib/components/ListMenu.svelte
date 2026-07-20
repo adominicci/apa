@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Editor } from "@tiptap/core";
   import { m } from "$lib/paraglide/messages";
-  import { dismissable } from "$lib/actions/dismissable";
+  import { dismissable } from "$lib/dom/dismiss";
 
   interface Props {
     editor: Editor | undefined;
