@@ -12,11 +12,41 @@ describe("latexToMathTree", () => {
     expect(JSON.stringify(tree)).toContain("mfrac");
   });
 
-  it("produce un árbol serializable, sin nodos del DOM", () => {
-    // El contrato con el paquete puro depende de esto: si se colara un
-    // Element, JSON.stringify lo perdería y el mapeador recibiría basura.
-    const tree = latexToMathTree("x^2");
-    expect(() => structuredClone(tree)).not.toThrow();
+  it("produce un árbol sin nodos del DOM, recorriéndolo entero", () => {
+    /*
+     * El contrato con el paquete puro depende de esto: `docx-export` no tiene
+     * DOM, así que un Element colado en el árbol reventaría allá.
+     *
+     * Una versión anterior de este test usaba `structuredClone` y NO servía:
+     * en Node con jsdom, clonar un Element no lanza — lo serializa a `{}` en
+     * silencio, porque el algoritmo no reconoce el Element de jsdom como
+     * objeto de host y solo copia propiedades propias enumerables, que jsdom
+     * deja vacías. El test pasaba aunque se filtrara un Element. Por eso acá
+     * se recorre el árbol y se verifica cada valor.
+     */
+    const tree = latexToMathTree(
+      "\\frac{x^2}{\\sqrt{n}} + \\sum_{i=1}^{n} \\alpha_i",
+    );
+    expect(tree).not.toBeNull();
+
+    const seen: string[] = [];
+    function assertPlain(value: unknown, path: string): void {
+      if (value === null || typeof value !== "object") return;
+      expect(value, `${path} es un nodo del DOM`).not.toBeInstanceOf(Node);
+      seen.push(path);
+      for (const [key, child] of Object.entries(value)) {
+        if (Array.isArray(child)) {
+          child.forEach((item, i) => assertPlain(item, `${path}.${key}[${i}]`));
+        } else {
+          assertPlain(child, `${path}.${key}`);
+        }
+      }
+    }
+    assertPlain(tree, "raíz");
+
+    // Guarda contra el propio recorrido: si el árbol viniera plano o vacío,
+    // las aserciones de arriba pasarían sin haber mirado nada.
+    expect(seen.length).toBeGreaterThan(5);
   });
 
   it("conserva el texto de las hojas", () => {
