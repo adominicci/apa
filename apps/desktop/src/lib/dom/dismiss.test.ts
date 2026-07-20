@@ -17,7 +17,9 @@ function pressOn(target: EventTarget): void {
 }
 
 function pressKey(key: string): void {
-  window.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+  globalThis.dispatchEvent(
+    new KeyboardEvent("keydown", { key, bubbles: true }),
+  );
 }
 
 /** Un popover armado como los reales: un disparador y un menú, hermanos. */

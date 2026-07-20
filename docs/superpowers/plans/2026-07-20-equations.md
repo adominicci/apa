@@ -18,6 +18,11 @@ Spec: `docs/superpowers/specs/2026-07-20-equations-design.md`
 
 - Verificación desde la raíz tras **cada** tarea: `deno task check` (**0 errores,
   0 warnings**), `deno task test`, `deno fmt`, `deno lint`.
+- **Leer la salida de `deno lint` completa, no su última línea.** El resumen
+  `Found N problems` aparece ANTES de `Checked N files`, así que un
+  `| tail -1` muestra el conteo de archivos y esconde los errores. Usar
+  `deno lint 2>&1 | grep -E 'Found|Checked'`. Este error real dejó pasar 6
+  problemas de lint durante tres PRs.
 - Todo `.svelte` tocado pasa además el autofixer del MCP de Svelte
   (`desired_svelte_version: 5`) con `issues: []`.
 - **`docx-export` es un paquete puro**: no importa código de app ni de Tauri, y
