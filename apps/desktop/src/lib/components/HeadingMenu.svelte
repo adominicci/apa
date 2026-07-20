@@ -38,12 +38,13 @@
     class:on={open}
     onclick={onToggle}
     disabled={!editor}
-    title={m.tb_headings()}
+    data-tip={m.tb_headings()}
+    aria-label={m.tb_headings()}
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
       <path d="M6 4v16M18 4v16M6 12h12" />
     </svg>
-    {m.tb_headings()}
+    <span class="fm-label">{m.tb_headings()}</span>
     <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M6 15l6-6 6 6" />
     </svg>
@@ -76,6 +77,7 @@
 <style>
   .menu-wrap {
     position: relative;
+    --pop-min-w: 220px;
   }
 
   .caret {
@@ -83,23 +85,6 @@
     height: 12px;
     margin-left: -3px;
     opacity: 0.6;
-  }
-
-  .menu-pop {
-    position: absolute;
-    bottom: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%);
-    min-width: 220px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-md);
-    box-shadow: var(--elev-raised);
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    z-index: 60;
   }
 
   .mi {

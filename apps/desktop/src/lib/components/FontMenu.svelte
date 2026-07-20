@@ -44,14 +44,15 @@
     class="fm-btn"
     class:on={open}
     onclick={onToggle}
-    title={m.tb_font()}
+    data-tip={m.tb_font()}
+    aria-label={`${m.tb_font()}: ${APA_FONTS[current].family}`}
     aria-haspopup="menu"
     aria-expanded={open}
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
       <path d="M4 7V4h16v3M9 20h6M12 4v16" />
     </svg>
-    <span class="fam">{APA_FONTS[current].family}</span>
+    <span class="fam fm-label">{APA_FONTS[current].family}</span>
     <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M6 15l6-6 6 6" />
     </svg>
@@ -74,6 +75,7 @@
 <style>
   .menu-wrap {
     position: relative;
+    --pop-min-w: 230px;
   }
 
   /* Current family on the trigger; capped so long names can't stretch the bar. */
@@ -88,23 +90,6 @@
     height: 12px;
     margin-left: -3px;
     opacity: 0.6;
-  }
-
-  .menu-pop {
-    position: absolute;
-    bottom: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%);
-    min-width: 230px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-md);
-    box-shadow: var(--elev-raised);
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    z-index: 60;
   }
 
   .grp {

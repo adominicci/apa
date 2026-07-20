@@ -49,3 +49,362 @@
   opacity: 0.5;
   cursor: default;
 }
+
+/*
+ * Popover compartido de los menús de la barra (Headings, Lists, Table, Font y
+ * el selector de posición). Vive acá, global, por la misma razón que .fm-btn:
+ * los menús son componentes sueltos, pero su popover es descendiente del DOM
+ * de .float-menu, así que las variantes por posición (abajo) pueden alcanzarlo
+ * cruzando la frontera de componentes sin props ni contexto.
+ *
+ * Cada .menu-wrap declara su propio ancho vía --pop-min-w.
+ */
+.menu-pop {
+  position: absolute;
+  min-width: var(--pop-min-w, 200px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--elev-raised);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 60;
+  /* Colocación por defecto (barra abajo): abre hacia arriba y centrado. */
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  /*
+   * Sin tope, un popover largo (Font, selector de posición) se sale del
+   * viewport en la altura mínima de la ventana (600px) sin forma de hacer
+   * scroll hasta sus últimas opciones. 32px deja aire arriba/abajo.
+   */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+/*
+ * Posición de la barra. Es position:fixed y no absolute: .canvas es
+ * overflow-y:auto, así que un absolute adentro se iría con el scroll.
+ * Los offsets laterales salen de las variables que .app mantiene en sincronía
+ * con las columnas del grid, así la barra se desliza junto con los paneles.
+ */
+.float-menu {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  background: color-mix(in oklab, var(--surface), transparent 8%);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  box-shadow: var(--elev-raised);
+  z-index: 40;
+  transition: left 220ms var(--ease), right 220ms var(--ease);
+}
+
+.float-menu[data-dock="bottom"] {
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+}
+
+.float-menu[data-dock="top"] {
+  left: 50%;
+  top: calc(var(--header-h) + 16px);
+  transform: translateX(-50%);
+}
+
+/*
+ * Centrado vertical con top+bottom+margin-block:auto en vez de
+ * top:50%/translateY(-50%): el .statusbar no tiene alto fijo (es padding más
+ * tamaño de fuente), así que no hay un --footer-h confiable que restar. Así la
+ * barra se centra en la banda bajo el header sin depender del footer, y si
+ * fuera más alta que la banda crece hacia abajo en lugar de tapar el header.
+ */
+.float-menu[data-dock="left"],
+.float-menu[data-dock="right"] {
+  top: calc(var(--header-h) + 16px);
+  bottom: 16px;
+  margin-block: auto;
+  height: max-content;
+  flex-direction: column;
+}
+
+.float-menu[data-dock="left"] {
+  left: calc(var(--outline-w) + 16px);
+}
+
+.float-menu[data-dock="right"] {
+  right: calc(var(--refs-w) + 16px);
+}
+
+/* Volteo de los popovers según el borde donde esté la barra. */
+.float-menu[data-dock="top"] .menu-pop {
+  bottom: auto;
+  top: calc(100% + 10px);
+}
+
+.float-menu[data-dock="left"] .menu-pop {
+  bottom: auto;
+  top: 0;
+  left: calc(100% + 10px);
+  transform: none;
+}
+
+.float-menu[data-dock="right"] .menu-pop {
+  bottom: auto;
+  top: 0;
+  left: auto;
+  right: calc(100% + 10px);
+  transform: none;
+}
+
+/*
+ * CitationPopover (.pop) sigue la misma regla, pero necesita las cuatro
+ * variantes explícitas: su CSS propio es `top:100%; right:0` (abre hacia abajo
+ * a la derecha), así que sin estas reglas quedaría mal en TODAS las posiciones.
+ * Reemplaza al override `.fab-cite :global(.pop)` que vivía en EditorScreen.
+ * Mide 340px de ancho, así que en los laterales importa especialmente que salga
+ * hacia el canvas y no fuera de la ventana.
+ */
+.float-menu[data-dock="bottom"] .pop {
+  top: auto;
+  bottom: calc(100% + 12px);
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.float-menu[data-dock="top"] .pop {
+  top: calc(100% + 12px);
+  bottom: auto;
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.float-menu[data-dock="left"] .pop {
+  top: 0;
+  bottom: auto;
+  right: auto;
+  left: calc(100% + 12px);
+  transform: none;
+}
+
+.float-menu[data-dock="right"] .pop {
+  top: 0;
+  bottom: auto;
+  left: auto;
+  right: calc(100% + 12px);
+  transform: none;
+}
+
+/*
+ * Laterales: solo íconos. El texto se oculta y lo reemplaza un tooltip propio
+ * (no el title= nativo, que tarda ~1s, no se puede estilizar y no aparece al
+ * navegar con teclado). Se dispara con :hover Y :focus-visible.
+ */
+.float-menu[data-dock="left"] .fm-label,
+.float-menu[data-dock="right"] .fm-label,
+.float-menu[data-dock="left"] .fm-count,
+.float-menu[data-dock="right"] .fm-count,
+/* El caret de los desplegables sobra junto a un ícono solo: agrega ancho y
+   ya no apunta hacia donde el menú se abre. */
+.float-menu[data-dock="left"] .caret,
+.float-menu[data-dock="right"] .caret {
+  display: none;
+}
+
+.float-menu[data-dock="left"] .fm-btn,
+.float-menu[data-dock="right"] .fm-btn {
+  width: 38px;
+  padding: 0;
+  justify-content: center;
+  position: relative;
+}
+
+.float-menu[data-dock="left"] .fm-sep,
+.float-menu[data-dock="right"] .fm-sep {
+  width: 22px;
+  height: 1px;
+  margin: 3px 0;
+}
+
+.float-menu[data-dock="left"] .fm-btn::after,
+.float-menu[data-dock="right"] .fm-btn::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--elev-raised);
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--fast) var(--ease);
+  z-index: 70;
+}
+
+/* Sale hacia el canvas, nunca hacia afuera de la ventana. */
+.float-menu[data-dock="left"] .fm-btn::after {
+  left: calc(100% + 8px);
+}
+
+.float-menu[data-dock="right"] .fm-btn::after {
+  right: calc(100% + 8px);
+}
+
+.float-menu[data-dock="left"] .fm-btn:hover::after,
+.float-menu[data-dock="left"] .fm-btn:focus-visible::after,
+.float-menu[data-dock="right"] .fm-btn:hover::after,
+.float-menu[data-dock="right"] .fm-btn:focus-visible::after {
+  opacity: 1;
+}
+
+/*
+ * El selector de posición (Toolbar.svelte) es icon-only en las cuatro
+ * posiciones, no solo en las laterales, así que abajo/arriba también
+ * necesitan su propio tooltip por ::after. Se apunta a `.fm-btn-icon` (no a
+ * todo `.fm-btn`) para no agregarles tooltip a los demás botones de estos
+ * docks horizontales: esos siguen mostrando su etiqueta de texto y no deben
+ * ganar uno.
+ */
+.float-menu[data-dock="bottom"] .fm-btn-icon,
+.float-menu[data-dock="top"] .fm-btn-icon {
+  position: relative;
+}
+
+.float-menu[data-dock="bottom"] .fm-btn-icon::after,
+.float-menu[data-dock="top"] .fm-btn-icon::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--elev-raised);
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--fast) var(--ease);
+  z-index: 70;
+}
+
+/* Vertical, no lateral: hacia arriba en la barra de abajo, hacia abajo en la de arriba. */
+.float-menu[data-dock="bottom"] .fm-btn-icon::after {
+  bottom: calc(100% + 8px);
+}
+
+.float-menu[data-dock="top"] .fm-btn-icon::after {
+  top: calc(100% + 8px);
+}
+
+.float-menu[data-dock="bottom"] .fm-btn-icon:hover::after,
+.float-menu[data-dock="bottom"] .fm-btn-icon:focus-visible::after,
+.float-menu[data-dock="top"] .fm-btn-icon:hover::after,
+.float-menu[data-dock="top"] .fm-btn-icon:focus-visible::after {
+  opacity: 1;
+}
+
+/*
+ * Por debajo de 1100px la barra vuelve abajo. La preferencia guardada NO se
+ * toca: al agrandar la ventana la barra regresa sola a su lado.
+ *
+ * Por qué 1100 y no ~1400 (que sería el ancho "ideal": 248 + 312 de paneles
+ * más 816px de papel a 8.5in más la barra): el papel es `width: min(100%,
+ * 8.5in)`, así que ya se achica solo cuando no hay lugar — nunca exige sus
+ * 816px. El límite real es la ventana de la app, que arranca en 1200px
+ * (tauri.conf.json). Un breakpoint por encima de eso dejaba la feature muerta
+ * al tamaño por defecto: elegir "Izquierda" guardaba la preferencia pero no
+ * movía nada. A 1200px con ambos paneles abiertos el papel queda en ~568px
+ * (angosto pero legible) y colapsando un panel vuelve a ancho completo.
+ */
+@media (max-width: 1100px) {
+  .float-menu[data-dock="left"],
+  .float-menu[data-dock="right"] {
+    top: auto;
+    right: auto;
+    bottom: 40px;
+    left: 50%;
+    margin-block: 0;
+    transform: translateX(-50%);
+    flex-direction: row;
+  }
+
+  .float-menu[data-dock="left"] .fm-label,
+  .float-menu[data-dock="right"] .fm-label,
+  .float-menu[data-dock="left"] .fm-count,
+  .float-menu[data-dock="right"] .fm-count {
+    display: inline;
+  }
+
+  .float-menu[data-dock="left"] .caret,
+  .float-menu[data-dock="right"] .caret {
+    display: block;
+  }
+
+  .float-menu[data-dock="left"] .fm-btn,
+  .float-menu[data-dock="right"] .fm-btn {
+    width: auto;
+    padding: 0 14px;
+  }
+
+  /*
+   * El selector de posición sigue siendo icon-only acá (no tiene .fm-label
+   * que recuperar), así que conserva su tooltip; se lo excluye de este
+   * apagado general y se reposiciona debajo, igual que en el dock "bottom"
+   * al que esta vuelta imita.
+   */
+  .float-menu[data-dock="left"] .fm-btn:not(.fm-btn-icon)::after,
+  .float-menu[data-dock="right"] .fm-btn:not(.fm-btn-icon)::after {
+    content: none;
+  }
+
+  .float-menu[data-dock="left"] .fm-btn-icon::after,
+  .float-menu[data-dock="right"] .fm-btn-icon::after {
+    top: auto;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
+  .float-menu[data-dock="left"] .fm-sep,
+  .float-menu[data-dock="right"] .fm-sep {
+    width: 1px;
+    height: 22px;
+    margin: 0 3px;
+  }
+
+  .float-menu[data-dock="left"] .menu-pop,
+  .float-menu[data-dock="right"] .menu-pop {
+    top: auto;
+    right: auto;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .float-menu[data-dock="left"] .pop,
+  .float-menu[data-dock="right"] .pop {
+    top: auto;
+    right: auto;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
