@@ -745,32 +745,69 @@ en el fallback. Es lo que evita que el fallback se rompa en silencio.
 
 ---
 
-### Task 7: Aviso de ecuación no exportable
+### Task 7: Insertar, editar y avisar
+
+> **Corrección al plan (2026-07-20).** Este plan diseñó el esquema, los tres
+> renderizadores y la exportación, pero **ninguna tarea agregaba forma de
+> insertar una ecuación**. La feature habría quedado completa e inutilizable:
+> hoy solo se llega por `editor.chain().insertContentAt(...)` a mano. Lo detectó
+> el implementador de la Task 4. Se amplía esta tarea en vez de crear una
+> octava, porque insertar y editar comparten el mismo cuadro de LaTeX.
+
+**Alcance:** botón en la barra + cuadro de LaTeX (para insertar y para editar
+una existente) + marca de no exportable.
 
 **Files:**
-- Modify: `apps/desktop/src/lib/editor/blocks.ts` (marca visual)
+- Modify: `apps/desktop/src/lib/components/EditorScreen.svelte` (botón de la barra)
+- Create: `apps/desktop/src/lib/components/EquationDialog.svelte`
+- Modify: `apps/desktop/src/lib/editor/blocks.ts` (el lápiz abre el cuadro; marca)
 - Modify: `apps/desktop/src/lib/editor/apa.css`
 - Modify: `apps/desktop/messages/{en,es}.json`
 
-- [ ] **Step 1: Cadenas nuevas en ambos JSON**
+- [ ] **Step 1: El cuadro de LaTeX**
 
-Para el cuadro de edición del LaTeX y para el aviso. Redactadas en lenguaje no
-técnico, como el aviso del autollenado por URL: el usuario no tiene por qué
-saber qué es OMML.
+`EquationDialog.svelte`, sobre el `Modal.svelte` que ya existe (trae Escape y
+clic en overlay). Un `<textarea>` con el LaTeX y una **vista previa en vivo**
+del MathML debajo, usando `latexToMathml`. Si el LaTeX es inválido,
+`latexToMathTree` devuelve `null` y el cuadro lo dice sin romperse.
 
-- [ ] **Step 2: La marca**
+- [ ] **Step 2: Botón en la barra**
 
-El node view llama `mathTreeToOmml` —el mismo que usa el exportador— y si
-devuelve `ok: false` marca la ecuación. Sin predicado aparte: es la garantía de
-que el editor y el `.docx` no puedan discrepar.
+Junto al de Figura en `EditorScreen.svelte`, con `data-tip` y `aria-label`
+(obligatorio: en los docks laterales la etiqueta se oculta con `display: none`
+y sale del árbol de accesibilidad). Abre el cuadro; al confirmar inserta
+`{ type: "apaEquation", attrs: { latex } }`.
 
-- [ ] **Step 3: Verificar, autofixer, commitear**
+- [ ] **Step 3: El lápiz abre el mismo cuadro**
 
-- [ ] **Step 4: Verificación manual final**
+El node view ya tiene lápiz. Su menú hoy solo borra; se le agrega "editar",
+que abre el cuadro con el LaTeX actual y al confirmar actualiza el atributo.
 
-1. Ecuación simple → se ve bien en editor, preview y Word.
-2. Ecuación con matriz → marcada en el editor, y en el `.docx` sale el LaTeX.
-3. **Abrir el `.docx` en Word de verdad** y confirmar que la ecuación es
+- [ ] **Step 4: La marca de no exportable**
+
+El node view llama `mathTreeToOmml` —**el mismo que usa el exportador**— y si
+devuelve `ok: false` marca la ecuación con un estilo de advertencia y el
+`reason` como tooltip. Sin predicado aparte: es la garantía de que el editor y
+el `.docx` no puedan discrepar.
+
+- [ ] **Step 5: Cadenas en ambos JSON**
+
+En lenguaje no técnico, como el aviso del autollenado por URL: el usuario no
+tiene por qué saber qué es OMML. Hacen falta al menos: título del cuadro,
+etiqueta del textarea, insertar, cancelar, editar, y el aviso de no exportable.
+
+- [ ] **Step 6: Verificar, autofixer, commitear**
+
+- [ ] **Step 7: Verificación manual final**
+
+1. Insertar desde la barra una ecuación simple → se ve en editor y preview.
+2. Editarla con el lápiz → cambia.
+3. Insertar `\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}` → queda marcada
+   como no exportable, y en el `.docx` sale el LaTeX crudo.
+4. Insertar `\\prod_{i=1}^{n} x` → **también marcada**: `docx` no tiene clase de
+   productorio y mapearlo a `MathSum` daría una sumatoria, que es matemática
+   incorrecta.
+5. **Abrir el `.docx` en Word** y confirmar que la ecuación soportada es
    editable como ecuación nativa. Los goldens verifican estructura, no
    apariencia.
 
