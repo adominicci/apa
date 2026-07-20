@@ -603,7 +603,7 @@ git add apps/desktop/src/lib/editor/mathml.ts apps/desktop/src/lib/editor/mathml
 git commit -m "Ecuaciones: LaTeX a árbol de MathML en la capa app"
 ```
 
-Esperado: **332** tests (328 + 4).
+Esperado: **334** tests (330 + 4).
 
 ---
 
