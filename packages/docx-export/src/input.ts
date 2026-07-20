@@ -65,3 +65,16 @@ export interface PMJson {
   marks?: { type?: string }[];
   content?: PMJson[];
 }
+
+/**
+ * Un nodo de MathML ya parseado, en forma serializable. La capa app hace el
+ * parseo (tiene DOMParser) y pasa esto; el paquete se mantiene puro y sin DOM,
+ * igual que con los bytes de las imágenes de figuras.
+ */
+export interface MathNode {
+  /** Nombre del elemento MathML: "mfrac", "msup", "mi", "mn", "mo"… */
+  tag: string;
+  /** Texto, solo en las hojas (mi, mn, mo, mtext). */
+  text?: string;
+  children?: MathNode[];
+}

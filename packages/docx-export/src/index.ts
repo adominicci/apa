@@ -7,9 +7,11 @@ export type {
   ExportSettings,
   ExportTitlePage,
   FontChoice,
+  MathNode,
   PaperSize,
   PaperVariant,
 } from "./input.ts";
+export { type MathResult, mathTreeToOmml, toDocxMath } from "./math.ts";
 
 import {
   AlignmentType,
