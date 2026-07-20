@@ -2,6 +2,7 @@
   import type { FontChoice } from "$lib/model/essay";
   import { APA_FONT_ORDER, APA_FONTS } from "$lib/model/fonts";
   import { m } from "$lib/paraglide/messages";
+  import { dismissable } from "$lib/actions/dismissable";
 
   interface Props {
     /** The essay's current document-wide font choice. */
@@ -39,7 +40,7 @@
   </button>
 {/snippet}
 
-<div class="menu-wrap">
+<div class="menu-wrap" {@attach open && dismissable(onClose)}>
   <button
     class="fm-btn"
     class:on={open}

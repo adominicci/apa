@@ -2,6 +2,7 @@
   import type { Snippet } from "svelte";
   import { TOOLBAR_DOCKS, type ToolbarDock } from "$lib/state/toolbarDock";
   import { m } from "$lib/paraglide/messages";
+  import { dismissable } from "$lib/actions/dismissable";
 
   interface Props {
     dock: ToolbarDock;
@@ -29,7 +30,7 @@
 <div class="float-menu" data-dock={dock}>
   {@render children()}
   <div class="fm-sep"></div>
-  <div class="menu-wrap">
+  <div class="menu-wrap" {@attach open && dismissable(() => (open = false))}>
     <button
       class="fm-btn fm-btn-icon"
       data-tip={m.toolbar_position()}
