@@ -5,10 +5,10 @@ import {
   TableHeader,
   TableRow,
 } from "@tiptap/extension-table";
-import temml from "temml";
 import { imageObjectUrl } from "../persist/assets.ts";
 import { m } from "../paraglide/messages.js";
 import { watchDismiss } from "../dom/dismiss.ts";
+import { latexToMathml } from "./mathml.ts";
 import { deleteApaTableAt } from "./tableCommands.ts";
 import { deleteApaFigureAt } from "./figureCommands.ts";
 
@@ -409,7 +409,7 @@ export const ApaEquation = Node.create({
       { ...HTMLAttributes, "data-apa-equation": "true", class: "apa-equation" },
     ];
   },
-  // NodeView: renders the MathML with temml.render and adds the pencil,
+  // NodeView: renders the MathML via latexToMathml and adds the pencil,
   // reusing createMenuToggle (Escape + outside-press already handled). No
   // contentDOM — the node is an atom leaf, so ProseMirror never edits its
   // DOM directly; ignoreMutation stays true throughout, mirroring FigureImage.
@@ -422,9 +422,15 @@ export const ApaEquation = Node.create({
       const mathHost = document.createElement("div");
       mathHost.className = "apa-equation-math";
       mathHost.contentEditable = "false";
-      temml.render((node.attrs["latex"] as string) ?? "", mathHost, {
-        displayMode: true,
-      });
+      /*
+       * `latexToMathml` (renderToString) e innerHTML, y NO `temml.render()`:
+       * es exactamente el camino que el spike validó dentro de WKWebView.
+       * `render()` escribe en el DOM vivo y quedó sin probar ahí — de hecho
+       * revienta bajo jsdom, que no implementa el DOM de MathML. Usar el
+       * camino demostrado evita apostar a una diferencia entre motores, y de
+       * paso deja a `mathml.ts` como único punto de contacto con Temml.
+       */
+      mathHost.innerHTML = latexToMathml((node.attrs["latex"] as string) ?? "");
 
       const editBtn = document.createElement("button");
       editBtn.type = "button";
