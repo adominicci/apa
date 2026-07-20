@@ -621,7 +621,9 @@
           {item.label ||
             (item.marker === "R" ? abstractLabel : appendixLabel)}
           {#if !item.sub}
-            <span class="wc">{item.words > 0 ? item.words.toLocaleString() : ""}</span>
+            <span class="wc">
+              {item.words > 0 ? item.words.toLocaleString(uiLocale.current) : ""}
+            </span>
           {/if}
         </button>
       {/each}
@@ -661,7 +663,9 @@
               onclick={startEditGoal}
               title={m.outline_goal_edit()}
             >
-              {m.outline_progress({ goal: wordGoal.toLocaleString() })}
+              {m.outline_progress({
+                goal: wordGoal.toLocaleString(uiLocale.current),
+              })}
             </button>
           {/if}
           <span>{progress}%</span>
@@ -862,7 +866,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M8 11l4 4 4-4M5 21h14" /></svg>
         <span class="fm-label">{exporting ? m.editor_exporting() : m.editor_export()}</span>
       </button>
-      <span class="fm-count">{m.fab_words({ count: words.toLocaleString() })}</span>
+      <span class="fm-count">
+        {m.fab_words({ count: words.toLocaleString(uiLocale.current) })}
+      </span>
     </Toolbar>
   {/if}
 
