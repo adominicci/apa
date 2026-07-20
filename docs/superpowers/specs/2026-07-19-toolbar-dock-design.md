@@ -55,7 +55,7 @@ Es preferencia de aplicación, no de documento — igual que el tema.
 
 `Toolbar.svelte` es **solo el contenedor**, no la barra entera.
 
-```
+```ts
 props: dock: ToolbarDock
        onDockChange: (d: ToolbarDock) => void
        children: Snippet
