@@ -31,8 +31,34 @@ LaTeX  ← lo único que se guarda en el documento
 ```
 
 Una sola dependencia sirve a los tres renderizadores y MathML queda como
-representación intermedia única. El editor y la preview no necesitan CSS ni
-fuentes de matemática: WebKit renderiza MathML de forma nativa.
+representación intermedia única.
+
+### Corrección: sí hace falta CSS y fuente
+
+Una primera versión de este spec decía que WebKit renderiza MathML nativo y por
+lo tanto no hacían falta ni CSS ni fuentes. **Es falso.** La documentación de
+Temml es explícita: para verse correctamente necesita `Temml-Local.css` **y**
+`Temml.woff2`, y ambos tienen que estar en la misma carpeta.
+
+Eso lo vuelve un riesgo de primer orden en este repo, no un detalle: AGENTS.md
+dedica una sección entera a que las fuentes entregadas por Vite se rompían una
+y otra vez —HMR las descartaba, los `url()` daban 404 en el dev server de
+Tauri— hasta que Inter terminó **empotrada en base64 dentro de `app.html`**,
+fuera del grafo de módulos de Vite.
+
+Así que la fuente de Temml tiene dos caminos posibles, y cuál corresponde lo
+decide el spike:
+
+1. **No hacen falta**: WKWebView renderiza el MathML de Temml de forma
+   aceptable con la fuente del sistema. El más barato, pero hay que probarlo,
+   no suponerlo.
+2. **Hacen falta**: la `.woff2` se empotra en base64 en `app.html` siguiendo
+   exactamente el patrón ya documentado para Inter, que es el único que
+   demostró ser estable acá.
+
+**Nunca** entregarla como un `import` de CSS ni como asset suelto de Vite: es
+el camino que AGENTS.md prohíbe explícitamente después de que rompiera varias
+veces.
 
 ## Arquitectura
 
@@ -177,11 +203,14 @@ Lo que sí queda manual es el renderizado de MathML en WKWebView (ver riesgos).
 
 ## Riesgos
 
-- **MathML en WKWebView.** WebKit lo soporta nativo, pero la app ya arrastra
-  sorpresas de WKWebView documentadas en `apa.css` (flex + `aspect-ratio`) y en
-  AGENTS.md (fuentes vía Vite). **Verificar dentro de Tauri, no en el
-  navegador**, y temprano: si el renderizado no sirve, cambia la elección de
-  Temml y conviene saberlo antes de escribir el mapeador.
+- **MathML y la fuente de Temml en WKWebView.** Es el riesgo mayor y por eso el
+  spike es la primera tarea del plan, antes de escribir una línea del mapeador.
+  Responde dos cosas: si WKWebView renderiza el MathML de Temml de forma
+  aceptable, y si hace falta su `.woff2`. Si el renderizado no sirve, se cae la
+  elección de Temml y con ella el diseño entero — enterarse con el mapeador ya
+  escrito sería el peor orden posible. La app arrastra sorpresas de WKWebView
+  documentadas en `apa.css` (flex + `aspect-ratio`) y en AGENTS.md (fuentes vía
+  Vite).
 - **Fidelidad del mapeo.** Que Temml produzca MathML válido no garantiza que
   el OMML resultante se vea igual en Word. Los goldens verifican estructura,
   no apariencia; hace falta abrir un `.docx` en Word de verdad al menos una
