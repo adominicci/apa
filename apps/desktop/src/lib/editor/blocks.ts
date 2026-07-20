@@ -5,6 +5,7 @@ import {
   TableHeader,
   TableRow,
 } from "@tiptap/extension-table";
+import temml from "temml";
 import { imageObjectUrl } from "../persist/assets.ts";
 import { m } from "../paraglide/messages.js";
 import { watchDismiss } from "../dom/dismiss.ts";
@@ -384,8 +385,113 @@ export const ApaFigure = Node.create({
   },
 });
 
-/** Table + figure nodes; table column resizing is off (APA uses plain
- * full-width columns). */
+/**
+ * APA block equations. Simpler than `figure`: a single `latex` attribute,
+ * no editable inline content — the LaTeX is edited through the pencil menu
+ * and what's shown is the MathML Temml renders from it. Its number ("(1)",
+ * same in both document languages, unlike "Table N"/"Tabla N") is drawn by
+ * CSS from a counter and never stored, per AGENTS.md.
+ */
+export const ApaEquation = Node.create({
+  name: "apaEquation",
+  group: "block",
+  atom: true,
+  draggable: false,
+  addAttributes() {
+    return { latex: { default: "" } };
+  },
+  parseHTML() {
+    return [{ tag: "div[data-apa-equation]" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "div",
+      { ...HTMLAttributes, "data-apa-equation": "true", class: "apa-equation" },
+    ];
+  },
+  // NodeView: renders the MathML with temml.render and adds the pencil,
+  // reusing createMenuToggle (Escape + outside-press already handled). No
+  // contentDOM — the node is an atom leaf, so ProseMirror never edits its
+  // DOM directly; ignoreMutation stays true throughout, mirroring FigureImage.
+  addNodeView() {
+    return ({ editor, node, getPos }) => {
+      const dom = document.createElement("div");
+      dom.className = "apa-equation";
+      dom.setAttribute("data-apa-equation", "true");
+
+      const mathHost = document.createElement("div");
+      mathHost.className = "apa-equation-math";
+      mathHost.contentEditable = "false";
+      temml.render((node.attrs["latex"] as string) ?? "", mathHost, {
+        displayMode: true,
+      });
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "apa-equation-edit";
+      editBtn.contentEditable = "false";
+      editBtn.title = m.equation_edit();
+      editBtn.setAttribute("aria-label", m.equation_edit());
+      editBtn.innerHTML =
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`;
+
+      const menu = document.createElement("div");
+      menu.className = "apa-equation-menu";
+      menu.contentEditable = "false";
+      menu.style.display = "none";
+
+      /** Escape and outside-press dismissal. */
+      const { open: openMenu, close: closeMenu } = createMenuToggle(
+        menu,
+        editBtn,
+      );
+
+      /** Deletes this whole equation by its node range (atom leaf). */
+      const deleteWholeEquation = () => {
+        const pos = typeof getPos === "function" ? getPos() : undefined;
+        if (typeof pos !== "number") return;
+        const current = editor.state.doc.nodeAt(pos);
+        if (!current || current.type.name !== "apaEquation") return;
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from: pos, to: pos + current.nodeSize })
+          .run();
+      };
+
+      const delItem = document.createElement("button");
+      delItem.type = "button";
+      delItem.className = "apa-equation-menu-item danger";
+      delItem.textContent = m.equation_delete();
+      // preventDefault on mousedown keeps the editor selection; the action
+      // runs on click so keyboard activation (Enter/Space) works too.
+      delItem.addEventListener("mousedown", (e) => e.preventDefault());
+      delItem.addEventListener("click", () => {
+        closeMenu();
+        deleteWholeEquation();
+      });
+      menu.append(delItem);
+
+      editBtn.addEventListener("mousedown", (e) => e.preventDefault());
+      editBtn.addEventListener("click", () => {
+        if (menu.style.display === "none") openMenu();
+        else closeMenu();
+      });
+
+      dom.append(mathHost, editBtn, menu);
+
+      return {
+        dom,
+        ignoreMutation: () => true,
+        deselectNode: closeMenu,
+        destroy: closeMenu,
+      };
+    };
+  },
+});
+
+/** Table + figure + equation nodes; table column resizing is off (APA uses
+ * plain full-width columns). */
 export const blockExtensions = [
   ApaTable,
   TableTitle,
@@ -398,6 +504,7 @@ export const blockExtensions = [
   FigureTitle,
   FigureImage,
   FigureNote,
+  ApaEquation,
 ];
 
 function emptyParagraph() {

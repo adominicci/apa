@@ -398,5 +398,7 @@
   "toolbar_pos_bottom": "Bottom",
   "toolbar_pos_top": "Top",
   "toolbar_pos_left": "Left",
-  "toolbar_pos_right": "Right"
+  "toolbar_pos_right": "Right",
+  "equation_edit": "Edit equation",
+  "equation_delete": "Delete equation"
 }

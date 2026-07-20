@@ -116,7 +116,7 @@
 }
 
 .apa-editor .tiptap {
-  counter-reset: appendix apa-table apa-figure;
+  counter-reset: appendix apa-table apa-figure apa-equation;
 }
 
 .apa-editor .tiptap .sec + .sec {
@@ -429,6 +429,98 @@
 
 .apa-editor[data-doclang="en"] .tiptap .fig-note::before {
   content: "Note. ";
+}
+
+/* Ecuación desplegada (APA): centrada, con su número a la derecha. A
+   diferencia de "Tabla N"/"Table N", el número es "(1)" en ambos idiomas,
+   así que este es el único bloque numerado que no necesita data-doclang. */
+.apa-editor .tiptap .apa-equation {
+  counter-increment: apa-equation;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin: 1em 0;
+}
+
+.apa-editor .tiptap .apa-equation::after {
+  content: "(" counter(apa-equation) ")";
+  position: absolute;
+  right: 0;
+}
+
+.apa-editor .tiptap .apa-equation-math {
+  max-width: calc(100% - 3rem);
+  overflow-x: auto;
+}
+
+/* Equation pencil: anchored top-LEFT rather than the table/figure top-right,
+   because the equation number already sits at right:0 in the same short
+   box — a top-right pencil would land right on top of it. */
+.apa-editor .tiptap .apa-equation-edit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease);
+}
+
+.apa-editor .tiptap .apa-equation:hover .apa-equation-edit,
+.apa-editor .tiptap .apa-equation-edit:focus-visible {
+  opacity: 1;
+}
+
+.apa-editor .tiptap .apa-equation-edit:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.apa-editor .tiptap .apa-equation-edit svg {
+  width: 14px;
+  height: 14px;
+}
+
+.apa-editor .tiptap .apa-equation-menu {
+  position: absolute;
+  top: 30px;
+  left: 0;
+  z-index: 30;
+  flex-direction: column;
+  min-width: 160px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--elev-raised);
+}
+
+.apa-editor .tiptap .apa-equation-menu-item {
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 13px;
+}
+
+.apa-editor .tiptap .apa-equation-menu-item:hover {
+  background: var(--hover);
+}
+
+.apa-editor .tiptap .apa-equation-menu-item.danger {
+  color: var(--danger);
 }
 
 /* Selected-cell shading from prosemirror-tables. */
