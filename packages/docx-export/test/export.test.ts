@@ -189,14 +189,29 @@ describe("exportDocx (student, es)", () => {
       "\\begin{pmatrix} 1 &amp; 0 \\\\ 0 &amp; 1 \\end{pmatrix}" +
         '</w:t></w:r><w:r><w:t xml:space="preserve"> (2)</w:t></w:r>',
     );
-    // Exactly one native <m:oMath> in the whole document: the unsupported
-    // equation must NOT have produced a second one alongside the fallback.
-    const oMathCount = (documentXml.match(/<m:oMath>/g) ?? []).length;
-    expect(oMathCount).toBe(1);
     // The appendix and references after it still render — one bad equation
     // must not fail the whole export.
     expect(documentXml).toContain("Apéndice");
     expect(documentXml).toContain("Referencias");
+  });
+
+  it("falls back to raw LaTeX for an equation with no entry in the equations map", () => {
+    // "\sigma_x" is never added to `equations` in sample.ts — this is the
+    // path every real export takes today, since exportEssay.ts doesn't
+    // populate the map yet. Missing key must fall back exactly like a
+    // rejected tree: raw LaTeX text, its own running number "(3)", no
+    // native OMML produced for it.
+    expect(documentXml).toContain(
+      "\\sigma_x</w:t></w:r>" +
+        '<w:r><w:t xml:space="preserve"> (3)</w:t></w:r>',
+    );
+    // Exactly one native <m:oMath> in the whole document: the mapped
+    // equation produces it; neither the unsupported-tree fallback nor this
+    // unmapped-key fallback may produce a second one. This exact count is
+    // what prevents the fallback from silently regressing into emitting
+    // bogus math.
+    const oMathCount = (documentXml.match(/<m:oMath>/g) ?? []).length;
+    expect(oMathCount).toBe(1);
   });
 
   it("renders a lettered list with a nested bullet at a deeper level", () => {

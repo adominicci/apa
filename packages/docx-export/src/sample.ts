@@ -33,6 +33,15 @@ const unsupportedEquationTree: MathNode = el(
 );
 
 /**
+ * "\sigma_x": deliberately has NO entry in the `equations` map below — this
+ * is the path every real export takes today, since `exportEssay.ts` doesn't
+ * populate the map yet. The visitor must fall back to the raw LaTeX text
+ * exactly as it does for a rejected tree, without ever calling
+ * `mathTreeToOmml`.
+ */
+const UNMAPPED_EQUATION_LATEX = "\\sigma_x";
+
+/**
  * A complete invented sample essay exercising every exporter feature:
  * abstract with keywords, headings (including a run-in level 4), citations,
  * a block quote with locator, an appendix, and two reference types. Used by
@@ -292,6 +301,10 @@ export function sampleEssayInput(
             {
               type: "apaEquation",
               attrs: { latex: UNSUPPORTED_EQUATION_LATEX },
+            },
+            {
+              type: "apaEquation",
+              attrs: { latex: UNMAPPED_EQUATION_LATEX },
             },
           ],
         },
