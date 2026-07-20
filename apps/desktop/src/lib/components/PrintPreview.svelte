@@ -7,6 +7,7 @@
     renderEssayHtml,
   } from "$lib/preview/renderEssayHtml";
   import { imageObjectUrl } from "$lib/persist/assets";
+  import { latexToMathml } from "$lib/editor/mathml";
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
@@ -25,6 +26,15 @@
       content?: unknown[]; };
     if (n.type === "figureImage" && n.attrs?.src) out.add(n.attrs.src);
     for (const child of n.content ?? []) figureSrcs(child, out);
+  }
+
+  /** Collects every block equation's LaTeX source in the doc. */
+  function equationLatexes(node: unknown, out: Set<string>): void {
+    if (!node || typeof node !== "object") return;
+    const n = node as { type?: string; attrs?: { latex?: string };
+      content?: unknown[]; };
+    if (n.type === "apaEquation" && n.attrs?.latex) out.add(n.attrs.latex);
+    for (const child of n.content ?? []) equationLatexes(child, out);
   }
 
   let rendering = $state(true);
@@ -51,8 +61,25 @@
             // Missing asset — skip; the figure renders without an image.
           }
         }
+        const latexes = new Set<string>();
+        equationLatexes(docJson, latexes);
+        const mathml = new Map<string, string>();
+        for (const latex of latexes) {
+          try {
+            mathml.set(latex, latexToMathml(latex));
+          } catch {
+            // Malformed LaTeX — skip; the equation renders with just its
+            // number, same graceful degradation as a missing figure asset.
+          }
+        }
         if (cancelled) return;
-        const html = renderEssayHtml(essay, docJson, references, imageUrls);
+        const html = renderEssayHtml(
+          essay,
+          docJson,
+          references,
+          imageUrls,
+          mathml,
+        );
         const css = renderEssayCss(essay.settings);
         styleUrl = URL.createObjectURL(
           new Blob([css], { type: "text/css" }),

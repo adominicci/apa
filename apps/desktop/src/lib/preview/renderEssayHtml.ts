@@ -49,8 +49,11 @@ interface RenderState {
   counter: { next: number };
   tableNo: { n: number };
   figureNo: { n: number };
+  equationNo: { n: number };
   /** Maps a figure's relative asset path to a resolved blob/object URL. */
   imageUrls: Map<string, string>;
+  /** Maps an equation's LaTeX source to its Temml-rendered MathML string. */
+  mathml: Map<string, string>;
 }
 
 function inlineHtml(inline: readonly PMJson[], state: RenderState): string {
@@ -156,6 +159,21 @@ function apaFigureHtml(block: PMJson, state: RenderState): string {
   return `${out}</figure>`;
 }
 
+/**
+ * Renders a block equation: MathML centered, with its number ("(1)") pinned
+ * to the right — same in both document languages, so unlike "Tabla N"/
+ * "Table N" this does not go through `getTerms`. The MathML itself arrives
+ * pre-rendered from the app layer (see `$lib/editor/mathml.ts` and
+ * `PrintPreview.svelte`), because this function is pure and Temml needs the
+ * browser.
+ */
+function apaEquationHtml(block: PMJson, state: RenderState): string {
+  state.equationNo.n += 1;
+  const latex = (block.attrs?.["latex"] as string | undefined) ?? "";
+  const mathml = state.mathml.get(latex) ?? "";
+  return `<div class="apa-equation">${mathml}<span class="eq-no">(${state.equationNo.n})</span></div>`;
+}
+
 /** HTML `type` for an ordered list, cascading 1 → a → i by nesting depth. */
 const OL_TYPE_CYCLE = ["1", "a", "i"] as const;
 function olType(seedLettered: boolean, depth: number): string {
@@ -241,6 +259,8 @@ function blocksHtml(
       out += apaTableHtml(block, state);
     } else if (block.type === "figure") {
       out += apaFigureHtml(block, state);
+    } else if (block.type === "apaEquation") {
+      out += apaEquationHtml(block, state);
     } else if (block.type === "keywordsLine") {
       const t = getTerms(state.ctx.locale);
       out += `<p class="keywords"><em>${esc(t.headings.keywords)}</em> ${
@@ -293,6 +313,9 @@ section.abstract, section.appendix, section.references { break-before: page; }
 .apa-figure .fig-cap { text-indent: 0; text-align: left; }
 .apa-figure .fig-img { max-width: 100%; height: auto; }
 .apa-figure .fig-note { text-indent: 0; text-align: left; }
+.apa-equation { display: flex; align-items: center; justify-content: center; position: relative; margin: 1em 0; break-inside: avoid; }
+.apa-equation math { max-width: calc(100% - 3rem); }
+.apa-equation .eq-no { position: absolute; right: 0; }
 `;
 }
 
@@ -301,6 +324,7 @@ export function renderEssayHtml(
   docJson: unknown,
   references: Reference[],
   imageUrls: Map<string, string> = new Map(),
+  mathml: Map<string, string> = new Map(),
 ): string {
   const locale = essay.settings.documentLanguage;
   const t = getTerms(locale);
@@ -310,7 +334,9 @@ export function renderEssayHtml(
     counter: { next: 0 },
     tableNo: { n: 0 },
     figureNo: { n: 0 },
+    equationNo: { n: 0 },
     imageUrls,
+    mathml,
   };
   const { titlePage } = essay;
 
