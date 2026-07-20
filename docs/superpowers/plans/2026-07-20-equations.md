@@ -376,7 +376,7 @@ para su aviso (Task 7). Es lo que garantiza que editor y `.docx` no discrepen.
 deno task test -- math
 ```
 
-Esperado: PASS. Total de la suite: **325** (316 + 9).
+Esperado: PASS. Total de la suite: **324** (316 + 8).
 
 - [ ] **Step 7: Verificación completa y commit**
 
@@ -500,7 +500,7 @@ git add apps/desktop/src/lib/editor/mathml.ts apps/desktop/src/lib/editor/mathml
 git commit -m "Ecuaciones: LaTeX a árbol de MathML en la capa app"
 ```
 
-Esperado: **329** tests (325 + 4).
+Esperado: **328** tests (324 + 4).
 
 ---
 
