@@ -7,8 +7,40 @@ import {
 } from "@tiptap/extension-table";
 import { imageObjectUrl } from "../persist/assets.ts";
 import { m } from "../paraglide/messages.js";
+import { watchDismiss } from "../dom/dismiss.ts";
 import { deleteApaTableAt } from "./tableCommands.ts";
 import { deleteApaFigureAt } from "./figureCommands.ts";
+
+/**
+ * Wires a pencil button and its menu into an open/close pair that dismisses on
+ * Escape and on a press outside either element. The table and figure node
+ * views are the two callers; before this they each carried their own copy of
+ * the same open/close/outside-press triple, and neither handled Escape.
+ *
+ * `inside` lists the button *and* the menu rather than their common ancestor:
+ * that ancestor is the whole table or figure, and pressing into a table cell
+ * has to dismiss the menu, not preserve it.
+ */
+function createMenuToggle(menu: HTMLElement, trigger: HTMLElement) {
+  let stopWatching: (() => void) | null = null;
+
+  const close = () => {
+    menu.style.display = "none";
+    stopWatching?.();
+    stopWatching = null;
+  };
+
+  const open = () => {
+    menu.style.display = "flex";
+    stopWatching = watchDismiss({
+      inside: [menu, trigger],
+      onDismiss: close,
+      focusOnEscape: trigger,
+    });
+  };
+
+  return { open, close };
+}
 
 /**
  * APA tables (APA 7.8–7.21). The caption ("Table N", bold) and the "Note."
@@ -77,25 +109,12 @@ export const ApaTable = Node.create({
       menu.contentEditable = "false";
       menu.style.display = "none";
 
-      /** Closes when the user interacts anywhere outside the pencil/menu —
-       * deselectNode alone misses plain clicks into text. */
-      const onOutsideDown = (e: MouseEvent) => {
-        const target = e.target as globalThis.Node | null;
-        if (target && (menu.contains(target) || editBtn.contains(target))) {
-          return;
-        }
-        closeMenu();
-      };
-
-      const closeMenu = () => {
-        menu.style.display = "none";
-        document.removeEventListener("mousedown", onOutsideDown, true);
-      };
-
-      const openMenu = () => {
-        menu.style.display = "flex";
-        document.addEventListener("mousedown", onOutsideDown, true);
-      };
+      /** Escape and outside-press dismissal; deselectNode alone misses plain
+       * clicks into text. */
+      const { open: openMenu, close: closeMenu } = createMenuToggle(
+        menu,
+        editBtn,
+      );
 
       /** Puts the cursor in a cell of THIS table so the command targets it. */
       const focusThisTable = (): boolean => {
@@ -318,24 +337,11 @@ export const ApaFigure = Node.create({
       menu.contentEditable = "false";
       menu.style.display = "none";
 
-      /** Closes when the user interacts anywhere outside the pencil/menu. */
-      const onOutsideDown = (e: MouseEvent) => {
-        const target = e.target as globalThis.Node | null;
-        if (target && (menu.contains(target) || editBtn.contains(target))) {
-          return;
-        }
-        closeMenu();
-      };
-
-      const closeMenu = () => {
-        menu.style.display = "none";
-        document.removeEventListener("mousedown", onOutsideDown, true);
-      };
-
-      const openMenu = () => {
-        menu.style.display = "flex";
-        document.addEventListener("mousedown", onOutsideDown, true);
-      };
+      /** Escape and outside-press dismissal. */
+      const { open: openMenu, close: closeMenu } = createMenuToggle(
+        menu,
+        editBtn,
+      );
 
       /** Deletes this whole figure by its node range (isolating wrapper). */
       const deleteWholeFigure = () => {

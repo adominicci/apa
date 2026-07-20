@@ -2,7 +2,7 @@
   import type { Snippet } from "svelte";
   import { TOOLBAR_DOCKS, type ToolbarDock } from "$lib/state/toolbarDock";
   import { m } from "$lib/paraglide/messages";
-  import { dismissable } from "$lib/actions/dismissable";
+  import { dismissable } from "$lib/dom/dismiss";
 
   interface Props {
     dock: ToolbarDock;
