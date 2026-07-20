@@ -454,6 +454,16 @@
   overflow-x: auto;
 }
 
+/* LaTeX que Temml no pudo interpretar: se muestra crudo, igual que hace la
+   exportación cuando no puede mapear. Romper el montaje del editor por una
+   ecuación mal escrita sería mucho peor que mostrarla sin formatear. */
+.apa-editor .tiptap .apa-equation-invalid {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  color: var(--danger);
+  white-space: pre-wrap;
+}
+
 /* Equation pencil: anchored top-LEFT rather than the table/figure top-right,
    because the equation number already sits at right:0 in the same short
    box — a top-right pencil would land right on top of it. */

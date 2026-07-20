@@ -430,7 +430,23 @@ export const ApaEquation = Node.create({
        * camino demostrado evita apostar a una diferencia entre motores, y de
        * paso deja a `mathml.ts` como único punto de contacto con Temml.
        */
-      mathHost.innerHTML = latexToMathml((node.attrs["latex"] as string) ?? "");
+      /*
+       * Envuelto en try/catch porque `latexToMathml` usa `throwOnError: true`
+       * y esto corre dentro de `addNodeView`, que ProseMirror NO protege: un
+       * LaTeX malformado (un `\frac{` sin cerrar, por ejemplo) tumbaría el
+       * montaje del editor entero en vez de romper solo su ecuación. Un
+       * documento con una ecuación mal escrita tiene que seguir abriéndose.
+       *
+       * El fallback muestra el LaTeX crudo, igual que hace la exportación
+       * cuando no puede mapear: mismo comportamiento en los dos lados.
+       */
+      const latex = (node.attrs["latex"] as string) ?? "";
+      try {
+        mathHost.innerHTML = latexToMathml(latex);
+      } catch {
+        mathHost.classList.add("apa-equation-invalid");
+        mathHost.textContent = latex;
+      }
 
       const editBtn = document.createElement("button");
       editBtn.type = "button";
