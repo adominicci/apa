@@ -142,7 +142,7 @@ y el subconjunto real lo determina la **salida** de Temml, no la **entrada** de
 | fracción, potencia, raíz | `mfrac` `msup` `msqrt` `mi` `mn` `mo` `mrow` `mspace` |
 | sumatoria con límites | `munderover` → fallback a LaTeX crudo |
 | integral con límites | `msub`, `msup` o `msubsup` con operador integral Unicode estándar (`∫`–`∳`) o suplementario (`⨋`–`⨜`) → fallback a LaTeX crudo |
-| integral compuesta | base `∫⋯∫` o la base elíptica que Temml emite para `\\idotsint` → fallback a LaTeX crudo |
+| integral compuesta | base `∫⋯∫` o la base elíptica con el sentinel de margen que Temml emite para `\\idotsint` → fallback a LaTeX crudo; un `\\dots` con scripts sigue nativo |
 | raíz n-ésima | `mroot` |
 | texto | `mtext` |
 | paréntesis `\left(…\right)` | `mo` `mrow` — **sin elemento de fence** |

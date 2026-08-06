@@ -258,6 +258,10 @@ describe("mathTreeToOmml — no soportado", () => {
     expect(mathTreeToOmml(el("msubsup", base, leaf("mn", "0"), leaf("mn", "1"))).ok).toBe(false);
   });
 
+  it("conserva puntos suspensivos con scripts fuera de contexto integral", () => {
+    expect(mathTreeToOmml(el("msubsup", leaf("mo", "…"), leaf("mn", "1"), leaf("mi", "n"))).ok).toBe(true);
+  });
+
   it("mapea la raíz n-ésima (mroot)", () => {
     expect(mathTreeToOmml(el("mroot", leaf("mi", "x"), leaf("mn", "3"))).ok).toBe(true);
   });

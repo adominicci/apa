@@ -269,6 +269,13 @@ describe("mathTreeToOmml — no soportado", () => {
     expect(result).toEqual({ ok: false, unsupported: "∫⋯∫[operand]" });
   });
 
+  it("conserva puntos suspensivos con scripts fuera de contexto integral", () => {
+    const result = mathTreeToOmml(
+      el("msubsup", leaf("mo", "…"), leaf("mn", "1"), leaf("mi", "n")),
+    );
+    expect(result.ok).toBe(true);
+  });
+
   it("mapea la raíz n-ésima (mroot) con base y grado en el orden correcto", () => {
     const result = mathTreeToOmml(
       el("mroot", leaf("mi", "x"), leaf("mn", "3")),

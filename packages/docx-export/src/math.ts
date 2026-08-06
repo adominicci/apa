@@ -51,9 +51,6 @@ function isIntegralGlyph(glyph: string | undefined): glyph is string {
 function integralOperatorLabel(node: MathNode): string | undefined {
   const glyph = baseOperatorGlyph(node);
   if (isIntegralGlyph(glyph)) return glyph;
-  // Temml represents \idotsint limits on a lone ellipsis, with the surrounding
-  // integral signs as siblings. Treat that known base as the composite operator.
-  if (glyph === "⋯" || glyph === "…") return "∫⋯∫";
   if (node.tag !== "mrow") return undefined;
 
   let label = "";
@@ -66,6 +63,19 @@ function integralOperatorLabel(node: MathNode): string | undefined {
     label += part;
   }
   return hasIntegral ? label : undefined;
+}
+
+function isTemmlIdotsint(children: MathNode[], index: number): boolean {
+  const scripted = children[index];
+  const previous = children[index - 1];
+  if (
+    !scripted || !previous ||
+    !["msub", "msup", "msubsup"].includes(scripted.tag)
+  ) return false;
+  const base = scripted.children?.[0];
+  if (!base || baseOperatorGlyph(base) !== "⋯") return false;
+  return previous.tag === "mrow" && (previous.children?.length ?? 0) === 0 &&
+    /margin-left\s*:\s*-0\.1667em/.test(previous.attrs?.style ?? "");
 }
 
 export function mathTreeToOmml(node: MathNode): MathResult {
@@ -132,7 +142,10 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   // mrow y math son agrupadores sin forma propia: se aplanan.
   if (node.tag === "mrow" || node.tag === "math" || node.tag === "mstyle") {
     const flattened: MathComponent[] = [];
-    for (const child of children) {
+    for (const [index, child] of children.entries()) {
+      if (node.tag === "mrow" && isTemmlIdotsint(children, index)) {
+        return { ok: false, unsupported: "∫⋯∫[operand]" };
+      }
       const result = mathTreeToOmml(child);
       if (!result.ok) return result;
       flattened.push(...result.children);
