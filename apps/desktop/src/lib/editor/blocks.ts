@@ -405,7 +405,7 @@ export function createApaEquationExtension(
 ) {
   return Node.create({
     name: "apaEquation",
-    group: "block",
+    group: "equationBlock",
     atom: true,
     draggable: false,
     addAttributes() {

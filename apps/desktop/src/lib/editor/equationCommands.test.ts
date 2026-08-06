@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { getSchema } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
+import { Fragment } from "@tiptap/pm/model";
 import { EditorState, TextSelection } from "@tiptap/pm/state";
 import { sectionExtensions } from "./sections.ts";
 import { OrderedListStyleAttr } from "./lists.ts";
-import { blockExtensions, canInsertApaEquation } from "./blocks.ts";
+import {
+  blockExtensions,
+  canInsertApaEquation,
+  createApaEquationExtension,
+} from "./blocks.ts";
 
 const schema = getSchema([
   StarterKit.configure({
@@ -18,6 +23,7 @@ const schema = getSchema([
   ...sectionExtensions,
   OrderedListStyleAttr,
   ...blockExtensions,
+  createApaEquationExtension(() => {}),
 ]);
 
 function stateAt(text: string, content: unknown[]): EditorState {
@@ -60,6 +66,23 @@ function abstractState(): EditorState {
 }
 
 describe("canInsertApaEquation", () => {
+  it("permits equations only in section schemas", () => {
+    const equation = schema.nodes.apaEquation!.create({ latex: "x" });
+    const paragraph = schema.nodes.paragraph!.create();
+    expect(
+      schema.nodes.sectionBody!.validContent(Fragment.from(equation)),
+    ).toBe(true);
+    expect(
+      schema.nodes.sectionAppendix!.validContent(Fragment.from(equation)),
+    ).toBe(true);
+    expect(
+      schema.nodes.blockquote!.validContent(Fragment.from(equation)),
+    ).toBe(false);
+    expect(
+      schema.nodes.listItem!.validContent(Fragment.from([paragraph, equation])),
+    ).toBe(false);
+  });
+
   it("allows a top-level section paragraph", () => {
     const state = stateAt("top", [{
       type: "paragraph",

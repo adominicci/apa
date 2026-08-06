@@ -16,7 +16,7 @@ export const TesinaDocument = Node.create({
 
 export const SectionBody = Node.create({
   name: "sectionBody",
-  content: "block+",
+  content: "(block | equationBlock)+",
   isolating: true,
   defining: true,
   parseHTML() {
@@ -46,7 +46,7 @@ export const SectionAbstract = Node.create({
 
 export const SectionAppendix = Node.create({
   name: "sectionAppendix",
-  content: "block+",
+  content: "(block | equationBlock)+",
   isolating: true,
   defining: true,
   parseHTML() {

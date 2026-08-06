@@ -5,7 +5,7 @@ import type { Node as PMNode } from "@tiptap/pm/model";
 import { EditorState, TextSelection } from "@tiptap/pm/state";
 import { sectionExtensions } from "./sections.ts";
 import { OrderedListStyleAttr } from "./lists.ts";
-import { blockExtensions } from "./blocks.ts";
+import { blockExtensions, createApaEquationExtension } from "./blocks.ts";
 import { apaTableRange } from "./tableCommands.ts";
 
 // The real editor schema (minus the citation extension, which needs a live
@@ -22,6 +22,7 @@ const schema = getSchema([
   ...sectionExtensions,
   OrderedListStyleAttr,
   ...blockExtensions,
+  createApaEquationExtension(() => {}),
 ]);
 
 const para = (text: string) => ({
