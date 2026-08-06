@@ -76,6 +76,19 @@ describe("mathTreeToOmml — construcciones soportadas", () => {
     ).toEqual({ ok: false, unsupported: "mi[mathvariant=normal]" });
   });
 
+  it("rechaza texto MathML recto que Word volvería cursivo", () => {
+    expect(mathTreeToOmml(leaf("mtext", "where"))).toEqual({
+      ok: false,
+      unsupported: "mtext[upright]",
+    });
+  });
+
+  it("rechaza atributos MathML que el mapeador no implementa", () => {
+    expect(
+      mathTreeToOmml({ tag: "mi", text: "x", attrs: { color: "red" } }),
+    ).toEqual({ ok: false, unsupported: "mi[color]" });
+  });
+
   it("mapea una fracción con numerador y denominador en el orden correcto", () => {
     const frac = el("mfrac", leaf("mn", "1"), leaf("mn", "2"));
     const result = mathTreeToOmml(frac);
@@ -96,6 +109,11 @@ describe("mathTreeToOmml — construcciones soportadas", () => {
       ok: false,
       unsupported: "mfrac[linethickness=0]",
     });
+    for (const linethickness of ["0px", "0.0", " 0.0px ", "0.00em"]) {
+      expect(
+        mathTreeToOmml({ ...frac, attrs: { linethickness } }),
+      ).toEqual({ ok: false, unsupported: "mfrac[linethickness=0]" });
+    }
   });
 
   it("mapea una raíz cuadrada", () => {

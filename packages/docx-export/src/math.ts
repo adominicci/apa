@@ -47,18 +47,35 @@ function baseOperatorGlyph(node: MathNode): string | undefined {
 export function mathTreeToOmml(node: MathNode): MathResult {
   const children = node.children ?? [];
 
-  const mathVariant = node.attrs?.["mathvariant"];
-  if (mathVariant && mathVariant !== "italic") {
-    return {
-      ok: false,
-      unsupported: `${node.tag}[mathvariant=${mathVariant}]`,
-    };
+  for (const [name, rawValue] of Object.entries(node.attrs ?? {})) {
+    if (
+      node.tag === "math" &&
+      (name === "display" || name === "class" || name === "style")
+    ) {
+      continue;
+    }
+    if (name === "mathvariant") {
+      if (rawValue === "italic") continue;
+      return {
+        ok: false,
+        unsupported: `${node.tag}[mathvariant=${rawValue}]`,
+      };
+    }
+    if (node.tag === "mfrac" && name === "linethickness") {
+      if (/^0(?:\.0+)?(?:[a-z%]+)?$/i.test(rawValue.trim())) {
+        return { ok: false, unsupported: "mfrac[linethickness=0]" };
+      }
+    }
+    return { ok: false, unsupported: `${node.tag}[${name}]` };
   }
 
   // MathML renders multi-character identifiers upright by default, whereas
   // a plain OMML MathRun is italic. Fall back rather than change notation.
   if (node.tag === "mi" && Array.from(node.text ?? "").length > 1) {
     return { ok: false, unsupported: "mi[upright]" };
+  }
+  if (node.tag === "mtext") {
+    return { ok: false, unsupported: "mtext[upright]" };
   }
 
   if (LEAF_TAGS.has(node.tag)) {
@@ -77,9 +94,6 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   }
 
   if (node.tag === "mfrac" && children.length === 2) {
-    if (/^0(?:[a-z%]+)?$/i.test(node.attrs?.["linethickness"] ?? "")) {
-      return { ok: false, unsupported: "mfrac[linethickness=0]" };
-    }
     const numerator = mathTreeToOmml(children[0]!);
     if (!numerator.ok) return numerator;
     const denominator = mathTreeToOmml(children[1]!);

@@ -14,6 +14,18 @@ export function latexToMathml(latex: string): string {
   });
 }
 
+/** True only when non-empty LaTeX can be rendered by the equation pipeline. */
+export function isValidLatex(latex: string): boolean {
+  const trimmed = latex.trim();
+  if (trimmed === "") return false;
+  try {
+    latexToMathml(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Convierte un elemento del DOM al árbol plano serializable del contrato. */
 function elementToNode(element: Element): MathNode {
   const children = Array.from(element.children);

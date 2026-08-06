@@ -2,7 +2,7 @@
   import { untrack } from "svelte";
   import type { Attachment } from "svelte/attachments";
   import Modal from "$lib/components/Modal.svelte";
-  import { latexToMathml } from "$lib/editor/mathml";
+  import { isValidLatex, latexToMathml } from "$lib/editor/mathml";
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
@@ -56,7 +56,7 @@
 
   function confirm() {
     const trimmed = latex.trim();
-    if (trimmed === "") return;
+    if (!isValidLatex(trimmed)) return;
     onConfirm(trimmed);
   }
 </script>
@@ -91,7 +91,7 @@
     <button
       class="btn btn-primary"
       onclick={confirm}
-      disabled={latex.trim() === ""}
+      disabled={!isValidLatex(latex)}
     >
       {editing ? m.equation_save() : m.equation_insert()}
     </button>
