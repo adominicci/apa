@@ -245,6 +245,10 @@ describe("mathTreeToOmml — no soportado", () => {
     expect(mathTreeToOmml(integral).ok).toBe(false);
   });
 
+  it.each(["msub", "msup"])("rechaza una integral %s de un solo límite", (tag) => {
+    expect(mathTreeToOmml(el(tag, leaf("mo", "∫"), leaf("mn", "0"))).ok).toBe(false);
+  });
+
   it("mapea la raíz n-ésima (mroot)", () => {
     expect(mathTreeToOmml(el("mroot", leaf("mi", "x"), leaf("mn", "3"))).ok).toBe(true);
   });

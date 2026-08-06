@@ -141,6 +141,9 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   }
 
   if (node.tag === "msup" && children.length === 2) {
+    if (baseOperatorGlyph(children[0]!) === "∫") {
+      return { ok: false, unsupported: "∫[operand]" };
+    }
     const base = mathTreeToOmml(children[0]!);
     if (!base.ok) return base;
     const sup = mathTreeToOmml(children[1]!);
@@ -157,6 +160,9 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   }
 
   if (node.tag === "msub" && children.length === 2) {
+    if (baseOperatorGlyph(children[0]!) === "∫") {
+      return { ok: false, unsupported: "∫[operand]" };
+    }
     const base = mathTreeToOmml(children[0]!);
     if (!base.ok) return base;
     const sub = mathTreeToOmml(children[1]!);

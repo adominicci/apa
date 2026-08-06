@@ -141,7 +141,7 @@ y el subconjunto real lo determina la **salida** de Temml, no la **entrada** de
 |---|---|
 | fracción, potencia, raíz | `mfrac` `msup` `msqrt` `mi` `mn` `mo` `mrow` `mspace` |
 | sumatoria con límites | `munderover` → fallback a LaTeX crudo |
-| integral con límites | `msubsup` con base `∫` → fallback a LaTeX crudo |
+| integral con límites | `msub`, `msup` o `msubsup` con base `∫` → fallback a LaTeX crudo |
 | raíz n-ésima | `mroot` |
 | texto | `mtext` |
 | paréntesis `\left(…\right)` | `mo` `mrow` — **sin elemento de fence** |
@@ -166,7 +166,7 @@ Dos consecuencias que no se ven razonando sobre las APIs por separado:
 El subconjunto editable real, entonces: `math` `mrow` `mstyle`, `mspace` sin
 atributos visibles, las
 hojas compatibles (`mi` `mn` `mo` `ms`), `mfrac`, `msqrt`, `mroot`, `msup`,
-`msub` y `msubsup` cuando no representa una integral. `mtext`, sumatorias e
+`msub` y `msubsup` cuando no representan una integral. `mtext`, sumatorias e
 integrales con límites usan el fallback de LaTeX crudo: Temml deja el operando
 como hermanos posteriores y no permite determinar su alcance sin heurísticas
 que podrían cambiar el significado matemático.
