@@ -253,17 +253,11 @@ describe("mathTreeToOmml — no soportado", () => {
     expect(runTextsInOrder(xmlOf(component))).toEqual(["3", "x"]);
   });
 
-  it("ignora mspace sin romper ni emitir nada", () => {
-    // Temml lo intercala por espaciado; OMML hace el suyo. Ignorarlo es
-    // correcto, y por eso se afirma que no produce hijos.
+  it("rechaza mspace con ancho explícito", () => {
     const result = mathTreeToOmml(
-      el("mrow", leaf("mi", "x"), {
-        tag: "mspace",
-        attrs: { width: "0.1667em" },
-      }),
+      { tag: "mspace", attrs: { width: "0.1667em" } },
     );
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.children).toHaveLength(1);
+    expect(result).toEqual({ ok: false, unsupported: "mspace[width]" });
   });
 
   it("rechaza mspace con atributos visibles", () => {

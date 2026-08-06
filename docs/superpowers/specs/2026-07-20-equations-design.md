@@ -149,8 +149,9 @@ y el subconjunto real lo determina la **salida** de Temml, no la **entrada** de
 
 Dos consecuencias que no se ven razonando sobre las APIs por separado:
 
-1. **`mspace` aparece en ecuaciones básicas.** Sin manejarlo, la primera
-   ecuación realista falla.
+1. **`mspace` aparece en ecuaciones básicas.** Solo los nodos sin atributos o
+   con clase interna son descartables; un ancho u otro atributo explícito usa
+   el fallback porque OMML no puede reconstruir ese espaciado con fidelidad.
 2. **Los cuatro tipos de paréntesis de `docx` son inalcanzables.** Temml emite
    `<mo>(</mo>`, un operador suelto, no un elemento de agrupación. Así que
    `MathRoundBrackets` y sus tres hermanos nunca se construyen: los paréntesis
@@ -162,7 +163,8 @@ Dos consecuencias que no se ven razonando sobre las APIs por separado:
    conocida donde **la app se ve mejor que el `.docx`**, y conviene tenerla
    presente antes de que aparezca como "bug" de exportación. Aceptable en v1.
 
-El subconjunto editable real, entonces: `math` `mrow` `mstyle` `mspace`, las
+El subconjunto editable real, entonces: `math` `mrow` `mstyle`, `mspace` sin
+atributos visibles, las
 hojas compatibles (`mi` `mn` `mo` `ms`), `mfrac`, `msqrt`, `mroot`, `msup`,
 `msub` y `msubsup` cuando no representa una integral. `mtext`, sumatorias e
 integrales con límites usan el fallback de LaTeX crudo: Temml deja el operando

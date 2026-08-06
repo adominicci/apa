@@ -249,12 +249,9 @@ describe("mathTreeToOmml — no soportado", () => {
     expect(mathTreeToOmml(el("mroot", leaf("mi", "x"), leaf("mn", "3"))).ok).toBe(true);
   });
 
-  it("ignora mspace sin romper ni emitir nada", () => {
-    // Temml lo intercala por espaciado; OMML hace el suyo. Ignorarlo es
-    // correcto, y por eso se afirma que no produce hijos.
-    const result = mathTreeToOmml(el("mrow", leaf("mi", "x"), { tag: "mspace" }));
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.children).toHaveLength(1);
+  it("rechaza mspace con ancho explícito", () => {
+    const result = mathTreeToOmml({ tag: "mspace", attrs: { width: "0.1667em" } });
+    expect(result.ok).toBe(false);
   });
 
   it("propaga el rechazo desde un hijo anidado", () => {
