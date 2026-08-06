@@ -7,9 +7,11 @@ export type {
   ExportSettings,
   ExportTitlePage,
   FontChoice,
+  MathNode,
   PaperSize,
   PaperVariant,
 } from "./input.ts";
+export { type MathResult, mathTreeToOmml, toDocxMath } from "./math.ts";
 
 import {
   AlignmentType,
@@ -76,6 +78,7 @@ export async function exportDocx(input: ExportInput): Promise<Uint8Array> {
     input.references,
     locale,
     input.images ?? {},
+    input.equations ?? {},
   );
 
   const doc = new Document({
@@ -97,7 +100,11 @@ export async function exportDocx(input: ExportInput): Promise<Uint8Array> {
         headers: { default: buildHeader(input) },
         children: [
           ...titlePageParagraphs(input),
-          ...visitDocument(content, ctx),
+          ...visitDocument(
+            content,
+            ctx,
+            PAGE_SIZE[input.settings.paperSize].width - 2 * ONE_INCH,
+          ),
           ...referencesParagraphs(input.references, locale),
         ],
       },

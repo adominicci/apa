@@ -240,6 +240,116 @@ describe("renderEssayHtml", () => {
     expect(html).toContain("Nota.");
   });
 
+  it("renders APA equations with MathML and a right-aligned number that increments", () => {
+    const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    essay.content = {
+      type: "doc",
+      content: [
+        {
+          type: "sectionBody",
+          content: [
+            { type: "apaEquation", attrs: { latex: "E = mc^2" } },
+            { type: "apaEquation", attrs: { latex: "a^2 + b^2 = c^2" } },
+          ],
+        },
+      ],
+    };
+    const mathml = new Map([
+      ["E = mc^2", "<math><mi>E</mi></math>"],
+      ["a^2 + b^2 = c^2", "<math><mi>a</mi></math>"],
+    ]);
+    const html = renderEssayHtml(
+      essay,
+      essay.content,
+      [],
+      new Map(),
+      mathml,
+    );
+    expect(html).toContain(
+      '<div class="apa-equation"><math><mi>E</mi></math><span class="eq-no">(1)</span></div>',
+    );
+    expect(html).toContain(
+      '<div class="apa-equation"><math><mi>a</mi></math><span class="eq-no">(2)</span></div>',
+    );
+  });
+
+  it("matches the complete APA equation preview markup", () => {
+    const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    essay.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [{ type: "apaEquation", attrs: { latex: "E = mc^2" } }],
+      }],
+    };
+    const html = renderEssayHtml(
+      essay,
+      essay.content,
+      [],
+      new Map(),
+      new Map([[
+        "E = mc^2",
+        "<math><mi>E</mi><mo>=</mo><msup><mi>c</mi><mn>2</mn></msup></math>",
+      ]]),
+    );
+    expect(html).toMatchSnapshot();
+  });
+
+  it("falls back to escaped raw LaTeX when an equation has no MathML entry", () => {
+    // Mirrors the editor (raw LaTeX in red mono) and the DOCX export (raw
+    // LaTeX text run) for a construct Temml couldn't render — the preview
+    // must not silently show an empty line with just the number, since it's
+    // the pre-export check the user relies on to catch this.
+    const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    essay.content = {
+      type: "doc",
+      content: [
+        {
+          type: "sectionBody",
+          content: [
+            {
+              type: "apaEquation",
+              attrs: { latex: "\\begin{matrix}a<b\\end{matrix}" },
+            },
+          ],
+        },
+      ],
+    };
+    const html = renderEssayHtml(
+      essay,
+      essay.content,
+      [],
+      new Map(),
+      new Map(),
+    );
+    expect(html).toContain(
+      '<div class="apa-equation">\\begin{matrix}a&lt;b\\end{matrix}<span class="eq-no">(1)</span></div>',
+    );
+  });
+
+  it("renders an equation number the same way in English and Spanish", () => {
+    // Unlike "Tabla N"/"Table N", "(1)" does not go through getTerms.
+    const essayEs = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    const essayEn = createEmptyEssay("en", "2026-07-11T12:00:00.000Z");
+    const doc = {
+      type: "doc",
+      content: [
+        {
+          type: "sectionBody",
+          content: [{ type: "apaEquation", attrs: { latex: "x" } }],
+        },
+      ],
+    };
+    essayEs.content = doc;
+    essayEn.content = doc;
+    expect(renderEssayHtml(essayEs, doc, [])).toContain(
+      '<span class="eq-no">(1)</span>',
+    );
+    expect(renderEssayHtml(essayEn, doc, [])).toContain(
+      '<span class="eq-no">(1)</span>',
+    );
+  });
+
   it("renders lettered lists with type=a and nested sublists", () => {
     const essay = listEssay();
     const html = renderEssayHtml(essay, essay.content, []);
@@ -356,5 +466,16 @@ describe("renderEssayCss", () => {
     const aptosCss = renderEssayCss(essay.settings);
     expect(aptosCss).toContain("Aptos");
     expect(aptosCss).toContain("font-size: 12pt");
+  });
+
+  it("centers block equations with the number pinned to the right", () => {
+    const essay = sampleEssay();
+    const css = renderEssayCss(essay.settings);
+    expect(css).toContain(
+      ".apa-equation { display: flex; align-items: center; justify-content: center; position: relative;",
+    );
+    expect(css).toContain(
+      ".apa-equation .eq-no { position: absolute; right: 0; }",
+    );
   });
 });

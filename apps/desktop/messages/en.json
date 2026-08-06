@@ -380,6 +380,7 @@
   "figure_edit": "Edit figure",
   "figure_delete": "Delete figure",
   "fab_figure": "Figure",
+  "fab_equation": "Equation",
   "tb_font": "Font",
   "cover_open_form": "Edit the title page in the form",
   "cover_title_ph": "Paper title",
@@ -398,5 +399,15 @@
   "toolbar_pos_bottom": "Bottom",
   "toolbar_pos_top": "Top",
   "toolbar_pos_left": "Left",
-  "toolbar_pos_right": "Right"
+  "toolbar_pos_right": "Right",
+  "equation_edit": "Edit equation",
+  "equation_save": "Save equation",
+  "equation_delete": "Delete equation",
+  "equation_insert": "Insert equation",
+  "equation_latex_label": "LaTeX code",
+  "equation_latex_placeholder": "x^2 + y^2 = z^2",
+  "equation_preview_label": "Preview",
+  "equation_preview_empty": "Type an equation to see a preview.",
+  "equation_preview_error": "Couldn't read this LaTeX. Check the syntax.",
+  "equation_not_exportable": "Won't export as an editable Word equation ({element}) — it will keep its original text"
 }

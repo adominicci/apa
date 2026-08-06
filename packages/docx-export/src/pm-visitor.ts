@@ -1,9 +1,10 @@
-import { Paragraph, Table, TextRun } from "docx";
+import { Paragraph, Tab, Table, TabStopType, TextRun } from "docx";
 import { getTerms } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
 import { type DocContext, inlineText, inlineToTextRuns } from "./runs.ts";
 import { LOWER_ALPHA_REF, ORDERED_LIST_REF } from "./styles.ts";
 import { apaFigureBlocks, apaTableBlocks } from "./blocks.ts";
+import { mathTreeToOmml, toDocxMath } from "./math.ts";
 
 interface VisitState {
   ctx: DocContext;
@@ -11,6 +12,8 @@ interface VisitState {
   orderedListInstance: number;
   tableCounter: { n: number };
   figureCounter: { n: number };
+  equationCounter: { n: number };
+  contentWidth: number;
 }
 
 interface VisitOptions {
@@ -201,6 +204,46 @@ export function visitBlocks(
         );
         break;
       }
+      case "apaEquation": {
+        // Numbered "(1)" in both document languages — never through
+        // getTerms, mirroring the preview (renderEssayHtml.ts).
+        const first = !emittedFirst;
+        emittedFirst = true;
+        state.equationCounter.n += 1;
+        const latex = (block.attrs?.["latex"] as string | undefined) ?? "";
+        const tree = state.ctx.equations[latex];
+        const mathResult = tree ? mathTreeToOmml(tree) : undefined;
+        // Fallback is the point of this block: an unmapped tree (no map
+        // entry, or mathTreeToOmml rejecting the shape) must still export
+        // as its raw LaTeX text — never throw and take the rest of the
+        // document down with it.
+        const equationChildren = mathResult?.ok
+          ? [toDocxMath(mathResult.children)]
+          : [new TextRun(latex)];
+        out.push(
+          new Paragraph({
+            style: "Normal",
+            ...(first && options.firstPageBreak
+              ? { pageBreakBefore: true }
+              : {}),
+            tabStops: [
+              {
+                type: TabStopType.CENTER,
+                position: state.contentWidth / 2,
+              },
+              { type: TabStopType.RIGHT, position: state.contentWidth },
+            ],
+            children: [
+              new TextRun({ children: [new Tab()] }),
+              ...equationChildren,
+              new TextRun({
+                children: [new Tab(), `(${state.equationCounter.n})`],
+              }),
+            ],
+          }),
+        );
+        break;
+      }
       case "keywordsLine": {
         const t = getTerms(state.ctx.locale);
         emit("BodyText", [
@@ -229,6 +272,7 @@ export function visitBlocks(
 export function visitDocument(
   content: PMJson,
   ctx: DocContext,
+  contentWidth: number,
 ): (Paragraph | Table)[] {
   const t = getTerms(ctx.locale);
   const state: VisitState = {
@@ -237,6 +281,8 @@ export function visitDocument(
     orderedListInstance: 0,
     tableCounter: { n: 0 },
     figureCounter: { n: 0 },
+    equationCounter: { n: 0 },
+    contentWidth,
   };
   const sections = content.content ?? [];
   const appendixCount = sections.filter(

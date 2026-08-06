@@ -88,7 +88,7 @@ export function watchDismiss(options: DismissOptions): () => void {
    */
   function stop() {
     document.removeEventListener("pointerdown", onPointerDown, true);
-    window.removeEventListener("keydown", onKeyDown);
+    globalThis.removeEventListener("keydown", onKeyDown);
     if (activePopover === dismiss) activePopover = null;
   }
 
@@ -99,7 +99,7 @@ export function watchDismiss(options: DismissOptions): () => void {
   }
 
   document.addEventListener("pointerdown", onPointerDown, true);
-  window.addEventListener("keydown", onKeyDown);
+  globalThis.addEventListener("keydown", onKeyDown);
   activePopover = dismiss;
 
   return stop;

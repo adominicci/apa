@@ -1,4 +1,5 @@
 import { type Editor, Node } from "@tiptap/core";
+import type { EditorState } from "@tiptap/pm/state";
 import {
   Table,
   TableCell,
@@ -8,8 +9,10 @@ import {
 import { imageObjectUrl } from "../persist/assets.ts";
 import { m } from "../paraglide/messages.js";
 import { watchDismiss } from "../dom/dismiss.ts";
+import { latexToMathml, latexToMathTree } from "./mathml.ts";
 import { deleteApaTableAt } from "./tableCommands.ts";
 import { deleteApaFigureAt } from "./figureCommands.ts";
+import { mathTreeToOmml } from "@tesina/docx-export";
 
 /**
  * Wires a pencil button and its menu into an open/close pair that dismisses on
@@ -384,8 +387,198 @@ export const ApaFigure = Node.create({
   },
 });
 
+/**
+ * APA block equations. Simpler than `figure`: a single `latex` attribute,
+ * no editable inline content — the LaTeX is edited through the pencil menu
+ * and what's shown is the MathML Temml renders from it. Its number ("(1)",
+ * same in both document languages, unlike "Table N"/"Tabla N") is drawn by
+ * CSS from a counter and never stored, per AGENTS.md.
+ *
+ * A factory, not a plain `Node.create` — mirroring `createCitationExtension`.
+ * The pencil's "editar" item needs to hand the node's position and current
+ * LaTeX back to the app layer, which owns the LaTeX dialog: a Svelte
+ * component can't be mounted from inside a vanilla ProseMirror node view.
+ * `onEdit` is that one callback, threaded in from `createEditor.ts`.
+ */
+export function createApaEquationExtension(
+  onEdit: (pos: number, latex: string) => void,
+) {
+  return Node.create({
+    name: "apaEquation",
+    group: "equationBlock",
+    atom: true,
+    draggable: false,
+    addAttributes() {
+      return { latex: { default: "" } };
+    },
+    parseHTML() {
+      return [{ tag: "div[data-apa-equation]" }];
+    },
+    renderHTML({ HTMLAttributes }) {
+      return [
+        "div",
+        {
+          ...HTMLAttributes,
+          "data-apa-equation": "true",
+          class: "apa-equation",
+        },
+      ];
+    },
+    // NodeView: renders the MathML via latexToMathml and adds the pencil,
+    // reusing createMenuToggle (Escape + outside-press already handled). No
+    // contentDOM — the node is an atom leaf, so ProseMirror never edits its
+    // DOM directly; ignoreMutation stays true throughout, mirroring FigureImage.
+    addNodeView() {
+      return ({ editor, node, getPos }) => {
+        const dom = document.createElement("div");
+        dom.className = "apa-equation";
+        dom.setAttribute("data-apa-equation", "true");
+
+        const mathHost = document.createElement("div");
+        mathHost.className = "apa-equation-math";
+        mathHost.contentEditable = "false";
+        /*
+         * `latexToMathml` (renderToString) e innerHTML, y NO `temml.render()`:
+         * es exactamente el camino que el spike validó dentro de WKWebView.
+         * `render()` escribe en el DOM vivo y quedó sin probar ahí — de hecho
+         * revienta bajo jsdom, que no implementa el DOM de MathML. Usar el
+         * camino demostrado evita apostar a una diferencia entre motores, y de
+         * paso deja a `mathml.ts` como único punto de contacto con Temml.
+         */
+        const latex = (node.attrs["latex"] as string) ?? "";
+        /*
+         * Envuelto en try/catch porque `latexToMathml` usa `throwOnError: true`
+         * y esto corre dentro de `addNodeView`, que ProseMirror NO protege: un
+         * LaTeX malformado (un `\frac{` sin cerrar, por ejemplo) tumbaría el
+         * montaje del editor entero en vez de romper solo su ecuación. Un
+         * documento con una ecuación mal escrita tiene que seguir abriéndose.
+         *
+         * El fallback muestra el LaTeX crudo, igual que hace la exportación
+         * cuando no puede mapear: mismo comportamiento en los dos lados.
+         */
+        let unsupportedElement: string | null = null;
+        try {
+          mathHost.innerHTML = latexToMathml(latex);
+          /*
+           * La MISMA función que usa el exportador (`mathTreeToOmml`), no un
+           * predicado propio reimplementado acá: es la única forma de
+           * garantizar que esta marca y el .docx real nunca discrepen (ver
+           * math.ts). `latexToMathTree` no debería devolver null en esta
+           * rama —`latexToMathml` de arriba ya probó que el LaTeX es
+           * válido— pero si lo hiciera de todos modos no hay árbol que
+           * chequear, así que no se marca nada.
+           */
+          const tree = latexToMathTree(latex);
+          if (tree) {
+            const mathResult = mathTreeToOmml(tree);
+            if (!mathResult.ok) unsupportedElement = mathResult.unsupported;
+          }
+        } catch {
+          mathHost.classList.add("apa-equation-invalid");
+          mathHost.textContent = latex;
+        }
+
+        if (unsupportedElement) dom.classList.add("apa-equation-unsupported");
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "apa-equation-edit";
+        editBtn.contentEditable = "false";
+        editBtn.title = m.equation_edit();
+        editBtn.setAttribute("aria-label", m.equation_edit());
+        editBtn.innerHTML =
+          `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`;
+
+        const menu = document.createElement("div");
+        menu.className = "apa-equation-menu";
+        menu.contentEditable = "false";
+        menu.style.display = "none";
+
+        /** Escape and outside-press dismissal. */
+        const { open: openMenu, close: closeMenu } = createMenuToggle(
+          menu,
+          editBtn,
+        );
+
+        const editItem = document.createElement("button");
+        editItem.type = "button";
+        editItem.className = "apa-equation-menu-item";
+        editItem.textContent = m.equation_edit();
+        // preventDefault on mousedown keeps the editor selection; the action
+        // runs on click so keyboard activation (Enter/Space) works too.
+        editItem.addEventListener("mousedown", (e) => e.preventDefault());
+        editItem.addEventListener("click", () => {
+          closeMenu();
+          const pos = typeof getPos === "function" ? getPos() : undefined;
+          if (typeof pos === "number") onEdit(pos, latex);
+        });
+        menu.append(editItem);
+
+        /** Deletes this whole equation by its node range (atom leaf). */
+        const deleteWholeEquation = () => {
+          const pos = typeof getPos === "function" ? getPos() : undefined;
+          if (typeof pos !== "number") return;
+          const current = editor.state.doc.nodeAt(pos);
+          if (!current || current.type.name !== "apaEquation") return;
+          editor
+            .chain()
+            .focus()
+            .deleteRange({ from: pos, to: pos + current.nodeSize })
+            .run();
+        };
+
+        const delItem = document.createElement("button");
+        delItem.type = "button";
+        delItem.className = "apa-equation-menu-item danger";
+        delItem.textContent = m.equation_delete();
+        delItem.addEventListener("mousedown", (e) => e.preventDefault());
+        delItem.addEventListener("click", () => {
+          closeMenu();
+          deleteWholeEquation();
+        });
+        menu.append(delItem);
+
+        editBtn.addEventListener("mousedown", (e) => e.preventDefault());
+        editBtn.addEventListener("click", () => {
+          if (menu.style.display === "none") openMenu();
+          else closeMenu();
+        });
+
+        dom.append(mathHost, editBtn, menu);
+
+        if (unsupportedElement) {
+          const warnBadge = document.createElement("span");
+          warnBadge.className = "apa-equation-warn";
+          warnBadge.setAttribute("role", "img");
+          // Un solo texto localizado para aria-label y tooltip nativo, armado
+          // acá (capa app) a partir del identificador puro que devuelve el
+          // mismo mapeador que usa el exportador (math.ts) — por qué el
+          // .docx cae al LaTeX crudo acá. El paquete solo nombra QUÉ no se
+          // pudo mapear (el tag o el glifo); esta capa decide CÓMO decirlo.
+          const message = m.equation_not_exportable({
+            element: unsupportedElement,
+          });
+          warnBadge.setAttribute("aria-label", message);
+          warnBadge.title = message;
+          warnBadge.textContent = "⚠";
+          dom.append(warnBadge);
+        }
+
+        return {
+          dom,
+          ignoreMutation: () => true,
+          deselectNode: closeMenu,
+          destroy: closeMenu,
+        };
+      };
+    },
+  });
+}
+
 /** Table + figure nodes; table column resizing is off (APA uses plain
- * full-width columns). */
+ * full-width columns). `apaEquation` is NOT included here — it needs the
+ * `onEdit` callback from the app layer, so `createEditor.ts` adds
+ * `createApaEquationExtension(onEdit)` itself instead of spreading it in. */
 export const blockExtensions = [
   ApaTable,
   TableTitle,
@@ -462,6 +655,45 @@ export function insertFigure(editor: Editor, src: string): void {
         { type: "figureImage", attrs: { src } },
         { type: "figureNote" },
       ],
+    })
+    .run();
+}
+
+/** Inserts a new APA block equation with the given LaTeX. */
+export function canInsertApaEquation(state: EditorState): boolean {
+  if (!state.selection.empty) return false;
+  const { $from } = state.selection;
+  const containerDepth = $from.parent.isTextblock
+    ? $from.depth - 1
+    : $from.depth;
+  const container = $from.node(containerDepth).type.name;
+  return container === "sectionBody" || container === "sectionAppendix";
+}
+
+export function insertApaEquation(editor: Editor, latex: string): void {
+  if (!canInsertApaEquation(editor.state)) return;
+  editor
+    .chain()
+    .focus()
+    .insertContent({ type: "apaEquation", attrs: { latex } })
+    .run();
+}
+
+/** Replaces the LaTeX of the equation at `pos` (from the pencil's "editar"
+ * item, via the same dialog used to insert). */
+export function updateApaEquationAt(
+  editor: Editor,
+  pos: number,
+  latex: string,
+): void {
+  const node = editor.state.doc.nodeAt(pos);
+  if (!node || node.type.name !== "apaEquation") return;
+  editor
+    .chain()
+    .focus()
+    .command(({ tr }) => {
+      tr.setNodeMarkup(pos, undefined, { latex });
+      return true;
     })
     .run();
 }

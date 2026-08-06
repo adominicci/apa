@@ -22,6 +22,7 @@
   import TableMenu from "$lib/components/TableMenu.svelte";
   import FontMenu from "$lib/components/FontMenu.svelte";
   import TableInsertDialog from "$lib/components/TableInsertDialog.svelte";
+  import EquationDialog from "$lib/components/EquationDialog.svelte";
   import "$lib/components/float-menu.css";
   import PrintPreview from "$lib/components/PrintPreview.svelte";
   import RefEntry from "$lib/components/RefEntry.svelte";
@@ -29,7 +30,13 @@
   import BibImportModal from "$lib/components/BibImportModal.svelte";
   import TitlePageForm from "$lib/components/TitlePageForm.svelte";
   import { collectCitedRefIds } from "$lib/editor/citedRefs";
-  import { insertApaTable, insertFigure } from "$lib/editor/blocks";
+  import {
+    canInsertApaEquation,
+    insertApaEquation,
+    insertApaTable,
+    insertFigure,
+    updateApaEquationAt,
+  } from "$lib/editor/blocks";
   import { importImageFile } from "$lib/persist/assets";
   import { buildOutline, type OutlineItem } from "$lib/editor/outline";
   import {
@@ -94,7 +101,13 @@
   let activeHeadingLevel = $state<number | null>(null);
   let activeList = $state<"bullet" | "ordered" | "lettered" | null>(null);
   let inTable = $state(false);
+  let canInsertEquation = $state(false);
   let tableDialogOpen = $state(false);
+  /** Insert opens with a blank LaTeX field; edit (from the pencil menu) opens
+   * pre-filled at that equation's position. Same dialog either way. */
+  let equationDialog = $state<
+    { mode: "insert" } | { mode: "edit"; pos: number; latex: string } | null
+  >(null);
   /** Only one bottom-bar dropdown open at a time. */
   let openMenu = $state<"headings" | "lists" | "table" | "font" | null>(null);
   let citedCounts = $state<Map<string, number>>(
@@ -329,9 +342,11 @@
           : "ordered")
         : null;
       inTable = instance.isActive("table");
+      canInsertEquation = canInsertApaEquation(instance.state);
     };
     instance.on("selectionUpdate", track);
     instance.on("transaction", track);
+    track();
     instance.on("blur", () => {
       // Let bubble clicks land before hiding.
       setTimeout(() => (bubble = null), 150);
@@ -702,6 +717,8 @@
             {citationEnv}
             onUpdate={handleUpdate}
             onReady={handleReady}
+            onEditEquation={(pos, latex) =>
+              (equationDialog = { mode: "edit", pos, latex })}
           />
           <ReferencesSheet
             references={sheetReferences}
@@ -841,6 +858,16 @@
         style="display: none"
         onchange={handleFigureFile}
       />
+      <button
+        class="fm-btn"
+        onclick={() => (equationDialog = { mode: "insert" })}
+        disabled={!editor || !canInsertEquation}
+        data-tip={m.fab_equation()}
+        aria-label={m.fab_equation()}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 16l3 5 6-16h7" /></svg>
+        <span class="fm-label">{m.fab_equation()}</span>
+      </button>
       <FontMenu
         current={essay.settings.font}
         open={openMenu === "font"}
@@ -977,6 +1004,24 @@
       if (editor) insertApaTable(editor, rows, cols, header);
     }}
     onClose={() => (tableDialogOpen = false)}
+  />
+{/if}
+
+{#if equationDialog}
+  <EquationDialog
+    initialLatex={equationDialog.mode === "edit" ? equationDialog.latex : ""}
+    editing={equationDialog.mode === "edit"}
+    onConfirm={(latex) => {
+      if (editor) {
+        if (equationDialog?.mode === "edit") {
+          updateApaEquationAt(editor, equationDialog.pos, latex);
+        } else {
+          insertApaEquation(editor, latex);
+        }
+      }
+      equationDialog = null;
+    }}
+    onClose={() => (equationDialog = null)}
   />
 {/if}
 

@@ -5,9 +5,11 @@ import {
   exportDocx,
   type ExportImage,
   type ExportInput,
+  type MathNode,
 } from "@tesina/docx-export";
 import type { Essay } from "$lib/model/essay";
 import { imageKind, readImageBytes } from "$lib/persist/assets";
+import { latexToMathTree } from "$lib/editor/mathml";
 
 export type ExportOutcome =
   | { status: "saved"; path: string }
@@ -28,6 +30,38 @@ function collectFigureSrcs(node: unknown, out: Set<string>): void {
   };
   if (n.type === "figureImage" && n.attrs?.src) out.add(n.attrs.src);
   for (const child of n.content ?? []) collectFigureSrcs(child, out);
+}
+
+function collectEquationLatex(node: unknown, out: Set<string>): void {
+  if (!node || typeof node !== "object") return;
+  const n = node as {
+    type?: string;
+    attrs?: { latex?: string };
+    content?: unknown[];
+  };
+  if (n.type === "apaEquation" && n.attrs?.latex) out.add(n.attrs.latex);
+  for (const child of n.content ?? []) collectEquationLatex(child, out);
+}
+
+/**
+ * Converts each block equation's LaTeX to a MathML tree so the pure exporter
+ * can map it to a native OMML equation; mirrors `collectImages` below. Before
+ * this the exporter's `equations` map was always empty (Task 6's gap), so
+ * every real export fell back to raw LaTeX text even for equations that map
+ * perfectly.
+ */
+function collectEquations(docJson: unknown): Record<string, MathNode> {
+  const latexes = new Set<string>();
+  collectEquationLatex(docJson, latexes);
+  // Object.create(null) instead of `{}`: the key is arbitrary user LaTeX, and
+  // a literal like "__proto__" or "constructor" on a plain object literal
+  // would reach Object.prototype instead of becoming a real entry.
+  const equations: Record<string, MathNode> = Object.create(null);
+  for (const latex of latexes) {
+    const tree = latexToMathTree(latex);
+    if (tree) equations[latex] = tree;
+  }
+  return equations;
 }
 
 /** Intrinsic pixel size, scaled so wide images fit the 6.5in text column. */
@@ -84,6 +118,7 @@ export async function exportEssayToDocx(
 ): Promise<ExportOutcome> {
   try {
     const images = await collectImages(docJson);
+    const equations = collectEquations(docJson);
     const input: ExportInput = {
       content: docJson,
       settings: {
@@ -98,6 +133,7 @@ export async function exportEssayToDocx(
       titlePage: essay.titlePage,
       references,
       ...(Object.keys(images).length > 0 ? { images } : {}),
+      ...(Object.keys(equations).length > 0 ? { equations } : {}),
     };
     const bytes = await exportDocx(input);
     const path = await save({

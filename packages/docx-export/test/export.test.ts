@@ -158,6 +158,96 @@ describe("exportDocx (student, es)", () => {
     expect(documentXml).toMatch(/w:val="single"/);
   });
 
+  it("exports a mapped equation centered with its number at the right margin", () => {
+    // "E = mc^2" has an entry in `equations` whose tree maps cleanly through
+    // mathTreeToOmml: mi/mo/mi runs plus an msup superscript. Asserting the
+    // walked structure (not just that *some* <m:oMath> exists) is what
+    // proves the visitor actually consumes the mapper's output.
+    // The paragraph must also carry `w:pStyle w:val="Normal"` — without it
+    // the equation line falls back to single spacing in Word even though
+    // every other body paragraph is double-spaced (Normal isn't the
+    // document default; see styles.ts's empty w:pPrDefault).
+    expect(documentXml).toContain(
+      '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:tabs>' +
+        '<w:tab w:val="center" w:pos="4680"/>' +
+        '<w:tab w:val="right" w:pos="9360"/></w:tabs></w:pPr>' +
+        "<w:r><w:tab/></w:r><m:oMath>" +
+        "<m:r><m:t>E</m:t></m:r><m:r><m:t>=</m:t></m:r>" +
+        "<m:r><m:t>m</m:t></m:r>",
+    );
+    expect(documentXml).toContain(
+      "<m:sSup><m:sSupPr/><m:e><m:r><m:t>c</m:t></m:r></m:e>" +
+        "<m:sup><m:r><m:t>2</m:t></m:r></m:sup></m:sSup>",
+    );
+    // The second tab pins the plain-text number to the right margin; the
+    // number never goes through getTerms (it is the same in ES and EN).
+    expect(documentXml).toContain(
+      '</m:sSup></m:oMath><w:r><w:tab/><w:t xml:space="preserve">(1)</w:t></w:r>',
+    );
+  });
+
+  it("derives equation tab stops from A4 content width", async () => {
+    const input = sampleInput();
+    input.settings.paperSize = "a4";
+    const files = unzipSync(await exportDocx(input));
+    const xml = strFromU8(files["word/document.xml"]!);
+    expect(xml).toContain(
+      '<w:tab w:val="center" w:pos="4513"/>' +
+        '<w:tab w:val="right" w:pos="9026"/>',
+    );
+  });
+
+  it("starts a body-leading equation on a new page", async () => {
+    const input = sampleInput();
+    input.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [{ type: "apaEquation", attrs: { latex: "E = mc^2" } }],
+      }],
+    };
+    const files = unzipSync(await exportDocx(input));
+    const xml = strFromU8(files["word/document.xml"]!);
+    expect(xml).toContain(
+      '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:pageBreakBefore/><w:tabs>',
+    );
+  });
+
+  it("falls back to raw LaTeX for an unmapped equation without breaking the rest of the export", () => {
+    // A 2x2 matrix: docx has no matrix type, so mathTreeToOmml rejects the
+    // `mtable` tag (ok: false). This is the branch that rots silently if a
+    // golden only ever exercises the happy path — the raw LaTeX (with its
+    // "&" escaped by the XML writer) must appear as plain paragraph text,
+    // immediately followed by its own running number "(2)".
+    expect(documentXml).toContain(
+      "\\begin{pmatrix} 1 &amp; 0 \\\\ 0 &amp; 1 \\end{pmatrix}" +
+        '</w:t></w:r><w:r><w:tab/><w:t xml:space="preserve">(2)</w:t></w:r>',
+    );
+    // The appendix and references after it still render — one bad equation
+    // must not fail the whole export.
+    expect(documentXml).toContain("Apéndice");
+    expect(documentXml).toContain("Referencias");
+  });
+
+  it("falls back to raw LaTeX for an equation with no entry in the equations map", () => {
+    // "\sigma_x" is never added to `equations` in sample.ts, so it exercises
+    // the same path a real LaTeX construct `latexToMathTree` can't handle
+    // would take even though exportEssay.ts does populate the map. Missing
+    // key must fall back exactly like a rejected tree: raw LaTeX text, its
+    // own running number "(3)", no native OMML produced for it.
+    expect(documentXml).toContain(
+      "\\sigma_x</w:t></w:r>" +
+        '<w:r><w:tab/><w:t xml:space="preserve">(3)</w:t></w:r>',
+    );
+    // Exactly one native <m:oMath> in the whole document: the mapped
+    // equation produces it; neither the unsupported-tree fallback nor this
+    // unmapped-key fallback may produce a second one. This exact count is
+    // what prevents the fallback from silently regressing into emitting
+    // bogus math.
+    const oMathCount = (documentXml.match(/<m:oMath>/g) ?? []).length;
+    expect(oMathCount).toBe(1);
+  });
+
   it("renders a lettered list with a nested bullet at a deeper level", () => {
     expect(documentXml).toContain("Primer criterio");
     expect(documentXml).toContain("Matiz anidado");

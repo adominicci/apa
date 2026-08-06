@@ -380,6 +380,7 @@
   "figure_edit": "Editar figura",
   "figure_delete": "Eliminar figura",
   "fab_figure": "Figura",
+  "fab_equation": "Ecuación",
   "tb_font": "Fuente",
   "cover_open_form": "Editar la portada en el formulario",
   "cover_title_ph": "Título del trabajo",
@@ -398,5 +399,15 @@
   "toolbar_pos_bottom": "Abajo",
   "toolbar_pos_top": "Arriba",
   "toolbar_pos_left": "Izquierda",
-  "toolbar_pos_right": "Derecha"
+  "toolbar_pos_right": "Derecha",
+  "equation_edit": "Editar ecuación",
+  "equation_save": "Guardar ecuación",
+  "equation_delete": "Eliminar ecuación",
+  "equation_insert": "Insertar ecuación",
+  "equation_latex_label": "Código LaTeX",
+  "equation_latex_placeholder": "x^2 + y^2 = z^2",
+  "equation_preview_label": "Vista previa",
+  "equation_preview_empty": "Escribí una ecuación para ver la vista previa.",
+  "equation_preview_error": "No se pudo leer este LaTeX. Revisá la sintaxis.",
+  "equation_not_exportable": "No se exportará como ecuación editable de Word ({element}): se mantendrá su texto original"
 }

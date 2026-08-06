@@ -29,6 +29,7 @@
     "npm:svelte-check@4": "4.7.2_svelte@5.56.4__acorn@8.17.0_typescript@5.6.3",
     "npm:svelte-check@4.7.2": "4.7.2_svelte@5.56.4__acorn@8.17.0_typescript@5.6.3",
     "npm:svelte@5": "5.56.4_acorn@8.17.0",
+    "npm:temml@0.12": "0.12.2",
     "npm:typescript@~5.6.2": "5.6.3",
     "npm:vite@6.4.3": "6.4.3_picomatch@4.0.5",
     "npm:vite@^6.0.3": "6.4.3_picomatch@4.0.5",
@@ -1615,6 +1616,9 @@
     "symbol-tree@3.2.4": {
       "integrity": "sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw=="
     },
+    "temml@0.12.2": {
+      "integrity": "sha512-NTEeHEiV3WLuWm0/MqzJLM+Y83IWgGag5vxudkzMSSJaxkdMKsFbIC/elT4mGazYKMaQA8qm/EjpIDPLfqjlRw=="
+    },
     "tiny-merge-patch@1.0.0": {
       "integrity": "sha512-NR7dpqibfxA1uHaFJn5YXViH7REa0wPcZh8MLFrEn9OvDWyIY9YyyKHHmFBE66ER18CQwJ+VGknsQbgiBtL8Uw=="
     },
@@ -1892,6 +1896,7 @@
             "npm:pagedjs@~0.4.3",
             "npm:svelte-check@4",
             "npm:svelte@5",
+            "npm:temml@0.12",
             "npm:typescript@~5.6.2",
             "npm:vite@^6.0.3"
           ]
