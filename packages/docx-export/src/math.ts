@@ -2,6 +2,7 @@ import {
   Math as DocxMath,
   type MathComponent,
   MathFraction,
+  MathIntegral,
   MathRadical,
   MathRun,
   MathSubScript,
@@ -178,12 +179,24 @@ export function mathTreeToOmml(node: MathNode): MathResult {
 
   // Integral con límites: msubsup > base, inferior, superior.
   if (node.tag === "msubsup" && children.length === 3) {
-    const base = mathTreeToOmml(children[0]!);
-    if (!base.ok) return base;
     const sub = mathTreeToOmml(children[1]!);
     if (!sub.ok) return sub;
     const sup = mathTreeToOmml(children[2]!);
     if (!sup.ok) return sup;
+    if (baseOperatorGlyph(children[0]!) === "∫") {
+      return {
+        ok: true,
+        children: [
+          new MathIntegral({
+            children: [],
+            subScript: sub.children,
+            superScript: sup.children,
+          }),
+        ],
+      };
+    }
+    const base = mathTreeToOmml(children[0]!);
+    if (!base.ok) return base;
     return {
       ok: true,
       children: [

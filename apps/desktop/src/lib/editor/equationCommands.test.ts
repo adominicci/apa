@@ -91,6 +91,17 @@ describe("canInsertApaEquation", () => {
     expect(canInsertApaEquation(state)).toBe(true);
   });
 
+  it("rejects a nonempty selection so insertion cannot replace content", () => {
+    const state = stateAt("selected", [{
+      type: "paragraph",
+      content: [{ type: "text", text: "selected" }],
+    }]);
+    const selected = state.apply(
+      state.tr.setSelection(TextSelection.create(state.doc, 2, 5)),
+    );
+    expect(canInsertApaEquation(selected)).toBe(false);
+  });
+
   it("rejects insertion in the abstract schema", () => {
     expect(canInsertApaEquation(abstractState())).toBe(false);
   });

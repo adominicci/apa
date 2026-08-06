@@ -661,6 +661,7 @@ export function insertFigure(editor: Editor, src: string): void {
 
 /** Inserts a new APA block equation with the given LaTeX. */
 export function canInsertApaEquation(state: EditorState): boolean {
+  if (!state.selection.empty) return false;
   const { $from } = state.selection;
   const containerDepth = $from.parent.isTextblock
     ? $from.depth - 1

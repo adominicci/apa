@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { IContext } from "docx";
 import {
   MathFraction,
+  MathIntegral,
   MathRadical,
   MathSubScript,
-  MathSubSuperScript,
   MathSum,
   MathSuperScript,
 } from "docx";
@@ -245,8 +245,8 @@ describe("mathTreeToOmml — no soportado", () => {
     if (!result.ok) return;
     expect(result.children).toHaveLength(1);
     const [component] = result.children;
-    expect(component).toBeInstanceOf(MathSubSuperScript);
-    expect(runTextsInOrder(xmlOf(component))).toEqual(["∫", "0", "∞"]);
+    expect(component).toBeInstanceOf(MathIntegral);
+    expect(runTextsInOrder(xmlOf(component))).toEqual(["0", "∞"]);
   });
 
   it("mapea la raíz n-ésima (mroot) con base y grado en el orden correcto", () => {
