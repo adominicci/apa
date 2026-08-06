@@ -141,7 +141,7 @@ y el subconjunto real lo determina la **salida** de Temml, no la **entrada** de
 |---|---|
 | fracción, potencia, raíz | `mfrac` `msup` `msqrt` `mi` `mn` `mo` `mrow` `mspace` |
 | sumatoria con límites | `munderover` → fallback a LaTeX crudo |
-| integral con límites | `msub`, `msup` o `msubsup` con base `∫` → fallback a LaTeX crudo |
+| integral con límites | `msub`, `msup` o `msubsup` con operador integral Unicode (`∫`–`∳`) → fallback a LaTeX crudo |
 | raíz n-ésima | `mroot` |
 | texto | `mtext` |
 | paréntesis `\left(…\right)` | `mo` `mrow` — **sin elemento de fence** |

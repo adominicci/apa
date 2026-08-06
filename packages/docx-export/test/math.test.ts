@@ -246,6 +246,16 @@ describe("mathTreeToOmml — no soportado", () => {
     },
   );
 
+  it.each(Array.from("∫∬∭∮∯∰∱∲∳"))(
+    "rechaza el operador integral %s sin operando estructural",
+    (glyph) => {
+      const result = mathTreeToOmml(
+        el("msub", leaf("mo", glyph), leaf("mi", "C")),
+      );
+      expect(result).toEqual({ ok: false, unsupported: `${glyph}[operand]` });
+    },
+  );
+
   it("mapea la raíz n-ésima (mroot) con base y grado en el orden correcto", () => {
     const result = mathTreeToOmml(
       el("mroot", leaf("mi", "x"), leaf("mn", "3")),

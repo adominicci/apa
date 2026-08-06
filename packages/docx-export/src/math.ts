@@ -43,6 +43,11 @@ function baseOperatorGlyph(node: MathNode): string | undefined {
   return undefined;
 }
 
+/** Unicode integral operators, from INTEGRAL through ANTICLOCKWISE CONTOUR INTEGRAL. */
+function isIntegralGlyph(glyph: string | undefined): glyph is string {
+  return glyph !== undefined && /^[\u222B-\u2233]$/u.test(glyph);
+}
+
 export function mathTreeToOmml(node: MathNode): MathResult {
   const children = node.children ?? [];
 
@@ -141,8 +146,9 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   }
 
   if (node.tag === "msup" && children.length === 2) {
-    if (baseOperatorGlyph(children[0]!) === "∫") {
-      return { ok: false, unsupported: "∫[operand]" };
+    const glyph = baseOperatorGlyph(children[0]!);
+    if (isIntegralGlyph(glyph)) {
+      return { ok: false, unsupported: `${glyph}[operand]` };
     }
     const base = mathTreeToOmml(children[0]!);
     if (!base.ok) return base;
@@ -160,8 +166,9 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   }
 
   if (node.tag === "msub" && children.length === 2) {
-    if (baseOperatorGlyph(children[0]!) === "∫") {
-      return { ok: false, unsupported: "∫[operand]" };
+    const glyph = baseOperatorGlyph(children[0]!);
+    if (isIntegralGlyph(glyph)) {
+      return { ok: false, unsupported: `${glyph}[operand]` };
     }
     const base = mathTreeToOmml(children[0]!);
     if (!base.ok) return base;
@@ -196,8 +203,9 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   // MathML leaves an integral's operand as following siblings, so this
   // isolated node cannot build a valid native n-ary OMML operand.
   if (node.tag === "msubsup" && children.length === 3) {
-    if (baseOperatorGlyph(children[0]!) === "∫") {
-      return { ok: false, unsupported: "∫[operand]" };
+    const glyph = baseOperatorGlyph(children[0]!);
+    if (isIntegralGlyph(glyph)) {
+      return { ok: false, unsupported: `${glyph}[operand]` };
     }
     const sub = mathTreeToOmml(children[1]!);
     if (!sub.ok) return sub;
