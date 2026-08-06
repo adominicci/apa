@@ -140,8 +140,8 @@ y el subconjunto real lo determina la **salida** de Temml, no la **entrada** de
 | Construcción | Elementos que emite Temml |
 |---|---|
 | fracción, potencia, raíz | `mfrac` `msup` `msqrt` `mi` `mn` `mo` `mrow` `mspace` |
-| sumatoria con límites | `munderover` |
-| integral con límites | `msubsup` |
+| sumatoria con límites | `munderover` → fallback a LaTeX crudo |
+| integral con límites | `msubsup` con base `∫` → fallback a LaTeX crudo |
 | raíz n-ésima | `mroot` |
 | texto | `mtext` |
 | paréntesis `\left(…\right)` | `mo` `mrow` — **sin elemento de fence** |
@@ -162,10 +162,12 @@ Dos consecuencias que no se ven razonando sobre las APIs por separado:
    conocida donde **la app se ve mejor que el `.docx`**, y conviene tenerla
    presente antes de que aparezca como "bug" de exportación. Aceptable en v1.
 
-El subconjunto real, entonces: `math` `mrow` `mstyle` `mspace`, las hojas
-(`mi` `mn` `mo` `mtext` `ms`), `mfrac`, `msqrt`, `mroot`, `msup`, `msub`,
-`msubsup` y `munderover`. Cubre la matemática de una tesina de ciencias
-sociales, que es el usuario real de esta app.
+El subconjunto editable real, entonces: `math` `mrow` `mstyle` `mspace`, las
+hojas compatibles (`mi` `mn` `mo` `ms`), `mfrac`, `msqrt`, `mroot`, `msup`,
+`msub` y `msubsup` cuando no representa una integral. `mtext`, sumatorias e
+integrales con límites usan el fallback de LaTeX crudo: Temml deja el operando
+como hermanos posteriores y no permite determinar su alcance sin heurísticas
+que podrían cambiar el significado matemático.
 
 ### Matrices: techo de la librería, no decisión de alcance
 

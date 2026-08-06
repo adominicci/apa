@@ -233,18 +233,16 @@ describe("mathTreeToOmml — no soportado", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("mapea la sumatoria con límites que emite Temml", () => {
-    // Temml usa munderover para \\sum_{i=1}^{n}. Medido en el spike: sin este
-    // caso la primera ecuación realista de una tesina ya falla.
+  it("rechaza una sumatoria sin operando estructural", () => {
     const sum = el("munderover", leaf("mo", "∑"),
       el("mrow", leaf("mi", "i"), leaf("mo", "="), leaf("mn", "1")),
       leaf("mi", "n"));
-    expect(mathTreeToOmml(sum).ok).toBe(true);
+    expect(mathTreeToOmml(sum).ok).toBe(false);
   });
 
-  it("mapea la integral con límites (msubsup)", () => {
+  it("rechaza una integral sin operando estructural", () => {
     const integral = el("msubsup", leaf("mo", "∫"), leaf("mn", "0"), leaf("mi", "∞"));
-    expect(mathTreeToOmml(integral).ok).toBe(true);
+    expect(mathTreeToOmml(integral).ok).toBe(false);
   });
 
   it("mapea la raíz n-ésima (mroot)", () => {
@@ -389,40 +387,17 @@ export function mathTreeToOmml(node: MathNode): MathResult {
     };
   }
 
-  // Integral con límites: msubsup > base, inferior, superior.
+  // Integrales y sumatorias con límites: Temml deja el operando como hermanos
+  // posteriores, por lo que este nodo aislado no puede construir un n-ario
+  // OMML correcto. Se rechaza para activar el fallback a LaTeX crudo.
   if (node.tag === "msubsup" && children.length === 3) {
-    const base = mathTreeToOmml(children[0]!);
-    if (!base.ok) return base;
-    const sub = mathTreeToOmml(children[1]!);
-    if (!sub.ok) return sub;
-    const sup = mathTreeToOmml(children[2]!);
-    if (!sup.ok) return sup;
-    return {
-      ok: true,
-      children: [
-        new MathSubSuperScript({
-          children: base.children,
-          subScript: sub.children,
-          superScript: sup.children,
-        }),
-      ],
-    };
+    if (baseOperatorGlyph(children[0]!) === "∫") {
+      return { ok: false, unsupported: "∫[operand]" };
+    }
   }
 
-  // Sumatoria con límites: munderover > base, inferior, superior. Es lo que
-  // Temml emite para \sum_{i=1}^{n}; sin este caso la primera ecuación
-  // realista de una tesina ya falla.
   if (node.tag === "munderover" && children.length === 3) {
-    const sub = mathTreeToOmml(children[1]!);
-    if (!sub.ok) return sub;
-    const sup = mathTreeToOmml(children[2]!);
-    if (!sup.ok) return sup;
-    return {
-      ok: true,
-      children: [
-        new MathSum({ children: [], subScript: sub.children, superScript: sup.children }),
-      ],
-    };
+    return { ok: false, unsupported: "nary[operand]" };
   }
 
   // Temml intercala mspace por espaciado tipográfico. No aporta nada al OMML,
