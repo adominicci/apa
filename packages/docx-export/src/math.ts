@@ -43,9 +43,9 @@ function baseOperatorGlyph(node: MathNode): string | undefined {
   return undefined;
 }
 
-/** Unicode integral operators, from INTEGRAL through ANTICLOCKWISE CONTOUR INTEGRAL. */
+/** Standard and supplemental Unicode integral operators. */
 function isIntegralGlyph(glyph: string | undefined): glyph is string {
-  return glyph !== undefined && /^[\u222B-\u2233]$/u.test(glyph);
+  return glyph !== undefined && /^[\u222B-\u2233\u2A0B-\u2A1C]$/u.test(glyph);
 }
 
 export function mathTreeToOmml(node: MathNode): MathResult {

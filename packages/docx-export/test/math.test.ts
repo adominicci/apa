@@ -246,7 +246,7 @@ describe("mathTreeToOmml — no soportado", () => {
     },
   );
 
-  it.each(Array.from("∫∬∭∮∯∰∱∲∳"))(
+  it.each(Array.from("∫∬∭∮∯∰∱∲∳⨋⨌⨍⨎⨏⨐⨑⨒⨓⨔⨕⨖⨗⨘⨙⨚⨛⨜"))(
     "rechaza el operador integral %s sin operando estructural",
     (glyph) => {
       const result = mathTreeToOmml(

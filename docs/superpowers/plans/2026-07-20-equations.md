@@ -249,7 +249,7 @@ describe("mathTreeToOmml — no soportado", () => {
     expect(mathTreeToOmml(el(tag, leaf("mo", "∫"), leaf("mn", "0"))).ok).toBe(false);
   });
 
-  it.each(Array.from("∫∬∭∮∯∰∱∲∳"))("rechaza el operador integral %s", (glyph) => {
+  it.each(Array.from("∫∬∭∮∯∰∱∲∳⨋⨌⨍⨎⨏⨐⨑⨒⨓⨔⨕⨖⨗⨘⨙⨚⨛⨜"))("rechaza el operador integral %s", (glyph) => {
     expect(mathTreeToOmml(el("msub", leaf("mo", glyph), leaf("mi", "C"))).ok).toBe(false);
   });
 
