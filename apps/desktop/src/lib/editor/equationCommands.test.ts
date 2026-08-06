@@ -38,6 +38,27 @@ function stateAt(text: string, content: unknown[]): EditorState {
   });
 }
 
+function abstractState(): EditorState {
+  const doc = schema.nodeFromJSON({
+    type: "doc",
+    content: [
+      {
+        type: "sectionAbstract",
+        content: [{
+          type: "paragraph",
+          content: [{ type: "text", text: "abstract" }],
+        }],
+      },
+      { type: "sectionBody", content: [{ type: "paragraph" }] },
+    ],
+  });
+  return EditorState.create({
+    schema,
+    doc,
+    selection: TextSelection.create(doc, 2),
+  });
+}
+
 describe("canInsertApaEquation", () => {
   it("allows a top-level section paragraph", () => {
     const state = stateAt("top", [{
@@ -45,6 +66,10 @@ describe("canInsertApaEquation", () => {
       content: [{ type: "text", text: "top" }],
     }]);
     expect(canInsertApaEquation(state)).toBe(true);
+  });
+
+  it("rejects insertion in the abstract schema", () => {
+    expect(canInsertApaEquation(abstractState())).toBe(false);
   });
 
   it.each([

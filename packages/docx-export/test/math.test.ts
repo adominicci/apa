@@ -270,7 +270,10 @@ describe("mathTreeToOmml — no soportado", () => {
     // Temml lo intercala por espaciado; OMML hace el suyo. Ignorarlo es
     // correcto, y por eso se afirma que no produce hijos.
     const result = mathTreeToOmml(
-      el("mrow", leaf("mi", "x"), { tag: "mspace" }),
+      el("mrow", leaf("mi", "x"), {
+        tag: "mspace",
+        attrs: { width: "0.1667em" },
+      }),
     );
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.children).toHaveLength(1);

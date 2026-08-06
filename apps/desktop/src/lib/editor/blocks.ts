@@ -665,7 +665,8 @@ export function canInsertApaEquation(state: EditorState): boolean {
   const containerDepth = $from.parent.isTextblock
     ? $from.depth - 1
     : $from.depth;
-  return $from.node(containerDepth).type.name.startsWith("section");
+  const container = $from.node(containerDepth).type.name;
+  return container === "sectionBody" || container === "sectionAppendix";
 }
 
 export function insertApaEquation(editor: Editor, latex: string): void {

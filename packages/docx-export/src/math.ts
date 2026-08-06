@@ -47,6 +47,10 @@ function baseOperatorGlyph(node: MathNode): string | undefined {
 export function mathTreeToOmml(node: MathNode): MathResult {
   const children = node.children ?? [];
 
+  // Temml uses mspace for typographic spacing. OMML supplies its own math
+  // spacing, so the element and its width are intentionally omitted.
+  if (node.tag === "mspace") return { ok: true, children: [] };
+
   for (const [name, rawValue] of Object.entries(node.attrs ?? {})) {
     // Temml emits internal class names without shipping CSS in this app;
     // they are transport metadata and do not affect native MathML rendering.
@@ -226,12 +230,6 @@ export function mathTreeToOmml(node: MathNode): MathResult {
         }),
       ],
     };
-  }
-
-  // Temml intercala mspace por espaciado tipográfico. No aporta nada al OMML,
-  // que hace su propio espaciado; ignorarlo es correcto, no una omisión.
-  if (node.tag === "mspace") {
-    return { ok: true, children: [] };
   }
 
   return { ok: false, unsupported: node.tag };
