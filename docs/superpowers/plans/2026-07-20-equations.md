@@ -397,7 +397,11 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   }
 
   if (node.tag === "munderover" && children.length === 3) {
-    return { ok: false, unsupported: "nary[operand]" };
+    const glyph = baseOperatorGlyph(children[0]!);
+    return {
+      ok: false,
+      unsupported: glyph === "∑" ? "∑[operand]" : glyph ?? children[0]!.tag,
+    };
   }
 
   // Temml intercala mspace por espaciado tipográfico. No aporta nada al OMML,

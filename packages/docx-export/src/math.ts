@@ -47,8 +47,16 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   const children = node.children ?? [];
 
   // Temml uses mspace for typographic spacing. OMML supplies its own math
-  // spacing, so the element and its width are intentionally omitted.
-  if (node.tag === "mspace") return { ok: true, children: [] };
+  // spacing, so width-only nodes are omitted. Other attributes can make the
+  // node visible (for example a rule), and must trigger the safe fallback.
+  if (node.tag === "mspace") {
+    const visibleAttribute = Object.keys(node.attrs ?? {}).find(
+      (name) => name !== "width" && name !== "class",
+    );
+    return visibleAttribute
+      ? { ok: false, unsupported: `mspace[${visibleAttribute}]` }
+      : { ok: true, children: [] };
+  }
 
   for (const [name, rawValue] of Object.entries(node.attrs ?? {})) {
     // Temml emits internal class names without shipping CSS in this app;

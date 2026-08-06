@@ -266,6 +266,19 @@ describe("mathTreeToOmml — no soportado", () => {
     if (result.ok) expect(result.children).toHaveLength(1);
   });
 
+  it("rechaza mspace con atributos visibles", () => {
+    expect(
+      mathTreeToOmml({
+        tag: "mspace",
+        attrs: {
+          width: "1em",
+          height: "0.1em",
+          mathbackground: "currentColor",
+        },
+      }),
+    ).toEqual({ ok: false, unsupported: "mspace[height]" });
+  });
+
   it("propaga el rechazo desde un hijo anidado", () => {
     // Lo importante: que un mtable enterrado no pase inadvertido porque el
     // padre sí es soportado.

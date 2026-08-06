@@ -84,7 +84,7 @@ describe("latexToMathTree", () => {
   });
 
   it("integra árboles reales de Temml con la exportación DOCX", async () => {
-    const supported = ["E = mc^2", "\\sqrt{x}"];
+    const supported = ["E = mc^2", "\\frac{1}{2}"];
     const unsupported = ["\\mathrm{kg}", "\\sum_{i=1}^{n} i"];
     const equations = Object.fromEntries(
       [...supported, ...unsupported].map((latex) => {
@@ -120,7 +120,9 @@ describe("latexToMathTree", () => {
     };
 
     for (const latex of supported) {
-      expect(mathTreeToOmml(equations[latex]!)).toMatchObject({ ok: true });
+      expect(mathTreeToOmml(equations[latex]!), latex).toMatchObject({
+        ok: true,
+      });
     }
 
     const files = unzipSync(await exportDocx(input));
