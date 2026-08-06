@@ -186,6 +186,22 @@ describe("exportDocx (student, es)", () => {
     );
   });
 
+  it("starts a body-leading equation on a new page", async () => {
+    const input = sampleInput();
+    input.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [{ type: "apaEquation", attrs: { latex: "E = mc^2" } }],
+      }],
+    };
+    const files = unzipSync(await exportDocx(input));
+    const xml = strFromU8(files["word/document.xml"]!);
+    expect(xml).toContain(
+      '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:pageBreakBefore/><w:tabs>',
+    );
+  });
+
   it("falls back to raw LaTeX for an unmapped equation without breaking the rest of the export", () => {
     // A 2x2 matrix: docx has no matrix type, so mathTreeToOmml rejects the
     // `mtable` tag (ok: false). This is the branch that rots silently if a

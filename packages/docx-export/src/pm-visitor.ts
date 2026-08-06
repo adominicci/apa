@@ -213,6 +213,7 @@ export function visitBlocks(
       case "apaEquation": {
         // Numbered "(1)" in both document languages — never through
         // getTerms, mirroring the preview (renderEssayHtml.ts).
+        const first = !emittedFirst;
         emittedFirst = true;
         state.equationCounter.n += 1;
         const latex = (block.attrs?.["latex"] as string | undefined) ?? "";
@@ -228,6 +229,9 @@ export function visitBlocks(
         out.push(
           new Paragraph({
             style: "Normal",
+            ...(first && options.firstPageBreak
+              ? { pageBreakBefore: true }
+              : {}),
             tabStops: [
               {
                 type: TabStopType.CENTER,
