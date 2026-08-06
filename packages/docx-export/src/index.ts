@@ -111,6 +111,6 @@ export async function exportDocx(input: ExportInput): Promise<Uint8Array> {
     ],
   });
 
-  const buffer = await Packer.toBuffer(doc);
-  return new Uint8Array(buffer);
+  const arrayBuffer = await Packer.toArrayBuffer(doc);
+  return new Uint8Array(arrayBuffer);
 }
