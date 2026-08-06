@@ -256,6 +256,19 @@ describe("mathTreeToOmml — no soportado", () => {
     },
   );
 
+  it("rechaza una integral compuesta con puntos suspensivos", () => {
+    const base = el(
+      "mrow",
+      leaf("mo", "∫"),
+      leaf("mo", "⋯"),
+      leaf("mo", "∫"),
+    );
+    const result = mathTreeToOmml(
+      el("msubsup", base, leaf("mn", "0"), leaf("mn", "1")),
+    );
+    expect(result).toEqual({ ok: false, unsupported: "∫⋯∫[operand]" });
+  });
+
   it("mapea la raíz n-ésima (mroot) con base y grado en el orden correcto", () => {
     const result = mathTreeToOmml(
       el("mroot", leaf("mi", "x"), leaf("mn", "3")),

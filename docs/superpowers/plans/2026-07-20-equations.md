@@ -253,6 +253,11 @@ describe("mathTreeToOmml — no soportado", () => {
     expect(mathTreeToOmml(el("msub", leaf("mo", glyph), leaf("mi", "C"))).ok).toBe(false);
   });
 
+  it("rechaza una integral compuesta con puntos suspensivos", () => {
+    const base = el("mrow", leaf("mo", "∫"), leaf("mo", "⋯"), leaf("mo", "∫"));
+    expect(mathTreeToOmml(el("msubsup", base, leaf("mn", "0"), leaf("mn", "1"))).ok).toBe(false);
+  });
+
   it("mapea la raíz n-ésima (mroot)", () => {
     expect(mathTreeToOmml(el("mroot", leaf("mi", "x"), leaf("mn", "3"))).ok).toBe(true);
   });

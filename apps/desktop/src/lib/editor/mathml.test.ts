@@ -85,7 +85,11 @@ describe("latexToMathTree", () => {
 
   it("integra árboles reales de Temml con la exportación DOCX", async () => {
     const supported = ["E = mc^2", "\\frac{1}{2}"];
-    const unsupported = ["\\mathrm{kg}", "\\sum_{i=1}^{n} i"];
+    const unsupported = [
+      "\\mathrm{kg}",
+      "\\sum_{i=1}^{n} i",
+      "\\idotsint_0^1 f(x)\\,dx",
+    ];
     const equations = Object.fromEntries(
       [...supported, ...unsupported].map((latex) => {
         const tree = latexToMathTree(latex);

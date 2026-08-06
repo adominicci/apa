@@ -48,6 +48,26 @@ function isIntegralGlyph(glyph: string | undefined): glyph is string {
   return glyph !== undefined && /^[\u222B-\u2233\u2A0B-\u2A1C]$/u.test(glyph);
 }
 
+function integralOperatorLabel(node: MathNode): string | undefined {
+  const glyph = baseOperatorGlyph(node);
+  if (isIntegralGlyph(glyph)) return glyph;
+  // Temml represents \idotsint limits on a lone ellipsis, with the surrounding
+  // integral signs as siblings. Treat that known base as the composite operator.
+  if (glyph === "⋯" || glyph === "…") return "∫⋯∫";
+  if (node.tag !== "mrow") return undefined;
+
+  let label = "";
+  let hasIntegral = false;
+  for (const child of node.children ?? []) {
+    if (child.tag === "mspace") continue;
+    const part = baseOperatorGlyph(child);
+    if (isIntegralGlyph(part)) hasIntegral = true;
+    else if (part !== "⋯" && part !== "…") return undefined;
+    label += part;
+  }
+  return hasIntegral ? label : undefined;
+}
+
 export function mathTreeToOmml(node: MathNode): MathResult {
   const children = node.children ?? [];
 
@@ -146,9 +166,9 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   }
 
   if (node.tag === "msup" && children.length === 2) {
-    const glyph = baseOperatorGlyph(children[0]!);
-    if (isIntegralGlyph(glyph)) {
-      return { ok: false, unsupported: `${glyph}[operand]` };
+    const integral = integralOperatorLabel(children[0]!);
+    if (integral) {
+      return { ok: false, unsupported: `${integral}[operand]` };
     }
     const base = mathTreeToOmml(children[0]!);
     if (!base.ok) return base;
@@ -166,9 +186,9 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   }
 
   if (node.tag === "msub" && children.length === 2) {
-    const glyph = baseOperatorGlyph(children[0]!);
-    if (isIntegralGlyph(glyph)) {
-      return { ok: false, unsupported: `${glyph}[operand]` };
+    const integral = integralOperatorLabel(children[0]!);
+    if (integral) {
+      return { ok: false, unsupported: `${integral}[operand]` };
     }
     const base = mathTreeToOmml(children[0]!);
     if (!base.ok) return base;
@@ -203,9 +223,9 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   // MathML leaves an integral's operand as following siblings, so this
   // isolated node cannot build a valid native n-ary OMML operand.
   if (node.tag === "msubsup" && children.length === 3) {
-    const glyph = baseOperatorGlyph(children[0]!);
-    if (isIntegralGlyph(glyph)) {
-      return { ok: false, unsupported: `${glyph}[operand]` };
+    const integral = integralOperatorLabel(children[0]!);
+    if (integral) {
+      return { ok: false, unsupported: `${integral}[operand]` };
     }
     const sub = mathTreeToOmml(children[1]!);
     if (!sub.ok) return sub;
