@@ -48,14 +48,21 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   const children = node.children ?? [];
 
   for (const [name, rawValue] of Object.entries(node.attrs ?? {})) {
+    // Temml emits internal class names without shipping CSS in this app;
+    // they are transport metadata and do not affect native MathML rendering.
+    if (name === "class") continue;
     if (
       node.tag === "math" &&
-      (name === "display" || name === "class" || name === "style")
+      (name === "display" || name === "style" ||
+        name === "xmlns")
     ) {
       continue;
     }
     if (name === "mathvariant") {
-      if (rawValue === "italic") continue;
+      if (
+        rawValue === "italic" && node.tag === "mi" &&
+        Array.from(node.text ?? "").length === 1
+      ) continue;
       return {
         ok: false,
         unsupported: `${node.tag}[mathvariant=${rawValue}]`,

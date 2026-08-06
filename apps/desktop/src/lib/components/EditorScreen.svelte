@@ -31,6 +31,7 @@
   import TitlePageForm from "$lib/components/TitlePageForm.svelte";
   import { collectCitedRefIds } from "$lib/editor/citedRefs";
   import {
+    canInsertApaEquation,
     insertApaEquation,
     insertApaTable,
     insertFigure,
@@ -100,6 +101,7 @@
   let activeHeadingLevel = $state<number | null>(null);
   let activeList = $state<"bullet" | "ordered" | "lettered" | null>(null);
   let inTable = $state(false);
+  let canInsertEquation = $state(false);
   let tableDialogOpen = $state(false);
   /** Insert opens with a blank LaTeX field; edit (from the pencil menu) opens
    * pre-filled at that equation's position. Same dialog either way. */
@@ -340,9 +342,11 @@
           : "ordered")
         : null;
       inTable = instance.isActive("table");
+      canInsertEquation = canInsertApaEquation(instance.state);
     };
     instance.on("selectionUpdate", track);
     instance.on("transaction", track);
+    track();
     instance.on("blur", () => {
       // Let bubble clicks land before hiding.
       setTimeout(() => (bubble = null), 150);
@@ -857,7 +861,7 @@
       <button
         class="fm-btn"
         onclick={() => (equationDialog = { mode: "insert" })}
-        disabled={!editor}
+        disabled={!editor || !canInsertEquation}
         data-tip={m.fab_equation()}
         aria-label={m.fab_equation()}
       >

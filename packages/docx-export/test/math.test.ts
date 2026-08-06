@@ -89,6 +89,30 @@ describe("mathTreeToOmml — construcciones soportadas", () => {
     ).toEqual({ ok: false, unsupported: "mi[color]" });
   });
 
+  it("acepta atributos de transporte del elemento math", () => {
+    expect(
+      mathTreeToOmml({
+        tag: "math",
+        attrs: {
+          xmlns: "http://www.w3.org/1998/Math/MathML",
+          display: "block",
+          class: "tml-display",
+        },
+        children: [leaf("mi", "x")],
+      }).ok,
+    ).toBe(true);
+  });
+
+  it("rechaza variantes cursivas explícitas que OMML no conserva", () => {
+    expect(
+      mathTreeToOmml({
+        tag: "mstyle",
+        attrs: { mathvariant: "italic" },
+        children: [leaf("mn", "123")],
+      }),
+    ).toEqual({ ok: false, unsupported: "mstyle[mathvariant=italic]" });
+  });
+
   it("mapea una fracción con numerador y denominador en el orden correcto", () => {
     const frac = el("mfrac", leaf("mn", "1"), leaf("mn", "2"));
     const result = mathTreeToOmml(frac);

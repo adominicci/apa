@@ -1,4 +1,5 @@
 import { type Editor, Node } from "@tiptap/core";
+import type { EditorState } from "@tiptap/pm/state";
 import {
   Table,
   TableCell,
@@ -659,7 +660,16 @@ export function insertFigure(editor: Editor, src: string): void {
 }
 
 /** Inserts a new APA block equation with the given LaTeX. */
+export function canInsertApaEquation(state: EditorState): boolean {
+  const { $from } = state.selection;
+  const containerDepth = $from.parent.isTextblock
+    ? $from.depth - 1
+    : $from.depth;
+  return $from.node(containerDepth).type.name.startsWith("section");
+}
+
 export function insertApaEquation(editor: Editor, latex: string): void {
+  if (!canInsertApaEquation(editor.state)) return;
   editor
     .chain()
     .focus()

@@ -3,6 +3,12 @@
 // Necesita DOM porque el parseo de MathML usa DOMParser. Ese es justamente el
 // reparto del diseño: la capa app parsea, el paquete puro solo mapea.
 import { describe, expect, it } from "vitest";
+import { strFromU8, unzipSync } from "fflate";
+import {
+  exportDocx,
+  type ExportInput,
+  mathTreeToOmml,
+} from "@tesina/docx-export";
 import { isValidLatex, latexToMathml, latexToMathTree } from "./mathml.ts";
 
 describe("latexToMathTree", () => {
@@ -75,5 +81,51 @@ describe("latexToMathTree", () => {
     expect(mathml).toContain('width="10em"');
     expect(mathml).toContain('height="10em"');
     expect(mathml).not.toContain("500em");
+  });
+
+  it("integra árboles reales de Temml con la exportación DOCX", async () => {
+    const supported = ["E = mc^2", "\\sum_{i=1}^{n} i"];
+    const unsupported = "\\mathrm{kg}";
+    const equations = Object.fromEntries(
+      [...supported, unsupported].map((latex) => {
+        const tree = latexToMathTree(latex);
+        expect(tree).not.toBeNull();
+        return [latex, tree!];
+      }),
+    );
+    const input: ExportInput = {
+      settings: {
+        documentLanguage: "en",
+        variant: "student",
+        font: "times-new-roman-12",
+        paperSize: "us-letter",
+      },
+      titlePage: {
+        title: "Equation integration",
+        authors: [],
+        affiliations: [],
+      },
+      references: [],
+      equations,
+      content: {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [...supported, unsupported].map((latex) => ({
+            type: "apaEquation",
+            attrs: { latex },
+          })),
+        }],
+      },
+    };
+
+    for (const latex of supported) {
+      expect(mathTreeToOmml(equations[latex]!)).toMatchObject({ ok: true });
+    }
+
+    const files = unzipSync(await exportDocx(input));
+    const xml = strFromU8(files["word/document.xml"]!);
+    expect(xml.match(/<m:oMath>/g)).toHaveLength(2);
+    expect(xml).toContain("\\mathrm{kg}");
   });
 });
