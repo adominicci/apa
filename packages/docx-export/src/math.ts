@@ -47,6 +47,20 @@ function baseOperatorGlyph(node: MathNode): string | undefined {
 export function mathTreeToOmml(node: MathNode): MathResult {
   const children = node.children ?? [];
 
+  const mathVariant = node.attrs?.["mathvariant"];
+  if (mathVariant && mathVariant !== "italic") {
+    return {
+      ok: false,
+      unsupported: `${node.tag}[mathvariant=${mathVariant}]`,
+    };
+  }
+
+  // MathML renders multi-character identifiers upright by default, whereas
+  // a plain OMML MathRun is italic. Fall back rather than change notation.
+  if (node.tag === "mi" && Array.from(node.text ?? "").length > 1) {
+    return { ok: false, unsupported: "mi[upright]" };
+  }
+
   if (LEAF_TAGS.has(node.tag)) {
     return { ok: true, children: [new MathRun(node.text ?? "")] };
   }

@@ -62,6 +62,20 @@ describe("mathTreeToOmml — construcciones soportadas", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("rechaza identificadores MathML rectos que Word volvería cursivos", () => {
+    expect(mathTreeToOmml(leaf("mi", "kg"))).toEqual({
+      ok: false,
+      unsupported: "mi[upright]",
+    });
+    expect(
+      mathTreeToOmml({
+        tag: "mi",
+        text: "x",
+        attrs: { mathvariant: "normal" },
+      }),
+    ).toEqual({ ok: false, unsupported: "mi[mathvariant=normal]" });
+  });
+
   it("mapea una fracción con numerador y denominador en el orden correcto", () => {
     const frac = el("mfrac", leaf("mn", "1"), leaf("mn", "2"));
     const result = mathTreeToOmml(frac);
