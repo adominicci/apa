@@ -84,10 +84,10 @@ describe("latexToMathTree", () => {
   });
 
   it("integra árboles reales de Temml con la exportación DOCX", async () => {
-    const supported = ["E = mc^2", "\\sum_{i=1}^{n} i"];
-    const unsupported = "\\mathrm{kg}";
+    const supported = ["E = mc^2", "\\sqrt{x}"];
+    const unsupported = ["\\mathrm{kg}", "\\sum_{i=1}^{n} i"];
     const equations = Object.fromEntries(
-      [...supported, unsupported].map((latex) => {
+      [...supported, ...unsupported].map((latex) => {
         const tree = latexToMathTree(latex);
         expect(tree).not.toBeNull();
         return [latex, tree!];
@@ -111,7 +111,7 @@ describe("latexToMathTree", () => {
         type: "doc",
         content: [{
           type: "sectionBody",
-          content: [...supported, unsupported].map((latex) => ({
+          content: [...supported, ...unsupported].map((latex) => ({
             type: "apaEquation",
             attrs: { latex },
           })),
@@ -126,6 +126,6 @@ describe("latexToMathTree", () => {
     const files = unzipSync(await exportDocx(input));
     const xml = strFromU8(files["word/document.xml"]!);
     expect(xml.match(/<m:oMath>/g)).toHaveLength(2);
-    expect(xml).toContain("\\mathrm{kg}");
+    for (const latex of unsupported) expect(xml).toContain(latex);
   });
 });

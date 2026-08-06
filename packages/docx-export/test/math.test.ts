@@ -2,10 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { IContext } from "docx";
 import {
   MathFraction,
-  MathIntegral,
   MathRadical,
   MathSubScript,
-  MathSum,
   MathSuperScript,
 } from "docx";
 import { mathTreeToOmml } from "../src/math.ts";
@@ -186,7 +184,7 @@ describe("mathTreeToOmml — no soportado", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("mapea la sumatoria con límites que emite Temml (base ∑)", () => {
+  it("rechaza una sumatoria sin operando estructural", () => {
     // Temml usa munderover para \\sum_{i=1}^{n}. Medido en el spike: sin este
     // caso la primera ecuación realista de una tesina ya falla.
     const sum = el(
@@ -196,13 +194,7 @@ describe("mathTreeToOmml — no soportado", () => {
       leaf("mi", "n"),
     );
     const result = mathTreeToOmml(sum);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.children).toHaveLength(1);
-    const [component] = result.children;
-    expect(component).toBeInstanceOf(MathSum);
-    // subíndice antes que superíndice, en ese orden — "i", "=", "1", "n".
-    expect(runTextsInOrder(xmlOf(component))).toEqual(["i", "=", "1", "n"]);
+    expect(result).toEqual({ ok: false, unsupported: "∑[operand]" });
   });
 
   it("rechaza munderover con base ∏ en vez de mapearlo a MathSum (∑)", () => {
@@ -233,7 +225,7 @@ describe("mathTreeToOmml — no soportado", () => {
     if (!result.ok) expect(result.unsupported).toBe("⋃");
   });
 
-  it("mapea la integral con límites (msubsup) con base, inferior y superior en orden", () => {
+  it("rechaza una integral sin operando estructural", () => {
     const integral = el(
       "msubsup",
       leaf("mo", "∫"),
@@ -241,12 +233,7 @@ describe("mathTreeToOmml — no soportado", () => {
       leaf("mi", "∞"),
     );
     const result = mathTreeToOmml(integral);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.children).toHaveLength(1);
-    const [component] = result.children;
-    expect(component).toBeInstanceOf(MathIntegral);
-    expect(runTextsInOrder(xmlOf(component))).toEqual(["0", "∞"]);
+    expect(result).toEqual({ ok: false, unsupported: "∫[operand]" });
   });
 
   it("mapea la raíz n-ésima (mroot) con base y grado en el orden correcto", () => {

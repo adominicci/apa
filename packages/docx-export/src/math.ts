@@ -2,12 +2,10 @@ import {
   Math as DocxMath,
   type MathComponent,
   MathFraction,
-  MathIntegral,
   MathRadical,
   MathRun,
   MathSubScript,
   MathSubSuperScript,
-  MathSum,
   MathSuperScript,
 } from "docx";
 import type { MathNode } from "./input.ts";
@@ -177,24 +175,16 @@ export function mathTreeToOmml(node: MathNode): MathResult {
     };
   }
 
-  // Integral con límites: msubsup > base, inferior, superior.
+  // MathML leaves an integral's operand as following siblings, so this
+  // isolated node cannot build a valid native n-ary OMML operand.
   if (node.tag === "msubsup" && children.length === 3) {
+    if (baseOperatorGlyph(children[0]!) === "∫") {
+      return { ok: false, unsupported: "∫[operand]" };
+    }
     const sub = mathTreeToOmml(children[1]!);
     if (!sub.ok) return sub;
     const sup = mathTreeToOmml(children[2]!);
     if (!sup.ok) return sup;
-    if (baseOperatorGlyph(children[0]!) === "∫") {
-      return {
-        ok: true,
-        children: [
-          new MathIntegral({
-            children: [],
-            subScript: sub.children,
-            superScript: sup.children,
-          }),
-        ],
-      };
-    }
     const base = mathTreeToOmml(children[0]!);
     if (!base.ok) return base;
     return {
@@ -209,39 +199,13 @@ export function mathTreeToOmml(node: MathNode): MathResult {
     };
   }
 
-  // Sumatoria con límites: munderover > base, inferior, superior. Es lo que
-  // Temml emite para \sum_{i=1}^{n}; sin este caso la primera ecuación
-  // realista de una tesina ya falla.
-  //
-  // OJO: la clase `MathSum` de docx tiene el glifo "∑" hardcodeado
-  // (`accent: "∑"` en createMathNAryProperties, docx/dist/index.mjs) — no
-  // recibe el operador como parámetro. munderover también es lo que Temml
-  // emite para \prod (∏), \bigcup (⋃), \bigcap, \bigvee, etc., y docx no
-  // tiene una clase equivalente para ninguno de esos. Mapear todo
-  // munderover a MathSum sin mirar la base convertiría un producto o una
-  // unión en una sumatoria en Word, en silencio: la peor forma de fallar,
-  // porque matemáticamente es simplemente incorrecto y nadie lo nota. Este
-  // gate es lo que lo evita: solo se acepta cuando la base es literalmente
-  // "∑"; cualquier otro operador cae a `unsupported` (LaTeX crudo + aviso
-  // del editor) en vez de renderizar el símbolo equivocado.
+  // munderover has the same operand ambiguity for sums and other n-ary
+  // operators. Fall back rather than emit an empty native operand.
   if (node.tag === "munderover" && children.length === 3) {
     const glyph = baseOperatorGlyph(children[0]!);
-    if (glyph !== "∑") {
-      return { ok: false, unsupported: glyph ?? children[0]!.tag };
-    }
-    const sub = mathTreeToOmml(children[1]!);
-    if (!sub.ok) return sub;
-    const sup = mathTreeToOmml(children[2]!);
-    if (!sup.ok) return sup;
     return {
-      ok: true,
-      children: [
-        new MathSum({
-          children: [],
-          subScript: sub.children,
-          superScript: sup.children,
-        }),
-      ],
+      ok: false,
+      unsupported: glyph === "∑" ? "∑[operand]" : glyph ?? children[0]!.tag,
     };
   }
 
