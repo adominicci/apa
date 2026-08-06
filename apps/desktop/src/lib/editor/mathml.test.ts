@@ -54,6 +54,11 @@ describe("latexToMathTree", () => {
     expect(JSON.stringify(tree)).toContain('"x"');
   });
 
+  it("conserva atributos MathML que afectan la semántica", () => {
+    const tree = latexToMathTree("\\binom{n}{k}");
+    expect(JSON.stringify(tree)).toContain('"linethickness":"0px"');
+  });
+
   it("devuelve null ante LaTeX inválido en vez de lanzar", () => {
     // La exportación nunca debe romperse por una ecuación mal escrita.
     expect(latexToMathTree("\\frac{")).toBeNull();

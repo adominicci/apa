@@ -17,10 +17,22 @@ export function latexToMathml(latex: string): string {
 /** Convierte un elemento del DOM al árbol plano serializable del contrato. */
 function elementToNode(element: Element): MathNode {
   const children = Array.from(element.children);
+  const attrs = Object.fromEntries(
+    Array.from(element.attributes, ({ name, value }) => [name, value]),
+  );
+  const withAttrs = Object.keys(attrs).length > 0 ? { attrs } : {};
   if (children.length === 0) {
-    return { tag: element.tagName, text: element.textContent ?? "" };
+    return {
+      tag: element.tagName,
+      text: element.textContent ?? "",
+      ...withAttrs,
+    };
   }
-  return { tag: element.tagName, children: children.map(elementToNode) };
+  return {
+    tag: element.tagName,
+    children: children.map(elementToNode),
+    ...withAttrs,
+  };
 }
 
 /**

@@ -169,8 +169,8 @@ describe("exportDocx (student, es)", () => {
     // document default; see styles.ts's empty w:pPrDefault).
     expect(documentXml).toContain(
       '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:tabs>' +
-        '<w:tab w:val="center" w:pos="4513"/>' +
-        '<w:tab w:val="right" w:pos="9026"/></w:tabs></w:pPr>' +
+        '<w:tab w:val="center" w:pos="4680"/>' +
+        '<w:tab w:val="right" w:pos="9360"/></w:tabs></w:pPr>' +
         "<w:r><w:tab/></w:r><m:oMath>" +
         "<m:r><m:t>E</m:t></m:r><m:r><m:t>=</m:t></m:r>" +
         "<m:r><m:t>m</m:t></m:r>",
@@ -183,6 +183,17 @@ describe("exportDocx (student, es)", () => {
     // number never goes through getTerms (it is the same in ES and EN).
     expect(documentXml).toContain(
       '</m:sSup></m:oMath><w:r><w:tab/><w:t xml:space="preserve">(1)</w:t></w:r>',
+    );
+  });
+
+  it("derives equation tab stops from A4 content width", async () => {
+    const input = sampleInput();
+    input.settings.paperSize = "a4";
+    const files = unzipSync(await exportDocx(input));
+    const xml = strFromU8(files["word/document.xml"]!);
+    expect(xml).toContain(
+      '<w:tab w:val="center" w:pos="4513"/>' +
+        '<w:tab w:val="right" w:pos="9026"/>',
     );
   });
 

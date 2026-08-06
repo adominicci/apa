@@ -73,6 +73,17 @@ describe("mathTreeToOmml — construcciones soportadas", () => {
     expect(runTextsInOrder(xmlOf(component))).toEqual(["1", "2"]);
   });
 
+  it("rechaza una fracción sin barra para conservar su semántica", () => {
+    const frac: MathNode = {
+      ...el("mfrac", leaf("mi", "n"), leaf("mi", "k")),
+      attrs: { linethickness: "0" },
+    };
+    expect(mathTreeToOmml(frac)).toEqual({
+      ok: false,
+      unsupported: "mfrac[linethickness=0]",
+    });
+  });
+
   it("mapea una raíz cuadrada", () => {
     expect(mathTreeToOmml(el("msqrt", leaf("mi", "x"))).ok).toBe(true);
   });

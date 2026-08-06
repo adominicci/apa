@@ -1,11 +1,4 @@
-import {
-  Paragraph,
-  Tab,
-  Table,
-  TabStopPosition,
-  TabStopType,
-  TextRun,
-} from "docx";
+import { Paragraph, Tab, Table, TabStopType, TextRun } from "docx";
 import { getTerms } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
 import { type DocContext, inlineText, inlineToTextRuns } from "./runs.ts";
@@ -20,6 +13,7 @@ interface VisitState {
   tableCounter: { n: number };
   figureCounter: { n: number };
   equationCounter: { n: number };
+  contentWidth: number;
 }
 
 interface VisitOptions {
@@ -235,9 +229,9 @@ export function visitBlocks(
             tabStops: [
               {
                 type: TabStopType.CENTER,
-                position: TabStopPosition.MAX / 2,
+                position: state.contentWidth / 2,
               },
-              { type: TabStopType.RIGHT, position: TabStopPosition.MAX },
+              { type: TabStopType.RIGHT, position: state.contentWidth },
             ],
             children: [
               new TextRun({ children: [new Tab()] }),
@@ -278,6 +272,7 @@ export function visitBlocks(
 export function visitDocument(
   content: PMJson,
   ctx: DocContext,
+  contentWidth: number,
 ): (Paragraph | Table)[] {
   const t = getTerms(ctx.locale);
   const state: VisitState = {
@@ -287,6 +282,7 @@ export function visitDocument(
     tableCounter: { n: 0 },
     figureCounter: { n: 0 },
     equationCounter: { n: 0 },
+    contentWidth,
   };
   const sections = content.content ?? [];
   const appendixCount = sections.filter(

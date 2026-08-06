@@ -79,5 +79,7 @@ export interface MathNode {
   tag: string;
   /** Texto, solo en las hojas (mi, mn, mo, mtext). */
   text?: string;
+  /** MathML attributes that can affect presentation or semantics. */
+  attrs?: Record<string, string>;
   children?: MathNode[];
 }

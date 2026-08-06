@@ -100,7 +100,11 @@ export async function exportDocx(input: ExportInput): Promise<Uint8Array> {
         headers: { default: buildHeader(input) },
         children: [
           ...titlePageParagraphs(input),
-          ...visitDocument(content, ctx),
+          ...visitDocument(
+            content,
+            ctx,
+            PAGE_SIZE[input.settings.paperSize].width - 2 * ONE_INCH,
+          ),
           ...referencesParagraphs(input.references, locale),
         ],
       },

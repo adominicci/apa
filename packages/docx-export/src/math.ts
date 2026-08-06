@@ -63,6 +63,9 @@ export function mathTreeToOmml(node: MathNode): MathResult {
   }
 
   if (node.tag === "mfrac" && children.length === 2) {
+    if (/^0(?:[a-z%]+)?$/i.test(node.attrs?.["linethickness"] ?? "")) {
+      return { ok: false, unsupported: "mfrac[linethickness=0]" };
+    }
     const numerator = mathTreeToOmml(children[0]!);
     if (!numerator.ok) return numerator;
     const denominator = mathTreeToOmml(children[1]!);
