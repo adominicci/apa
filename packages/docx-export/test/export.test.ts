@@ -158,7 +158,7 @@ describe("exportDocx (student, es)", () => {
     expect(documentXml).toMatch(/w:val="single"/);
   });
 
-  it("exports a mapped equation as native, centered OMML numbered (1)", () => {
+  it("exports a mapped equation centered with its number at the right margin", () => {
     // "E = mc^2" has an entry in `equations` whose tree maps cleanly through
     // mathTreeToOmml: mi/mo/mi runs plus an msup superscript. Asserting the
     // walked structure (not just that *some* <m:oMath> exists) is what
@@ -168,7 +168,10 @@ describe("exportDocx (student, es)", () => {
     // every other body paragraph is double-spaced (Normal isn't the
     // document default; see styles.ts's empty w:pPrDefault).
     expect(documentXml).toContain(
-      '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:jc w:val="center"/></w:pPr><m:oMath>' +
+      '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:tabs>' +
+        '<w:tab w:val="center" w:pos="4513"/>' +
+        '<w:tab w:val="right" w:pos="9026"/></w:tabs></w:pPr>' +
+        "<w:r><w:tab/></w:r><m:oMath>" +
         "<m:r><m:t>E</m:t></m:r><m:r><m:t>=</m:t></m:r>" +
         "<m:r><m:t>m</m:t></m:r>",
     );
@@ -176,10 +179,10 @@ describe("exportDocx (student, es)", () => {
       "<m:sSup><m:sSupPr/><m:e><m:r><m:t>c</m:t></m:r></m:e>" +
         "<m:sup><m:r><m:t>2</m:t></m:r></m:sup></m:sSup>",
     );
-    // The number sits right after </m:oMath> as plain text "(1)" — never
-    // through getTerms, unlike "Tabla N"/"Figura N" (same in ES and EN).
+    // The second tab pins the plain-text number to the right margin; the
+    // number never goes through getTerms (it is the same in ES and EN).
     expect(documentXml).toContain(
-      '</m:sSup></m:oMath><w:r><w:t xml:space="preserve"> (1)</w:t></w:r>',
+      '</m:sSup></m:oMath><w:r><w:tab/><w:t xml:space="preserve">(1)</w:t></w:r>',
     );
   });
 
@@ -191,7 +194,7 @@ describe("exportDocx (student, es)", () => {
     // immediately followed by its own running number "(2)".
     expect(documentXml).toContain(
       "\\begin{pmatrix} 1 &amp; 0 \\\\ 0 &amp; 1 \\end{pmatrix}" +
-        '</w:t></w:r><w:r><w:t xml:space="preserve"> (2)</w:t></w:r>',
+        '</w:t></w:r><w:r><w:tab/><w:t xml:space="preserve">(2)</w:t></w:r>',
     );
     // The appendix and references after it still render — one bad equation
     // must not fail the whole export.
@@ -207,7 +210,7 @@ describe("exportDocx (student, es)", () => {
     // own running number "(3)", no native OMML produced for it.
     expect(documentXml).toContain(
       "\\sigma_x</w:t></w:r>" +
-        '<w:r><w:t xml:space="preserve"> (3)</w:t></w:r>',
+        '<w:r><w:tab/><w:t xml:space="preserve">(3)</w:t></w:r>',
     );
     // Exactly one native <m:oMath> in the whole document: the mapped
     // equation produces it; neither the unsupported-tree fallback nor this

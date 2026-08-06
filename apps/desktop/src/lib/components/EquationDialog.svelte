@@ -67,7 +67,7 @@
     <textarea
       rows="4"
       bind:value={latex}
-      placeholder="x^2 + y^2 = z^2"
+      placeholder={m.equation_latex_placeholder()}
     ></textarea>
   </label>
 

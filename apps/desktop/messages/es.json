@@ -405,6 +405,7 @@
   "equation_delete": "Eliminar ecuación",
   "equation_insert": "Insertar ecuación",
   "equation_latex_label": "Código LaTeX",
+  "equation_latex_placeholder": "x^2 + y^2 = z^2",
   "equation_preview_label": "Vista previa",
   "equation_preview_empty": "Escribí una ecuación para ver la vista previa.",
   "equation_preview_error": "No se pudo leer este LaTeX. Revisá la sintaxis.",

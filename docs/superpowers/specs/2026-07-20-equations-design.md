@@ -24,7 +24,7 @@ delicada. Queda como continuación natural.
 
 ## La cadena
 
-```
+```text
 LaTeX  ← lo único que se guarda en el documento
   └─ Temml ─→ MathML ─┬─→ editor y preview (WebKit lo renderiza nativo)
                       └─→ árbol plano ─→ objetos Math de docx (OMML)
@@ -33,12 +33,11 @@ LaTeX  ← lo único que se guarda en el documento
 Una sola dependencia sirve a los tres renderizadores y MathML queda como
 representación intermedia única.
 
-### Corrección: sí hace falta CSS y fuente
+### Decisión de fuentes validada por el spike
 
-Una primera versión de este spec decía que WebKit renderiza MathML nativo y por
-lo tanto no hacían falta ni CSS ni fuentes. **Es falso.** La documentación de
-Temml es explícita: para verse correctamente necesita `Temml-Local.css` **y**
-`Temml.woff2`, y ambos tienen que estar en la misma carpeta.
+> **Nota supersedida:** antes del spike se asumió que harían falta
+> `Temml-Local.css` y `Temml.woff2`. Esa hipótesis no es un requisito de
+> implementación.
 
 Eso lo vuelve un riesgo de primer orden en este repo, no un detalle: AGENTS.md
 dedica una sección entera a que las fuentes entregadas por Vite se rompían una
@@ -109,8 +108,9 @@ El árbol plano es el contrato entre ambos, y por eso vive en
 `docx-export/src/input.ts`, que AGENTS.md ya designa como el único contrato de
 datos sancionado.
 
-En el `.docx` la ecuación es un párrafo centrado que contiene el `Math` y su
-número. Verificado contra los tipos de `docx@9`: `Math` acepta
+En el `.docx` la ecuación usa tabulaciones de centro y derecha para mantener el
+`Math` centrado y su número pegado al margen derecho. Verificado contra los
+tipos de `docx@9`: `Math` acepta
 `{ children: readonly MathComponent[] }` y **está incluido en
 `ParagraphChild`**.
 
@@ -124,7 +124,7 @@ tienen que caer en el mismo commit.
 
 La unión `MathComponent` de `docx@9` es:
 
-```
+```ts
 MathRun | MathFraction | MathSum | MathIntegral | MathSuperScript |
 MathSubScript | MathSubSuperScript | MathRadical | MathFunction |
 MathRoundBrackets | MathCurlyBrackets | MathAngledBrackets | MathSquareBrackets

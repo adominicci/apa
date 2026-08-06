@@ -7,7 +7,11 @@ import type { MathNode } from "@tesina/docx-export";
  * imágenes de figuras.
  */
 export function latexToMathml(latex: string): string {
-  return temml.renderToString(latex, { displayMode: true, throwOnError: true });
+  return temml.renderToString(latex, {
+    displayMode: true,
+    throwOnError: true,
+    maxSize: [10, 100],
+  });
 }
 
 /** Convierte un elemento del DOM al árbol plano serializable del contrato. */

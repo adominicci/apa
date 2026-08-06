@@ -1,4 +1,11 @@
-import { AlignmentType, Paragraph, Table, TextRun } from "docx";
+import {
+  Paragraph,
+  Tab,
+  Table,
+  TabStopPosition,
+  TabStopType,
+  TextRun,
+} from "docx";
 import { getTerms } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
 import { type DocContext, inlineText, inlineToTextRuns } from "./runs.ts";
@@ -221,10 +228,19 @@ export function visitBlocks(
         out.push(
           new Paragraph({
             style: "Normal",
-            alignment: AlignmentType.CENTER,
+            tabStops: [
+              {
+                type: TabStopType.CENTER,
+                position: TabStopPosition.MAX / 2,
+              },
+              { type: TabStopType.RIGHT, position: TabStopPosition.MAX },
+            ],
             children: [
+              new TextRun({ children: [new Tab()] }),
               ...equationChildren,
-              new TextRun(` (${state.equationCounter.n})`),
+              new TextRun({
+                children: [new Tab(), `(${state.equationCounter.n})`],
+              }),
             ],
           }),
         );

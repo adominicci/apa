@@ -3,7 +3,7 @@
 // Necesita DOM porque el parseo de MathML usa DOMParser. Ese es justamente el
 // reparto del diseño: la capa app parsea, el paquete puro solo mapea.
 import { describe, expect, it } from "vitest";
-import { latexToMathTree } from "./mathml.ts";
+import { latexToMathml, latexToMathTree } from "./mathml.ts";
 
 describe("latexToMathTree", () => {
   it("convierte una fracción en un árbol con mfrac", () => {
@@ -57,5 +57,12 @@ describe("latexToMathTree", () => {
   it("devuelve null ante LaTeX inválido en vez de lanzar", () => {
     // La exportación nunca debe romperse por una ecuación mal escrita.
     expect(latexToMathTree("\\frac{")).toBeNull();
+  });
+
+  it("limita las dimensiones solicitadas por LaTeX", () => {
+    const mathml = latexToMathml("\\rule{500em}{500em}");
+    expect(mathml).toContain('width="10em"');
+    expect(mathml).toContain('height="10em"');
+    expect(mathml).not.toContain("500em");
   });
 });

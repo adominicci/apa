@@ -273,6 +273,28 @@ describe("renderEssayHtml", () => {
     );
   });
 
+  it("matches the complete APA equation preview markup", () => {
+    const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    essay.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [{ type: "apaEquation", attrs: { latex: "E = mc^2" } }],
+      }],
+    };
+    const html = renderEssayHtml(
+      essay,
+      essay.content,
+      [],
+      new Map(),
+      new Map([[
+        "E = mc^2",
+        "<math><mi>E</mi><mo>=</mo><msup><mi>c</mi><mn>2</mn></msup></math>",
+      ]]),
+    );
+    expect(html).toMatchSnapshot();
+  });
+
   it("falls back to escaped raw LaTeX when an equation has no MathML entry", () => {
     // Mirrors the editor (raw LaTeX in red mono) and the DOCX export (raw
     // LaTeX text run) for a construct Temml couldn't render — the preview
