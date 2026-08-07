@@ -9,8 +9,7 @@ independently.
 
 Version 0.1.0 supports student papers on macOS 11 or newer. It is distributed
 as a DMG through GitHub Releases, not through the Mac App Store. Windows and
-Linux packages are currently internal CI compile previews; there are no public
-downloads for those platforms yet.
+Linux builds are checked in CI but are not published or supported yet.
 
 ## Install on macOS
 
@@ -32,11 +31,11 @@ controls in [Open a Mac app from an unidentified developer](https://support.appl
   appendices, lists, tables, figures, equations, citations, and references.
 - Formats in-text citations and reference entries in English or Spanish.
 - Manages a reusable reference library with collections, DOI, ISBN, and URL
-  autofill, plus reviewed BibTeX import.
+  autofill, plus BibTeX import with a review step.
 - Provides a paged preview for printing or saving as PDF and exports `.docx`
   files for Microsoft Word and compatible editors.
-- Saves locally with atomic writes, autosave, and backups. Tesina has no account
-  system or cloud service.
+- Saves locally with atomic autosave and creates a timestamped backup before a
+  paper is deleted. Tesina has no account system or cloud service.
 
 Tesina follows the public [APA Style paper-format guidance](https://apastyle.apa.org/style-grammar-guidelines/paper-format/), but students should still follow any instructions provided by their instructor or institution.
 
