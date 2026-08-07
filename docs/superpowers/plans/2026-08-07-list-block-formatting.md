@@ -239,9 +239,41 @@ git commit -m "fix: preserve list blocks in preview"
 
 - [ ] **Step 1: Extend the DOCX sample fixture before changing production code**
 
-Add the same continuation paragraph and minimal table from Task 1 to the first
-ordered-list item in `sample.ts`, before `Matiz anidado`. Add this ordinary body
-paragraph immediately after the ordered list and before the equations:
+Add this continuation paragraph and minimal table to the first ordered-list
+item in `sample.ts`, before `Matiz anidado`:
+
+```ts
+{
+  type: "paragraph",
+  content: [{ type: "text", text: "Continuación del primer criterio" }],
+},
+{
+  type: "apaTable",
+  content: [
+    {
+      type: "tableTitle",
+      content: [{ type: "text", text: "Tabla dentro de la lista" }],
+    },
+    {
+      type: "table",
+      content: [{
+        type: "tableRow",
+        content: [{
+          type: "tableHeader",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "Dato" }],
+          }],
+        }],
+      }],
+    },
+    { type: "tableNote" },
+  ],
+},
+```
+
+Add this ordinary body paragraph immediately after the ordered list and before
+the equations:
 
 ```ts
 {
