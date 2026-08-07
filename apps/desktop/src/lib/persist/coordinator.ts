@@ -58,7 +58,7 @@ export class PersistenceCoordinator {
 
   async #flushUntilMembershipStabilizes(): Promise<void> {
     const attemptedGeneration = new Map<Registration, number>();
-    const failures: unknown[] = [];
+    const failures = new Map<Registration, unknown>();
 
     while (true) {
       const generation = this.#activityGeneration;
@@ -77,17 +77,23 @@ export class PersistenceCoordinator {
       const results = await Promise.allSettled(
         pending.map((entry) => Promise.resolve().then(entry.flush)),
       );
-      for (const result of results) {
-        if (result.status === "rejected") failures.push(result.reason);
+      for (const [index, result] of results.entries()) {
+        const entry = pending[index];
+        if (result.status === "rejected") {
+          failures.set(entry, result.reason);
+        } else {
+          failures.delete(entry);
+        }
       }
 
       if (
         generation === this.#activityGeneration &&
         this.#registeredDuringBarrier.size === 0
       ) {
-        if (failures.length === 1) throw failures[0];
-        if (failures.length > 1) {
-          throw new AggregateError(failures, "Persistence flush failed");
+        const reasons = [...failures.values()];
+        if (reasons.length === 1) throw reasons[0];
+        if (reasons.length > 1) {
+          throw new AggregateError(reasons, "Persistence flush failed");
         }
         return;
       }

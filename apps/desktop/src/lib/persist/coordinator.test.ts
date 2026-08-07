@@ -17,6 +17,25 @@ async function drainMicrotasks(): Promise<void> {
 }
 
 describe("PersistenceCoordinator", () => {
+  it("resolves after a failed flush is superseded by a successful dirty generation", async () => {
+    const coordinator = new PersistenceCoordinator();
+    const transientFailure = new Error("transient-first-attempt");
+    let attempts = 0;
+    const registration: ReturnType<PersistenceCoordinator["register"]> =
+      coordinator.register(() => {
+        attempts += 1;
+        if (attempts === 1) {
+          registration.markDirty();
+          return Promise.reject(transientFailure);
+        }
+        return Promise.resolve();
+      });
+
+    await expect(coordinator.flushPending()).resolves.toBeUndefined();
+
+    expect(attempts).toBe(2);
+  });
+
   it("waits for every flusher to settle before propagating an early rejection", async () => {
     const coordinator = new PersistenceCoordinator();
     const slow = deferred<void>();
