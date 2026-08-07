@@ -117,6 +117,26 @@ function bodyDoc(text: string): Content {
   };
 }
 
+function authoredBodyTitleDoc(title: string): Content {
+  return {
+    type: "doc",
+    content: [{
+      type: "sectionBody",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 1 },
+          content: [{ type: "text", text: title }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Editable authored opening" }],
+        },
+      ],
+    }],
+  };
+}
+
 function citationDoc(refId: string): Content {
   return {
     type: "doc",
@@ -212,6 +232,37 @@ afterEach(() => {
 });
 
 describe("editor preview round trip", () => {
+  it("suppresses only the pseudo body title for a matching authored H1", async () => {
+    const essay = essayWithBody("Seed");
+    essay.titlePage.title = "Legacy Body Title";
+    essay.content = authoredBodyTitleDoc(essay.titlePage.title);
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+
+    try {
+      flushSync();
+      await tick();
+      const sheetStack = document.querySelector<HTMLElement>(".sheet-stack");
+      const authoredHeading = document.querySelector<HTMLHeadingElement>(
+        ".ProseMirror .sec-body > h1",
+      );
+
+      expect(sheetStack?.style.getPropertyValue("--body-title")).toBe("none");
+      expect(authoredHeading?.textContent).toBe("Legacy Body Title");
+      expect(runtime.editors[0]?.getJSON()).toEqual(essay.content);
+    } finally {
+      await unmount(component);
+    }
+  });
+
   it("keeps close pending until an edit made during the active write is persisted", async () => {
     vi.useFakeTimers();
     const firstWrite = deferred<void>();

@@ -202,6 +202,36 @@ function listEssay() {
 }
 
 describe("renderEssayHtml", () => {
+  it("uses a matching authored leading H1 as the legacy body title", () => {
+    const essay = sampleEssay();
+    essay.titlePage.title = "Legacy Body Title";
+    essay.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [
+          {
+            type: "heading",
+            attrs: { level: 1 },
+            content: [{ type: "text", text: "Legacy Body Title" }],
+          },
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "Authored opening" }],
+          },
+        ],
+      }],
+    };
+
+    const html = renderEssayHtml(essay, essay.content, []);
+
+    expect(html.match(/Legacy Body Title/g)).toHaveLength(2);
+    expect(html).toContain(
+      '<section class="body-sec"><h1>Legacy Body Title</h1><p>Authored opening</p>',
+    );
+    expect(html).not.toContain('<h1 class="body-title">');
+  });
+
   it("renders title page, sections, citations, and references", () => {
     const html = renderEssayHtml(sampleEssay(), sampleEssay().content, [
       salgado,

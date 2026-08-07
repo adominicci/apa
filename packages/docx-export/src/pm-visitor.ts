@@ -8,6 +8,7 @@ import {
 } from "docx";
 import { getTerms } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
+import { hasAuthoredBodyTitle } from "./body-title.ts";
 import { type DocContext, inlineToTextRuns } from "./runs.ts";
 import {
   BULLET_LIST_REF,
@@ -32,6 +33,8 @@ interface VisitState {
 interface VisitOptions {
   /** Style for the first block when it is a paragraph (abstract: "Normal"). */
   firstParagraphStyle?: string;
+  /** Page break on the first emitted paragraph (legacy authored body title). */
+  firstPageBreak?: boolean;
   /** Default paragraph style for a recursive context such as a block quote. */
   paragraphStyle?: string;
   /** Accumulated left indent applied while walking nested block quotes. */
@@ -83,6 +86,7 @@ export function visitBlocks(
     children: TextRun[],
     extra: Record<string, unknown> = {},
   ) => {
+    const first = !emittedFirst;
     emittedFirst = true;
     const explicitIndent = extra["indent"] as
       | Record<string, unknown>
@@ -105,6 +109,7 @@ export function visitBlocks(
       new Paragraph({
         style,
         children,
+        ...(first && options.firstPageBreak ? { pageBreakBefore: true } : {}),
         ...contextualExtra,
       }),
     );
@@ -390,14 +395,23 @@ export function visitDocument(
         }),
       );
     } else if (section.type === "sectionBody") {
+      const authoredBodyTitle = hasAuthoredBodyTitle(section, bodyTitle);
+      if (!authoredBodyTitle) {
+        beforeReferences.push(
+          new Paragraph({
+            style: "Heading1",
+            pageBreakBefore: true,
+            children: [new TextRun({ text: bodyTitle, bold: true })],
+          }),
+        );
+      }
       beforeReferences.push(
-        new Paragraph({
-          style: "Heading1",
-          pageBreakBefore: true,
-          children: [new TextRun({ text: bodyTitle, bold: true })],
-        }),
+        ...visitBlocks(
+          section.content ?? [],
+          state,
+          authoredBodyTitle ? { firstPageBreak: true } : {},
+        ),
       );
-      beforeReferences.push(...visitBlocks(section.content ?? [], state));
     } else if (section.type === "sectionAppendix") {
       appendixIndex += 1;
       const letter = appendixCount > 1

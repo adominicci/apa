@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import type { Editor as TiptapEditor } from "@tiptap/core";
+  import { hasAuthoredBodyTitle } from "@tesina/docx-export";
   import type { CitationAttrs, DocLocale, Reference } from "@tesina/engine";
   import { getTerms } from "@tesina/engine";
   import type {
@@ -185,7 +186,11 @@
   /** Editor sheets render in the chosen APA font via inherited CSS vars. */
   const docFont = $derived(APA_FONTS[essay.settings.font]);
   const sheetFontStyle = $derived(
-    `--doc-font: ${docFont.stack}; --doc-font-size: ${docFont.sizePt}pt; --body-title: ${JSON.stringify(essayTitle)}`,
+    `--doc-font: ${docFont.stack}; --doc-font-size: ${docFont.sizePt}pt; --body-title: ${
+      hasAuthoredBodyTitle(lastDoc, essayTitle)
+        ? "none"
+        : JSON.stringify(essayTitle)
+    }`,
   );
   /** One reactive selection shared by the live sheet, preview, and export. */
   const referenceResolution = $derived.by(() =>

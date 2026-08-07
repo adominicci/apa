@@ -541,6 +541,36 @@ describe("exportDocx (student, es)", () => {
     expect(titleParagraphs[1]).toContain("<w:pageBreakBefore/>");
   });
 
+  it("uses a matching authored leading H1 as the page-breaking body title", async () => {
+    const input = sampleInput({ documentLanguage: "en" });
+    input.titlePage.title = "Legacy Body Title";
+    input.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [
+          {
+            type: "heading",
+            attrs: { level: 1 },
+            content: [{ type: "text", text: "Legacy Body Title" }],
+          },
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "Authored opening" }],
+          },
+        ],
+      }],
+    };
+
+    const xml = await documentXmlFor(input);
+    const titleParagraphs = paragraphsContaining(xml, "Legacy Body Title");
+
+    expect(titleParagraphs).toHaveLength(2);
+    expect(titleParagraphs[1]).toContain('w:pStyle w:val="Heading1"');
+    expect(titleParagraphs[1]).toContain("<w:pageBreakBefore/>");
+    expect(paragraphsContaining(xml, "Authored opening")).toHaveLength(1);
+  });
+
   it("renders localized section headings on new pages", () => {
     expect(documentXml).toContain("Resumen");
     expect(documentXml).toContain("Apéndice");

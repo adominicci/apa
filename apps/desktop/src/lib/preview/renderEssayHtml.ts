@@ -10,6 +10,7 @@ import type { CitationAttrs, DocLocale } from "@tesina/engine";
 import {
   buildDocContext,
   type DocContext,
+  hasAuthoredBodyTitle,
   type PMJson,
 } from "@tesina/docx-export";
 import type { Essay } from "$lib/model/essay";
@@ -430,9 +431,10 @@ export function renderEssayHtml(
       html += blocksHtml(section.content ?? [], state, "no-indent");
       html += "</section>";
     } else if (section.type === "sectionBody") {
-      html += `<section class="body-sec"><h1 class="body-title">${
-        esc(titlePage.title)
-      }</h1>`;
+      html += `<section class="body-sec">`;
+      if (!hasAuthoredBodyTitle(section, titlePage.title)) {
+        html += `<h1 class="body-title">${esc(titlePage.title)}</h1>`;
+      }
       html += blocksHtml(section.content ?? [], state);
       html += "</section>";
     }
