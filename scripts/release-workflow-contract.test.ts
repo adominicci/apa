@@ -7,6 +7,17 @@ const releaseWorkflow = await Deno.readTextFile(
 const mergeWorkflow = await Deno.readTextFile(
   `${root}.github/workflows/build-artifacts.yml`,
 );
+const workflowDirectory = `${root}.github/workflows`;
+const workflowFiles: Array<{ name: string; source: string }> = [];
+for await (const entry of Deno.readDir(workflowDirectory)) {
+  if (entry.isFile && /\.ya?ml$/.test(entry.name)) {
+    workflowFiles.push({
+      name: entry.name,
+      source: await Deno.readTextFile(`${workflowDirectory}/${entry.name}`),
+    });
+  }
+}
+workflowFiles.sort((left, right) => left.name.localeCompare(right.name));
 const tauriConfig = JSON.parse(
   await Deno.readTextFile(`${root}apps/desktop/src-tauri/tauri.conf.json`),
 );
@@ -21,7 +32,94 @@ function workflowStep(name: string): string {
   return releaseWorkflow.slice(start, end === -1 ? undefined : end);
 }
 
+function actionReferences(source: string): string[] {
+  return [
+    ...source.matchAll(/^\s*(?:-\s*)?uses:\s*([^\s#]+)(?:\s+#.*)?$/gm),
+  ].map((match) => match[1]);
+}
+
+function workflowSteps(source: string): string[] {
+  const lines = source.split("\n");
+  const starts = lines.flatMap((line, index) => {
+    const match = line.match(/^(\s*)-\s+(?:name|uses|run|id|if):/);
+    return match ? [{ index, indentation: match[1].length }] : [];
+  });
+
+  return starts.map(({ index, indentation }) => {
+    const end = starts.find(
+      (candidate) =>
+        candidate.index > index && candidate.indentation === indentation,
+    )?.index;
+    return lines.slice(index, end).join("\n");
+  });
+}
+
+function permissionDeclarations(source: string): string[][] {
+  const lines = source.split("\n");
+  return lines.flatMap((line, index) => {
+    const match = line.match(/^(\s*)permissions:\s*(.*)$/);
+    if (!match) return [];
+
+    if (match[2]) return [[match[2]]];
+
+    const indentation = match[1].length;
+    const end = lines.findIndex((candidate, candidateIndex) =>
+      candidateIndex > index && candidate.trim() !== "" &&
+      (candidate.match(/^\s*/)?.[0].length ?? 0) <= indentation
+    );
+    return [[
+      ...lines.slice(index + 1, end === -1 ? undefined : end)
+        .filter((candidate) => candidate.trim() !== "")
+        .map((candidate) => candidate.trim()),
+    ]];
+  });
+}
+
 describe("release workflow contract", () => {
+  it("pins every external action in every workflow to a full commit SHA", () => {
+    for (const workflow of workflowFiles) {
+      for (const reference of actionReferences(workflow.source)) {
+        expect(reference, `${workflow.name}: ${reference}`).toMatch(
+          /^[^@]+@[0-9a-f]{40}$/,
+        );
+      }
+    }
+  });
+
+  it("disables persisted checkout credentials in every workflow", () => {
+    for (const workflow of workflowFiles) {
+      const checkoutSteps = workflowSteps(workflow.source).filter((step) =>
+        /uses:\s*actions\/checkout@/.test(step)
+      );
+      expect(checkoutSteps, `${workflow.name} checkout steps`).not.toHaveLength(
+        0,
+      );
+      for (const step of checkoutSteps) {
+        expect(step, `${workflow.name} checkout step`).toMatch(
+          /persist-credentials:\s*false/,
+        );
+      }
+    }
+  });
+
+  it("keeps non-release workflows read-only and release writes draft-only", () => {
+    for (const workflow of workflowFiles) {
+      const permissions = permissionDeclarations(workflow.source);
+      if (workflow.name === "release.yml") {
+        expect(permissions).toEqual([["contents: write"]]);
+        expect(workflow.source).toContain("releaseDraft: true");
+        expect(workflow.source).not.toContain("releaseDraft: false");
+      } else {
+        expect(permissions, `${workflow.name} permissions`).toEqual([
+          ["contents: read"],
+        ]);
+        expect(workflow.source).not.toMatch(
+          /tagName:|releaseName:|releaseDraft:|GITHUB_TOKEN/,
+        );
+      }
+    }
+  });
+
   it("publishes only one universal macOS app and DMG build", () => {
     expect(releaseWorkflow).toContain("runs-on: macos-latest");
     expect(releaseWorkflow).toContain("--target universal-apple-darwin");
