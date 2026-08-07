@@ -1,3 +1,3 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`renderEssayHtml > matches the complete APA equation preview markup 1`] = `"<div class="title-page"><div class="spacer"></div><p class="tp-title">Ensayo sin título</p><p>&nbsp;</p></div><section class="body-sec"><h1 class="body-title">Ensayo sin título</h1><div class="apa-equation"><math><mi>E</mi><mo>=</mo><msup><mi>c</mi><mn>2</mn></msup></math><span class="eq-no">(1)</span></div></section>"`;
+exports[`renderEssayHtml > matches the complete APA equation preview markup 1`] = `"<article class="tesina-document"><div class="title-page"><div class="spacer"></div><p class="tp-title">Ensayo sin título</p><p>&nbsp;</p></div><section class="body-sec"><h1 class="body-title">Ensayo sin título</h1><div class="apa-equation"><math><mi>E</mi><mo>=</mo><msup><mi>c</mi><mn>2</mn></msup></math><span class="eq-no">(1)</span></div></section></article>"`;

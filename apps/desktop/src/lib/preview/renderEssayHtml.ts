@@ -317,6 +317,7 @@ function blocksHtml(
 export function renderEssayCss(settings: Essay["settings"]): string {
   const size = settings.paperSize === "a4" ? "A4" : "letter";
   const font = fontFamilyCss(settings.font);
+  const root = ".tesina-document";
   const topLeft = settings.variant === "professional"
     ? `@top-left { content: string(runhead); font-family: ${font}; }`
     : "";
@@ -327,41 +328,41 @@ export function renderEssayCss(settings: Essay["settings"]): string {
   @top-right { content: counter(page); font-family: ${font}; }
   ${topLeft}
 }
-body { font-family: ${font}; line-height: 2; color: #131313; }
-p { margin: 0; text-indent: 0.5in; }
-p.no-indent { text-indent: 0; }
-p.keywords { text-indent: 0.5in; }
-h1, h2, h3 { font-size: 1em; margin: 0; font-weight: bold; }
-h1 { text-align: center; }
-h3 { font-style: italic; }
-blockquote { margin: 0 0 0 0.5in; }
-blockquote p { text-indent: 0; }
-ul, ol { margin: 0; padding-left: 1in; }
-li > p { margin: 0; text-indent: 0; }
-li ul, li ol { padding-left: 0.5in; }
-.title-page { text-align: center; break-after: page; }
-.title-page .spacer { height: 6em; }
-.title-page .tp-title { font-weight: bold; }
-.title-page p { text-indent: 0; }
-.rh-set { string-set: runhead content(text); display: none; }
-section.abstract, section.appendix, section.references { break-before: page; }
-section.body-sec { break-before: page; }
-.ref-entry { padding-left: 0.5in; text-indent: -0.5in; }
-.apa-table { margin: 1em 0; break-inside: avoid; }
-.apa-table .tbl-cap { text-indent: 0; }
-.apa-table table { border-collapse: collapse; width: 100%; border-top: 1px solid #131313; border-bottom: 1px solid #131313; }
-.apa-table th, .apa-table td { padding: 3px 8px; text-align: left; vertical-align: top; }
-.apa-table th { border-bottom: 1px solid #131313; font-weight: normal; text-align: center; }
-.apa-table th p, .apa-table td p { margin: 0; text-indent: 0; }
-.apa-table th ul, .apa-table th ol, .apa-table td ul, .apa-table td ol { padding-left: 0.5in; }
-.apa-table .tbl-note { text-indent: 0; }
-.apa-figure { margin: 1em 0; break-inside: avoid; text-align: center; }
-.apa-figure .fig-cap { text-indent: 0; text-align: left; }
-.apa-figure .fig-img { max-width: 100%; height: auto; }
-.apa-figure .fig-note { text-indent: 0; text-align: left; }
-.apa-equation { display: flex; align-items: center; justify-content: center; position: relative; margin: 1em 0; break-inside: avoid; }
-.apa-equation math { max-width: calc(100% - 3rem); }
-.apa-equation .eq-no { position: absolute; right: 0; }
+${root} { font-family: ${font}; line-height: 2; color: #131313; }
+${root} p { margin: 0; text-indent: 0.5in; }
+${root} p.no-indent { text-indent: 0; }
+${root} p.keywords { text-indent: 0.5in; }
+${root} h1, ${root} h2, ${root} h3 { font-size: 1em; margin: 0; font-weight: bold; }
+${root} h1 { text-align: center; }
+${root} h3 { font-style: italic; }
+${root} blockquote { margin: 0 0 0 0.5in; }
+${root} blockquote p { text-indent: 0; }
+${root} ul, ${root} ol { margin: 0; padding-left: 1in; }
+${root} li > p { margin: 0; text-indent: 0; }
+${root} li ul, ${root} li ol { padding-left: 0.5in; }
+${root} .title-page { text-align: center; break-after: page; }
+${root} .title-page .spacer { height: 6em; }
+${root} .title-page .tp-title { font-weight: bold; }
+${root} .title-page p { text-indent: 0; }
+${root} .rh-set { string-set: runhead content(text); display: none; }
+${root} section.abstract, ${root} section.appendix, ${root} section.references { break-before: page; }
+${root} section.body-sec { break-before: page; }
+${root} .ref-entry { padding-left: 0.5in; text-indent: -0.5in; }
+${root} .apa-table { margin: 1em 0; break-inside: avoid; }
+${root} .apa-table .tbl-cap { text-indent: 0; }
+${root} .apa-table table { border-collapse: collapse; width: 100%; border-top: 1px solid #131313; border-bottom: 1px solid #131313; }
+${root} .apa-table th, ${root} .apa-table td { padding: 3px 8px; text-align: left; vertical-align: top; }
+${root} .apa-table th { border-bottom: 1px solid #131313; font-weight: normal; text-align: center; }
+${root} .apa-table th p, ${root} .apa-table td p { margin: 0; text-indent: 0; }
+${root} .apa-table th ul, ${root} .apa-table th ol, ${root} .apa-table td ul, ${root} .apa-table td ol { padding-left: 0.5in; }
+${root} .apa-table .tbl-note { text-indent: 0; }
+${root} .apa-figure { margin: 1em 0; break-inside: avoid; text-align: center; }
+${root} .apa-figure .fig-cap { text-indent: 0; text-align: left; }
+${root} .apa-figure .fig-img { max-width: 100%; height: auto; }
+${root} .apa-figure .fig-note { text-indent: 0; text-align: left; }
+${root} .apa-equation { display: flex; align-items: center; justify-content: center; position: relative; margin: 1em 0; break-inside: avoid; }
+${root} .apa-equation math { max-width: calc(100% - 3rem); }
+${root} .apa-equation .eq-no { position: absolute; right: 0; }
 `;
 }
 
@@ -395,7 +396,7 @@ export function renderEssayHtml(
     dueDate: titlePage.dueDate ?? "",
   });
 
-  let html = "";
+  let html = '<article class="tesina-document">';
   if (essay.settings.variant === "professional") {
     const head = (essay.settings.runningHead ?? titlePage.title)
       .toUpperCase()
@@ -466,5 +467,5 @@ export function renderEssayHtml(
     html += "</section>";
   }
 
-  return html;
+  return `${html}</article>`;
 }
