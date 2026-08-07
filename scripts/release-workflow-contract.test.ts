@@ -119,11 +119,13 @@ describe("release workflow contract", () => {
       "dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable",
     );
     expect(releaseWorkflow).toContain(
-      "swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2",
-    );
-    expect(releaseWorkflow).toContain(
       "tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1",
     );
+  });
+
+  it("isolates the release build from shared Rust build-output caches", () => {
+    expect(actionSteps(releaseDocument, "swatinem/rust-cache")).toHaveLength(0);
+    expect(actionSteps(mergeDocument, "swatinem/rust-cache")).toHaveLength(1);
   });
 
   it("uses the stable DMG and updater names", () => {

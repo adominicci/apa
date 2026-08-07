@@ -25,11 +25,6 @@ jobs:
         with:
           targets: aarch64-apple-darwin,x86_64-apple-darwin
 
-      - name: Cache Rust build
-        uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
-        with:
-          workspaces: apps/desktop/src-tauri
-
       - name: Install dependencies
         run: deno install
 
