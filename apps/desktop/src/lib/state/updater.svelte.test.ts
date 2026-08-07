@@ -255,6 +255,169 @@ describe("UpdaterStore install lifecycle", () => {
     }
   });
 
+  it("retries persistence after installation without downloading twice", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(
+      () => {},
+    );
+    const storage = new MemoryStorage();
+    let installAttempts = 0;
+    let flushAttempts = 0;
+    let relaunches = 0;
+    const store = new UpdaterStore({
+      check: () =>
+        Promise.resolve({
+          version: "0.2.0",
+          body: "Retry persistence",
+          downloadAndInstall: () => {
+            installAttempts += 1;
+            return Promise.resolve();
+          },
+        }),
+      storage: () => storage,
+      flushPending: () => {
+        flushAttempts += 1;
+        return flushAttempts === 1
+          ? Promise.reject(new Error("disk unavailable"))
+          : Promise.resolve();
+      },
+      relaunch: () => {
+        relaunches += 1;
+        return Promise.resolve();
+      },
+    });
+
+    try {
+      await store.check();
+      await store.install();
+
+      expect(store.status).toBe("error");
+      expect(installAttempts).toBe(1);
+      expect(readPendingReleaseNotes(storage)).toBeNull();
+      expect(relaunches).toBe(0);
+
+      await store.install();
+
+      expect(installAttempts).toBe(1);
+      expect(flushAttempts).toBe(2);
+      expect(readPendingReleaseNotes(storage)).toEqual({
+        version: "0.2.0",
+        body: "Retry persistence",
+      });
+      expect(relaunches).toBe(1);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("retries relaunch after installation without downloading twice", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(
+      () => {},
+    );
+    const storage = new MemoryStorage();
+    let installAttempts = 0;
+    let relaunchAttempts = 0;
+    const store = new UpdaterStore({
+      check: () =>
+        Promise.resolve({
+          version: "0.2.0",
+          body: "Retry relaunch",
+          downloadAndInstall: () => {
+            installAttempts += 1;
+            return Promise.resolve();
+          },
+        }),
+      storage: () => storage,
+      flushPending: () => Promise.resolve(),
+      relaunch: () => {
+        relaunchAttempts += 1;
+        return relaunchAttempts === 1
+          ? Promise.reject(new Error("relaunch unavailable"))
+          : Promise.resolve();
+      },
+    });
+
+    try {
+      await store.check();
+      await store.install();
+
+      expect(store.status).toBe("error");
+      expect(installAttempts).toBe(1);
+      expect(relaunchAttempts).toBe(1);
+
+      await store.install();
+
+      expect(installAttempts).toBe(1);
+      expect(relaunchAttempts).toBe(2);
+      expect(store.status).toBe("idle");
+
+      await store.install();
+      expect(installAttempts).toBe(1);
+      expect(relaunchAttempts).toBe(2);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("does not replace an installed update while its relaunch is pending", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(
+      () => {},
+    );
+    let checkCount = 0;
+    let firstInstallAttempts = 0;
+    let secondInstallAttempts = 0;
+    let relaunchAttempts = 0;
+    const store = new UpdaterStore({
+      check: () => {
+        checkCount += 1;
+        return Promise.resolve(
+          checkCount === 1
+            ? {
+              version: "0.2.0",
+              body: "Installed update",
+              downloadAndInstall: () => {
+                firstInstallAttempts += 1;
+                return Promise.resolve();
+              },
+            }
+            : {
+              version: "0.3.0",
+              body: "Later update",
+              downloadAndInstall: () => {
+                secondInstallAttempts += 1;
+                return Promise.resolve();
+              },
+            },
+        );
+      },
+      storage: () => null,
+      flushPending: () => Promise.resolve(),
+      relaunch: () => {
+        relaunchAttempts += 1;
+        return relaunchAttempts === 1
+          ? Promise.reject(new Error("relaunch unavailable"))
+          : Promise.resolve();
+      },
+    });
+
+    try {
+      await store.check();
+      await store.install();
+      await store.check();
+
+      expect(checkCount).toBe(1);
+      expect(store.version).toBe("0.2.0");
+      expect(store.body).toBe("Installed update");
+
+      await store.install();
+
+      expect(firstInstallAttempts).toBe(1);
+      expect(secondInstallAttempts).toBe(0);
+      expect(relaunchAttempts).toBe(2);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it("still relaunches after best-effort storage rejects the marker write", async () => {
     let relaunched = false;
     const store = new UpdaterStore({

@@ -59,6 +59,7 @@ export class UpdaterStore {
   #total = 0;
   #downloaded = 0;
   #installEpoch = 0;
+  #installedPendingRelaunch = false;
   #dependencies: UpdaterDependencies;
 
   constructor(dependencies: UpdaterDependencies = defaultDependencies) {
@@ -67,7 +68,7 @@ export class UpdaterStore {
 
   /** Check once, typically at boot. Never throws. */
   async check(): Promise<void> {
-    if (this.status === "downloading") return;
+    if (this.status === "downloading" || this.#installedPendingRelaunch) return;
     const installEpoch = this.#installEpoch;
     try {
       const update = await this.#dependencies.check();
@@ -90,30 +91,33 @@ export class UpdaterStore {
     const update = this.#update;
     this.#installEpoch += 1;
     this.status = "downloading";
-    this.progress = 0;
-    this.#total = 0;
-    this.#downloaded = 0;
     try {
-      await update.downloadAndInstall((e) => {
-        switch (e.event) {
-          case "Started":
-            this.#total = e.data.contentLength ?? 0;
-            break;
-          case "Progress":
-            this.#downloaded += e.data.chunkLength;
-            if (this.#total > 0) {
-              this.progress = Math.min(
-                100,
-                Math.round((this.#downloaded / this.#total) * 100),
-              );
-            }
-            break;
-          case "Finished":
-            this.progress = 100;
-            break;
-        }
-      });
-      this.progress = 100;
+      if (!this.#installedPendingRelaunch) {
+        this.progress = 0;
+        this.#total = 0;
+        this.#downloaded = 0;
+        await update.downloadAndInstall((e) => {
+          switch (e.event) {
+            case "Started":
+              this.#total = e.data.contentLength ?? 0;
+              break;
+            case "Progress":
+              this.#downloaded += e.data.chunkLength;
+              if (this.#total > 0) {
+                this.progress = Math.min(
+                  100,
+                  Math.round((this.#downloaded / this.#total) * 100),
+                );
+              }
+              break;
+            case "Finished":
+              this.progress = 100;
+              break;
+          }
+        });
+        this.#installedPendingRelaunch = true;
+        this.progress = 100;
+      }
       await this.#dependencies.flushPending();
       try {
         const storage = this.#dependencies.storage();
@@ -129,6 +133,9 @@ export class UpdaterStore {
         console.error("No se pudieron guardar las notas de versión:", err);
       }
       await this.#dependencies.relaunch();
+      this.#update = null;
+      this.#installedPendingRelaunch = false;
+      this.status = "idle";
     } catch (err) {
       console.error("No se pudo instalar la actualización:", err);
       this.status = "error";
