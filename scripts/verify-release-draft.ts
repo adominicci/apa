@@ -65,11 +65,15 @@ export function verifyReleaseDraft(contract: ReleaseDraftContract): void {
   }
   const assets = release.assets.map((value, index) => {
     const asset = record(`release asset ${index + 1}`, value);
+    stringField(
+      `release asset ${index + 1} browser download URL`,
+      asset.browser_download_url,
+    );
     return {
       name: stringField(`release asset ${index + 1} name`, asset.name),
       url: stringField(
-        `release asset ${index + 1} browser download URL`,
-        asset.browser_download_url,
+        `release asset ${index + 1} REST API URL`,
+        asset.url,
       ),
     };
   });
@@ -114,6 +118,7 @@ export function verifyReleaseDraft(contract: ReleaseDraftContract): void {
       );
     }
     const url = stringField(`latest.json platform ${key} URL`, platform.url);
+    // The pinned tauri-action emits asset.url; the updater requests it as octet-stream.
     if (url !== archiveUrl) {
       throw new Error(
         `latest.json platform "${key}" does not point to Tesina-macos-universal.app.tar.gz.`,

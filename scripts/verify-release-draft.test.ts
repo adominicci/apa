@@ -7,7 +7,7 @@ const signatureAsset = "trusted updater signature";
 const archiveUrl =
   "https://api.github.com/repos/adominicci/apa/releases/assets/102";
 const browserDownloadUrl =
-  "https://github.com/adominicci/apa/releases/download/v0.1.0/Tesina-macos-universal.app.tar.gz";
+  "https://github.com/adominicci/apa/releases/download/untagged-b68ed30bf5463e9ba16d/Tesina-macos-universal.app.tar.gz";
 const expectedPlatformKeys = [
   "darwin-universal",
   "darwin-aarch64",
@@ -28,7 +28,7 @@ function validRelease() {
         name: "Tesina-macos-universal.dmg",
         url: "https://api.github.com/repos/adominicci/apa/releases/assets/101",
         browser_download_url:
-          "https://github.com/adominicci/apa/releases/download/v0.1.0/Tesina-macos-universal.dmg",
+          "https://github.com/adominicci/apa/releases/download/untagged-b68ed30bf5463e9ba16d/Tesina-macos-universal.dmg",
       },
       {
         name: "Tesina-macos-universal.app.tar.gz",
@@ -39,13 +39,13 @@ function validRelease() {
         name: "Tesina-macos-universal.app.tar.gz.sig",
         url: "https://api.github.com/repos/adominicci/apa/releases/assets/103",
         browser_download_url:
-          "https://github.com/adominicci/apa/releases/download/v0.1.0/Tesina-macos-universal.app.tar.gz.sig",
+          "https://github.com/adominicci/apa/releases/download/untagged-b68ed30bf5463e9ba16d/Tesina-macos-universal.app.tar.gz.sig",
       },
       {
         name: "latest.json",
         url: "https://api.github.com/repos/adominicci/apa/releases/assets/104",
         browser_download_url:
-          "https://github.com/adominicci/apa/releases/download/v0.1.0/latest.json",
+          "https://github.com/adominicci/apa/releases/download/untagged-b68ed30bf5463e9ba16d/latest.json",
       },
     ],
   };
@@ -59,14 +59,14 @@ function validManifest() {
     platforms: Object.fromEntries(
       expectedPlatformKeys.map((key) => [key, {
         signature: signatureAsset,
-        url: browserDownloadUrl,
+        url: archiveUrl,
       }]),
     ),
   };
 }
 
 describe("verifyReleaseDraft", () => {
-  it("accepts the exact draft release and universal macOS updater manifest", () => {
+  it("accepts the archive REST API URL for every updater platform", () => {
     expect(() =>
       verifyReleaseDraft({
         release: validRelease(),
@@ -78,24 +78,22 @@ describe("verifyReleaseDraft", () => {
     ).not.toThrow();
   });
 
-  it("uses the archive browser download URL for every updater platform", () => {
-    const release = validRelease();
-    const archive = release.assets.find((asset) =>
-      asset.name === "Tesina-macos-universal.app.tar.gz"
-    );
-    if (!archive) throw new Error("missing updater archive fixture");
-    archive.url =
-      "https://api.github.com/repos/adominicci/apa/releases/assets/999";
+  it("rejects a different release asset API URL", () => {
+    const manifest = validManifest();
+    for (const platform of Object.values(manifest.platforms)) {
+      platform.url =
+        "https://api.github.com/repos/adominicci/apa/releases/assets/999";
+    }
 
     expect(() =>
       verifyReleaseDraft({
-        release,
-        manifest: validManifest(),
+        release: validRelease(),
+        manifest,
         version: "0.1.0",
         notes,
         signatureAsset,
       })
-    ).not.toThrow();
+    ).toThrow("does not point to Tesina-macos-universal.app.tar.gz");
   });
 
   it.each([
@@ -175,10 +173,11 @@ describe("verifyReleaseDraft", () => {
     ).toThrow('latest.json is missing platform "darwin-x86_64"');
   });
 
-  it("requires every platform URL to resolve to the uploaded updater archive", () => {
+  it("rejects the archive browser download URL under the pinned producer contract", () => {
     const manifest = validManifest();
-    manifest.platforms["darwin-aarch64"].url =
-      "https://example.com/wrong-asset";
+    for (const platform of Object.values(manifest.platforms)) {
+      platform.url = browserDownloadUrl;
+    }
 
     expect(() =>
       verifyReleaseDraft({
