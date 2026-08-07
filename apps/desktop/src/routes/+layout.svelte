@@ -3,9 +3,18 @@
   // (app.html), NOT imported here — a Vite-processed @font-face kept getting
   // dropped in dev (WKWebView HMR + dev-server url() 404s). See AGENTS.md.
   import "$lib/styles/tokens.css";
+  import { onMount } from "svelte";
   import type { Snippet } from "svelte";
+  import { getVersion } from "@tauri-apps/api/app";
+  import ReleaseNotesModal from "$lib/components/ReleaseNotesModal.svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { updater } from "$lib/state/updater.svelte";
+  import {
+    clearPendingReleaseNotes,
+    type PendingReleaseNotes,
+    releaseNotesForVersion,
+    type ReleaseNotesStorage,
+  } from "$lib/update/releaseNotes";
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
@@ -16,6 +25,46 @@
 
   // Per-session dismissal; the banner returns next launch if still available.
   let updateDismissed = $state(false);
+  let runningVersion = $state<string | null>(null);
+  let releaseNotesDismissed = $state(false);
+
+  function browserStorage(): ReleaseNotesStorage | null {
+    try {
+      return typeof localStorage === "undefined" ? null : localStorage;
+    } catch {
+      return null;
+    }
+  }
+
+  onMount(() => {
+    void (async () => {
+      try {
+        runningVersion = await getVersion();
+      } catch (err) {
+        // Release notes are optional and must never delay or block startup.
+        console.error("No se pudieron cargar las notas de versión:", err);
+      }
+    })();
+  });
+
+  const releaseNotes = $derived.by((): PendingReleaseNotes | null => {
+    if (!runningVersion || !uiLocale.loaded || releaseNotesDismissed) {
+      return null;
+    }
+    const storage = browserStorage();
+    if (!storage) return null;
+    return releaseNotesForVersion(
+      storage,
+      runningVersion,
+      m.release_notes_fallback(undefined, { locale: uiLocale.current }),
+    );
+  });
+
+  function dismissReleaseNotes() {
+    const storage = browserStorage();
+    if (storage) clearPendingReleaseNotes(storage);
+    releaseNotesDismissed = true;
+  }
 
   // Resolve "system" against the OS preference, live.
   $effect(() => {
@@ -57,6 +106,14 @@
       >×</button>
     {/if}
   </div>
+{/if}
+
+{#if releaseNotes}
+  <ReleaseNotesModal
+    version={releaseNotes.version}
+    body={releaseNotes.body}
+    onClose={dismissReleaseNotes}
+  />
 {/if}
 
 {@render children()}
