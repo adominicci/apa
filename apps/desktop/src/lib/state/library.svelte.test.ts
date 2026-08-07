@@ -19,7 +19,7 @@ vi.mock("$lib/persist/atomic", () => ({
   writeJsonAtomic: runtime.writeJsonAtomic,
 }));
 
-import { library } from "./library.svelte.ts";
+import { LibraryStore } from "./library.svelte.ts";
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -30,6 +30,10 @@ function deferred<T>(): Deferred<T> {
   let resolve!: Deferred<T>["resolve"];
   const promise = new Promise<T>((done) => (resolve = done));
   return { promise, resolve };
+}
+
+async function drainMicrotasks(): Promise<void> {
+  for (let i = 0; i < 8; i += 1) await Promise.resolve();
 }
 
 function reference(id: string): Reference {
@@ -44,11 +48,12 @@ function reference(id: string): Reference {
   };
 }
 
+let library: LibraryStore;
+
 beforeEach(() => {
   vi.useFakeTimers();
   runtime.writeJsonAtomic.mockReset();
-  library.references = [];
-  library.collections = [];
+  library = new LibraryStore();
 });
 
 afterEach(() => {
@@ -56,6 +61,88 @@ afterEach(() => {
 });
 
 describe("LibraryStore close flushing", () => {
+  it("reflushes a library dirtied after its first result while a peer remains pending", async () => {
+    runtime.writeJsonAtomic.mockResolvedValue(undefined);
+    const coordinator = new PersistenceCoordinator();
+    const registration = coordinator.register(() => library.flushPending());
+    library.setPersistenceDirtyNotifier(registration.markDirty);
+    const peer = deferred<void>();
+    coordinator.register(() => peer.promise);
+
+    library.add(reference("first"));
+    const barrier = coordinator.flushPending();
+    await drainMicrotasks();
+    expect(runtime.writeJsonAtomic).toHaveBeenCalledOnce();
+
+    library.add(reference("second"));
+    peer.resolve();
+    try {
+      await barrier;
+      expect(runtime.writeJsonAtomic).toHaveBeenCalledTimes(2);
+      const latest = runtime.writeJsonAtomic.mock.calls[1]![1] as {
+        references: Reference[];
+      };
+      expect(latest.references.map((ref) => ref.id)).toEqual([
+        "first",
+        "second",
+      ]);
+    } finally {
+      library.setPersistenceDirtyNotifier(null);
+      registration.unregister();
+    }
+  });
+
+  it("continues flushing when a newer mutation arrives during an async write", async () => {
+    const firstWrite = deferred<void>();
+    runtime.writeJsonAtomic
+      .mockReturnValueOnce(firstWrite.promise)
+      .mockResolvedValueOnce(undefined);
+
+    library.add(reference("first"));
+    const flushing = library.flushPending();
+    await drainMicrotasks();
+    expect(runtime.writeJsonAtomic).toHaveBeenCalledOnce();
+
+    library.add(reference("second"));
+    firstWrite.resolve();
+    await flushing;
+
+    expect(runtime.writeJsonAtomic).toHaveBeenCalledTimes(2);
+    const latest = runtime.writeJsonAtomic.mock.calls[1]![1] as {
+      references: Reference[];
+    };
+    expect(latest.references.map((ref) => ref.id)).toEqual([
+      "first",
+      "second",
+    ]);
+  });
+
+  it("does not queue a redundant snapshot when autosave is already writing the current revision", async () => {
+    const writing = deferred<void>();
+    runtime.writeJsonAtomic.mockReturnValueOnce(writing.promise);
+
+    library.add(reference("only"));
+    await vi.advanceTimersByTimeAsync(300);
+    const flushing = library.flushPending();
+    expect(runtime.writeJsonAtomic).toHaveBeenCalledOnce();
+
+    writing.resolve();
+    await flushing;
+    expect(runtime.writeJsonAtomic).toHaveBeenCalledOnce();
+  });
+
+  it("retries a transient flush failure without requiring another mutation", async () => {
+    runtime.writeJsonAtomic
+      .mockRejectedValueOnce(new Error("temporary failure"))
+      .mockResolvedValueOnce(undefined);
+    library.add(reference("retry"));
+
+    await expect(library.flushPending()).rejects.toThrow("temporary failure");
+    await expect(library.flushPending()).resolves.toBeUndefined();
+
+    expect(runtime.writeJsonAtomic).toHaveBeenCalledTimes(2);
+  });
+
   it("awaits an in-flight write and persists a newer debounced mutation before close", async () => {
     const firstWrite = deferred<void>();
     const secondWrite = deferred<void>();
@@ -63,7 +150,7 @@ describe("LibraryStore close flushing", () => {
       .mockReturnValueOnce(firstWrite.promise)
       .mockReturnValueOnce(secondWrite.promise);
     const coordinator = new PersistenceCoordinator();
-    const unregister = coordinator.register(() => library.flushPending());
+    const registration = coordinator.register(() => library.flushPending());
 
     library.add(reference("first"));
     await vi.advanceTimersByTimeAsync(300);
@@ -93,6 +180,6 @@ describe("LibraryStore close flushing", () => {
     secondWrite.resolve();
     await closing;
     expect(closed).toBe(true);
-    unregister();
+    registration.unregister();
   });
 });

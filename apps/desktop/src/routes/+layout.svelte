@@ -55,9 +55,10 @@
   });
 
   onMount(() => {
-    const unregisterLibrary = persistence.register(() =>
+    const libraryPersistence = persistence.register(() =>
       library.flushPending()
     );
+    library.setPersistenceDirtyNotifier(libraryPersistence.markDirty);
     let disposed = false;
     let unlisten: (() => void) | undefined;
 
@@ -83,7 +84,8 @@
     return () => {
       disposed = true;
       unlisten?.();
-      unregisterLibrary();
+      library.setPersistenceDirtyNotifier(null);
+      libraryPersistence.unregister();
     };
   });
 

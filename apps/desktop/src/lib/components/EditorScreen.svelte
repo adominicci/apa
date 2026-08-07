@@ -68,7 +68,10 @@
     type TitlePageValidationMessageKey,
   } from "$lib/model/titlePageValidation";
   import { m } from "$lib/paraglide/messages";
-  import { persistence } from "$lib/persist/coordinator";
+  import {
+    persistence,
+    type PersistenceRegistration,
+  } from "$lib/persist/coordinator";
 
   interface Props {
     essay: Essay;
@@ -76,6 +79,11 @@
     onLaunchConsumed: () => void;
     onBack: () => void;
     onOpenLibrary: () => void;
+  }
+
+  interface EssayWriteAttempt {
+    revision: number;
+    promise: Promise<void>;
   }
 
   let {
@@ -137,6 +145,9 @@
   let requestedSaveRevision = 0;
   let persistedSaveRevision = 0;
   let saveChain: Promise<void> = Promise.resolve();
+  let activeSaveAttempt: EssayWriteAttempt | null = null;
+  let activePersistFlush: Promise<void> | null = null;
+  let persistenceRegistration: PersistenceRegistration | null = null;
 
   const citationEnv: CitationEnv = {
     refsById: untrack(() => library.byId()),
@@ -306,13 +317,24 @@
   }
 
   function enqueuePersist(revision: number): Promise<void> {
+    if (persistedSaveRevision >= revision) return Promise.resolve();
+    if (activeSaveAttempt?.revision === revision) {
+      return activeSaveAttempt.promise;
+    }
+
     const snapshot = capturePersistSnapshot();
     const write = saveChain.catch(() => undefined).then(async () => {
       await essays.persist(snapshot);
       persistedSaveRevision = Math.max(persistedSaveRevision, revision);
       if (revision === requestedSaveRevision) status = "guardado";
     });
+    const attempt = { revision, promise: write };
+    activeSaveAttempt = attempt;
     saveChain = write;
+    const clear = () => {
+      if (activeSaveAttempt === attempt) activeSaveAttempt = null;
+    };
+    void write.then(clear, clear);
     return write;
   }
 
@@ -323,6 +345,7 @@
 
   function scheduleSave() {
     requestedSaveRevision += 1;
+    persistenceRegistration?.markDirty();
     const revision = requestedSaveRevision;
     status = "guardando";
     clearTimeout(saveTimer);
@@ -334,32 +357,47 @@
     }, 500);
   }
 
-  async function persistNow(): Promise<void> {
-    clearTimeout(saveTimer);
-    saveTimer = undefined;
-    if (persistedSaveRevision >= requestedSaveRevision) {
-      await saveChain;
-      return;
-    }
-    const revision = requestedSaveRevision;
-    status = "guardando";
-    try {
-      await enqueuePersist(revision);
-    } catch (error) {
-      reportPersistError(error, revision);
-      throw error;
+  function persistNow(): Promise<void> {
+    if (activePersistFlush) return activePersistFlush;
+    const active = flushUntilCaughtUp();
+    activePersistFlush = active;
+    const clear = () => {
+      if (activePersistFlush === active) activePersistFlush = null;
+    };
+    void active.then(clear, clear);
+    return active;
+  }
+
+  async function flushUntilCaughtUp(): Promise<void> {
+    while (persistedSaveRevision < requestedSaveRevision) {
+      clearTimeout(saveTimer);
+      saveTimer = undefined;
+      const revision = requestedSaveRevision;
+      status = "guardando";
+      try {
+        await enqueuePersist(revision);
+      } catch (error) {
+        reportPersistError(error, revision);
+        throw error;
+      }
     }
   }
 
   onMount(() => {
-    const unregister = persistence.register(persistNow);
+    const registration = persistence.register(persistNow);
+    persistenceRegistration = registration;
     return () => {
       // Svelte destruction cannot await cleanup. Keep the callback registered
       // until its serialized final write settles so a concurrent app-close
       // barrier can still observe it.
       void persistNow().catch((error) => {
         reportPersistError(error, requestedSaveRevision);
-      }).finally(unregister);
+      }).finally(() => {
+        if (persistenceRegistration === registration) {
+          persistenceRegistration = null;
+        }
+        registration.unregister();
+      });
     };
   });
 
