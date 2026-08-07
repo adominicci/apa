@@ -26,6 +26,7 @@
   // Per-session dismissal; the banner returns next launch if still available.
   let updateDismissed = $state(false);
   let runningVersion = $state<string | null>(null);
+  let runningVersionResolved = $state(false);
   let releaseNotesDismissed = $state(false);
 
   function browserStorage(): ReleaseNotesStorage | null {
@@ -43,12 +44,21 @@
       } catch (err) {
         // Release notes are optional and must never delay or block startup.
         console.error("No se pudieron cargar las notas de versión:", err);
+      } finally {
+        runningVersionResolved = true;
       }
     })();
   });
 
+  const releaseNotesResolutionPending = $derived(
+    !runningVersionResolved || !uiLocale.loaded,
+  );
+
   const releaseNotes = $derived.by((): PendingReleaseNotes | null => {
-    if (!runningVersion || !uiLocale.loaded || releaseNotesDismissed) {
+    if (
+      releaseNotesResolutionPending || !runningVersion ||
+      releaseNotesDismissed
+    ) {
       return null;
     }
     const storage = browserStorage();
@@ -61,8 +71,9 @@
   });
 
   function dismissReleaseNotes() {
+    const displayed = releaseNotes;
     const storage = browserStorage();
-    if (storage) clearPendingReleaseNotes(storage);
+    if (storage && displayed) clearPendingReleaseNotes(storage, displayed);
     releaseNotesDismissed = true;
   }
 
@@ -80,7 +91,7 @@
   });
 </script>
 
-{#if updater.status !== "idle" && !updateDismissed}
+{#if !releaseNotesResolutionPending && !releaseNotes && updater.status !== "idle" && !updateDismissed}
   <div class="update-banner" role="status">
     {#if updater.status === "downloading"}
       <span>{m.update_downloading({ percent: updater.progress })}</span>

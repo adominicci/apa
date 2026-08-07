@@ -14,6 +14,17 @@ const svelteRuntime = vi.hoisted(() => {
 
 import { type UpdaterDependencies, UpdaterStore } from "./updater.svelte.ts";
 
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve(value: T | PromiseLike<T>): void;
+}
+
+function deferred<T>(): Deferred<T> {
+  let resolve!: Deferred<T>["resolve"];
+  const promise = new Promise<T>((done) => (resolve = done));
+  return { promise, resolve };
+}
+
 class MemoryStorage implements ReleaseNotesStorage {
   #values = new Map<string, string>();
 
@@ -75,19 +86,24 @@ describe("UpdaterStore install lifecycle", () => {
     expect(store.progress).toBe(100);
   });
 
-  it("does not persist or relaunch when installation fails", async () => {
+  it("does not persist or relaunch on failure and can retry the offered update", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(
       () => {},
     );
     const storage = new MemoryStorage();
     let relaunched = false;
+    let installAttempts = 0;
     const dependencies: UpdaterDependencies = {
       check: () =>
         Promise.resolve({
           version: "0.2.0",
           body: "Should not appear",
-          downloadAndInstall: () =>
-            Promise.reject(new Error("signature rejected")),
+          downloadAndInstall: () => {
+            installAttempts += 1;
+            return installAttempts === 1
+              ? Promise.reject(new Error("signature rejected"))
+              : Promise.resolve();
+          },
         }),
       storage: () => storage,
       relaunch: () => {
@@ -104,8 +120,155 @@ describe("UpdaterStore install lifecycle", () => {
       expect(store.status).toBe("error");
       expect(readPendingReleaseNotes(storage)).toBeNull();
       expect(relaunched).toBe(false);
+
+      await store.install();
+
+      expect(installAttempts).toBe(2);
+      expect(readPendingReleaseNotes(storage)).toEqual({
+        version: "0.2.0",
+        body: "Should not appear",
+      });
+      expect(relaunched).toBe(true);
     } finally {
       consoleError.mockRestore();
     }
+  });
+
+  it("installs and persists the offered update when a stale check resolves during installation", async () => {
+    const storage = new MemoryStorage();
+    const installA = deferred<void>();
+    const checkB = deferred<
+      {
+        version: string;
+        body: string;
+        downloadAndInstall: () => Promise<void>;
+      } | null
+    >();
+    let checkCount = 0;
+    const dependencies: UpdaterDependencies = {
+      check: () => {
+        checkCount += 1;
+        return checkCount === 1
+          ? Promise.resolve({
+            version: "0.2.0",
+            body: "Installed A",
+            downloadAndInstall: () => installA.promise,
+          })
+          : checkB.promise;
+      },
+      storage: () => storage,
+      relaunch: () => Promise.resolve(),
+    };
+    const store = new UpdaterStore(dependencies);
+    await store.check();
+
+    const staleCheck = store.check();
+    const installing = store.install();
+    checkB.resolve({
+      version: "0.3.0",
+      body: "Offered B",
+      downloadAndInstall: () => Promise.resolve(),
+    });
+    await staleCheck;
+
+    expect(store.status).toBe("downloading");
+    expect(store.version).toBe("0.2.0");
+    expect(store.body).toBe("Installed A");
+
+    installA.resolve();
+    await installing;
+
+    expect(readPendingReleaseNotes(storage)).toEqual({
+      version: "0.2.0",
+      body: "Installed A",
+    });
+  });
+
+  it("does not install a consumed update twice while its first install is pending", async () => {
+    const storage = new MemoryStorage();
+    const installation = deferred<void>();
+    let installCount = 0;
+    const dependencies: UpdaterDependencies = {
+      check: () =>
+        Promise.resolve({
+          version: "0.2.0",
+          body: "One install",
+          downloadAndInstall: () => {
+            installCount += 1;
+            return installation.promise;
+          },
+        }),
+      storage: () => storage,
+      relaunch: () => Promise.resolve(),
+    };
+    const store = new UpdaterStore(dependencies);
+    await store.check();
+
+    const first = store.install();
+    const duplicate = store.install();
+
+    expect(installCount).toBe(1);
+
+    installation.resolve();
+    await Promise.all([first, duplicate]);
+  });
+
+  it("retains installed notes if relaunch is rejected", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(
+      () => {},
+    );
+    const storage = new MemoryStorage();
+    const store = new UpdaterStore({
+      check: () =>
+        Promise.resolve({
+          version: "0.2.0",
+          body: "Installed before relaunch",
+          downloadAndInstall: () => Promise.resolve(),
+        }),
+      storage: () => storage,
+      relaunch: () => Promise.reject(new Error("relaunch unavailable")),
+    });
+
+    try {
+      await store.check();
+      await store.install();
+
+      expect(store.status).toBe("error");
+      expect(readPendingReleaseNotes(storage)).toEqual({
+        version: "0.2.0",
+        body: "Installed before relaunch",
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("still relaunches after best-effort storage rejects the marker write", async () => {
+    let relaunched = false;
+    const store = new UpdaterStore({
+      check: () =>
+        Promise.resolve({
+          version: "0.2.0",
+          body: "Storage unavailable",
+          downloadAndInstall: () => Promise.resolve(),
+        }),
+      storage: () => ({
+        getItem: () => null,
+        removeItem: () => {},
+        setItem: () => {
+          throw new Error("quota unavailable");
+        },
+      }),
+      relaunch: () => {
+        relaunched = true;
+        return Promise.resolve();
+      },
+    });
+
+    await store.check();
+    await store.install();
+
+    expect(relaunched).toBe(true);
+    expect(store.progress).toBe(100);
   });
 });

@@ -67,8 +67,13 @@ export function releaseNotesForVersion(
 
 export function clearPendingReleaseNotes(
   storage: ReleaseNotesStorage,
+  displayed?: PendingReleaseNotes,
 ): void {
   try {
+    if (displayed) {
+      const pending = readPendingReleaseNotes(storage);
+      if (pending?.version !== displayed.version) return;
+    }
     storage.removeItem(PENDING_RELEASE_NOTES_KEY);
   } catch {
     // Dismissal remains non-blocking if web storage is unavailable.

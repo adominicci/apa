@@ -99,6 +99,37 @@ describe("pending release notes", () => {
     expect(storage.length).toBe(0);
   });
 
+  it("does not clear a newer marker when older displayed notes are dismissed", () => {
+    const displayed = {
+      version: "0.2.0",
+      body: "Already displayed",
+    };
+    savePendingReleaseNotes(storage, {
+      version: "0.3.0",
+      body: "Installed while the dialog was open",
+    });
+
+    clearPendingReleaseNotes(storage, displayed);
+
+    expect(readPendingReleaseNotes(storage)).toEqual({
+      version: "0.3.0",
+      body: "Installed while the dialog was open",
+    });
+  });
+
+  it("clears empty-body notes after their localized fallback is dismissed", () => {
+    savePendingReleaseNotes(storage, { version: "0.2.0", body: "  \n" });
+    const displayed = releaseNotesForVersion(
+      storage,
+      "0.2.0",
+      "Tesina was updated successfully.",
+    )!;
+
+    clearPendingReleaseNotes(storage, displayed);
+
+    expect(readPendingReleaseNotes(storage)).toBeNull();
+  });
+
   it("uses localized fallback copy when the manifest body is empty", () => {
     savePendingReleaseNotes(storage, { version: "0.2.0", body: "  \n" });
 

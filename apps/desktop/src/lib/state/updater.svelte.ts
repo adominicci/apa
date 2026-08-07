@@ -55,6 +55,7 @@ export class UpdaterStore {
   #update: UpdaterUpdate | null = null;
   #total = 0;
   #downloaded = 0;
+  #installEpoch = 0;
   #dependencies: UpdaterDependencies;
 
   constructor(dependencies: UpdaterDependencies = defaultDependencies) {
@@ -63,8 +64,11 @@ export class UpdaterStore {
 
   /** Check once, typically at boot. Never throws. */
   async check(): Promise<void> {
+    if (this.status === "downloading") return;
+    const installEpoch = this.#installEpoch;
     try {
       const update = await this.#dependencies.check();
+      if (installEpoch !== this.#installEpoch) return;
       if (update) {
         this.#update = update;
         this.version = update.version;
@@ -79,13 +83,15 @@ export class UpdaterStore {
 
   /** Download + install the pending update, then relaunch. Never throws. */
   async install(): Promise<void> {
-    if (!this.#update) return;
+    if (!this.#update || this.status === "downloading") return;
+    const update = this.#update;
+    this.#installEpoch += 1;
     this.status = "downloading";
     this.progress = 0;
     this.#total = 0;
     this.#downloaded = 0;
     try {
-      await this.#update.downloadAndInstall((e) => {
+      await update.downloadAndInstall((e) => {
         switch (e.event) {
           case "Started":
             this.#total = e.data.contentLength ?? 0;
@@ -109,8 +115,8 @@ export class UpdaterStore {
         const storage = this.#dependencies.storage();
         if (storage) {
           savePendingReleaseNotes(storage, {
-            version: this.#update.version,
-            body: this.#update.body ?? "",
+            version: update.version,
+            body: update.body ?? "",
           });
         }
       } catch (err) {
