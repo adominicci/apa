@@ -318,14 +318,15 @@ export function renderEssayCss(settings: Essay["settings"]): string {
   const size = settings.paperSize === "a4" ? "A4" : "letter";
   const font = fontFamilyCss(settings.font);
   const root = ".tesina-document";
+  const marginBoxText = `font-family: ${font}; color: #131313; line-height: 2;`;
   const topLeft = settings.variant === "professional"
-    ? `@top-left { content: string(runhead); font-family: ${font}; }`
+    ? `@top-left { content: string(runhead); ${marginBoxText} }`
     : "";
   return `
 @page {
   size: ${size};
   margin: 1in;
-  @top-right { content: counter(page); font-family: ${font}; }
+  @top-right { content: counter(page); ${marginBoxText} }
   ${topLeft}
 }
 ${root} { font-family: ${font}; line-height: 2; color: #131313; }

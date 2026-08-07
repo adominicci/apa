@@ -1056,6 +1056,20 @@ describe("renderEssayCss", () => {
     expect(proCss).toContain("@top-left");
   });
 
+  it("keeps page margin boxes readable independently of the shell theme", () => {
+    const essay = sampleEssay();
+    const studentCss = renderEssayCss(essay.settings);
+    expect(studentCss).toContain(
+      `@top-right { content: counter(page); font-family: "Times New Roman", Times, Georgia, serif; font-size: 12pt; color: #131313; line-height: 2; }`,
+    );
+
+    essay.settings.variant = "professional";
+    const professionalCss = renderEssayCss(essay.settings);
+    expect(professionalCss).toContain(
+      `@top-left { content: string(runhead); font-family: "Times New Roman", Times, Georgia, serif; font-size: 12pt; color: #131313; line-height: 2; }`,
+    );
+  });
+
   it("starts the body on a new page independently of an abstract", () => {
     const css = renderEssayCss(sampleEssay().settings);
 
