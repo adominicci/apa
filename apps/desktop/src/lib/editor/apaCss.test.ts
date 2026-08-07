@@ -24,3 +24,11 @@ describe("APA editor indentation", () => {
     expect(css).toMatch(/\.fig-title\s*\{[^}]*text-indent:\s*0;/s);
   });
 });
+
+describe("APA editor body title", () => {
+  it("renders the derived body title as centered bold section chrome", () => {
+    expect(css).toMatch(
+      /\.apa-editor \.tiptap \.sec-body::before\s*\{[^}]*content:\s*var\(--body-title\);[^}]*text-align:\s*center;[^}]*font-weight:\s*bold;/s,
+    );
+  });
+});

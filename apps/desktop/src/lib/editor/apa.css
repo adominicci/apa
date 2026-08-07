@@ -134,7 +134,9 @@
 }
 
 .apa-editor .tiptap .sec-body::before {
-  content: none;
+  content: var(--body-title);
+  text-align: center;
+  font-weight: bold;
 }
 
 .apa-editor[data-doclang="es"] .tiptap .sec-abstract::before {

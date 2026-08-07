@@ -5,7 +5,7 @@
 </script>
 
 <script lang="ts">
-  import type { DocLocale } from "@tesina/engine";
+  import { buildStudentTitlePage, type DocLocale } from "@tesina/engine";
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
@@ -18,12 +18,17 @@
 
   let { titlePage, language, onChange, onOpenForm }: Props = $props();
 
-  function lines(text: string): string[] {
-    return text
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line !== "");
-  }
+  const studentTitlePage = $derived(
+    buildStudentTitlePage({
+      locale: language,
+      title: titlePage.title,
+      authors: titlePage.authors,
+      affiliations: titlePage.affiliations,
+      course: titlePage.course ?? "",
+      instructor: titlePage.instructor ?? "",
+      dueDate: titlePage.dueDate ?? "",
+    }),
+  );
 </script>
 
 <div class="apa-editor cover-sheet" data-doclang={language}>
@@ -50,20 +55,47 @@
 
     <div class="gap"></div>
 
-    <textarea
-      class="cf people"
-      rows="1"
-      value={titlePage.authors.join("\n")}
-      placeholder={m.cover_authors_ph(undefined, { locale: language })}
-      oninput={(e) => onChange({ authors: lines(e.currentTarget.value) })}
-    ></textarea>
-    <textarea
-      class="cf people"
-      rows="1"
-      value={titlePage.affiliations.join("\n")}
-      placeholder={m.cover_affil_ph(undefined, { locale: language })}
-      oninput={(e) => onChange({ affiliations: lines(e.currentTarget.value) })}
-    ></textarea>
+    <button
+      type="button"
+      class="cf people byline-field"
+      onclick={onOpenForm}
+      aria-label={m.cover_open_form(undefined, { locale: language })}
+    >
+      {#if studentTitlePage.byline.authorLine.length > 0}
+        {#each studentTitlePage.byline.authorLine as token, index (`${index}:${token.kind}:${token.text}`)}
+          {#if token.kind === "superscript"}
+            <sup>{token.text}</sup>
+          {:else}
+            {token.text}
+          {/if}
+        {/each}
+      {:else}
+        <span class="placeholder">
+          {m.cover_authors_ph(undefined, { locale: language })}
+        </span>
+      {/if}
+    </button>
+    <button
+      type="button"
+      class="cf people byline-field affiliations-field"
+      onclick={onOpenForm}
+      aria-label={m.cover_open_form(undefined, { locale: language })}
+    >
+      {#if studentTitlePage.byline.affiliations.length > 0}
+        {#each studentTitlePage.byline.affiliations as affiliation (affiliation.name)}
+          <span class="affiliation-line">
+            {#if affiliation.number !== undefined}
+              <sup>{affiliation.number}</sup>
+            {/if}
+            {affiliation.name}
+          </span>
+        {/each}
+      {:else}
+        <span class="placeholder">
+          {m.cover_affil_ph(undefined, { locale: language })}
+        </span>
+      {/if}
+    </button>
 
     <input
       class="cf line"
@@ -169,6 +201,25 @@
   .cf.people {
     field-sizing: content;
     overflow: hidden;
+  }
+
+  .byline-field {
+    cursor: pointer;
+  }
+
+  .byline-field sup {
+    font-size: 0.7em;
+    line-height: 0;
+    vertical-align: super;
+  }
+
+  .affiliation-line {
+    display: block;
+  }
+
+  .placeholder {
+    color: var(--muted);
+    opacity: 0.55;
   }
 
   .date {

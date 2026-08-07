@@ -24,8 +24,6 @@ interface VisitState {
 interface VisitOptions {
   /** Style for the first block when it is a paragraph (abstract: "Normal"). */
   firstParagraphStyle?: string;
-  /** Page break on the first emitted paragraph (body section). */
-  firstPageBreak?: boolean;
 }
 
 /**
@@ -48,13 +46,11 @@ export function visitBlocks(
     children: TextRun[],
     extra: Record<string, unknown> = {},
   ) => {
-    const first = !emittedFirst;
     emittedFirst = true;
     out.push(
       new Paragraph({
         style,
         children,
-        ...(first && options.firstPageBreak ? { pageBreakBefore: true } : {}),
         ...extra,
       }),
     );
@@ -223,7 +219,6 @@ export function visitBlocks(
       case "apaEquation": {
         // Numbered "(1)" in both document languages — never through
         // getTerms, mirroring the preview (renderEssayHtml.ts).
-        const first = !emittedFirst;
         emittedFirst = true;
         state.equationCounter.n += 1;
         const latex = (block.attrs?.["latex"] as string | undefined) ?? "";
@@ -239,9 +234,6 @@ export function visitBlocks(
         out.push(
           new Paragraph({
             style: "Normal",
-            ...(first && options.firstPageBreak
-              ? { pageBreakBefore: true }
-              : {}),
             tabStops: [
               {
                 type: TabStopType.CENTER,
@@ -289,6 +281,7 @@ export function visitDocument(
   content: PMJson,
   ctx: DocContext,
   contentWidth: number,
+  bodyTitle: string,
 ): (Paragraph | Table)[] {
   const t = getTerms(ctx.locale);
   const state: VisitState = {
@@ -323,10 +316,13 @@ export function visitDocument(
       );
     } else if (section.type === "sectionBody") {
       out.push(
-        ...visitBlocks(section.content ?? [], state, {
-          firstPageBreak: true,
+        new Paragraph({
+          style: "Heading1",
+          pageBreakBefore: true,
+          children: [new TextRun({ text: bodyTitle, bold: true })],
         }),
       );
+      out.push(...visitBlocks(section.content ?? [], state));
     } else if (section.type === "sectionAppendix") {
       appendixIndex += 1;
       const letter = appendixCount > 1

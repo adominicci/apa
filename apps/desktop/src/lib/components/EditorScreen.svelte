@@ -158,10 +158,10 @@
   /** Editor sheets render in the chosen APA font via inherited CSS vars. */
   const docFont = $derived(APA_FONTS[essay.settings.font]);
   const sheetFontStyle = $derived(
-    `--doc-font: ${docFont.stack}; --doc-font-size: ${docFont.sizePt}pt`,
+    `--doc-font: ${docFont.stack}; --doc-font-size: ${docFont.sizePt}pt; --body-title: ${JSON.stringify(essayTitle)}`,
   );
-  /** References shown on the live references sheet, matching the export. */
-  const sheetReferences = $derived.by(() => {
+  /** One reactive selection shared by the live sheet, preview, and export. */
+  const referencesForExport = $derived.by(() => {
     if (essay.settings.includeUncitedReferences) {
       return [...library.byId().values()];
     }
@@ -434,13 +434,10 @@
     exportMessage = "";
     titlePageValidationError = "";
     try {
-      const references = essay.settings.includeUncitedReferences
-        ? [...library.byId().values()]
-        : snapshotCitedRefs();
       const exportSnapshot = createStudentExportSnapshot(
         essay,
         lastDoc ?? currentEditor.getJSON(),
-        references,
+        referencesForExport,
         documentLanguage,
       );
       const result = await runStudentTitlePageValidatedExport(
@@ -735,7 +732,7 @@
             <PrintPreview
               {essay}
               docJson={lastDoc ?? editor?.getJSON()}
-              references={snapshotCitedRefs()}
+              references={referencesForExport}
               onPageCount={(pages) => (pageCount = pages)}
             />
           {/key}
@@ -758,7 +755,7 @@
               (equationDialog = { mode: "edit", pos, latex })}
           />
           <ReferencesSheet
-            references={sheetReferences}
+            references={referencesForExport}
             language={documentLanguage}
           />
         </div>

@@ -1,5 +1,5 @@
 import { AlignmentType, Paragraph, TextRun } from "docx";
-import { type APADate, getTerms } from "@tesina/engine";
+import { type APADate, buildStudentTitlePage, getTerms } from "@tesina/engine";
 import type { ExportInput } from "./input.ts";
 
 function centered(
@@ -10,6 +10,14 @@ function centered(
     style: "Normal",
     alignment: AlignmentType.CENTER,
     children: [new TextRun({ text, ...(opts.bold ? { bold: true } : {}) })],
+  });
+}
+
+function centeredRuns(children: TextRun[]): Paragraph {
+  return new Paragraph({
+    style: "Normal",
+    alignment: AlignmentType.CENTER,
+    children,
   });
 }
 
@@ -36,15 +44,45 @@ function isoToApaDate(iso: string): APADate | null {
 export function titlePageParagraphs(input: ExportInput): Paragraph[] {
   const t = getTerms(input.settings.documentLanguage);
   const { titlePage } = input;
+  const studentTitlePage = buildStudentTitlePage({
+    locale: input.settings.documentLanguage,
+    title: titlePage.title,
+    authors: titlePage.authors,
+    affiliations: titlePage.affiliations,
+    course: titlePage.course ?? "",
+    instructor: titlePage.instructor ?? "",
+    dueDate: titlePage.dueDate ?? "",
+  });
   const out: Paragraph[] = [];
 
   // Push the title to roughly the upper third of the page.
   out.push(blankLine(), blankLine(), blankLine());
   out.push(centered(titlePage.title, { bold: true }));
   out.push(blankLine());
-  for (const author of titlePage.authors) out.push(centered(author));
-  for (const affiliation of titlePage.affiliations) {
-    out.push(centered(affiliation));
+  if (studentTitlePage.byline.authorLine.length > 0) {
+    out.push(
+      centeredRuns(
+        studentTitlePage.byline.authorLine.map((token) =>
+          new TextRun({
+            text: token.text,
+            ...(token.kind === "superscript" ? { superScript: true } : {}),
+          })
+        ),
+      ),
+    );
+  }
+  for (const affiliation of studentTitlePage.byline.affiliations) {
+    out.push(
+      centeredRuns([
+        ...(affiliation.number === undefined ? [] : [
+          new TextRun({
+            text: String(affiliation.number),
+            superScript: true,
+          }),
+        ]),
+        new TextRun(affiliation.name),
+      ]),
+    );
   }
   if (titlePage.course) out.push(centered(titlePage.course));
   if (titlePage.instructor) out.push(centered(titlePage.instructor));

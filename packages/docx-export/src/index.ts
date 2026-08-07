@@ -104,6 +104,7 @@ export async function exportDocx(input: ExportInput): Promise<Uint8Array> {
             content,
             ctx,
             PAGE_SIZE[input.settings.paperSize].width - 2 * ONE_INCH,
+            input.titlePage.title,
           ),
           ...referencesParagraphs(input.references, locale),
         ],

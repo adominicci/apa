@@ -17,6 +17,18 @@ function paragraphContaining(text: string): string {
   return paragraph;
 }
 
+function paragraphsContaining(xml: string, text: string): string[] {
+  return (xml.match(/<w:p(?:>| [^>]*>)[\s\S]*?<\/w:p>/g) ?? [])
+    .filter((candidate) => candidate.includes(text));
+}
+
+async function documentXmlFor(
+  input: ReturnType<typeof sampleInput>,
+): Promise<string> {
+  const files = unzipSync(await exportDocx(input));
+  return strFromU8(files["word/document.xml"]!);
+}
+
 function numberingDefinitionContaining(format: string): string {
   const definitions = numberingXml.match(
     /<w:abstractNum(?:>| [^>]*>)[\s\S]*?<\/w:abstractNum>/g,
@@ -94,9 +106,124 @@ describe("exportDocx (student, es)", () => {
   });
 
   it("renders the title page with localized due date", () => {
-    expect(documentXml).toContain("Hábitos de lectura en la universidad");
+    const titleParagraphs = paragraphsContaining(
+      documentXml,
+      "Hábitos de lectura en la universidad",
+    );
+    expect(titleParagraphs).toHaveLength(2);
+    expect(titleParagraphs[1]).toContain('w:pStyle w:val="Heading1"');
+    expect(titleParagraphs[1]).toContain("<w:pageBreakBefore/>");
+    expect(titleParagraphs[1]).toContain("<w:b/>");
     expect(documentXml).toContain("Ana María Ruiz");
     expect(documentXml).toContain("11 de julio de 2026");
+  });
+
+  it("renders a shared-affiliation byline on one author line without superscripts", async () => {
+    const input = sampleInput({ documentLanguage: "en" });
+    input.titlePage.authors = ["Ana Ruiz", "Jordan Lee"];
+    input.titlePage.affiliations = ["University of Puerto Rico"];
+    const xml = await documentXmlFor(input);
+    const byline = paragraphsContaining(xml, "Ana Ruiz").find((paragraph) =>
+      paragraph.includes("Jordan Lee")
+    );
+
+    expect(byline).toContain("Ana Ruiz");
+    expect(byline).toContain(" and ");
+    expect(byline).toContain("Jordan Lee");
+    expect(byline).not.toContain('w:vertAlign w:val="superscript"');
+    expect(paragraphsContaining(xml, "University of Puerto Rico")[0])
+      .not.toContain('w:vertAlign w:val="superscript"');
+  });
+
+  it("renders numbered author-affiliation links as superscript runs", async () => {
+    const input = sampleInput({ documentLanguage: "en" });
+    input.titlePage.authors = ["Ana Ruiz", "Jordan Lee", "Lucía Pérez"];
+    input.titlePage.affiliations = [
+      "University of Puerto Rico",
+      "Caribbean College",
+      "University of Puerto Rico",
+    ];
+    const xml = await documentXmlFor(input);
+    const byline = paragraphsContaining(xml, "Ana Ruiz").find((paragraph) =>
+      paragraph.includes("Jordan Lee") && paragraph.includes("Lucía Pérez")
+    );
+
+    expect(byline?.match(/w:vertAlign w:val="superscript"/g)).toHaveLength(3);
+    expect(paragraphsContaining(xml, "University of Puerto Rico")[0])
+      .toContain('w:vertAlign w:val="superscript"');
+    expect(paragraphsContaining(xml, "Caribbean College")[0]).toContain(
+      'w:vertAlign w:val="superscript"',
+    );
+  });
+
+  it.each([
+    [
+      "paragraph",
+      { type: "paragraph", content: [{ type: "text", text: "Opening" }] },
+    ],
+    [
+      "table",
+      {
+        type: "apaTable",
+        content: [
+          { type: "tableTitle", content: [{ type: "text", text: "Data" }] },
+          {
+            type: "table",
+            content: [{
+              type: "tableRow",
+              content: [{
+                type: "tableCell",
+                content: [{
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Cell" }],
+                }],
+              }],
+            }],
+          },
+          { type: "tableNote" },
+        ],
+      },
+    ],
+    [
+      "figure",
+      {
+        type: "figure",
+        content: [
+          {
+            type: "figureTitle",
+            content: [{ type: "text", text: "Distribution" }],
+          },
+          { type: "figureImage", attrs: { src: "missing.png" } },
+          { type: "figureNote" },
+        ],
+      },
+    ],
+  ])("starts the body-title page before a leading %s", async (kind, block) => {
+    const input = sampleInput({ documentLanguage: "en" });
+    input.titlePage.title = `Body boundary ${kind}`;
+    input.content = {
+      type: "doc",
+      content: [
+        {
+          type: "sectionAbstract",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "Abstract text" }],
+          }],
+        },
+        { type: "sectionBody", content: [block] },
+      ],
+    };
+
+    const xml = await documentXmlFor(input);
+    const titleParagraphs = paragraphsContaining(
+      xml,
+      `Body boundary ${kind}`,
+    );
+
+    expect(titleParagraphs).toHaveLength(2);
+    expect(titleParagraphs[1]).toContain('w:pStyle w:val="Heading1"');
+    expect(titleParagraphs[1]).toContain("<w:pageBreakBefore/>");
   });
 
   it("renders localized section headings on new pages", () => {
@@ -269,7 +396,7 @@ describe("exportDocx (student, es)", () => {
     );
   });
 
-  it("starts a body-leading equation on a new page", async () => {
+  it("uses the structural body title to page-break before a leading equation", async () => {
     const input = sampleInput();
     input.content = {
       type: "doc",
@@ -280,9 +407,15 @@ describe("exportDocx (student, es)", () => {
     };
     const files = unzipSync(await exportDocx(input));
     const xml = strFromU8(files["word/document.xml"]!);
-    expect(xml).toContain(
-      '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:pageBreakBefore/><w:tabs>',
-    );
+    const bodyTitle = paragraphsContaining(
+      xml,
+      "Hábitos de lectura en la universidad",
+    )[1];
+    const equation = (xml.match(/<w:p(?:>| [^>]*>)[\s\S]*?<\/w:p>/g) ?? [])
+      .find((paragraph) => paragraph.includes("<w:tabs>"));
+
+    expect(bodyTitle).toContain("<w:pageBreakBefore/>");
+    expect(equation).not.toContain("<w:pageBreakBefore/>");
   });
 
   it("falls back to raw LaTeX for an unmapped equation without breaking the rest of the export", () => {

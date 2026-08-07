@@ -117,14 +117,6 @@ export function sampleEssayInput(
           type: "sectionBody",
           content: [
             {
-              type: "heading",
-              attrs: { level: 1 },
-              content: [{
-                type: "text",
-                text: "Hábitos de lectura en la universidad",
-              }],
-            },
-            {
               type: "paragraph",
               content: [
                 { type: "text", text: "La lectura en pantalla domina " },

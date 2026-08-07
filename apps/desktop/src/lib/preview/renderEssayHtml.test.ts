@@ -164,7 +164,11 @@ describe("renderEssayHtml", () => {
     const html = renderEssayHtml(sampleEssay(), sampleEssay().content, [
       salgado,
     ]);
-    expect(html).toContain("Hábitos de lectura &lt;en&gt; la universidad");
+    const title = "Hábitos de lectura &lt;en&gt; la universidad";
+    expect(html.match(new RegExp(title, "g"))).toHaveLength(2);
+    expect(html).toContain(
+      `<section class="body-sec"><h1 class="body-title">${title}</h1>`,
+    );
     expect(html).toContain("11 de julio de 2026");
     expect(html).toContain("<h1>Resumen</h1>");
     expect(html).toContain("Palabras clave:");
@@ -174,6 +178,51 @@ describe("renderEssayHtml", () => {
     expect(html).toContain("<h1>Referencias</h1>");
     expect(html).toContain('class="ref-entry"');
     expect(html).toContain("<em>Revista de Estudios Imaginarios, 12</em>");
+  });
+
+  it("renders a shared-affiliation byline without superscript numbers", () => {
+    const essay = sampleEssay();
+    essay.titlePage.authors = ["Ana María Ruiz", "Jordan Lee"];
+    essay.titlePage.affiliations = ["Departamento de Educación"];
+
+    const html = renderEssayHtml(essay, essay.content, []);
+
+    expect(html).toContain(
+      '<p class="tp-authors">Ana María Ruiz y Jordan Lee</p>',
+    );
+    expect(html).toContain(
+      '<p class="tp-affiliation">Departamento de Educación</p>',
+    );
+    expect(html.match(/<p class="tp-(?:authors|affiliation)">.*?<\/p>/g))
+      .not.toContainEqual(expect.stringContaining("<sup>"));
+  });
+
+  it("links different author affiliations with superscript numbers", () => {
+    const essay = createEmptyEssay("en", "2026-07-11T12:00:00.000Z");
+    essay.titlePage = {
+      title: "Reading Habits",
+      authors: ["Ana Ruiz", "Jordan Lee", "Lucía Pérez"],
+      affiliations: [
+        "University of Puerto Rico",
+        "Caribbean College",
+        "University of Puerto Rico",
+      ],
+      course: "EDU 301",
+      instructor: "Dr. Rivera",
+      dueDate: "2026-08-07",
+    };
+
+    const html = renderEssayHtml(essay, essay.content, []);
+
+    expect(html).toContain(
+      '<p class="tp-authors">Ana Ruiz<sup>1</sup>, Jordan Lee<sup>2</sup>, and Lucía Pérez<sup>1</sup></p>',
+    );
+    expect(html).toContain(
+      '<p class="tp-affiliation"><sup>1</sup>University of Puerto Rico</p>',
+    );
+    expect(html).toContain(
+      '<p class="tp-affiliation"><sup>2</sup>Caribbean College</p>',
+    );
   });
 
   it("renders an APA table with number, title, grid, and note", () => {
@@ -480,6 +529,14 @@ describe("renderEssayCss", () => {
     const proCss = renderEssayCss(essay.settings);
     expect(proCss).toContain("size: A4;");
     expect(proCss).toContain("@top-left");
+  });
+
+  it("starts the body on a new page independently of an abstract", () => {
+    const css = renderEssayCss(sampleEssay().settings);
+
+    expect(css).toMatch(
+      /section\.body-sec\s*\{[^}]*break-before:\s*page;/s,
+    );
   });
 
   it("indents nested lists 0.5in per level, matching the editor and DOCX", () => {

@@ -1,5 +1,6 @@
 import {
   buildReferenceList,
+  buildStudentTitlePage,
   formatCitation,
   getTerms,
   type Reference,
@@ -32,6 +33,16 @@ function runsToHtml(runs: readonly RichRun[]): string {
   return runs
     .map((r) => (r.italic ? `<em>${esc(r.text)}</em>` : esc(r.text)))
     .join("");
+}
+
+function studentAuthorLineHtml(
+  tokens: ReturnType<typeof buildStudentTitlePage>["byline"]["authorLine"],
+): string {
+  return tokens.map((token) =>
+    token.kind === "superscript"
+      ? `<sup>${esc(token.text)}</sup>`
+      : esc(token.text)
+  ).join("");
 }
 
 function isoToLongDate(iso: string, locale: DocLocale): string {
@@ -316,6 +327,7 @@ li ul, li ol { padding-left: 0.5in; }
 .title-page p { text-indent: 0; }
 .rh-set { string-set: runhead content(text); display: none; }
 section.abstract, section.appendix, section.references { break-before: page; }
+section.body-sec { break-before: page; }
 .ref-entry { padding-left: 0.5in; text-indent: -0.5in; }
 .apa-table { margin: 1em 0; break-inside: avoid; }
 .apa-table .tbl-cap { text-indent: 0; }
@@ -353,6 +365,15 @@ export function renderEssayHtml(
     mathml,
   };
   const { titlePage } = essay;
+  const studentTitlePage = buildStudentTitlePage({
+    locale,
+    title: titlePage.title,
+    authors: titlePage.authors,
+    affiliations: titlePage.affiliations,
+    course: titlePage.course ?? "",
+    instructor: titlePage.instructor ?? "",
+    dueDate: titlePage.dueDate ?? "",
+  });
 
   let html = "";
   if (essay.settings.variant === "professional") {
@@ -364,8 +385,17 @@ export function renderEssayHtml(
 
   html += `<div class="title-page"><div class="spacer"></div>`;
   html += `<p class="tp-title">${esc(titlePage.title)}</p><p>&nbsp;</p>`;
-  for (const author of titlePage.authors) html += `<p>${esc(author)}</p>`;
-  for (const aff of titlePage.affiliations) html += `<p>${esc(aff)}</p>`;
+  if (studentTitlePage.byline.authorLine.length > 0) {
+    html += `<p class="tp-authors">${
+      studentAuthorLineHtml(studentTitlePage.byline.authorLine)
+    }</p>`;
+  }
+  for (const affiliation of studentTitlePage.byline.affiliations) {
+    const number = affiliation.number === undefined
+      ? ""
+      : `<sup>${affiliation.number}</sup>`;
+    html += `<p class="tp-affiliation">${number}${esc(affiliation.name)}</p>`;
+  }
   if (titlePage.course) html += `<p>${esc(titlePage.course)}</p>`;
   if (titlePage.instructor) html += `<p>${esc(titlePage.instructor)}</p>`;
   if (titlePage.dueDate) {
@@ -380,7 +410,9 @@ export function renderEssayHtml(
       html += blocksHtml(section.content ?? [], state, "no-indent");
       html += "</section>";
     } else if (section.type === "sectionBody") {
-      html += `<section class="body-sec">`;
+      html += `<section class="body-sec"><h1 class="body-title">${
+        esc(titlePage.title)
+      }</h1>`;
       html += blocksHtml(section.content ?? [], state);
       html += "</section>";
     } else if (section.type === "sectionAppendix") {
