@@ -27,13 +27,13 @@ controls in [Open a Mac app from an unidentified developer](https://support.appl
 
 - Builds APA 7 student title pages and checks required title-page details
   before Word export.
-- Keeps the editor, print preview, and Word export aligned for headings,
+- Keeps the editor, paged preview, and Word export aligned for headings,
   appendices, lists, tables, figures, equations, citations, and references.
 - Formats in-text citations and reference entries in English or Spanish.
 - Manages a reusable reference library with collections, DOI, ISBN, and URL
   autofill, plus BibTeX import with a review step.
-- Provides a paged preview for printing or saving as PDF and exports `.docx`
-  files for Microsoft Word and compatible editors.
+- Provides a paged preview and exports `.docx` files for Microsoft Word and
+  compatible editors.
 - Saves locally with atomic autosave and creates a timestamped backup before a
   paper is deleted. Tesina has no account system or cloud service.
 

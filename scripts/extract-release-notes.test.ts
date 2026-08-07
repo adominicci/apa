@@ -218,3 +218,22 @@ describe("extractReleaseNotes", () => {
     });
   });
 });
+
+describe("v0.1.0 release documentation", () => {
+  it("claims only the preview and export workflows available in the app", async () => {
+    const readme = await Deno.readTextFile(
+      new URL("../README.md", import.meta.url),
+    );
+    const releaseNotes = extractReleaseNotes(
+      await Deno.readTextFile(new URL("../CHANGELOG.md", import.meta.url)),
+      "0.1.0",
+    );
+
+    expect(readme).toContain("Provides a paged preview and exports `.docx`");
+    expect(releaseNotes).toContain(
+      "- Paged preview and Word export, with student title-page validation.",
+    );
+    expect(readme).not.toMatch(/\b(?:print(?:ing)?|PDF)\b/i);
+    expect(releaseNotes).not.toMatch(/\b(?:print(?:ing)?|PDF)\b/i);
+  });
+});

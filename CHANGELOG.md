@@ -16,8 +16,7 @@ and [Semantic Versioning](https://semver.org/).
 - In-text citations and a generated reference list, backed by a reusable
   reference library with collections, DOI, ISBN, and URL autofill, plus BibTeX
   import with a review step.
-- Paged print and PDF preview, plus Word export with student title-page
-  validation.
+- Paged preview and Word export, with student title-page validation.
 - Local atomic autosave and a timestamped backup before a paper is deleted. No
   account or cloud service is required.
 - Optional in-app updates from published GitHub Releases. Installed release
