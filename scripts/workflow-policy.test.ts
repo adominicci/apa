@@ -114,6 +114,24 @@ jobs:
     );
   });
 
+  it.each([
+    ["empty", `owner/repository//evil@${SHA}`],
+    ["current-directory", `owner/repository/.@${SHA}`],
+    ["parent-directory", `owner/repository/../evil@${SHA}`],
+  ])("rejects an external reference with a %s path segment", (
+    _label,
+    reference,
+  ) => {
+    expectRejected(
+      "ci.yml",
+      `
+permissions: { contents: read }
+jobs: { test: { steps: [ { uses: "${reference}" } ] } }
+`,
+      "unsupported action reference",
+    );
+  });
+
   it("finds a flow-style checkout hidden inside a nested collection", () => {
     expectRejected(
       "ci.yml",
@@ -219,6 +237,44 @@ jobs:
         with: { releaseDraft: true }
 `,
       "same job",
+    );
+  });
+
+  it("does not treat matrix data as executable release steps", () => {
+    expectRejected(
+      "release.yml",
+      `
+jobs:
+  release:
+    permissions: { contents: write }
+    strategy:
+      matrix:
+        include:
+          - steps:
+              - uses: tauri-apps/tauri-action@${SHA}
+                with: { releaseDraft: true }
+    steps:
+      - uses: owner/action@${SHA}
+`,
+      "expected exactly one tauri-apps/tauri-action release step",
+    );
+  });
+
+  it("still audits action references hidden outside executable steps", () => {
+    expectRejected(
+      "ci.yml",
+      `
+permissions: { contents: read }
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          - metadata:
+              uses: owner/action@main
+    steps: []
+`,
+      "full 40-character commit SHA",
     );
   });
 });

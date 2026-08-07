@@ -2,9 +2,8 @@ import { parse } from "yaml";
 
 export type WorkflowRecord = Record<string, unknown>;
 
-const FULL_SHA_REFERENCE =
-  /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_./-]+)?@[0-9a-fA-F]{40}$/;
 const LOCAL_PATH_SEGMENT = /^[A-Za-z0-9_.-]+$/;
+const FULL_COMMIT_SHA = /^[0-9a-fA-F]{40}$/;
 
 function isRecord(value: unknown): value is WorkflowRecord {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -17,6 +16,19 @@ function booleanInput(value: unknown, expected: boolean): boolean {
 function localReference(value: string): boolean {
   const segments = value.slice(2).split("/");
   return segments.length > 0 &&
+    segments.every((segment) =>
+      segment !== "" && segment !== "." && segment !== ".." &&
+      LOCAL_PATH_SEGMENT.test(segment)
+    );
+}
+
+function externalReference(value: string): boolean {
+  const separator = value.indexOf("@");
+  if (separator <= 0 || separator !== value.lastIndexOf("@")) return false;
+
+  const segments = value.slice(0, separator).split("/");
+  const revision = value.slice(separator + 1);
+  return segments.length >= 2 && FULL_COMMIT_SHA.test(revision) &&
     segments.every((segment) =>
       segment !== "" && segment !== "." && segment !== ".." &&
       LOCAL_PATH_SEGMENT.test(segment)
@@ -58,6 +70,10 @@ function jobRecords(document: WorkflowRecord): WorkflowRecord[] {
   return Object.values(document.jobs).filter(isRecord);
 }
 
+function directJobSteps(job: WorkflowRecord): WorkflowRecord[] {
+  return Array.isArray(job.steps) ? job.steps.filter(isRecord) : [];
+}
+
 export function parseWorkflowYaml(source: string): WorkflowRecord {
   const document = parse(source);
   if (!isRecord(document)) {
@@ -67,13 +83,7 @@ export function parseWorkflowYaml(source: string): WorkflowRecord {
 }
 
 export function workflowSteps(document: WorkflowRecord): WorkflowRecord[] {
-  const steps: WorkflowRecord[] = [];
-  walkRecords(document, (record) => {
-    if (Array.isArray(record.steps)) {
-      steps.push(...record.steps.filter(isRecord));
-    }
-  });
-  return steps;
+  return jobRecords(document).flatMap(directJobSteps);
 }
 
 export function workflowUses(document: WorkflowRecord): string[] {
@@ -126,7 +136,7 @@ export function workflowPolicyViolations(
       }
       return;
     }
-    if (!FULL_SHA_REFERENCE.test(reference)) {
+    if (!externalReference(reference)) {
       violations.push(
         `${name} ${path}.uses: unsupported action reference ${reference}; ` +
           "external actions and reusable workflows require a full 40-character commit SHA",
@@ -196,7 +206,7 @@ export function workflowPolicyViolations(
     }
     if (
       writeJobs.length === 1 &&
-      !workflowSteps(writeJobs[0]).some((step) =>
+      !directJobSteps(writeJobs[0]).some((step) =>
         typeof step.uses === "string" &&
         step.uses.toLowerCase().startsWith("tauri-apps/tauri-action@")
       )
