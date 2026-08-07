@@ -1,0 +1,76 @@
+name: Installer build verification
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.platform }} installers
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: >-
+              --target universal-apple-darwin
+              --bundles app,dmg
+              --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          - platform: windows-latest
+            args: >-
+              --bundles msi,nsis
+              --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          - platform: ubuntu-22.04
+            args: >-
+              --bundles appimage,deb
+              --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install dependencies
+        run: deno install
+
+      - name: Compile installer bundles
+        uses: tauri-apps/tauri-action@v1
+        with:
+          projectPath: apps/desktop
+          tauriScript: deno task tauri
+          uploadUpdaterJson: false
+          uploadWorkflowArtifacts: false
+          args: ${{ matrix.args }}
