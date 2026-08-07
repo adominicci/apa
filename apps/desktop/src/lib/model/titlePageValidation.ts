@@ -1,9 +1,10 @@
 import {
   buildStudentTitlePage,
   type DocLocale,
+  type Reference,
   type StudentTitlePageIssue,
 } from "@tesina/engine";
-import type { TitlePage } from "$lib/model/essay";
+import type { Essay, TitlePage } from "$lib/model/essay";
 
 export type TitlePageValidationMessageKey =
   | "titlepage_error_missing_title"
@@ -30,6 +31,45 @@ const MESSAGE_KEY_BY_ISSUE = {
 export interface StudentTitlePageBlockingIssue {
   issue: StudentTitlePageIssue;
   messageKey: TitlePageValidationMessageKey;
+}
+
+export interface StudentExportSnapshot {
+  readonly essay: Essay;
+  readonly document: unknown;
+  readonly references: Reference[];
+}
+
+function cloneJson<T>(value: T): T {
+  if (value === undefined) return value;
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+export function createStudentExportSnapshot(
+  essay: Essay,
+  document: unknown,
+  references: readonly Reference[],
+  documentLanguage: DocLocale,
+): StudentExportSnapshot {
+  const documentSnapshot = cloneJson(document);
+  return {
+    essay: {
+      ...essay,
+      settings: {
+        ...essay.settings,
+        documentLanguage,
+        variant: "student",
+      },
+      titlePage: {
+        ...essay.titlePage,
+        authors: [...essay.titlePage.authors],
+        affiliations: [...essay.titlePage.affiliations],
+      },
+      content: documentSnapshot,
+      referencesSnapshot: cloneJson(essay.referencesSnapshot),
+    },
+    document: documentSnapshot,
+    references: cloneJson([...references]),
+  };
 }
 
 export function studentTitlePageMessageKey(
@@ -62,12 +102,14 @@ export type ValidatedStudentTitlePageExport<T> =
   | { status: "exported"; outcome: T };
 
 export async function runStudentTitlePageValidatedExport<T>(
-  titlePage: TitlePage,
-  locale: DocLocale,
-  exportAction: () => Promise<T>,
+  snapshot: StudentExportSnapshot,
+  exportAction: (snapshot: StudentExportSnapshot) => Promise<T>,
 ): Promise<ValidatedStudentTitlePageExport<T>> {
-  const blockingIssue = firstStudentTitlePageBlockingIssue(titlePage, locale);
+  const blockingIssue = firstStudentTitlePageBlockingIssue(
+    snapshot.essay.titlePage,
+    snapshot.essay.settings.documentLanguage,
+  );
   if (blockingIssue) return { status: "blocked", ...blockingIssue };
 
-  return { status: "exported", outcome: await exportAction() };
+  return { status: "exported", outcome: await exportAction(snapshot) };
 }

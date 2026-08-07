@@ -59,6 +59,7 @@
   import { dismissable } from "$lib/dom/dismiss";
   import { exportEssayToDocx } from "$lib/export/exportEssay";
   import {
+    createStudentExportSnapshot,
     runStudentTitlePageValidatedExport,
     type TitlePageValidationMessageKey,
   } from "$lib/model/titlePageValidation";
@@ -433,17 +434,22 @@
     exportMessage = "";
     titlePageValidationError = "";
     try {
-      const result = await runStudentTitlePageValidatedExport(
-        essay.titlePage,
+      const references = essay.settings.includeUncitedReferences
+        ? [...library.byId().values()]
+        : snapshotCitedRefs();
+      const exportSnapshot = createStudentExportSnapshot(
+        essay,
+        lastDoc ?? currentEditor.getJSON(),
+        references,
         documentLanguage,
-        async () => {
-          const references = essay.settings.includeUncitedReferences
-            ? [...library.byId().values()]
-            : snapshotCitedRefs();
+      );
+      const result = await runStudentTitlePageValidatedExport(
+        exportSnapshot,
+        async (snapshot) => {
           return await exportEssayToDocx(
-            essay,
-            lastDoc ?? currentEditor.getJSON(),
-            references,
+            snapshot.essay,
+            snapshot.document,
+            snapshot.references,
           );
         },
       );
