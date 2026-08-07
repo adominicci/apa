@@ -9,7 +9,7 @@ fn invalid_data(message: impl Into<String>) -> io::Error {
 
 fn decode_tauri_text(value: &str, label: &str) -> Result<String, Box<dyn Error>> {
     let decoded = STANDARD
-        .decode(value.trim())
+        .decode(value)
         .map_err(|error| invalid_data(format!("invalid {label} base64: {error}")))?;
     String::from_utf8(decoded)
         .map_err(|error| invalid_data(format!("invalid {label} UTF-8: {error}")).into())

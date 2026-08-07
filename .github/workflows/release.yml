@@ -65,6 +65,22 @@ jobs:
             echo "version=$version"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Build locked updater verifier
+        id: updater-verifier
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/tesina-updater-verifier-target
+        run: |
+          set -euo pipefail
+          cargo build \
+            --locked \
+            --manifest-path scripts/updater-signature-verifier/Cargo.toml
+          verifier="$CARGO_TARGET_DIR/debug/tesina-updater-signature-verifier"
+          if [[ ! -x "$verifier" ]]; then
+            echo "Updater verifier binary was not built." >&2
+            exit 1
+          fi
+          echo "binary=$verifier" >> "$GITHUB_OUTPUT"
+
       - name: Build and upload macOS draft
         id: tauri-release
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1
@@ -160,12 +176,11 @@ jobs:
           cleanup_dmg
           trap - EXIT INT TERM
 
-      - name: Verify draft release and updater manifest
+      - name: Download draft release verification inputs
+        id: draft-download
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_ID: ${{ steps.tauri-release.outputs.releaseId }}
-          RELEASE_NOTES_PATH: ${{ steps.release-notes.outputs.path }}
-          RELEASE_VERSION: ${{ steps.release-notes.outputs.version }}
         run: |
           set -euo pipefail
           release_json="$RUNNER_TEMP/tesina-draft-release.json"
@@ -187,7 +202,9 @@ jobs:
             gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
               --jq '.assets[] | select(.name == "Tesina-macos-universal.app.tar.gz.sig") | .id'
           )"
-          if [[ -z "$latest_asset_id" || -z "$archive_asset_id" || -z "$signature_asset_id" ]]; then
+          if [[ ! "$latest_asset_id" =~ ^[0-9]+$ \
+            || ! "$archive_asset_id" =~ ^[0-9]+$ \
+            || ! "$signature_asset_id" =~ ^[0-9]+$ ]]; then
             echo "Draft release is missing updater verification assets." >&2
             exit 1
           fi
@@ -204,17 +221,32 @@ jobs:
             "repos/$GITHUB_REPOSITORY/releases/assets/$signature_asset_id" \
             > "$signature_path"
 
+          {
+            echo "release_json=$release_json"
+            echo "latest_json=$latest_json"
+            echo "archive=$archive_path"
+            echo "signature=$signature_path"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Verify downloaded draft release and updater manifest
+        env:
+          RELEASE_JSON: ${{ steps.draft-download.outputs.release_json }}
+          LATEST_JSON: ${{ steps.draft-download.outputs.latest_json }}
+          UPDATER_ARCHIVE: ${{ steps.draft-download.outputs.archive }}
+          UPDATER_SIGNATURE: ${{ steps.draft-download.outputs.signature }}
+          RELEASE_NOTES_PATH: ${{ steps.release-notes.outputs.path }}
+          RELEASE_VERSION: ${{ steps.release-notes.outputs.version }}
+          UPDATER_VERIFIER_BINARY: ${{ steps.updater-verifier.outputs.binary }}
+        run: |
+          set -euo pipefail
           deno run --allow-read scripts/verify-release-draft.ts \
-            "$release_json" \
-            "$latest_json" \
+            "$RELEASE_JSON" \
+            "$LATEST_JSON" \
             "$RELEASE_NOTES_PATH" \
             "$RELEASE_VERSION" \
-            "$signature_path"
+            "$UPDATER_SIGNATURE"
 
-          cargo run \
-            --locked \
-            --manifest-path scripts/updater-signature-verifier/Cargo.toml \
-            -- \
-            "$archive_path" \
-            "$signature_path" \
+          "$UPDATER_VERIFIER_BINARY" \
+            "$UPDATER_ARCHIVE" \
+            "$UPDATER_SIGNATURE" \
             apps/desktop/src-tauri/tauri.conf.json

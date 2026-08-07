@@ -11,6 +11,16 @@ const tauriConfig = JSON.parse(
   await Deno.readTextFile(`${root}apps/desktop/src-tauri/tauri.conf.json`),
 );
 
+function workflowStep(name: string): string {
+  const marker = `      - name: ${name}\n`;
+  const start = releaseWorkflow.indexOf(marker);
+  if (start === -1) {
+    throw new Error(`Release workflow is missing step: ${name}`);
+  }
+  const end = releaseWorkflow.indexOf("\n      - ", start + marker.length);
+  return releaseWorkflow.slice(start, end === -1 ? undefined : end);
+}
+
 describe("release workflow contract", () => {
   it("publishes only one universal macOS app and DMG build", () => {
     expect(releaseWorkflow).toContain("runs-on: macos-latest");
@@ -99,7 +109,35 @@ describe("release workflow contract", () => {
     expect(releaseWorkflow).toContain("hdiutil detach");
   });
 
-  it("downloads and cryptographically verifies the updater archive", () => {
+  it("prebuilds the locked verifier before the secret-bearing release action", () => {
+    const prebuild = workflowStep("Build locked updater verifier");
+    expect(prebuild).toContain("cargo build");
+    expect(prebuild).toContain("--locked");
+    expect(prebuild).toContain(
+      "--manifest-path scripts/updater-signature-verifier/Cargo.toml",
+    );
+    expect(prebuild).toContain("GITHUB_OUTPUT");
+    expect(releaseWorkflow.indexOf(prebuild)).toBeLessThan(
+      releaseWorkflow.indexOf("tauri-apps/tauri-action@"),
+    );
+  });
+
+  it("limits the token-bearing step to downloading fixed draft inputs", () => {
+    const download = workflowStep("Download draft release verification inputs");
+    expect(download).toContain("GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}");
+    expect(download).toContain("gh api");
+    expect(download).toContain("GITHUB_OUTPUT");
+    expect(download).not.toMatch(/\b(?:cargo|deno)\b/);
+  });
+
+  it("cryptographically verifies the downloaded updater archive offline", () => {
+    const verification = workflowStep(
+      "Verify downloaded draft release and updater manifest",
+    );
+    expect(verification).toContain("scripts/verify-release-draft.ts");
+    expect(verification).toContain("UPDATER_VERIFIER_BINARY");
+    expect(verification).not.toMatch(/\bcargo\s+run\b/);
+    expect(verification).not.toMatch(/\b(?:GH_TOKEN|GITHUB_TOKEN)\b/);
     expect(releaseWorkflow).toContain(
       'select(.name == "Tesina-macos-universal.app.tar.gz")',
     );

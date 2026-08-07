@@ -12,6 +12,12 @@ const wrongPublicKey =
 const signature =
   "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIG1pbmlzaWduIHNlY3JldCBrZXkKUldRZjZMUkNHQTlpNTlTTE9GeHo2Tnh2QVNYREplUnR1Wnlrd1FlcGJERUd0ODdpZzFCTnBXYVZXdU5ybTczWWlJaUpicTcxV2krZFA5ZUtMOE9DMzUxdndJYXNTU2JYeHdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNTU1Nzc5OTY2CWZpbGU6dGVzdApRdEtNWFd5WWN3ZHBaQWxQRjd0RTJFTkprUmQxdWp2S2psajFtOVJ0SFRCblpQYTVXS1U1dVdSczVHb1A1TS9WcUU4MVFGdU1LSTVrL1NmTlFVYU9BQT09";
 const decoder = new TextDecoder();
+const outerWhitespaceCases = [
+  ["leading space", (value: string) => ` ${value}`],
+  ["trailing space", (value: string) => `${value} `],
+  ["leading newline", (value: string) => `\n${value}`],
+  ["trailing newline", (value: string) => `${value}\n`],
+] as const;
 
 async function runVerifier(options: {
   archive?: string;
@@ -105,4 +111,24 @@ describe("updater signature verifier", () => {
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("Updater signature verification failed");
   });
+
+  for (const [label, addWhitespace] of outerWhitespaceCases) {
+    it(`rejects ${label} in the outer signature base64`, async () => {
+      const result = await runVerifier({
+        signature: addWhitespace(signature),
+      });
+
+      expect(result.code).toBe(1);
+      expect(result.stderr).toContain("invalid signature base64");
+    });
+
+    it(`rejects ${label} in the outer public-key base64`, async () => {
+      const result = await runVerifier({
+        publicKey: addWhitespace(publicKey),
+      });
+
+      expect(result.code).toBe(1);
+      expect(result.stderr).toContain("invalid public key base64");
+    });
+  }
 });
