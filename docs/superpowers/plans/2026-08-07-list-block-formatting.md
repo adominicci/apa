@@ -234,7 +234,7 @@ git commit -m "fix: preserve list blocks in preview"
   `ONE_INCH + depth * HALF_INCH` in twips.
 - Produces: `BULLET_LIST_REF = "tesina-bullet"` with nine custom bullet
   levels using the same text positions and 360-twip hanging geometry as the
-  ordered-list definitions.
+  ordered-list definitions, while preserving the depth cycle `● → ○ → ■`.
 - Consumes: `visitBlocks([child], state)` for non-paragraph special blocks and
   the existing shared counters in `VisitState`.
 - Preserves: ordered-list numbering reference/instance, bullet depth, citation
@@ -346,6 +346,9 @@ expect(bulletContinuation).not.toContain("<w:numPr>");
 expect(bulletContinuation).toContain('w:left="2160"');
 expect(bulletNumbering).toContain('w:left="1440"');
 expect(bulletNumbering).toContain('w:left="2160"');
+expect(bulletNumbering).toContain('w:lvlText w:val="●"');
+expect(bulletNumbering).toContain('w:lvlText w:val="○"');
+expect(bulletNumbering).toContain('w:lvlText w:val="■"');
 ```
 
 - [ ] **Step 3: Run the exporter test and verify RED**
@@ -374,9 +377,11 @@ the existing `hanging: 360` marker geometry.
 
 Add `BULLET_LIST_REF = "tesina-bullet"` and a nine-level bullet configuration
 to `buildNumbering()`. Each level uses `LevelFormat.BULLET`, the bullet glyph
-`•`, `left: listTextIndent(level)`, and `hanging: 360`. This replaces the
-`docx` library's built-in bullet geometry, which starts 0.5 inch shallower than
-Tesina's ordered lists.
+`["●", "○", "■"][level % 3]`, `left: listTextIndent(level)`, and
+`hanging: 360`. This preserves the prior depth-specific visual cue while
+replacing the `docx` library's built-in geometry, which starts 0.5 inch
+shallower than Tesina's ordered lists. APA does not mandate one particular
+bullet shape, so the cycle remains compliant.
 
 - [ ] **Step 5: Separate marker, continuation, nested-list, and special-block output**
 
