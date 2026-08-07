@@ -48,11 +48,16 @@
   }
 
   async function createEssay(language: DocLocale) {
-    await latestLaunch.run(
-      true,
-      () => essays.create(language),
-      applyLaunch,
-    );
+    try {
+      await latestLaunch.run(
+        true,
+        () => essays.create(language),
+        applyLaunch,
+        (created) => essays.remove(created.id),
+      );
+    } catch (err) {
+      console.error("No se pudo crear o limpiar el ensayo:", err);
+    }
   }
 
   async function openEssay(id: string) {

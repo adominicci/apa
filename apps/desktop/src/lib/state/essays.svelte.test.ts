@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createEmptyEssay, type Essay } from "$lib/model/essay";
+import { createEmptyEssay, type Essay, summarize } from "$lib/model/essay";
+import { LatestLaunch, type LaunchValue } from "$lib/state/latestLaunch";
 
 const persistence = vi.hoisted(() => {
   Object.defineProperty(globalThis, "$state", {
@@ -22,7 +23,10 @@ vi.mock("$lib/persist/atomic", () => ({
       value === undefined ? null : structuredClone(value),
     );
   }),
-  removeFile: vi.fn(() => Promise.resolve()),
+  removeFile: vi.fn((path: string) => {
+    persistence.files.delete(path);
+    return Promise.resolve();
+  }),
   writeJsonAtomic: persistence.writeJsonAtomic.mockImplementation(
     (path: string, value: unknown) => {
       persistence.files.set(path, structuredClone(value));
@@ -32,6 +36,12 @@ vi.mock("$lib/persist/atomic", () => ({
 }));
 
 import { essays } from "./essays.svelte.ts";
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => (resolve = done));
+  return { promise, resolve };
+}
 
 function professionalEssay(): Essay {
   const essay = createEmptyEssay("en", "2026-08-07T12:00:00.000Z");
@@ -100,5 +110,49 @@ describe("student-release persistence boundary", () => {
     expect(written.settings.runningHead).toBe("LEGACY HEAD");
     expect(written.titlePage.authorNote).toBe("Legacy note");
     expect(active.settings.variant).toBe("student");
+  });
+});
+
+describe("essay launch persistence", () => {
+  it("removes the exact blank essay created by a superseded launch", async () => {
+    const existing = createEmptyEssay("en", "2026-08-07T12:00:00.000Z");
+    existing.id = "existing-paper";
+    persistence.files.set(`essays/${existing.id}.json`, existing);
+    essays.summaries = [summarize(existing)];
+
+    const pendingWrite = deferred<void>();
+    persistence.writeJsonAtomic.mockImplementationOnce(
+      (path: string, value: unknown) => {
+        persistence.files.set(path, structuredClone(value));
+        return pendingWrite.promise;
+      },
+    );
+    const launches = new LatestLaunch();
+    const applied: LaunchValue<Essay>[] = [];
+
+    const createRequest = launches.run(
+      true,
+      () => essays.create("es"),
+      (launch) => applied.push(launch),
+      (created) => essays.remove(created.id),
+    );
+    const createdPath = [...persistence.files.keys()].find((path) =>
+      path !== `essays/${existing.id}.json`
+    );
+    expect(createdPath).toMatch(/^essays\/.+\.json$/);
+
+    await launches.run(
+      false,
+      () => essays.load(existing.id),
+      (launch) => applied.push(launch),
+    );
+    pendingWrite.resolve();
+    await createRequest;
+
+    expect(applied).toEqual([{ value: existing, newlyCreated: false }]);
+    expect(persistence.files.has(createdPath!)).toBe(false);
+    expect(essays.summaries.map((summary) => summary.id)).toEqual([
+      existing.id,
+    ]);
   });
 });
