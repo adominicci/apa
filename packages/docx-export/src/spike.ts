@@ -175,6 +175,6 @@ export function buildSpikeDocument(): Document {
 
 export async function exportSpikeDocx(): Promise<Uint8Array> {
   const doc = buildSpikeDocument();
-  const buffer = await Packer.toBuffer(doc);
-  return new Uint8Array(buffer);
+  const arrayBuffer = await Packer.toArrayBuffer(doc);
+  return new Uint8Array(arrayBuffer);
 }

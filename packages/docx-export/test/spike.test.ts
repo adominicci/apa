@@ -1,5 +1,6 @@
+import { Packer } from "docx";
 import { strFromU8, unzipSync } from "fflate";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { exportSpikeDocx } from "../src/index.ts";
 
 let files: Record<string, Uint8Array>;
@@ -14,6 +15,20 @@ beforeAll(async () => {
 });
 
 describe("spike DOCX structure", () => {
+  it("uses browser-safe ArrayBuffer packing", async () => {
+    const toBuffer = vi.spyOn(Packer, "toBuffer").mockRejectedValue(
+      new Error("nodebuffer is not supported by this platform"),
+    );
+    try {
+      const bytes = await exportSpikeDocx();
+      expect(bytes).toBeInstanceOf(Uint8Array);
+      expect([...bytes.slice(0, 4)]).toEqual([80, 75, 3, 4]);
+      expect(unzipSync(bytes)["word/document.xml"]).toBeDefined();
+    } finally {
+      toBuffer.mockRestore();
+    }
+  });
+
   it("is a valid OOXML package with the expected parts", () => {
     expect(Object.keys(files)).toEqual(
       expect.arrayContaining([

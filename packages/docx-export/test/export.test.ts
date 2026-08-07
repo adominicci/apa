@@ -1,5 +1,6 @@
+import { Packer } from "docx";
 import { strFromU8, unzipSync } from "fflate";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { exportDocx } from "../src/index.ts";
 import { sampleEssayInput as sampleInput } from "../src/sample.ts";
 
@@ -21,6 +22,20 @@ beforeAll(async () => {
 });
 
 describe("exportDocx (student, es)", () => {
+  it("uses browser-safe ArrayBuffer packing", async () => {
+    const toBuffer = vi.spyOn(Packer, "toBuffer").mockRejectedValue(
+      new Error("nodebuffer is not supported by this platform"),
+    );
+    try {
+      const bytes = await exportDocx(sampleInput());
+      expect(bytes).toBeInstanceOf(Uint8Array);
+      expect([...bytes.slice(0, 4)]).toEqual([80, 75, 3, 4]);
+      expect(unzipSync(bytes)["word/document.xml"]).toBeDefined();
+    } finally {
+      toBuffer.mockRestore();
+    }
+  });
+
   it("renders the title page with localized due date", () => {
     expect(documentXml).toContain("Hábitos de lectura en la universidad");
     expect(documentXml).toContain("Ana María Ruiz");
