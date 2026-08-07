@@ -64,6 +64,22 @@ describe("PersistenceCoordinator", () => {
     expect(lateFlusher).toHaveBeenCalledOnce();
   });
 
+  it("does not flush a late registration removed before the next batch captures it", async () => {
+    const coordinator = new PersistenceCoordinator();
+    const peer = deferred<void>();
+    coordinator.register(() => peer.promise);
+    const staleFlusher = vi.fn(() => Promise.resolve());
+
+    const barrier = coordinator.flushPending();
+    await drainMicrotasks();
+    const staleRegistration = coordinator.register(staleFlusher);
+    staleRegistration.unregister();
+    peer.resolve();
+    await barrier;
+
+    expect(staleFlusher).not.toHaveBeenCalled();
+  });
+
   it("shares a concurrent barrier while a captured unregistering flusher finishes", async () => {
     const coordinator = new PersistenceCoordinator();
     const slow = deferred<void>();

@@ -39,6 +39,7 @@ export class PersistenceCoordinator {
         if (!registered) return;
         registered = false;
         this.#registrations.delete(registration);
+        this.#registeredDuringBarrier.delete(registration);
         this.#activityGeneration += 1;
       },
     };
