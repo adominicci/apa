@@ -19,6 +19,7 @@ interface ReleaseDraftContract {
   manifest: unknown;
   version: string;
   notes: string;
+  signatureAsset: string;
 }
 
 function record(label: string, value: unknown): Record<string, unknown> {
@@ -100,7 +101,15 @@ export function verifyReleaseDraft(contract: ReleaseDraftContract): void {
     }
 
     const platform = record(`latest.json platform ${key}`, platforms[key]);
-    stringField(`latest.json platform ${key} signature`, platform.signature);
+    const signature = stringField(
+      `latest.json platform ${key} signature`,
+      platform.signature,
+    );
+    if (signature !== contract.signatureAsset) {
+      throw new Error(
+        `signature asset does not match latest.json platform "${key}".`,
+      );
+    }
     const url = stringField(`latest.json platform ${key} URL`, platform.url);
     if (url !== archiveUrl) {
       throw new Error(
@@ -118,26 +127,30 @@ export function verifyReleaseDraft(contract: ReleaseDraftContract): void {
 
 if (import.meta.main) {
   try {
-    const [releasePath, manifestPath, notesPath, version] = Deno.args;
+    const [releasePath, manifestPath, notesPath, version, signaturePath] =
+      Deno.args;
     if (
       !releasePath || !manifestPath || !notesPath || !version ||
-      Deno.args.length !== 4
+      !signaturePath || Deno.args.length !== 5
     ) {
       throw new Error(
-        "Usage: deno run --allow-read scripts/verify-release-draft.ts <release-json> <latest-json> <notes> <version>",
+        "Usage: deno run --allow-read scripts/verify-release-draft.ts <release-json> <latest-json> <notes> <version> <signature>",
       );
     }
 
-    const [releaseJson, manifestJson, notesFile] = await Promise.all([
-      Deno.readTextFile(releasePath),
-      Deno.readTextFile(manifestPath),
-      Deno.readTextFile(notesPath),
-    ]);
+    const [releaseJson, manifestJson, notesFile, signatureAsset] = await Promise
+      .all([
+        Deno.readTextFile(releasePath),
+        Deno.readTextFile(manifestPath),
+        Deno.readTextFile(notesPath),
+        Deno.readTextFile(signaturePath),
+      ]);
     verifyReleaseDraft({
       release: JSON.parse(releaseJson),
       manifest: JSON.parse(manifestJson),
       version,
       notes: notesFile.trim(),
+      signatureAsset,
     });
     console.log("Verified macOS draft release assets and updater manifest.");
   } catch (error) {

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { verifyReleaseDraft } from "./verify-release-draft.ts";
 
 const notes = "### Added\n\n- First public macOS release.";
+const signatureAsset = "trusted updater signature";
 const archiveUrl =
   "https://api.github.com/repos/adominicci/apa/releases/assets/102";
 const expectedPlatformKeys = [
@@ -48,7 +49,7 @@ function validManifest() {
     pub_date: "2026-08-07T12:00:00.000Z",
     platforms: Object.fromEntries(
       expectedPlatformKeys.map((key) => [key, {
-        signature: "trusted updater signature",
+        signature: signatureAsset,
         url: archiveUrl,
       }]),
     ),
@@ -63,6 +64,7 @@ describe("verifyReleaseDraft", () => {
         manifest: validManifest(),
         version: "0.1.0",
         notes,
+        signatureAsset,
       })
     ).not.toThrow();
   });
@@ -79,6 +81,7 @@ describe("verifyReleaseDraft", () => {
         manifest: validManifest(),
         version: "0.1.0",
         notes,
+        signatureAsset,
       })
     ).toThrow(message);
   });
@@ -97,6 +100,7 @@ describe("verifyReleaseDraft", () => {
         manifest: validManifest(),
         version: "0.1.0",
         notes,
+        signatureAsset,
       })
     ).toThrow("release asset names do not match the macOS contract");
   });
@@ -108,8 +112,21 @@ describe("verifyReleaseDraft", () => {
         manifest: { ...validManifest(), notes: "Different notes" },
         version: "0.1.0",
         notes,
+        signatureAsset,
       })
     ).toThrow("latest.json notes");
+  });
+
+  it("requires the downloaded signature asset to match every manifest signature", () => {
+    expect(() =>
+      verifyReleaseDraft({
+        release: validRelease(),
+        manifest: validManifest(),
+        version: "0.1.0",
+        notes,
+        signatureAsset: "different signature asset",
+      })
+    ).toThrow("signature asset does not match latest.json");
   });
 
   it("requires every universal and native macOS updater key", () => {
@@ -122,6 +139,7 @@ describe("verifyReleaseDraft", () => {
         manifest,
         version: "0.1.0",
         notes,
+        signatureAsset,
       })
     ).toThrow('latest.json is missing platform "darwin-x86_64"');
   });
@@ -137,6 +155,7 @@ describe("verifyReleaseDraft", () => {
         manifest,
         version: "0.1.0",
         notes,
+        signatureAsset,
       })
     ).toThrow("does not point to Tesina-macos-universal.app.tar.gz");
   });
@@ -154,6 +173,7 @@ describe("verifyReleaseDraft", () => {
         manifest,
         version: "0.1.0",
         notes,
+        signatureAsset,
       })
     ).toThrow('unexpected updater platform "windows-x86_64"');
   });

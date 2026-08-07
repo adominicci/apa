@@ -12,19 +12,21 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
-      - uses: denoland/setup-deno@v2
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
         with:
           deno-version: v2.x
 
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
         with:
           targets: aarch64-apple-darwin,x86_64-apple-darwin
 
       - name: Cache Rust build
-        uses: swatinem/rust-cache@v2
+        uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           workspaces: apps/desktop/src-tauri
 
@@ -65,7 +67,7 @@ jobs:
 
       - name: Build and upload macOS draft
         id: tauri-release
-        uses: tauri-apps/tauri-action@v1
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -87,14 +89,76 @@ jobs:
             --bundles app,dmg
 
       - name: Verify generated macOS bundles
+        id: macos-artifacts
         env:
           TAURI_ARTIFACT_PATHS: ${{ steps.tauri-release.outputs.artifactPaths }}
-          EXPECTED_INSTALLER_SUFFIXES: '[".app",".dmg",".app.tar.gz",".app.tar.gz.sig"]'
-        run: >-
-          deno run
-          --allow-env=TAURI_ARTIFACT_PATHS,EXPECTED_INSTALLER_SUFFIXES
-          --allow-read
-          scripts/verify-installer-artifacts.ts
+        run: |
+          deno run \
+            --allow-env=TAURI_ARTIFACT_PATHS,GITHUB_OUTPUT \
+            --allow-read \
+            --allow-write="$GITHUB_OUTPUT" \
+            scripts/prepare-macos-release-artifacts.ts
+
+      - name: Verify macOS app and DMG structure
+        env:
+          APP_PATH: ${{ steps.macos-artifacts.outputs.app }}
+          DMG_PATH: ${{ steps.macos-artifacts.outputs.dmg }}
+        run: |
+          set -euo pipefail
+
+          verify_app_bundle() {
+            local app_path="$1"
+            local executable_name
+            local executable_path
+            local archs
+
+            executable_name="$(
+              /usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \
+                "$app_path/Contents/Info.plist"
+            )"
+            if [[ -z "$executable_name" || "$executable_name" == */* ]]; then
+              echo "Invalid CFBundleExecutable in $app_path." >&2
+              return 1
+            fi
+            executable_path="$app_path/Contents/MacOS/$executable_name"
+            if [[ ! -s "$executable_path" ]]; then
+              echo "Missing app executable: $executable_path" >&2
+              return 1
+            fi
+
+            archs="$(
+              lipo -archs "$executable_path" \
+                | tr ' ' '\n' \
+                | sort \
+                | paste -sd ' ' -
+            )"
+            if [[ "$archs" != "arm64 x86_64" ]]; then
+              echo "Expected arm64 x86_64; found: $archs" >&2
+              return 1
+            fi
+            codesign --verify --deep --strict --verbose=2 "$app_path"
+          }
+
+          verify_app_bundle "$APP_PATH"
+          hdiutil verify "$DMG_PATH"
+
+          mount_dir="$(mktemp -d "$RUNNER_TEMP/tesina-dmg.XXXXXX")"
+          cleanup_dmg() {
+            hdiutil detach "$mount_dir" > /dev/null 2>&1 \
+              || hdiutil detach -force "$mount_dir" > /dev/null 2>&1 \
+              || true
+            rmdir "$mount_dir" > /dev/null 2>&1 || true
+          }
+          trap cleanup_dmg EXIT INT TERM
+          hdiutil attach -readonly -nobrowse \
+            -mountpoint "$mount_dir" "$DMG_PATH" > /dev/null
+          if [[ ! -d "$mount_dir/Tesina.app" ]]; then
+            echo "Mounted DMG does not contain Tesina.app." >&2
+            exit 1
+          fi
+          verify_app_bundle "$mount_dir/Tesina.app"
+          cleanup_dmg
+          trap - EXIT INT TERM
 
       - name: Verify draft release and updater manifest
         env:
@@ -106,6 +170,8 @@ jobs:
           set -euo pipefail
           release_json="$RUNNER_TEMP/tesina-draft-release.json"
           latest_json="$RUNNER_TEMP/tesina-latest.json"
+          archive_path="$RUNNER_TEMP/Tesina-macos-universal.app.tar.gz"
+          signature_path="$archive_path.sig"
 
           gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
             > "$release_json"
@@ -113,17 +179,42 @@ jobs:
             gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
               --jq '.assets[] | select(.name == "latest.json") | .id'
           )"
-          if [[ -z "$latest_asset_id" ]]; then
-            echo "Draft release has no latest.json asset." >&2
+          archive_asset_id="$(
+            gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
+              --jq '.assets[] | select(.name == "Tesina-macos-universal.app.tar.gz") | .id'
+          )"
+          signature_asset_id="$(
+            gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
+              --jq '.assets[] | select(.name == "Tesina-macos-universal.app.tar.gz.sig") | .id'
+          )"
+          if [[ -z "$latest_asset_id" || -z "$archive_asset_id" || -z "$signature_asset_id" ]]; then
+            echo "Draft release is missing updater verification assets." >&2
             exit 1
           fi
           gh api \
             -H "Accept: application/octet-stream" \
             "repos/$GITHUB_REPOSITORY/releases/assets/$latest_asset_id" \
             > "$latest_json"
+          gh api \
+            -H "Accept: application/octet-stream" \
+            "repos/$GITHUB_REPOSITORY/releases/assets/$archive_asset_id" \
+            > "$archive_path"
+          gh api \
+            -H "Accept: application/octet-stream" \
+            "repos/$GITHUB_REPOSITORY/releases/assets/$signature_asset_id" \
+            > "$signature_path"
 
           deno run --allow-read scripts/verify-release-draft.ts \
             "$release_json" \
             "$latest_json" \
             "$RELEASE_NOTES_PATH" \
-            "$RELEASE_VERSION"
+            "$RELEASE_VERSION" \
+            "$signature_path"
+
+          cargo run \
+            --locked \
+            --manifest-path scripts/updater-signature-verifier/Cargo.toml \
+            -- \
+            "$archive_path" \
+            "$signature_path" \
+            apps/desktop/src-tauri/tauri.conf.json

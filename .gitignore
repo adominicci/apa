@@ -5,6 +5,7 @@ node_modules/
 # Build output
 dist/
 apps/desktop/src-tauri/target/
+scripts/updater-signature-verifier/target/
 apps/desktop/src-tauri/gen/
 
 # Generated i18n output (Paraglide)
