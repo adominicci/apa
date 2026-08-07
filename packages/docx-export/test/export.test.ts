@@ -43,6 +43,19 @@ function textRunContaining(paragraph: string, text: string): string {
   return run;
 }
 
+function paragraphText(paragraph: string): string {
+  return [...paragraph.matchAll(/<w:t(?: [^>]*)?>([\s\S]*?)<\/w:t>/g)]
+    .map((match) => match[1] ?? "")
+    .join("");
+}
+
+function tableContaining(xml: string, text: string): string {
+  const tables = xml.match(/<w:tbl(?:>| [^>]*>)[\s\S]*?<\/w:tbl>/g) ?? [];
+  const table = tables.find((candidate) => candidate.includes(text));
+  if (!table) throw new Error(`Table not found: ${text}`);
+  return table;
+}
+
 async function documentXmlFor(
   input: ReturnType<typeof sampleInput>,
 ): Promise<string> {
@@ -362,6 +375,123 @@ describe("exportDocx (student, es)", () => {
     expect(paragraph).not.toContain('w:pStyle w:val="Heading5"');
   });
 
+  it.each([
+    {
+      level: 4,
+      label: "Hard-break result ",
+      marked: {
+        type: "text",
+        text: "marked.",
+        marks: [{ type: "italic" }],
+      },
+      trailing: [{ type: "hardBreak" }],
+      continuation: "Level four continuation ",
+      expectedText:
+        "Hard-break result (Consejo de Escritura Regional [CER], 2024) marked. Level four continuation (CER, 2024)",
+      trailingXml: "<w:br/>",
+    },
+    {
+      level: 5,
+      label: "Whitespace result ",
+      marked: {
+        type: "text",
+        text: "underlined.",
+        marks: [{ type: "underline" }],
+      },
+      trailing: [{
+        type: "text",
+        text: "   ",
+        marks: [{ type: "underline" }],
+      }],
+      continuation: "Level five continuation ",
+      expectedText:
+        "Whitespace result (Consejo de Escritura Regional [CER], 2024) underlined   . Level five continuation (CER, 2024)",
+      trailingXml: '<w:t xml:space="preserve">   </w:t>',
+    },
+  ])(
+    "normalizes the last meaningful text before level-$level trailing inline nodes",
+    async (
+      {
+        level,
+        label,
+        marked,
+        trailing,
+        continuation,
+        expectedText,
+        trailingXml,
+      },
+    ) => {
+      const groupReference: Reference = {
+        id: "ref-trailing-regional-council",
+        type: "journalArticle",
+        authors: [{
+          kind: "group",
+          name: "Consejo de Escritura Regional",
+          abbreviation: "CER",
+        }],
+        date: { year: 2024 },
+        title: "Prácticas de escritura estudiantil",
+        journal: "Revista Académica Inventada",
+        volume: "4",
+        pageStart: "1",
+        pageEnd: "12",
+      };
+      const citation = {
+        type: "citation",
+        attrs: {
+          items: [{ refId: groupReference.id }],
+          mode: "parenthetical",
+        },
+      };
+      const input = sampleInput();
+      input.references = [groupReference];
+      input.content = {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [
+            {
+              type: "heading",
+              attrs: { level },
+              content: [
+                { type: "text", text: label },
+                citation,
+                { type: "text", text: " " },
+                marked,
+                ...trailing,
+              ],
+            },
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: continuation },
+                citation,
+              ],
+            },
+          ],
+        }],
+      };
+
+      const xml = await documentXmlFor(input);
+      const paragraph = paragraphsContaining(xml, label.trim())[0]!;
+      const markedText = marked.text.slice(0, -1);
+      const markedRun = textRunContaining(paragraph, markedText);
+
+      expect(paragraphText(paragraph)).toBe(expectedText);
+      expect(markedRun).not.toContain(`${marked.text}</w:t>`);
+      expect(markedRun).toContain(markedText);
+      expect(paragraph).toContain(trailingXml);
+      expect(paragraph).toContain("(CER, 2024)");
+      if (level === 4) {
+        expect(markedRun).toContain("<w:i/>");
+      } else {
+        const trailingRun = textRunContaining(paragraph, "   ");
+        expect(markedRun).toContain('<w:u w:val="single"/>');
+        expect(trailingRun).toContain('<w:u w:val="single"/>');
+      }
+    },
+  );
+
   it("shares first-occurrence citation state from a table-cell list into a run-in heading", async () => {
     const groupReference: Reference = {
       id: "ref-regional-council",
@@ -450,6 +580,162 @@ describe("exportDocx (student, es)", () => {
     expect(first).toContain("<w:numPr>");
     expect(later).toContain("(CER, 2024)");
     expect(textRunContaining(later, "(CER, 2024)")).toContain("<w:b/>");
+  });
+
+  it("preserves and indents nested-quote table and figure content with shared counters", async () => {
+    const groupReference: Reference = {
+      id: "ref-nested-regional-council",
+      type: "journalArticle",
+      authors: [{
+        kind: "group",
+        name: "Consejo de Escritura Regional",
+        abbreviation: "CER",
+      }],
+      date: { year: 2024 },
+      title: "Prácticas de escritura estudiantil",
+      journal: "Revista Académica Inventada",
+      volume: "4",
+      pageStart: "1",
+      pageEnd: "12",
+    };
+    const citation = {
+      type: "citation",
+      attrs: {
+        items: [{ refId: groupReference.id }],
+        mode: "parenthetical",
+      },
+    };
+    const input = sampleInput();
+    input.references = [groupReference];
+    input.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [
+          {
+            type: "apaTable",
+            content: [
+              {
+                type: "tableTitle",
+                content: [{ type: "text", text: "Top-level table" }],
+              },
+              {
+                type: "table",
+                content: [{
+                  type: "tableRow",
+                  content: [{
+                    type: "tableCell",
+                    content: [{ type: "paragraph" }],
+                  }],
+                }],
+              },
+              { type: "tableNote" },
+            ],
+          },
+          {
+            type: "figure",
+            content: [
+              {
+                type: "figureTitle",
+                content: [{ type: "text", text: "Top-level figure" }],
+              },
+              { type: "figureImage", attrs: { src: "missing-top.png" } },
+              { type: "figureNote" },
+            ],
+          },
+          {
+            type: "blockquote",
+            content: [{
+              type: "blockquote",
+              content: [
+                {
+                  type: "apaTable",
+                  content: [
+                    {
+                      type: "tableTitle",
+                      content: [
+                        { type: "text", text: "NESTED QUOTE TABLE " },
+                        citation,
+                      ],
+                    },
+                    {
+                      type: "table",
+                      content: [{
+                        type: "tableRow",
+                        content: [{
+                          type: "tableCell",
+                          content: [{
+                            type: "paragraph",
+                            content: [{
+                              type: "text",
+                              text: "NESTED QUOTE TABLE CELL",
+                            }],
+                          }],
+                        }],
+                      }],
+                    },
+                    {
+                      type: "tableNote",
+                      content: [{
+                        type: "text",
+                        text: "Nested table note",
+                      }],
+                    },
+                  ],
+                },
+                {
+                  type: "figure",
+                  content: [
+                    {
+                      type: "figureTitle",
+                      content: [
+                        { type: "text", text: "NESTED QUOTE FIGURE " },
+                        citation,
+                      ],
+                    },
+                    {
+                      type: "figureImage",
+                      attrs: { src: "missing-nested.png" },
+                    },
+                    {
+                      type: "figureNote",
+                      content: [{
+                        type: "text",
+                        text: "Nested figure note",
+                      }],
+                    },
+                  ],
+                },
+              ],
+            }],
+          },
+        ],
+      }],
+    };
+
+    const xml = await documentXmlFor(input);
+    const tableCaption = paragraphsContaining(xml, "Tabla 2")[0]!;
+    const tableTitle = paragraphsContaining(xml, "NESTED QUOTE TABLE")[0]!;
+    const tableNote = paragraphsContaining(xml, "Nested table note")[0]!;
+    const table = tableContaining(xml, "NESTED QUOTE TABLE CELL");
+    const figureCaption = paragraphsContaining(xml, "Figura 2")[0]!;
+    const figureTitle = paragraphsContaining(xml, "NESTED QUOTE FIGURE")[0]!;
+    const figureNote = paragraphsContaining(xml, "Nested figure note")[0]!;
+
+    expect(xml).toContain("Tabla 1");
+    expect(xml).toContain("Figura 1");
+    expect(tableCaption).toContain('w:left="1440"');
+    expect(tableTitle).toContain('w:left="1440"');
+    expect(tableNote).toContain('w:left="1440"');
+    expect(table).toContain('<w:tblInd w:type="dxa" w:w="1440"/>');
+    expect(table).toContain("NESTED QUOTE TABLE CELL");
+    expect(figureCaption).toContain('w:left="1440"');
+    expect(figureTitle).toContain('w:left="1440"');
+    expect(figureNote).toContain('w:left="1440"');
+    expect(tableTitle).toContain(
+      "(Consejo de Escritura Regional [CER], 2024)",
+    );
+    expect(figureTitle).toContain("(CER, 2024)");
   });
 
   it("renders the keywords label in italics", () => {

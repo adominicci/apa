@@ -16,6 +16,12 @@ import { type DocContext, inlineToTextRuns } from "./runs.ts";
 const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: "auto" };
 const RULE = { style: BorderStyle.SINGLE, size: 4, color: "000000" };
 
+function paragraphIndent(
+  leftIndent: number,
+): { indent?: { left: number } } {
+  return leftIndent > 0 ? { indent: { left: leftIndent } } : {};
+}
+
 /**
  * Builds an APA table (APA 7.8–7.21): "Table N" bold, italic title, a grid
  * ruled only above the table, under the header row, and at the bottom, then
@@ -29,6 +35,7 @@ export function apaTableBlocks(
   renderCellBlocks: (
     blocks: readonly PMJson[],
   ) => readonly (Paragraph | Table)[],
+  leftIndent = 0,
 ): (Paragraph | Table)[] {
   tableCounter.n += 1;
   const t = getTerms(ctx.locale);
@@ -42,6 +49,7 @@ export function apaTableBlocks(
   out.push(
     new Paragraph({
       style: "Normal",
+      ...paragraphIndent(leftIndent),
       children: [
         new TextRun({
           text: `${t.headings.table} ${tableCounter.n}`,
@@ -53,6 +61,7 @@ export function apaTableBlocks(
   out.push(
     new Paragraph({
       style: "Normal",
+      ...paragraphIndent(leftIndent),
       children: titleNode
         ? inlineToTextRuns(titleNode.content ?? [], ctx, citationCounter, {
           italics: true,
@@ -65,6 +74,9 @@ export function apaTableBlocks(
   out.push(
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
+      ...(leftIndent > 0
+        ? { indent: { size: leftIndent, type: WidthType.DXA } }
+        : {}),
       borders: {
         top: RULE,
         bottom: RULE,
@@ -113,6 +125,7 @@ export function apaTableBlocks(
     out.push(
       new Paragraph({
         style: "Normal",
+        ...paragraphIndent(leftIndent),
         children: [
           new TextRun({ text: `${t.headings.note} `, italics: true }),
           ...noteRuns,
@@ -134,6 +147,7 @@ export function apaFigureBlocks(
   ctx: DocContext,
   citationCounter: { next: number },
   figureCounter: { n: number },
+  leftIndent = 0,
 ): Paragraph[] {
   figureCounter.n += 1;
   const t = getTerms(ctx.locale);
@@ -146,6 +160,7 @@ export function apaFigureBlocks(
   out.push(
     new Paragraph({
       style: "Normal",
+      ...paragraphIndent(leftIndent),
       children: [
         new TextRun({
           text: `${t.headings.figure} ${figureCounter.n}`,
@@ -157,6 +172,7 @@ export function apaFigureBlocks(
   out.push(
     new Paragraph({
       style: "Normal",
+      ...paragraphIndent(leftIndent),
       children: titleNode
         ? inlineToTextRuns(titleNode.content ?? [], ctx, citationCounter, {
           italics: true,
@@ -171,6 +187,7 @@ export function apaFigureBlocks(
     out.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
+        ...paragraphIndent(leftIndent),
         children: [
           new ImageRun({
             data: image.data,
@@ -189,6 +206,7 @@ export function apaFigureBlocks(
     out.push(
       new Paragraph({
         style: "Normal",
+        ...paragraphIndent(leftIndent),
         children: [
           new TextRun({ text: `${t.headings.note} `, italics: true }),
           ...noteRuns,

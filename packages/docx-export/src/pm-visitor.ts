@@ -32,19 +32,22 @@ interface VisitOptions {
 }
 
 /**
- * Removes the optional authored period and trailing space from a run-in
- * heading's last text node. The visitor adds one styled ". " run after all
- * rich inline content, so citations and marks remain separate engine-backed
- * runs without ever producing a doubled period.
+ * Removes the optional authored period from a run-in heading's last meaningful
+ * text node. Trailing whitespace-only text and hard breaks remain intact; the
+ * scan skips only those schema-valid nodes and stops at any other inline atom.
  */
 function normalizedRunInContent(inline: readonly PMJson[]): PMJson[] {
   const normalized = [...inline];
-  const last = normalized.at(-1);
-  if (last?.type === "text" && typeof last.text === "string") {
-    normalized[normalized.length - 1] = {
-      ...last,
-      text: last.text.replace(/\.?\s*$/, ""),
+  for (let i = normalized.length - 1; i >= 0; i--) {
+    const node = normalized[i]!;
+    if (node.type === "hardBreak") continue;
+    if (node.type !== "text" || typeof node.text !== "string") break;
+    if (node.text.trim() === "") continue;
+    normalized[i] = {
+      ...node,
+      text: node.text.replace(/\.(\s*)$/, "$1"),
     };
+    break;
   }
   return normalized;
 }
@@ -242,6 +245,7 @@ export function visitBlocks(
             state.citationCounter,
             state.tableCounter,
             (cellBlocks) => visitBlocks(cellBlocks, state),
+            options.blockquoteIndent,
           ),
         );
         break;
@@ -254,6 +258,7 @@ export function visitBlocks(
             state.ctx,
             state.citationCounter,
             state.figureCounter,
+            options.blockquoteIndent,
           ),
         );
         break;

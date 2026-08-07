@@ -108,18 +108,23 @@ function inlineHtml(inline: readonly PMJson[], state: RenderState): string {
 }
 
 /**
- * Removes an authored terminal period before inline marks become HTML tags.
- * Run-in headings add one styled ". " after all rich content; normalizing the
- * final text node first avoids `marked.</em>.` while preserving its marks.
+ * Removes an authored terminal period from the last meaningful text node
+ * before inline marks become HTML tags. Schema-valid trailing whitespace and
+ * hard breaks stay untouched; this scan skips only those trailing nodes and
+ * stops at any other inline atom rather than acting as a broad normalizer.
  */
 function normalizedRunInContent(inline: readonly PMJson[]): PMJson[] {
   const normalized = [...inline];
-  const last = normalized.at(-1);
-  if (last?.type === "text" && typeof last.text === "string") {
-    normalized[normalized.length - 1] = {
-      ...last,
-      text: last.text.replace(/\.?\s*$/, ""),
+  for (let i = normalized.length - 1; i >= 0; i--) {
+    const node = normalized[i]!;
+    if (node.type === "hardBreak") continue;
+    if (node.type !== "text" || typeof node.text !== "string") break;
+    if (node.text.trim() === "") continue;
+    normalized[i] = {
+      ...node,
+      text: node.text.replace(/\.(\s*)$/, "$1"),
     };
+    break;
   }
   return normalized;
 }

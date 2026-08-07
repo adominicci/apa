@@ -470,20 +470,26 @@ describe("renderEssayHtml", () => {
       terminalMark: "italic",
       label: "Result ",
       marked: "marked.",
+      trailing: [{ type: "hardBreak" }],
       continuation: "Level four continuation.",
       expected:
-        "<p><strong>Result (Salgado, 2020) <em>marked</em>. </strong>Level four continuation.</p>",
-      duplicate: "marked.</em>. ",
+        "<p><strong>Result (Consejo de Escritura Regional [CER], 2024) <em>marked</em><br />. </strong>Level four continuation. (CER, 2024)</p>",
+      duplicate: "marked.</em><br />. ",
     },
     {
       level: 5,
       terminalMark: "underline",
       label: "Finding ",
       marked: "underlined.",
+      trailing: [{
+        type: "text",
+        text: "   ",
+        marks: [{ type: "italic" }],
+      }],
       continuation: "Level five continuation.",
       expected:
-        "<p><strong><em>Finding (Salgado, 2020) <u>underlined</u>. </em></strong>Level five continuation.</p>",
-      duplicate: "underlined.</u>. ",
+        "<p><strong><em>Finding (Consejo de Escritura Regional [CER], 2024) <u>underlined</u><em>   </em>. </em></strong>Level five continuation. (CER, 2024)</p>",
+      duplicate: "underlined.</u><em>   </em>. ",
     },
   ])(
     "normalizes a marked terminal period once for a level-$level run-in heading",
@@ -493,6 +499,7 @@ describe("renderEssayHtml", () => {
         terminalMark,
         label,
         marked,
+        trailing,
         continuation,
         expected,
         duplicate,
@@ -512,7 +519,7 @@ describe("renderEssayHtml", () => {
                 {
                   type: "citation",
                   attrs: {
-                    items: [{ refId: "ref-salgado" }],
+                    items: [{ refId: "ref-reading-council" }],
                     mode: "parenthetical",
                   },
                 },
@@ -524,22 +531,170 @@ describe("renderEssayHtml", () => {
                     type: terminalMark,
                   }],
                 },
+                ...trailing,
               ],
             },
             {
               type: "paragraph",
-              content: [{ type: "text", text: continuation }],
+              content: [
+                { type: "text", text: `${continuation} ` },
+                {
+                  type: "citation",
+                  attrs: {
+                    items: [{ refId: "ref-reading-council" }],
+                    mode: "parenthetical",
+                  },
+                },
+              ],
             },
           ],
         }],
       };
 
-      const html = renderEssayHtml(essay, essay.content, [salgado]);
+      const html = renderEssayHtml(essay, essay.content, [readingCouncil]);
 
       expect(html).toContain(expected);
       expect(html).not.toContain(duplicate);
     },
   );
+
+  it("preserves nested-quote table and figure content, citations, and counters", () => {
+    const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    essay.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [
+          {
+            type: "apaTable",
+            content: [
+              {
+                type: "tableTitle",
+                content: [{ type: "text", text: "Top-level table" }],
+              },
+              {
+                type: "table",
+                content: [{
+                  type: "tableRow",
+                  content: [{
+                    type: "tableCell",
+                    content: [{ type: "paragraph" }],
+                  }],
+                }],
+              },
+              { type: "tableNote" },
+            ],
+          },
+          {
+            type: "figure",
+            content: [
+              {
+                type: "figureTitle",
+                content: [{ type: "text", text: "Top-level figure" }],
+              },
+              { type: "figureImage", attrs: { src: "missing-top.png" } },
+              { type: "figureNote" },
+            ],
+          },
+          {
+            type: "blockquote",
+            content: [{
+              type: "blockquote",
+              content: [
+                {
+                  type: "apaTable",
+                  content: [
+                    {
+                      type: "tableTitle",
+                      content: [
+                        { type: "text", text: "NESTED QUOTE TABLE " },
+                        {
+                          type: "citation",
+                          attrs: {
+                            items: [{ refId: "ref-reading-council" }],
+                            mode: "parenthetical",
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      type: "table",
+                      content: [{
+                        type: "tableRow",
+                        content: [{
+                          type: "tableCell",
+                          content: [{
+                            type: "paragraph",
+                            content: [{
+                              type: "text",
+                              text: "NESTED QUOTE TABLE CELL",
+                            }],
+                          }],
+                        }],
+                      }],
+                    },
+                    {
+                      type: "tableNote",
+                      content: [{
+                        type: "text",
+                        text: "Nested table note",
+                      }],
+                    },
+                  ],
+                },
+                {
+                  type: "figure",
+                  content: [
+                    {
+                      type: "figureTitle",
+                      content: [
+                        { type: "text", text: "NESTED QUOTE FIGURE " },
+                        {
+                          type: "citation",
+                          attrs: {
+                            items: [{ refId: "ref-reading-council" }],
+                            mode: "parenthetical",
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      type: "figureImage",
+                      attrs: { src: "missing-nested.png" },
+                    },
+                    {
+                      type: "figureNote",
+                      content: [{
+                        type: "text",
+                        text: "Nested figure note",
+                      }],
+                    },
+                  ],
+                },
+              ],
+            }],
+          },
+        ],
+      }],
+    };
+
+    const html = renderEssayHtml(essay, essay.content, [readingCouncil]);
+
+    expect(html).toContain("Tabla 1");
+    expect(html).toContain("Figura 1");
+    expect(html).toContain(
+      '<blockquote><blockquote><figure class="apa-table">',
+    );
+    expect(html).toContain("Tabla 2");
+    expect(html).toContain("Figura 2");
+    expect(html).toContain("NESTED QUOTE TABLE CELL");
+    expect(html).toContain("Nested table note");
+    expect(html).toContain("Nested figure note");
+    expect(html).toContain(
+      "NESTED QUOTE TABLE (Consejo de Escritura Regional [CER], 2024)",
+    );
+    expect(html).toContain("NESTED QUOTE FIGURE (CER, 2024)");
+  });
 
   it("renders an APA figure with number, title, image URL, and note", () => {
     const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
