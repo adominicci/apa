@@ -6,7 +6,7 @@ const completeInput = {
   title: "Reading Habits",
   authors: ["Ana Ruiz", "Jordan Lee"],
   affiliations: ["University of Puerto Rico"],
-  course: "EDU 301",
+  course: "EDU 301: Foundations of Education",
   instructor: "Dr. Rivera",
   dueDate: "2026-08-07",
 };
@@ -109,6 +109,28 @@ describe("buildStudentTitlePage", () => {
       "missingInstructor",
       "missingDueDate",
     ]);
+  });
+
+  it.each([
+    "",
+    "EDU 301",
+    ": Foundations of Education",
+    "EDU 301:",
+    "   :   ",
+  ])("requires both course number and name in %j", (course) => {
+    expect(buildStudentTitlePage({ ...completeInput, course }).issues)
+      .toContain(
+        "missingCourse",
+      );
+  });
+
+  it.each([
+    "EDU 301: Foundations of Education",
+    "EDU 301 : Foundations of Education",
+    "EDU 301: Foundations: Theory and Practice",
+  ])("accepts a complete course number and name in %j", (course) => {
+    expect(buildStudentTitlePage({ ...completeInput, course }).issues).not
+      .toContain("missingCourse");
   });
 
   it("reports ambiguous affiliations when their count matches neither supported mapping", () => {

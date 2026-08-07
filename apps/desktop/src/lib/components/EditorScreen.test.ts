@@ -2,14 +2,20 @@
 
 import { flushSync, mount, tick, unmount } from "svelte";
 import type { Content, Editor as TiptapEditor } from "@tiptap/core";
+import { exportDocx } from "@tesina/docx-export";
+import type { Reference } from "@tesina/engine";
+import { strFromU8, unzipSync } from "fflate";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Essay } from "$lib/model/essay";
+import { m } from "$lib/paraglide/messages";
 import EditorScreen from "./EditorScreen.svelte";
 
 const runtime = vi.hoisted(() => ({
   editors: [] as TiptapEditor[],
   persist: vi.fn(),
   persistedDocs: [] as unknown[],
+  libraryReferences: [] as Reference[],
+  exportEssayToDocx: vi.fn(),
 }));
 
 vi.mock("$lib/editor/createEditor", async () => {
@@ -34,11 +40,17 @@ vi.mock("$lib/state/essays.svelte", () => ({
 
 vi.mock("$lib/state/library.svelte", () => ({
   library: {
-    references: [],
-    byId: () => new Map(),
+    get references() {
+      return runtime.libraryReferences;
+    },
+    byId: () => new Map(runtime.libraryReferences.map((ref) => [ref.id, ref])),
     add: vi.fn(),
     remove: vi.fn(),
   },
+}));
+
+vi.mock("$lib/export/exportEssay", () => ({
+  exportEssayToDocx: runtime.exportEssayToDocx,
 }));
 
 vi.mock("$lib/state/uiLocale.svelte", () => ({
@@ -64,6 +76,40 @@ function bodyDoc(text: string): Content {
         content: [{ type: "text", text }],
       }],
     }],
+  };
+}
+
+function citationDoc(refId: string): Content {
+  return {
+    type: "doc",
+    content: [{
+      type: "sectionBody",
+      content: [{
+        type: "paragraph",
+        content: [{
+          type: "citation",
+          attrs: {
+            mode: "parenthetical",
+            items: [{ refId }],
+          },
+        }],
+      }],
+    }],
+  };
+}
+
+function reference(
+  id: string,
+  title = "Evidence-based teaching",
+): Reference {
+  return {
+    id,
+    type: "website",
+    authors: [{ kind: "person", family: "Rivera", given: "Alex" }],
+    date: { year: 2026 },
+    title,
+    siteName: "Teaching Lab",
+    url: `https://example.test/${id}`,
   };
 }
 
@@ -96,11 +142,34 @@ function essayWithBody(text: string): Essay {
   };
 }
 
+function exportableEssay(content: Content): Essay {
+  const essay = essayWithBody("Seed");
+  essay.content = content;
+  essay.titlePage = {
+    ...essay.titlePage,
+    course: "EDU 301: Foundations of Education",
+    instructor: "Dr. Rivera",
+    dueDate: "2026-08-07",
+  };
+  return essay;
+}
+
+function exportButton(): HTMLButtonElement {
+  const button = document.querySelector<HTMLButtonElement>(
+    '.fm-primary-action[aria-label="Exportar"]',
+  );
+  if (!button) throw new Error("Export button not found");
+  return button;
+}
+
 afterEach(() => {
   vi.useRealTimers();
   runtime.editors = [];
   runtime.persist.mockReset();
   runtime.persistedDocs = [];
+  runtime.libraryReferences = [];
+  runtime.exportEssayToDocx.mockReset();
+  runtime.exportEssayToDocx.mockResolvedValue({ status: "cancelled" });
   document.body.replaceChildren();
 });
 
@@ -160,6 +229,127 @@ describe("editor preview round trip", () => {
     expect(docText(runtime.persistedDocs[0])).toContain(
       "First edit Second edit",
     );
+    await unmount(component);
+  });
+});
+
+describe("APA export reference integrity", () => {
+  it("exports a cited snapshot fallback without a missing citation marker", async () => {
+    const cited = reference("deleted-ref");
+    const essay = exportableEssay(citationDoc(cited.id));
+    essay.referencesSnapshot = [cited];
+
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    exportButton().click();
+    await vi.waitFor(() => {
+      expect(runtime.exportEssayToDocx).toHaveBeenCalledOnce();
+    });
+
+    const [exportedEssay, exportedDocument, exportedReferences] = runtime
+      .exportEssayToDocx.mock.calls[0] as [Essay, Content, Reference[]];
+    expect(exportedReferences).toEqual([cited]);
+
+    const bytes = await exportDocx({
+      content: exportedDocument,
+      settings: {
+        documentLanguage: exportedEssay.settings.documentLanguage,
+        variant: exportedEssay.settings.variant,
+        font: exportedEssay.settings.font,
+        paperSize: exportedEssay.settings.paperSize,
+      },
+      titlePage: exportedEssay.titlePage,
+      references: exportedReferences,
+    });
+    const xml = strFromU8(unzipSync(bytes)["word/document.xml"]!);
+    expect(xml).toContain("Rivera");
+    expect(xml).toContain("Evidence-based teaching");
+    expect(xml).not.toContain("???");
+
+    await unmount(component);
+  });
+
+  it("blocks an unresolved citation before export and shows the localized error", async () => {
+    const essay = exportableEssay(citationDoc("gone-for-good"));
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    exportButton().click();
+    await tick();
+
+    expect(runtime.exportEssayToDocx).not.toHaveBeenCalled();
+    expect(document.querySelector(".export-msg")?.textContent).toContain(
+      "Este trabajo cita una referencia que ya no está disponible",
+    );
+    expect(
+      m.editor_export_missing_references(undefined, { locale: "en" }),
+    ).toContain(
+      "This paper cites a reference that is no longer available",
+    );
+    expect(
+      m.editor_export_missing_references(undefined, { locale: "es" }),
+    ).toContain(
+      "Este trabajo cita una referencia que ya no está disponible",
+    );
+
+    await unmount(component);
+  });
+
+  it("includes uncited live references once and prefers live cited data", async () => {
+    const liveCited = reference("cited-ref", "Current live title");
+    const staleSnapshot = reference("cited-ref", "Stale snapshot title");
+    const uncited = reference("uncited-ref", "Uncited title");
+    runtime.libraryReferences = [uncited, liveCited];
+    const essay = exportableEssay(citationDoc(liveCited.id));
+    essay.settings.includeUncitedReferences = true;
+    essay.referencesSnapshot = [staleSnapshot, liveCited];
+
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    exportButton().click();
+    await vi.waitFor(() => {
+      expect(runtime.exportEssayToDocx).toHaveBeenCalledOnce();
+    });
+
+    const references = runtime.exportEssayToDocx.mock
+      .calls[0]![2] as Reference[];
+    expect(references.map((ref) => ref.id).sort()).toEqual([
+      "cited-ref",
+      "uncited-ref",
+    ]);
+    expect(references.find((ref) => ref.id === "cited-ref")?.title).toBe(
+      "Current live title",
+    );
+
     await unmount(component);
   });
 });

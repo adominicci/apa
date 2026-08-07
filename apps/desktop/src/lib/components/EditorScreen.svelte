@@ -61,6 +61,7 @@
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { dismissable } from "$lib/dom/dismiss";
   import { exportEssayToDocx } from "$lib/export/exportEssay";
+  import { resolveReferencesForExport } from "$lib/export/referenceResolution";
   import {
     createStudentExportSnapshot,
     runStudentTitlePageValidatedExport,
@@ -172,19 +173,15 @@
     `--doc-font: ${docFont.stack}; --doc-font-size: ${docFont.sizePt}pt; --body-title: ${JSON.stringify(essayTitle)}`,
   );
   /** One reactive selection shared by the live sheet, preview, and export. */
-  const referencesForExport = $derived.by(() => {
-    if (essay.settings.includeUncitedReferences) {
-      return [...library.byId().values()];
-    }
-    // Recompute from the reactive cited counts + library.
-    const byId = library.byId();
-    const out: Reference[] = [];
-    for (const refId of citedCounts.keys()) {
-      const ref = byId.get(refId);
-      if (ref) out.push(ref);
-    }
-    return out;
-  });
+  const referenceResolution = $derived.by(() =>
+    resolveReferencesForExport(
+      citedCounts.keys(),
+      library.references,
+      essay.referencesSnapshot ?? [],
+      essay.settings.includeUncitedReferences,
+    )
+  );
+  const referencesForExport = $derived(referenceResolution.references);
   const referenceEnv: ReferenceDecorationEnv = {
     references: untrack(() => referencesForExport),
     locale: untrack(() => documentLanguage),
@@ -461,10 +458,21 @@
     exportMessage = "";
     titlePageValidationError = "";
     try {
+      const documentSnapshot = lastDoc ?? currentEditor.getJSON();
+      const exportReferences = resolveReferencesForExport(
+        collectCitedRefIds(documentSnapshot).keys(),
+        library.references,
+        essay.referencesSnapshot ?? [],
+        essay.settings.includeUncitedReferences,
+      );
+      if (exportReferences.unresolvedCitedRefIds.length > 0) {
+        exportMessage = m.editor_export_missing_references();
+        return;
+      }
       const exportSnapshot = createStudentExportSnapshot(
         essay,
-        lastDoc ?? currentEditor.getJSON(),
-        referencesForExport,
+        documentSnapshot,
+        exportReferences.references,
         documentLanguage,
       );
       const result = await runStudentTitlePageValidatedExport(

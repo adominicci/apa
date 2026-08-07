@@ -55,6 +55,12 @@ function unique(values: readonly string[]): string[] {
   return [...new Set(values)];
 }
 
+function hasCourseNumberAndName(course: string): boolean {
+  const separator = course.indexOf(":");
+  return separator > 0 && course.slice(0, separator).trim().length > 0 &&
+    course.slice(separator + 1).trim().length > 0;
+}
+
 function isSupportedAffiliationMapping(
   authorCount: number,
   affiliationCount: number,
@@ -103,7 +109,7 @@ export function buildStudentTitlePage(
   if (!input.title.trim()) issues.push("missingTitle");
   if (authors.length === 0) issues.push("missingAuthors");
   if (affiliations.length === 0) issues.push("missingAffiliations");
-  if (!input.course.trim()) issues.push("missingCourse");
+  if (!hasCourseNumberAndName(input.course)) issues.push("missingCourse");
   if (!input.instructor.trim()) issues.push("missingInstructor");
   if (!input.dueDate.trim()) issues.push("missingDueDate");
 

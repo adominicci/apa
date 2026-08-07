@@ -12,7 +12,7 @@ const completeTitlePage: TitlePage = {
   title: "Reading Habits",
   authors: ["Ana Ruiz"],
   affiliations: ["University of Puerto Rico"],
-  course: "EDU 301",
+  course: "EDU 301: Foundations of Education",
   instructor: "Dr. Rivera",
   dueDate: "2026-08-07",
 };
@@ -109,6 +109,36 @@ describe("student title-page validation adapter", () => {
     });
     expect(exportCalls).toBe(0);
   });
+
+  it.each(["", "EDU 301"])(
+    "blocks incomplete course information %j before export",
+    async (course) => {
+      let exportCalls = 0;
+      const essay = completeEssay();
+      essay.titlePage.course = course;
+      const snapshot = createStudentExportSnapshot(
+        essay,
+        essay.content,
+        [reference],
+        "en",
+      );
+
+      const result = await runStudentTitlePageValidatedExport(
+        snapshot,
+        () => {
+          exportCalls += 1;
+          return Promise.resolve("saved");
+        },
+      );
+
+      expect(result).toEqual({
+        status: "blocked",
+        issue: "missingCourse",
+        messageKey: "titlepage_error_missing_course",
+      });
+      expect(exportCalls).toBe(0);
+    },
+  );
 
   it("invokes a valid export once and returns its outcome", async () => {
     let exportCalls = 0;

@@ -85,7 +85,7 @@ export function sampleEssayInput(
       title: "Hábitos de lectura en la universidad",
       authors: ["Ana María Ruiz"],
       affiliations: ["Departamento de Educación, Universidad del Valle"],
-      course: "EDU 301",
+      course: "EDU 301: Fundamentos de la educación",
       instructor: "Dra. Carmen Solís",
       dueDate: "2026-07-11",
     },
