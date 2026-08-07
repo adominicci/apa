@@ -377,25 +377,47 @@ describe("renderEssayHtml", () => {
                         content: [{ type: "text", text: "Segundo bloque" }],
                       },
                       {
-                        type: "orderedList",
-                        attrs: { listStyle: "decimal" },
-                        content: [{
-                          type: "listItem",
-                          content: [{
+                        type: "blockquote",
+                        content: [
+                          {
+                            type: "heading",
+                            attrs: { level: 3 },
+                            content: [{
+                              type: "text",
+                              text: "TABLE CELL BLOCKQUOTE HEADING",
+                            }],
+                          },
+                          {
                             type: "paragraph",
                             content: [{
                               type: "text",
-                              text: "TABLE CELL LIST ITEM ",
-                              marks: [{ type: "bold" }],
-                            }, {
-                              type: "citation",
-                              attrs: {
-                                items: [{ refId: "ref-reading-council" }],
-                                mode: "parenthetical",
-                              },
+                              text: "Quoted cell introduction",
                             }],
-                          }],
-                        }],
+                          },
+                          {
+                            type: "orderedList",
+                            attrs: { listStyle: "decimal" },
+                            content: [{
+                              type: "listItem",
+                              content: [{
+                                type: "paragraph",
+                                content: [{
+                                  type: "text",
+                                  text: "TABLE CELL BLOCKQUOTE LIST ITEM ",
+                                  marks: [{ type: "bold" }],
+                                }, {
+                                  type: "citation",
+                                  attrs: {
+                                    items: [{
+                                      refId: "ref-reading-council",
+                                    }],
+                                    mode: "parenthetical",
+                                  },
+                                }],
+                              }],
+                            }],
+                          },
+                        ],
                       },
                     ],
                   }],
@@ -430,14 +452,94 @@ describe("renderEssayHtml", () => {
 
     expect(html).toContain(
       "<td><p>Primer bloque</p><p>Segundo bloque</p>" +
-        '<ol type="1"><li><p><strong>TABLE CELL LIST ITEM </strong>' +
-        "(Consejo de Escritura Regional [CER], 2024)</p></li></ol></td>",
+        "<blockquote><h3>TABLE CELL BLOCKQUOTE HEADING</h3>" +
+        "<p>Quoted cell introduction</p>" +
+        '<ol type="1"><li><p><strong>TABLE CELL BLOCKQUOTE LIST ITEM </strong>' +
+        "(Consejo de Escritura Regional [CER], 2024)</p></li></ol>" +
+        "</blockquote></td>",
     );
     expect(html).toContain(
       "<p><strong><em>RUN IN HEADING CITATION (CER, 2024). " +
         "</em></strong>Continúa el párrafo.</p>",
     );
   });
+
+  it.each([
+    {
+      level: 4,
+      terminalMark: "italic",
+      label: "Result ",
+      marked: "marked.",
+      continuation: "Level four continuation.",
+      expected:
+        "<p><strong>Result (Salgado, 2020) <em>marked</em>. </strong>Level four continuation.</p>",
+      duplicate: "marked.</em>. ",
+    },
+    {
+      level: 5,
+      terminalMark: "underline",
+      label: "Finding ",
+      marked: "underlined.",
+      continuation: "Level five continuation.",
+      expected:
+        "<p><strong><em>Finding (Salgado, 2020) <u>underlined</u>. </em></strong>Level five continuation.</p>",
+      duplicate: "underlined.</u>. ",
+    },
+  ])(
+    "normalizes a marked terminal period once for a level-$level run-in heading",
+    (
+      {
+        level,
+        terminalMark,
+        label,
+        marked,
+        continuation,
+        expected,
+        duplicate,
+      },
+    ) => {
+      const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+      essay.content = {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [
+            {
+              type: "heading",
+              attrs: { level },
+              content: [
+                { type: "text", text: label },
+                {
+                  type: "citation",
+                  attrs: {
+                    items: [{ refId: "ref-salgado" }],
+                    mode: "parenthetical",
+                  },
+                },
+                { type: "text", text: " " },
+                {
+                  type: "text",
+                  text: marked,
+                  marks: [{
+                    type: terminalMark,
+                  }],
+                },
+              ],
+            },
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: continuation }],
+            },
+          ],
+        }],
+      };
+
+      const html = renderEssayHtml(essay, essay.content, [salgado]);
+
+      expect(html).toContain(expected);
+      expect(html).not.toContain(duplicate);
+    },
+  );
 
   it("renders an APA figure with number, title, image URL, and note", () => {
     const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");

@@ -4,6 +4,7 @@ import type { PMJson } from "./input.ts";
 import { type DocContext, inlineToTextRuns } from "./runs.ts";
 import {
   BULLET_LIST_REF,
+  HALF_INCH,
   listTextIndent,
   LOWER_ALPHA_REF,
   ORDERED_LIST_REF,
@@ -24,6 +25,10 @@ interface VisitState {
 interface VisitOptions {
   /** Style for the first block when it is a paragraph (abstract: "Normal"). */
   firstParagraphStyle?: string;
+  /** Default paragraph style for a recursive context such as a block quote. */
+  paragraphStyle?: string;
+  /** Accumulated left indent applied while walking nested block quotes. */
+  blockquoteIndent?: number;
 }
 
 /**
@@ -65,11 +70,25 @@ export function visitBlocks(
     extra: Record<string, unknown> = {},
   ) => {
     emittedFirst = true;
+    const explicitIndent = extra["indent"] as
+      | Record<string, unknown>
+      | undefined;
+    const contextualExtra = options.blockquoteIndent
+      ? {
+        ...extra,
+        indent: {
+          ...explicitIndent,
+          left: (typeof explicitIndent?.["left"] === "number"
+            ? explicitIndent["left"]
+            : 0) + options.blockquoteIndent,
+        },
+      }
+      : extra;
     out.push(
       new Paragraph({
         style,
         children,
-        ...extra,
+        ...contextualExtra,
       }),
     );
   };
@@ -116,11 +135,16 @@ export function visitBlocks(
             ),
             markerEmitted
               ? { indent: { left: listTextIndent(depth) } }
+              : options.blockquoteIndent
+              ? {
+                ...markerProps,
+                indent: { left: listTextIndent(depth), hanging: 360 },
+              }
               : markerProps,
           );
           markerEmitted = true;
         } else {
-          const specialBlocks = visitBlocks([child], state);
+          const specialBlocks = visitBlocks([child], state, options);
           if (specialBlocks.length > 0) {
             emittedFirst = true;
             out.push(...specialBlocks);
@@ -136,7 +160,7 @@ export function visitBlocks(
       case "paragraph": {
         const style = !emittedFirst && options.firstParagraphStyle
           ? options.firstParagraphStyle
-          : "BodyText";
+          : options.paragraphStyle ?? "BodyText";
         emit(
           style,
           inlineToTextRuns(
@@ -166,7 +190,7 @@ export function visitBlocks(
           const next = blocks[i + 1];
           if (next?.type === "paragraph") {
             i += 1;
-            emit("BodyText", [
+            emit(options.paragraphStyle ?? "BodyText", [
               ...headingRuns,
               punctuationRun,
               ...inlineToTextRuns(
@@ -176,7 +200,10 @@ export function visitBlocks(
               ),
             ]);
           } else {
-            emit("BodyText", [...headingRuns, punctuationRun]);
+            emit(options.paragraphStyle ?? "BodyText", [
+              ...headingRuns,
+              punctuationRun,
+            ]);
           }
         } else {
           emit(
@@ -191,15 +218,13 @@ export function visitBlocks(
         break;
       }
       case "blockquote": {
-        for (const child of block.content ?? []) {
-          emit(
-            "Blockquote",
-            inlineToTextRuns(
-              child.content ?? [],
-              state.ctx,
-              state.citationCounter,
-            ),
-          );
+        const quoteBlocks = visitBlocks(block.content ?? [], state, {
+          paragraphStyle: "Blockquote",
+          blockquoteIndent: (options.blockquoteIndent ?? 0) + HALF_INCH,
+        });
+        if (quoteBlocks.length > 0) {
+          emittedFirst = true;
+          out.push(...quoteBlocks);
         }
         break;
       }
@@ -271,7 +296,7 @@ export function visitBlocks(
       }
       case "keywordsLine": {
         const t = getTerms(state.ctx.locale);
-        emit("BodyText", [
+        emit(options.paragraphStyle ?? "BodyText", [
           new TextRun({ text: `${t.headings.keywords} `, italics: true }),
           ...inlineToTextRuns(
             block.content ?? [],

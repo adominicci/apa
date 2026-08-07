@@ -226,28 +226,51 @@ export function sampleEssayInput(
                               }],
                             },
                             {
-                              type: "orderedList",
-                              attrs: { listStyle: "lower-alpha" },
-                              content: [{
-                                type: "listItem",
-                                content: [{
+                              type: "blockquote",
+                              content: [
+                                {
+                                  type: "heading",
+                                  attrs: { level: 3 },
+                                  content: [{
+                                    type: "text",
+                                    text: "TABLE CELL BLOCKQUOTE HEADING",
+                                  }],
+                                },
+                                {
                                   type: "paragraph",
-                                  content: [
-                                    {
-                                      type: "text",
-                                      text: "TABLE CELL LIST ITEM ",
-                                      marks: [{ type: "bold" }],
-                                    },
-                                    {
-                                      type: "citation",
-                                      attrs: {
-                                        items: [{ refId: "ref-padilla" }],
-                                        mode: "parenthetical",
-                                      },
-                                    },
-                                  ],
-                                }],
-                              }],
+                                  content: [{
+                                    type: "text",
+                                    text: "Quoted cell introduction",
+                                  }],
+                                },
+                                {
+                                  type: "orderedList",
+                                  attrs: { listStyle: "lower-alpha" },
+                                  content: [{
+                                    type: "listItem",
+                                    content: [{
+                                      type: "paragraph",
+                                      content: [
+                                        {
+                                          type: "text",
+                                          text:
+                                            "TABLE CELL BLOCKQUOTE LIST ITEM ",
+                                          marks: [{ type: "bold" }],
+                                        },
+                                        {
+                                          type: "citation",
+                                          attrs: {
+                                            items: [{
+                                              refId: "ref-padilla",
+                                            }],
+                                            mode: "parenthetical",
+                                          },
+                                        },
+                                      ],
+                                    }],
+                                  }],
+                                },
+                              ],
                             },
                           ],
                         },

@@ -107,6 +107,23 @@ function inlineHtml(inline: readonly PMJson[], state: RenderState): string {
   return out;
 }
 
+/**
+ * Removes an authored terminal period before inline marks become HTML tags.
+ * Run-in headings add one styled ". " after all rich content; normalizing the
+ * final text node first avoids `marked.</em>.` while preserving its marks.
+ */
+function normalizedRunInContent(inline: readonly PMJson[]): PMJson[] {
+  const normalized = [...inline];
+  const last = normalized.at(-1);
+  if (last?.type === "text" && typeof last.text === "string") {
+    normalized[normalized.length - 1] = {
+      ...last,
+      text: last.text.replace(/\.?\s*$/, ""),
+    };
+  }
+  return normalized;
+}
+
 /** Renders an APA table figure: "Table N" caption, italic title, grid, note. */
 function apaTableHtml(block: PMJson, state: RenderState): string {
   state.tableNo.n += 1;
@@ -248,9 +265,9 @@ function blocksHtml(
     } else if (block.type === "heading") {
       const level = Number(block.attrs?.["level"] ?? 1);
       if (level >= 4) {
-        const text = inlineHtml(block.content ?? [], state).replace(
-          /\.?\s*$/,
-          "",
+        const text = inlineHtml(
+          normalizedRunInContent(block.content ?? []),
+          state,
         );
         const open = level === 5 ? "<strong><em>" : "<strong>";
         const close = level === 5 ? "</em></strong>" : "</strong>";
@@ -269,11 +286,9 @@ function blocksHtml(
         }</h${level}>`;
       }
     } else if (block.type === "blockquote") {
-      out += "<blockquote>";
-      for (const child of block.content ?? []) {
-        out += `<p>${inlineHtml(child.content ?? [], state)}</p>`;
-      }
-      out += "</blockquote>";
+      out += `<blockquote>${
+        blocksHtml(block.content ?? [], state)
+      }</blockquote>`;
     } else if (block.type === "bulletList" || block.type === "orderedList") {
       out += listHtml(block, state);
     } else if (block.type === "apaTable") {

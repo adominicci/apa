@@ -568,18 +568,27 @@ describe("exportDocx (student, es)", () => {
     const continuation = paragraphs.find((paragraph) =>
       paragraph.includes("Segundo bloque de celda")
     );
+    const quoteHeading = paragraphs.find((paragraph) =>
+      paragraph.includes("TABLE CELL BLOCKQUOTE HEADING")
+    );
+    const quoteParagraph = paragraphs.find((paragraph) =>
+      paragraph.includes("Quoted cell introduction")
+    );
     const listItem = paragraphs.find((paragraph) =>
-      paragraph.includes("TABLE CELL LIST ITEM")
+      paragraph.includes("TABLE CELL BLOCKQUOTE LIST ITEM")
     );
 
-    expect(paragraphs).toHaveLength(3);
+    expect(paragraphs).toHaveLength(5);
     expect(continuation).toContain("<w:i/>");
+    expect(quoteHeading).toContain('w:pStyle w:val="Heading3"');
+    expect(quoteParagraph).toContain('w:pStyle w:val="Blockquote"');
     expect(listItem, "nested table-cell list item was dropped").toBeDefined();
     if (!listItem) return;
-    expect(listItem).toContain("TABLE CELL LIST ITEM");
+    expect(listItem).toContain("TABLE CELL BLOCKQUOTE LIST ITEM");
     expect(listItem).toContain("(Padilla, 2017)");
     expect(listItem).toContain("<w:b/>");
     expect(listItem).toContain("<w:numPr>");
+    expect(listItem).toContain('w:left="2160"');
   });
 
   it("exports a mapped equation centered with its number at the right margin", () => {
