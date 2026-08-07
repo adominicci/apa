@@ -1011,13 +1011,35 @@ describe("renderEssayHtml", () => {
 });
 
 describe("renderEssayCss", () => {
+  it("scopes preview markup and styles so they cannot restyle the app shell", () => {
+    const essay = sampleEssay();
+    const html = renderEssayHtml(essay, essay.content, []);
+    const css = renderEssayCss(essay.settings);
+
+    expect(html).toMatch(/^<article class="tesina-document">/);
+    expect(html).toMatch(/<\/article>$/);
+    expect(css).toContain(
+      `.tesina-document { font-family: "Times New Roman", Times, Georgia, serif; font-size: 12pt`,
+    );
+    expect(css).toContain(".tesina-document p { margin: 0;");
+    expect(css).toContain(".tesina-document .apa-table {");
+    const documentRules = css
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.includes("{") && !line.startsWith("@"));
+    expect(documentRules.every((rule) => rule.startsWith(".tesina-document")))
+      .toBe(true);
+  });
+
   it("centers table headers while leaving body cells left-aligned", () => {
     const css = renderEssayCss(sampleEssay().settings);
 
     expect(css).toMatch(
-      /\.apa-table th, \.apa-table td \{[^}]*text-align: left;/s,
+      /\.tesina-document \.apa-table th, \.tesina-document \.apa-table td \{[^}]*text-align: left;/s,
     );
-    expect(css).toMatch(/\.apa-table th \{[^}]*text-align: center;/s);
+    expect(css).toMatch(
+      /\.tesina-document \.apa-table th \{[^}]*text-align: center;/s,
+    );
   });
 
   it("sets page size and margin per settings", () => {
@@ -1034,6 +1056,20 @@ describe("renderEssayCss", () => {
     expect(proCss).toContain("@top-left");
   });
 
+  it("keeps page margin boxes readable independently of the shell theme", () => {
+    const essay = sampleEssay();
+    const studentCss = renderEssayCss(essay.settings);
+    expect(studentCss).toContain(
+      `@top-right { content: counter(page); font-family: "Times New Roman", Times, Georgia, serif; font-size: 12pt; color: #131313; line-height: 2; }`,
+    );
+
+    essay.settings.variant = "professional";
+    const professionalCss = renderEssayCss(essay.settings);
+    expect(professionalCss).toContain(
+      `@top-left { content: string(runhead); font-family: "Times New Roman", Times, Georgia, serif; font-size: 12pt; color: #131313; line-height: 2; }`,
+    );
+  });
+
   it("starts the body on a new page independently of an abstract", () => {
     const css = renderEssayCss(sampleEssay().settings);
 
@@ -1046,11 +1082,17 @@ describe("renderEssayCss", () => {
     const essay = sampleEssay();
     const css = renderEssayCss(essay.settings);
     // Top-level lists sit one inch in from the page margin.
-    expect(css).toContain("ul, ol { margin: 0; padding-left: 1in; }");
+    expect(css).toContain(
+      ".tesina-document ul, .tesina-document ol { margin: 0; padding-left: 1in; }",
+    );
     // Each nested level adds only half an inch (as apa.css and styles.ts do),
     // instead of inheriting a full inch per level and over-indenting.
-    expect(css).toContain("li ul, li ol { padding-left: 0.5in; }");
-    expect(css).toContain("li > p { margin: 0; text-indent: 0; }");
+    expect(css).toContain(
+      ".tesina-document li ul, .tesina-document li ol { padding-left: 0.5in; }",
+    );
+    expect(css).toContain(
+      ".tesina-document li > p { margin: 0; text-indent: 0; }",
+    );
   });
 
   it("applies the chosen APA font family and point size", () => {
