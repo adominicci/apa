@@ -272,17 +272,19 @@ export function visitBlocks(
 }
 
 /**
- * Walks Tesina's sectioned doc in order: abstract (own page, localized
- * heading, first paragraph unindented per APA 2.9), body (own page),
- * appendices (own page each; letters only when there are two or more,
- * APA 2.14).
+ * Visits every authored section once with one shared render state, while
+ * separating abstract/body output from appendices so the caller can place the
+ * derived references page between them.
  */
 export function visitDocument(
   content: PMJson,
   ctx: DocContext,
   contentWidth: number,
   bodyTitle: string,
-): (Paragraph | Table)[] {
+): {
+  beforeReferences: (Paragraph | Table)[];
+  appendices: (Paragraph | Table)[];
+} {
   const t = getTerms(ctx.locale);
   const state: VisitState = {
     ctx,
@@ -298,45 +300,46 @@ export function visitDocument(
     (s) => s.type === "sectionAppendix",
   ).length;
   let appendixIndex = 0;
-  const out: (Paragraph | Table)[] = [];
+  const beforeReferences: (Paragraph | Table)[] = [];
+  const appendices: (Paragraph | Table)[] = [];
 
   for (const section of sections) {
     if (section.type === "sectionAbstract") {
-      out.push(
+      beforeReferences.push(
         new Paragraph({
           style: "Heading1",
           children: [new TextRun(t.headings.abstract)],
           pageBreakBefore: true,
         }),
       );
-      out.push(
+      beforeReferences.push(
         ...visitBlocks(section.content ?? [], state, {
           firstParagraphStyle: "Normal",
         }),
       );
     } else if (section.type === "sectionBody") {
-      out.push(
+      beforeReferences.push(
         new Paragraph({
           style: "Heading1",
           pageBreakBefore: true,
           children: [new TextRun({ text: bodyTitle, bold: true })],
         }),
       );
-      out.push(...visitBlocks(section.content ?? [], state));
+      beforeReferences.push(...visitBlocks(section.content ?? [], state));
     } else if (section.type === "sectionAppendix") {
       appendixIndex += 1;
       const letter = appendixCount > 1
         ? ` ${String.fromCharCode(64 + appendixIndex)}`
         : "";
-      out.push(
+      appendices.push(
         new Paragraph({
           style: "Heading1",
           children: [new TextRun(`${t.headings.appendix}${letter}`)],
           pageBreakBefore: true,
         }),
       );
-      out.push(...visitBlocks(section.content ?? [], state));
+      appendices.push(...visitBlocks(section.content ?? [], state));
     }
   }
-  return out;
+  return { beforeReferences, appendices };
 }

@@ -80,6 +80,12 @@ export async function exportDocx(input: ExportInput): Promise<Uint8Array> {
     input.images ?? {},
     input.equations ?? {},
   );
+  const visited = visitDocument(
+    content,
+    ctx,
+    PAGE_SIZE[input.settings.paperSize].width - 2 * ONE_INCH,
+    input.titlePage.title,
+  );
 
   const doc = new Document({
     styles: buildStyles(input.settings.font),
@@ -100,13 +106,9 @@ export async function exportDocx(input: ExportInput): Promise<Uint8Array> {
         headers: { default: buildHeader(input) },
         children: [
           ...titlePageParagraphs(input),
-          ...visitDocument(
-            content,
-            ctx,
-            PAGE_SIZE[input.settings.paperSize].width - 2 * ONE_INCH,
-            input.titlePage.title,
-          ),
+          ...visited.beforeReferences,
           ...referencesParagraphs(input.references, locale),
+          ...visited.appendices,
         ],
       },
     ],

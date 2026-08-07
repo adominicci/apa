@@ -4,12 +4,14 @@
   import type { DocLocale } from "@tesina/engine";
   import type { CitationEnv } from "$lib/editor/citation";
   import { createTesinaEditor } from "$lib/editor/createEditor";
+  import type { ReferenceDecorationEnv } from "$lib/editor/referenceDecoration";
   import "$lib/editor/apa.css";
 
   interface Props {
     initialDoc?: unknown;
     documentLanguage?: DocLocale;
     citationEnv: CitationEnv;
+    referenceEnv: ReferenceDecorationEnv;
     onUpdate?: (docJson: unknown, words: number) => void;
     onReady?: (editor: Editor) => void;
     onEditEquation?: (pos: number, latex: string) => void;
@@ -19,6 +21,7 @@
     initialDoc,
     documentLanguage = "es",
     citationEnv,
+    referenceEnv,
     onUpdate,
     onReady,
     onEditEquation,
@@ -29,6 +32,7 @@
       element,
       content: initialDoc,
       citationEnv,
+      referenceEnv,
       onUpdate,
       onEditEquation,
     });

@@ -22,6 +22,11 @@ function paragraphsContaining(xml: string, text: string): string[] {
     .filter((candidate) => candidate.includes(text));
 }
 
+function paragraphIndexContaining(xml: string, text: string): number {
+  return (xml.match(/<w:p(?:>| [^>]*>)[\s\S]*?<\/w:p>/g) ?? [])
+    .findIndex((candidate) => candidate.includes(text));
+}
+
 async function documentXmlFor(
   input: ReturnType<typeof sampleInput>,
 ): Promise<string> {
@@ -154,6 +159,49 @@ describe("exportDocx (student, es)", () => {
     expect(paragraphsContaining(xml, "Caribbean College")[0]).toContain(
       'w:vertAlign w:val="superscript"',
     );
+  });
+
+  it("orders references between the body and multiple appendices", async () => {
+    const input = sampleInput();
+    input.content = {
+      type: "doc",
+      content: [
+        {
+          type: "sectionBody",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "Body order marker" }],
+          }],
+        },
+        {
+          type: "sectionAppendix",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "First appendix marker" }],
+          }],
+        },
+        {
+          type: "sectionAppendix",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "Second appendix marker" }],
+          }],
+        },
+      ],
+    };
+
+    const xml = await documentXmlFor(input);
+    const body = paragraphIndexContaining(xml, "Body order marker");
+    const references = paragraphIndexContaining(xml, "Referencias");
+    const appendixA = paragraphIndexContaining(xml, "First appendix marker");
+    const appendixB = paragraphIndexContaining(xml, "Second appendix marker");
+
+    expect(body).toBeGreaterThan(-1);
+    expect(references).toBeGreaterThan(body);
+    expect(appendixA).toBeGreaterThan(references);
+    expect(appendixB).toBeGreaterThan(appendixA);
+    expect(xml).toContain("Apéndice A");
+    expect(xml).toContain("Apéndice B");
   });
 
   it.each([

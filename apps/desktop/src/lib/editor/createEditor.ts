@@ -6,6 +6,10 @@ import { type CitationEnv, createCitationExtension } from "./citation.ts";
 import { OrderedListStyleAttr } from "./lists.ts";
 import { blockExtensions, createApaEquationExtension } from "./blocks.ts";
 import { defaultDoc, ensureSectionedDoc } from "./migrate.ts";
+import {
+  createReferenceDecorationExtension,
+  type ReferenceDecorationEnv,
+} from "./referenceDecoration.ts";
 
 export interface CreateEditorArgs {
   element: HTMLElement;
@@ -13,6 +17,8 @@ export interface CreateEditorArgs {
   content?: unknown;
   /** Live library + document language; mutated by the app, see citation.ts. */
   citationEnv: CitationEnv;
+  /** Derived references page rendered as editor chrome before appendices. */
+  referenceEnv: ReferenceDecorationEnv;
   onUpdate?: (docJson: unknown, words: number) => void;
   /** Opens the LaTeX dialog pre-filled with an equation's current LaTeX, from
    * its pencil menu. External callback threaded into the schema, same shape
@@ -33,7 +39,14 @@ export function countWords(doc: PMNode): number {
  * Citations, figures, and footnotes land in later M2 iterations.
  */
 export function createTesinaEditor(
-  { element, content, citationEnv, onUpdate, onEditEquation }: CreateEditorArgs,
+  {
+    element,
+    content,
+    citationEnv,
+    referenceEnv,
+    onUpdate,
+    onEditEquation,
+  }: CreateEditorArgs,
 ): Editor {
   return new Editor({
     element,
@@ -51,6 +64,7 @@ export function createTesinaEditor(
       ...blockExtensions,
       createApaEquationExtension(onEditEquation ?? (() => {})),
       createCitationExtension(citationEnv),
+      createReferenceDecorationExtension(referenceEnv),
     ],
     content: (content !== undefined
       ? ensureSectionedDoc(content)

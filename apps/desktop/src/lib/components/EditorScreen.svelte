@@ -15,7 +15,6 @@
   import CoverSheet, {
     type CoverPatch,
   } from "$lib/components/CoverSheet.svelte";
-  import ReferencesSheet from "$lib/components/ReferencesSheet.svelte";
   import CitationPopover from "$lib/components/CitationPopover.svelte";
   import HeadingMenu from "$lib/components/HeadingMenu.svelte";
   import ListMenu from "$lib/components/ListMenu.svelte";
@@ -30,6 +29,10 @@
   import BibImportModal from "$lib/components/BibImportModal.svelte";
   import TitlePageForm from "$lib/components/TitlePageForm.svelte";
   import { collectCitedRefIds } from "$lib/editor/citedRefs";
+  import {
+    type ReferenceDecorationEnv,
+    refreshReferenceDecoration,
+  } from "$lib/editor/referenceDecoration";
   import {
     canInsertApaEquation,
     insertApaEquation,
@@ -173,6 +176,22 @@
       if (ref) out.push(ref);
     }
     return out;
+  });
+  const referenceEnv: ReferenceDecorationEnv = {
+    references: untrack(() => referencesForExport),
+    locale: untrack(() => documentLanguage),
+    emptyLabel: untrack(() =>
+      m.refsheet_empty(undefined, { locale: documentLanguage })
+    ),
+  };
+
+  $effect(() => {
+    referenceEnv.references = referencesForExport;
+    referenceEnv.locale = documentLanguage;
+    referenceEnv.emptyLabel = m.refsheet_empty(undefined, {
+      locale: documentLanguage,
+    });
+    if (editor && !editor.isDestroyed) refreshReferenceDecoration(editor);
   });
 
   const abstractLabel = $derived(
@@ -749,14 +768,11 @@
             initialDoc={essay.content}
             {documentLanguage}
             {citationEnv}
+            {referenceEnv}
             onUpdate={handleUpdate}
             onReady={handleReady}
             onEditEquation={(pos, latex) =>
               (equationDialog = { mode: "edit", pos, latex })}
-          />
-          <ReferencesSheet
-            references={referencesForExport}
-            language={documentLanguage}
           />
         </div>
       {/if}

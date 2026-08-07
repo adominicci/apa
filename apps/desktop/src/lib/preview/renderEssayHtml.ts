@@ -404,7 +404,8 @@ export function renderEssayHtml(
   html += `</div>`;
 
   const doc = docJson as PMJson;
-  for (const section of doc.content ?? []) {
+  const sections = doc.content ?? [];
+  for (const section of sections) {
     if (section.type === "sectionAbstract") {
       html += `<section class="abstract"><h1>${esc(t.headings.abstract)}</h1>`;
       html += blocksHtml(section.content ?? [], state, "no-indent");
@@ -415,28 +416,7 @@ export function renderEssayHtml(
       }</h1>`;
       html += blocksHtml(section.content ?? [], state);
       html += "</section>";
-    } else if (section.type === "sectionAppendix") {
-      html += `<section class="appendix">`;
-      html += blocksHtml(section.content ?? [], state);
-      html += "</section>";
     }
-  }
-
-  // Appendix headings with computed letters (only when 2+, APA 2.14).
-  const appendices = (doc.content ?? []).filter(
-    (s) => s.type === "sectionAppendix",
-  ).length;
-  if (appendices > 0) {
-    let index = 0;
-    html = html.replaceAll('<section class="appendix">', () => {
-      index += 1;
-      const letter = appendices > 1
-        ? ` ${String.fromCharCode(64 + index)}`
-        : "";
-      return `<section class="appendix"><h1>${
-        esc(t.headings.appendix)
-      }${letter}</h1>`;
-    });
   }
 
   if (references.length > 0) {
@@ -447,6 +427,21 @@ export function renderEssayHtml(
     for (const entry of entries) {
       html += `<p class="ref-entry">${runsToHtml(entry.runs)}</p>`;
     }
+    html += "</section>";
+  }
+
+  // Appendices follow references; letters appear only when there are 2+.
+  const appendices = sections.filter(
+    (s) => s.type === "sectionAppendix",
+  );
+  for (const [index, appendix] of appendices.entries()) {
+    const letter = appendices.length > 1
+      ? ` ${String.fromCharCode(65 + index)}`
+      : "";
+    html += `<section class="appendix"><h1>${
+      esc(t.headings.appendix)
+    }${letter}</h1>`;
+    html += blocksHtml(appendix.content ?? [], state);
     html += "</section>";
   }
 

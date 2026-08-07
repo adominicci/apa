@@ -225,6 +225,49 @@ describe("renderEssayHtml", () => {
     );
   });
 
+  it("orders references between the body and multiple appendices", () => {
+    const essay = sampleEssay();
+    essay.content = {
+      type: "doc",
+      content: [
+        {
+          type: "sectionBody",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "Body order marker" }],
+          }],
+        },
+        {
+          type: "sectionAppendix",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "First appendix marker" }],
+          }],
+        },
+        {
+          type: "sectionAppendix",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "Second appendix marker" }],
+          }],
+        },
+      ],
+    };
+
+    const html = renderEssayHtml(essay, essay.content, [salgado]);
+    const body = html.indexOf("Body order marker");
+    const references = html.indexOf('<section class="references">');
+    const appendixA = html.indexOf("First appendix marker");
+    const appendixB = html.indexOf("Second appendix marker");
+
+    expect(body).toBeGreaterThan(-1);
+    expect(references).toBeGreaterThan(body);
+    expect(appendixA).toBeGreaterThan(references);
+    expect(appendixB).toBeGreaterThan(appendixA);
+    expect(html).toContain("<h1>Apéndice A</h1>");
+    expect(html).toContain("<h1>Apéndice B</h1>");
+  });
+
   it("renders an APA table with number, title, grid, and note", () => {
     const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
     essay.content = {

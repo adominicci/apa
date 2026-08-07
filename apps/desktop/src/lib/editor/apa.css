@@ -139,6 +139,32 @@
   font-weight: bold;
 }
 
+.apa-editor .tiptap .sec-references .ref-head {
+  text-align: center;
+  font-family: var(--doc-font, var(--serif));
+  font-size: var(--doc-font-size, 12pt);
+  font-weight: 700;
+  margin: 0 0 1em;
+}
+
+.apa-editor .tiptap .sec-references .ref-entry {
+  font-family: var(--doc-font, var(--serif));
+  font-size: var(--doc-font-size, 12pt);
+  line-height: 2;
+  margin: 0;
+  padding-left: 0.5in;
+  text-indent: -0.5in;
+}
+
+.apa-editor .tiptap .sec-references .ref-empty {
+  text-align: center;
+  text-indent: 0;
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 13px;
+  margin: 2em 0;
+}
+
 .apa-editor[data-doclang="es"] .tiptap .sec-abstract::before {
   content: "Resumen";
 }
