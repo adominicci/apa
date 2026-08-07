@@ -15,6 +15,8 @@ export interface CreateEditorArgs {
   element: HTMLElement;
   /** ProseMirror doc JSON from a saved essay; empty sectioned doc when absent. */
   content?: unknown;
+  /** A just-created paper starts at its title-page task, outside ProseMirror. */
+  newlyCreated: boolean;
   /** Live library + document language; mutated by the app, see citation.ts. */
   citationEnv: CitationEnv;
   /** Derived references page rendered as editor chrome before appendices. */
@@ -42,6 +44,7 @@ export function createTesinaEditor(
   {
     element,
     content,
+    newlyCreated,
     citationEnv,
     referenceEnv,
     onUpdate,
@@ -69,7 +72,7 @@ export function createTesinaEditor(
     content: (content !== undefined
       ? ensureSectionedDoc(content)
       : defaultDoc()) as Content,
-    autofocus: "end",
+    autofocus: newlyCreated ? false : "end",
     onUpdate({ editor }) {
       onUpdate?.(editor.getJSON(), countWords(editor.state.doc));
     },

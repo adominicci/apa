@@ -12,6 +12,7 @@
 
   // Router-less shell (plan §app shell): a desktop app, not a website.
   let currentEssay = $state<Essay | null>(null);
+  let currentEssayNewlyCreated = $state(false);
   let libraryOpen = $state(false);
   let booted = $state(false);
 
@@ -26,7 +27,7 @@
     void updater.check();
   });
 
-  async function openEssay(id: string) {
+  async function openEssay(id: string, newlyCreated: boolean) {
     const essay = await essays.load(id);
     if (!essay) return;
     // Restore any cited reference that was deleted from the library while this
@@ -38,11 +39,13 @@
         new Set(library.byId().keys()),
       ),
     );
+    currentEssayNewlyCreated = newlyCreated;
     currentEssay = essay;
   }
 
   function goHome() {
     currentEssay = null;
+    currentEssayNewlyCreated = false;
     essays.loadIndex();
   }
 </script>
@@ -57,8 +60,12 @@
       {#key currentEssay.id}
         <EditorScreen
           essay={currentEssay}
+          newlyCreated={currentEssayNewlyCreated}
           onBack={goHome}
-          onOpenLibrary={() => (libraryOpen = true)}
+          onOpenLibrary={() => {
+            currentEssayNewlyCreated = false;
+            libraryOpen = true;
+          }}
         />
       {/key}
     {:else}

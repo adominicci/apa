@@ -68,6 +68,7 @@ describe("live reference-page decoration", () => {
       {
         element,
         content: docJson,
+        newlyCreated: false,
         citationEnv: {
           refsById: new Map([[reference.id, reference]]),
           locale: "en",

@@ -9,6 +9,7 @@
 
   interface Props {
     initialDoc?: unknown;
+    newlyCreated: boolean;
     documentLanguage?: DocLocale;
     citationEnv: CitationEnv;
     referenceEnv: ReferenceDecorationEnv;
@@ -19,6 +20,7 @@
 
   let {
     initialDoc,
+    newlyCreated,
     documentLanguage = "es",
     citationEnv,
     referenceEnv,
@@ -31,6 +33,7 @@
     const editor = createTesinaEditor({
       element,
       content: initialDoc,
+      newlyCreated,
       citationEnv,
       referenceEnv,
       onUpdate,

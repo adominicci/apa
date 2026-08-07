@@ -70,11 +70,12 @@
 
   interface Props {
     essay: Essay;
+    newlyCreated: boolean;
     onBack: () => void;
     onOpenLibrary: () => void;
   }
 
-  let { essay, onBack, onOpenLibrary }: Props = $props();
+  let { essay, newlyCreated, onBack, onOpenLibrary }: Props = $props();
 
   // Remounted per essay via {#key essay.id}; initial captures are deliberate.
   let documentLanguage = $state<DocLocale>(
@@ -88,7 +89,7 @@
   let citePopoverOpen = $state(false);
   let refFormOpen = $state(false);
   let citeOnSave = $state(false);
-  let titleFormOpen = $state(false);
+  let titleFormOpen = $state(untrack(() => newlyCreated));
   let addMenuOpen = $state(false);
   let outlineOpen = $state(true);
   let refsOpen = $state(true);
@@ -766,6 +767,7 @@
           />
           <Editor
             initialDoc={essay.content}
+            {newlyCreated}
             {documentLanguage}
             {citationEnv}
             {referenceEnv}
@@ -938,7 +940,7 @@
       </button>
       <div class="fm-sep"></div>
       <button
-        class="fm-btn"
+        class="fm-btn fm-primary-action"
         onclick={handleExport}
         disabled={!editor || exporting}
         data-tip={exporting ? m.editor_exporting() : m.editor_export()}

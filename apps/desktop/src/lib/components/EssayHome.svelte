@@ -7,7 +7,7 @@
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
-    onOpen: (id: string) => void;
+    onOpen: (id: string, newlyCreated: boolean) => void;
     onOpenLibrary: () => void;
   }
 
@@ -40,7 +40,7 @@
   async function createEssay(language: DocLocale) {
     creating = false;
     const essay = await essays.create(language);
-    onOpen(essay.id);
+    onOpen(essay.id, true);
   }
 
   function startRename(summary: EssaySummary) {
@@ -230,10 +230,10 @@
                   role="button"
                   tabindex="0"
                   onclick={() => {
-                    if (renamingId !== summary.id) onOpen(summary.id);
+                    if (renamingId !== summary.id) onOpen(summary.id, false);
                   }}
                   onkeydown={(e) => {
-                    if (e.key === "Enter") onOpen(summary.id);
+                    if (e.key === "Enter") onOpen(summary.id, false);
                   }}
                 >
                   <div class="essay-thumb">
