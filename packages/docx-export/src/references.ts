@@ -16,9 +16,9 @@ export function referencesParagraphs(
   references: readonly Reference[],
   locale: DocLocale,
 ): Paragraph[] {
-  if (references.length === 0) return [];
-  const t = getTerms(locale);
   const { entries } = buildReferenceList(references, locale);
+  if (entries.length === 0) return [];
+  const t = getTerms(locale);
   return [
     new Paragraph({
       style: "Heading1",

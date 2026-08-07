@@ -138,9 +138,9 @@ function apaTableHtml(block: PMJson, state: RenderState): string {
   const tableNode = children.find((c) => c.type === "table");
   const noteNode = children.find((c) => c.type === "tableNote");
 
-  let out = `<figure class="apa-table"><p class="tbl-cap">${
+  let out = `<figure class="apa-table"><p class="tbl-cap"><strong>${
     esc(t.headings.table)
-  } ${state.tableNo.n}<br /><em>${
+  } ${state.tableNo.n}</strong><br /><em>${
     titleNode ? inlineHtml(titleNode.content ?? [], state) : ""
   }</em></p>`;
 
@@ -172,9 +172,9 @@ function apaFigureHtml(block: PMJson, state: RenderState): string {
   const imageNode = children.find((c) => c.type === "figureImage");
   const noteNode = children.find((c) => c.type === "figureNote");
 
-  let out = `<figure class="apa-figure"><p class="fig-cap">${
+  let out = `<figure class="apa-figure"><p class="fig-cap"><strong>${
     esc(t.headings.figure)
-  } ${state.figureNo.n}<br /><em>${
+  } ${state.figureNo.n}</strong><br /><em>${
     titleNode ? inlineHtml(titleNode.content ?? [], state) : ""
   }</em></p>`;
 
@@ -350,7 +350,7 @@ section.body-sec { break-before: page; }
 .apa-table .tbl-cap { text-indent: 0; }
 .apa-table table { border-collapse: collapse; width: 100%; border-top: 1px solid #131313; border-bottom: 1px solid #131313; }
 .apa-table th, .apa-table td { padding: 3px 8px; text-align: left; vertical-align: top; }
-.apa-table th { border-bottom: 1px solid #131313; font-weight: normal; }
+.apa-table th { border-bottom: 1px solid #131313; font-weight: normal; text-align: center; }
 .apa-table th p, .apa-table td p { margin: 0; text-indent: 0; }
 .apa-table th ul, .apa-table th ol, .apa-table td ul, .apa-table td ol { padding-left: 0.5in; }
 .apa-table .tbl-note { text-indent: 0; }
@@ -438,12 +438,12 @@ export function renderEssayHtml(
     }
   }
 
-  if (references.length > 0) {
-    const { entries } = buildReferenceList(references, locale);
+  const { entries: referenceEntries } = buildReferenceList(references, locale);
+  if (referenceEntries.length > 0) {
     html += `<section class="references"><h1>${
       esc(t.headings.references)
     }</h1>`;
-    for (const entry of entries) {
+    for (const entry of referenceEntries) {
       html += `<p class="ref-entry">${runsToHtml(entry.runs)}</p>`;
     }
     html += "</section>";

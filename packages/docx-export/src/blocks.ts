@@ -34,6 +34,7 @@ export function apaTableBlocks(
   tableCounter: { n: number },
   renderCellBlocks: (
     blocks: readonly PMJson[],
+    isHeader: boolean,
   ) => readonly (Paragraph | Table)[],
   leftIndent = 0,
 ): (Paragraph | Table)[] {
@@ -92,13 +93,17 @@ export function apaTableBlocks(
         return new TableRow({
           tableHeader: isHeaderRow,
           children: (rowNode.content ?? []).map((cellNode) => {
-            const cellBlocks = renderCellBlocks(cellNode.content ?? []);
+            const isHeader = cellNode.type === "tableHeader";
+            const cellBlocks = renderCellBlocks(
+              cellNode.content ?? [],
+              isHeader,
+            );
             return new TableCell({
               children: cellBlocks.length > 0
                 ? cellBlocks
                 : [new Paragraph({ style: "Normal" })],
               // The header row draws the rule beneath it (APA 7.8).
-              borders: cellNode.type === "tableHeader"
+              borders: isHeader
                 ? {
                   bottom: RULE,
                   top: NO_BORDER,

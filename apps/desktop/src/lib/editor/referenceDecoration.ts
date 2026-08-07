@@ -51,6 +51,7 @@ function renderReferencePage(
   page: HTMLElement,
   env: ReferenceDecorationEnv,
 ): void {
+  const { entries } = buildReferenceList(env.references, env.locale);
   const headingText = getTerms(env.locale).headings.references;
   const heading = document.createElement("h1");
   heading.className = "ref-head";
@@ -58,15 +59,7 @@ function renderReferencePage(
 
   page.replaceChildren(heading);
   page.setAttribute("aria-label", headingText);
-  if (env.references.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "ref-empty";
-    empty.textContent = env.emptyLabel;
-    page.append(empty);
-    return;
-  }
-
-  for (const entry of buildReferenceList(env.references, env.locale).entries) {
+  for (const entry of entries) {
     const paragraph = document.createElement("p");
     paragraph.className = "ref-entry";
     appendRuns(paragraph, entry.runs);
@@ -108,6 +101,11 @@ export function createReferenceDecorationExtension(
           },
           props: {
             decorations(state) {
+              const { entries } = buildReferenceList(
+                env.references,
+                env.locale,
+              );
+              if (entries.length === 0) return DecorationSet.empty;
               return DecorationSet.create(state.doc, [
                 Decoration.widget(
                   insertionPosition(state.doc),

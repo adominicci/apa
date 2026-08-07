@@ -1,4 +1,11 @@
-import { Paragraph, Tab, Table, TabStopType, TextRun } from "docx";
+import {
+  AlignmentType,
+  Paragraph,
+  Tab,
+  Table,
+  TabStopType,
+  TextRun,
+} from "docx";
 import { getTerms } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
 import { type DocContext, inlineToTextRuns } from "./runs.ts";
@@ -29,6 +36,8 @@ interface VisitOptions {
   paragraphStyle?: string;
   /** Accumulated left indent applied while walking nested block quotes. */
   blockquoteIndent?: number;
+  /** Explicit alignment for every paragraph in a table-cell context. */
+  paragraphAlignment?: (typeof AlignmentType)[keyof typeof AlignmentType];
 }
 
 /**
@@ -76,9 +85,12 @@ export function visitBlocks(
     const explicitIndent = extra["indent"] as
       | Record<string, unknown>
       | undefined;
+    const alignedExtra = options.paragraphAlignment
+      ? { alignment: options.paragraphAlignment, ...extra }
+      : extra;
     const contextualExtra = options.blockquoteIndent
       ? {
-        ...extra,
+        ...alignedExtra,
         indent: {
           ...explicitIndent,
           left: (typeof explicitIndent?.["left"] === "number"
@@ -86,7 +98,7 @@ export function visitBlocks(
             : 0) + options.blockquoteIndent,
         },
       }
-      : extra;
+      : alignedExtra;
     out.push(
       new Paragraph({
         style,
@@ -224,6 +236,7 @@ export function visitBlocks(
         const quoteBlocks = visitBlocks(block.content ?? [], state, {
           paragraphStyle: "Blockquote",
           blockquoteIndent: (options.blockquoteIndent ?? 0) + HALF_INCH,
+          paragraphAlignment: options.paragraphAlignment,
         });
         if (quoteBlocks.length > 0) {
           emittedFirst = true;
@@ -244,7 +257,13 @@ export function visitBlocks(
             state.ctx,
             state.citationCounter,
             state.tableCounter,
-            (cellBlocks) => visitBlocks(cellBlocks, state),
+            (cellBlocks, isHeader) =>
+              visitBlocks(cellBlocks, state, {
+                paragraphStyle: "Normal",
+                paragraphAlignment: isHeader
+                  ? AlignmentType.CENTER
+                  : AlignmentType.LEFT,
+              }),
             options.blockquoteIndent,
           ),
         );

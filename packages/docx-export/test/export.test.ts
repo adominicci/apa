@@ -56,6 +56,41 @@ function tableContaining(xml: string, text: string): string {
   return table;
 }
 
+const personalCommunication: Reference = {
+  id: "ref-personal",
+  type: "personalCommunication",
+  authors: [{ kind: "person", family: "Salgado", given: "Nora" }],
+  date: { year: 2026, month: 7, day: 3 },
+  title: "Conversación sobre hábitos de lectura",
+};
+
+function inputCiting(refId: string) {
+  const input = sampleInput();
+  input.content = {
+    type: "doc",
+    content: [
+      {
+        type: "sectionBody",
+        content: [{
+          type: "paragraph",
+          content: [{
+            type: "citation",
+            attrs: { items: [{ refId }], mode: "parenthetical" },
+          }],
+        }],
+      },
+      {
+        type: "sectionAppendix",
+        content: [{
+          type: "paragraph",
+          content: [{ type: "text", text: "Appendix survives" }],
+        }],
+      },
+    ],
+  };
+  return input;
+}
+
 async function documentXmlFor(
   input: ReturnType<typeof sampleInput>,
 ): Promise<string> {
@@ -167,6 +202,34 @@ describe("exportDocx (student, es)", () => {
     expect(byline).not.toContain('w:vertAlign w:val="superscript"');
     expect(paragraphsContaining(xml, "University of Puerto Rico")[0])
       .not.toContain('w:vertAlign w:val="superscript"');
+  });
+
+  it("keeps personal communications in text without an empty references page", async () => {
+    const input = inputCiting(personalCommunication.id);
+    input.references = [personalCommunication];
+
+    const xml = await documentXmlFor(input);
+
+    expect(xml).toContain(
+      "(N. Salgado, comunicación personal, 3 de julio de 2026)",
+    );
+    expect(xml).not.toContain("???");
+    expect(xml).not.toContain("Referencias");
+    expect(xml).toContain("Appendix survives");
+  });
+
+  it("renders one references page for mixed personal and retrievable sources", async () => {
+    const input = inputCiting(personalCommunication.id);
+    const retrievable = sampleInput().references.find(
+      (reference) => reference.id === "ref-salgado",
+    )!;
+    input.references = [personalCommunication, retrievable];
+
+    const xml = await documentXmlFor(input);
+
+    expect(paragraphsContaining(xml, "Referencias")).toHaveLength(1);
+    expect(xml).toContain("Salgado, N. (2020)");
+    expect(xml).not.toContain("Conversación sobre hábitos de lectura");
   });
 
   it("renders numbered author-affiliation links as superscript runs", async () => {
@@ -849,6 +912,8 @@ describe("exportDocx (student, es)", () => {
   });
 
   it("preserves separate paragraphs, list numbering, marks, and citations inside table cells", () => {
+    const headerCell = tableCellContaining("Grupo");
+    const headerParagraph = paragraphsContaining(headerCell, "Grupo")[0]!;
     const cell = tableCellContaining("Primer año");
     const paragraphs = cell.match(/<w:p(?:>| [^>]*>)[\s\S]*?<\/w:p>/g) ?? [];
     const continuation = paragraphs.find((paragraph) =>
@@ -865,6 +930,14 @@ describe("exportDocx (student, es)", () => {
     );
 
     expect(paragraphs).toHaveLength(5);
+    expect(headerParagraph).toContain('w:pStyle w:val="Normal"');
+    expect(headerParagraph).toContain('w:jc w:val="center"');
+    expect(headerParagraph).not.toContain('w:pStyle w:val="BodyText"');
+    expect(headerParagraph).not.toContain("w:firstLine");
+    for (const paragraph of paragraphs) {
+      expect(paragraph).not.toContain('w:pStyle w:val="BodyText"');
+      expect(paragraph).not.toContain("w:firstLine");
+    }
     expect(continuation).toContain("<w:i/>");
     expect(quoteHeading).toContain('w:pStyle w:val="Heading3"');
     expect(quoteParagraph).toContain('w:pStyle w:val="Blockquote"');

@@ -10,6 +10,7 @@ import {
   createReferenceDecorationExtension,
   type ReferenceDecorationEnv,
 } from "./referenceDecoration.ts";
+import { ApaPresentationDecoration } from "./presentationDecoration.ts";
 
 export interface CreateEditorArgs {
   element: HTMLElement;
@@ -67,6 +68,7 @@ export function createTesinaEditor(
       ...blockExtensions,
       createApaEquationExtension(onEditEquation ?? (() => {})),
       createCitationExtension(citationEnv),
+      ApaPresentationDecoration,
       createReferenceDecorationExtension(referenceEnv),
     ],
     content: (content !== undefined

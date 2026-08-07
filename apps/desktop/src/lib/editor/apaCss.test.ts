@@ -32,3 +32,38 @@ describe("APA editor body title", () => {
     );
   });
 });
+
+describe("APA editor table headers", () => {
+  it("centers header cells without removing the editing-only ghost grid", () => {
+    expect(css).toMatch(
+      /\.apa-editor \.tiptap \.apa-table th\s*\{[^}]*border-bottom:\s*1px solid var\(--fg\);[^}]*text-align:\s*center;/s,
+    );
+    expect(css).toMatch(
+      /\.apa-editor \.tiptap \.apa-table th,\s*\.apa-editor \.tiptap \.apa-table td\s*\{[^}]*border:\s*1px dashed #cdd2d8;/s,
+    );
+  });
+});
+
+describe("APA editor appendix and run-in presentation", () => {
+  it("uses decoration attributes instead of :has() for appendix labels", () => {
+    expect(css).not.toContain(":has(");
+    expect(css).toMatch(
+      /data-appendix-letter[^}]*::before\s*\{[^}]*attr\(data-appendix-letter\)/s,
+    );
+  });
+
+  it("flows decorated level-4 and level-5 headings into the following paragraph", () => {
+    expect(css).toMatch(
+      /h4\[data-apa-run-in\],\s*\.apa-editor \.tiptap h5\[data-apa-run-in\]\s*\{[^}]*display:\s*inline;[^}]*padding-left:\s*0\.5in;/s,
+    );
+    expect(css).toMatch(
+      /data-run-in-punctuation="append"[^}]*::after\s*\{[^}]*content:\s*"\. ";/s,
+    );
+    expect(css).toMatch(
+      /data-run-in-punctuation="preserve"[^}]*::after\s*\{[^}]*content:\s*" ";/s,
+    );
+    expect(css).toMatch(
+      /h5\[data-apa-run-in\] \+ p\s*\{[^}]*display:\s*inline;[^}]*text-indent:\s*0;/s,
+    );
+  });
+});

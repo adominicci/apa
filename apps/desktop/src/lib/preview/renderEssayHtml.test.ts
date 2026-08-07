@@ -32,6 +32,32 @@ const readingCouncil: Reference = {
   pageEnd: "12",
 };
 
+const personalCommunication: Reference = {
+  id: "ref-personal",
+  type: "personalCommunication",
+  authors: [{ kind: "person", family: "Salgado", given: "Nora" }],
+  date: { year: 2026, month: 7, day: 3 },
+  title: "Conversación sobre hábitos de lectura",
+};
+
+function citationOnlyEssay(refId: string) {
+  const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+  essay.content = {
+    type: "doc",
+    content: [{
+      type: "sectionBody",
+      content: [{
+        type: "paragraph",
+        content: [{
+          type: "citation",
+          attrs: { items: [{ refId }], mode: "parenthetical" },
+        }],
+      }],
+    }],
+  };
+  return essay;
+}
+
 function sampleEssay() {
   const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
   essay.titlePage = {
@@ -213,6 +239,32 @@ describe("renderEssayHtml", () => {
       .not.toContainEqual(expect.stringContaining("<sup>"));
   });
 
+  it("keeps personal communications in text without an empty references page", () => {
+    const essay = citationOnlyEssay(personalCommunication.id);
+
+    const html = renderEssayHtml(essay, essay.content, [personalCommunication]);
+
+    expect(html).toContain(
+      "(N. Salgado, comunicación personal, 3 de julio de 2026)",
+    );
+    expect(html).not.toContain("???");
+    expect(html).not.toContain('<section class="references">');
+    expect(html).not.toContain("<h1>Referencias</h1>");
+  });
+
+  it("renders one references page for mixed personal and retrievable sources", () => {
+    const essay = citationOnlyEssay(personalCommunication.id);
+
+    const html = renderEssayHtml(essay, essay.content, [
+      personalCommunication,
+      salgado,
+    ]);
+
+    expect(html.match(/<section class="references">/g)).toHaveLength(1);
+    expect(html).toContain("Salgado, N. (2020)");
+    expect(html).not.toContain("Conversación sobre hábitos de lectura");
+  });
+
   it("links different author affiliations with superscript numbers", () => {
     const essay = createEmptyEssay("en", "2026-07-11T12:00:00.000Z");
     essay.titlePage = {
@@ -297,7 +349,7 @@ describe("renderEssayHtml", () => {
               content: [
                 {
                   type: "tableTitle",
-                  content: [{ type: "text", text: "Horas de lectura" }],
+                  content: [{ type: "text", text: "Horas <de> lectura" }],
                 },
                 {
                   type: "table",
@@ -340,8 +392,10 @@ describe("renderEssayHtml", () => {
     };
     const html = renderEssayHtml(essay, essay.content, []);
     expect(html).toContain('<figure class="apa-table">');
-    expect(html).toContain("Tabla 1");
-    expect(html).toContain("<em>Horas de lectura</em>");
+    expect(html).toContain(
+      '<p class="tbl-cap"><strong>Tabla 1</strong><br />' +
+        "<em>Horas &lt;de&gt; lectura</em></p>",
+    );
     expect(html).toContain("<th><p>Grupo</p></th>");
     expect(html).toContain("<td><p>Primer año</p></td>");
     expect(html).toContain("Nota.");
@@ -709,7 +763,7 @@ describe("renderEssayHtml", () => {
               content: [
                 {
                   type: "figureTitle",
-                  content: [{ type: "text", text: "Distribución" }],
+                  content: [{ type: "text", text: "Distribución <por>" }],
                 },
                 {
                   type: "figureImage",
@@ -728,8 +782,10 @@ describe("renderEssayHtml", () => {
     const urls = new Map([["essays/assets/x.png", "blob:fake-url"]]);
     const html = renderEssayHtml(essay, essay.content, [], urls);
     expect(html).toContain('<figure class="apa-figure">');
-    expect(html).toContain("Figura 1");
-    expect(html).toContain("<em>Distribución</em>");
+    expect(html).toContain(
+      '<p class="fig-cap"><strong>Figura 1</strong><br />' +
+        "<em>Distribución &lt;por&gt;</em></p>",
+    );
     expect(html).toContain('src="blob:fake-url"');
     expect(html).toContain("Nota.");
   });
@@ -925,6 +981,15 @@ describe("renderEssayHtml", () => {
 });
 
 describe("renderEssayCss", () => {
+  it("centers table headers while leaving body cells left-aligned", () => {
+    const css = renderEssayCss(sampleEssay().settings);
+
+    expect(css).toMatch(
+      /\.apa-table th, \.apa-table td \{[^}]*text-align: left;/s,
+    );
+    expect(css).toMatch(/\.apa-table th \{[^}]*text-align: center;/s);
+  });
+
   it("sets page size and margin per settings", () => {
     const essay = sampleEssay();
     const css = renderEssayCss(essay.settings);

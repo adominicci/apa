@@ -111,12 +111,44 @@
   text-indent: 0.5in;
 }
 
+/* Levels 4–5 are run-in headings. A derived ProseMirror decoration marks only
+   headings followed by a paragraph and decides whether an authored terminal
+   period should be preserved. The nodes stay independently editable. */
+.apa-editor .tiptap h4[data-apa-run-in],
+.apa-editor .tiptap h5[data-apa-run-in] {
+  display: inline;
+  padding-left: 0.5in;
+  text-indent: 0;
+}
+
+.apa-editor .tiptap h4[data-run-in-punctuation="append"]::after,
+.apa-editor .tiptap h5[data-run-in-punctuation="append"]::after {
+  content: ". ";
+}
+
+.apa-editor .tiptap h4[data-run-in-punctuation="preserve"]::after,
+.apa-editor .tiptap h5[data-run-in-punctuation="preserve"]::after {
+  content: " ";
+}
+
+.apa-editor .tiptap h4[data-apa-run-in] + p,
+.apa-editor .tiptap h5[data-apa-run-in] + p {
+  display: inline;
+  text-indent: 0;
+}
+
+.apa-editor .tiptap h4[data-apa-run-in] + p::after,
+.apa-editor .tiptap h5[data-apa-run-in] + p::after {
+  content: "";
+  display: block;
+}
+
 .apa-editor .tiptap h5 {
   font-style: italic;
 }
 
 .apa-editor .tiptap {
-  counter-reset: appendix apa-table apa-figure apa-equation;
+  counter-reset: apa-table apa-figure apa-equation;
 }
 
 .apa-editor .tiptap .sec + .sec {
@@ -177,16 +209,24 @@
   text-indent: 0;
 }
 
-.apa-editor .tiptap .sec-appendix {
-  counter-increment: appendix;
-}
-
 .apa-editor[data-doclang="es"] .tiptap .sec-appendix::before {
-  content: "Apéndice " counter(appendix, upper-alpha);
+  content: "Apéndice";
 }
 
 .apa-editor[data-doclang="en"] .tiptap .sec-appendix::before {
-  content: "Appendix " counter(appendix, upper-alpha);
+  content: "Appendix";
+}
+
+.apa-editor[data-doclang="es"]
+  .tiptap
+  .sec-appendix[data-appendix-letter]::before {
+  content: "Apéndice " attr(data-appendix-letter);
+}
+
+.apa-editor[data-doclang="en"]
+  .tiptap
+  .sec-appendix[data-appendix-letter]::before {
+  content: "Appendix " attr(data-appendix-letter);
 }
 
 .apa-editor .tiptap .keywords-line {
@@ -373,6 +413,7 @@
   /* The real APA header rule — solid, overrides the ghost bottom above. */
   border-bottom: 1px solid var(--fg);
   font-weight: normal;
+  text-align: center;
 }
 
 .apa-editor .tiptap .apa-table th p,
