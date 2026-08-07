@@ -56,6 +56,43 @@ function tableContaining(xml: string, text: string): string {
   return table;
 }
 
+function innermostTableContaining(xml: string, text: string): string {
+  const markerIndex = xml.indexOf(text);
+  if (markerIndex < 0) throw new Error(`Table marker not found: ${text}`);
+  const tableStart = xml.lastIndexOf("<w:tbl>", markerIndex);
+  const tableEnd = xml.indexOf("</w:tbl>", markerIndex);
+  if (tableStart < 0 || tableEnd < 0) {
+    throw new Error(`Table bounds not found: ${text}`);
+  }
+  return xml.slice(tableStart, tableEnd + "</w:tbl>".length);
+}
+
+function singleCellApaTable(title: string, cellText: string): PMJson {
+  return {
+    type: "apaTable",
+    content: [
+      {
+        type: "tableTitle",
+        content: [{ type: "text", text: title }],
+      },
+      {
+        type: "table",
+        content: [{
+          type: "tableRow",
+          content: [{
+            type: "tableCell",
+            content: [{
+              type: "paragraph",
+              content: [{ type: "text", text: cellText }],
+            }],
+          }],
+        }],
+      },
+      { type: "tableNote" },
+    ],
+  };
+}
+
 const personalCommunication: Reference = {
   id: "ref-personal",
   type: "personalCommunication",
@@ -829,8 +866,150 @@ describe("exportDocx (student, es)", () => {
     const xml = await documentXmlFor(input);
     const table = tableContaining(xml, "Primer año");
 
-    expect(table).toContain('<w:tblInd w:type="dxa" w:w="9359"/>');
-    expect(table).toContain('<w:tblW w:type="dxa" w:w="1"/>');
+    expect(table).toContain('<w:tblInd w:type="dxa" w:w="9358"/>');
+    expect(table).toContain('<w:tblW w:type="dxa" w:w="2"/>');
+  });
+
+  it("fits a quoted inner table to its containing table cell", async () => {
+    const input = sampleInput();
+    input.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [{
+          type: "apaTable",
+          content: [
+            { type: "tableTitle" },
+            {
+              type: "table",
+              content: [{
+                type: "tableRow",
+                content: [
+                  {
+                    type: "tableCell",
+                    content: [{
+                      type: "blockquote",
+                      content: [
+                        singleCellApaTable(
+                          "Quoted inner",
+                          "QUOTED INNER CELL",
+                        ),
+                      ],
+                    }],
+                  },
+                  {
+                    type: "tableCell",
+                    content: [
+                      singleCellApaTable("Plain inner", "PLAIN INNER CELL"),
+                    ],
+                  },
+                ],
+              }],
+            },
+            { type: "tableNote" },
+          ],
+        }],
+      }],
+    };
+
+    const xml = await documentXmlFor(input);
+    const outerProperties = xml.match(
+      /<w:tbl><w:tblPr>[\s\S]*?<\/w:tblPr>/,
+    )?.[0];
+    const quotedInner = innermostTableContaining(xml, "QUOTED INNER CELL");
+    const plainInner = innermostTableContaining(xml, "PLAIN INNER CELL");
+
+    expect(outerProperties).toContain(
+      '<w:tblW w:type="pct" w:w="100%"/>',
+    );
+    expect(outerProperties).not.toContain("<w:tblInd");
+    expect(quotedInner).toContain(
+      '<w:tblInd w:type="dxa" w:w="720"/>',
+    );
+    expect(quotedInner).toContain(
+      '<w:tblW w:type="dxa" w:w="3960"/>',
+    );
+    expect(plainInner).toContain(
+      '<w:tblW w:type="pct" w:w="100%"/>',
+    );
+    expect(plainInner).not.toContain("<w:tblInd");
+  });
+
+  it("uses column spans and authored column proportions for inner-table width", async () => {
+    const input = sampleInput();
+    input.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [{
+          type: "apaTable",
+          content: [
+            { type: "tableTitle" },
+            {
+              type: "table",
+              content: [{
+                type: "tableRow",
+                content: [
+                  {
+                    type: "tableCell",
+                    attrs: {
+                      colspan: 2,
+                      rowspan: 2,
+                      colwidth: [100, 200],
+                    },
+                    content: [{
+                      type: "blockquote",
+                      content: [
+                        singleCellApaTable(
+                          "Spanning inner",
+                          "SPANNING INNER CELL",
+                        ),
+                      ],
+                    }],
+                  },
+                  {
+                    type: "tableCell",
+                    attrs: {
+                      colspan: 1,
+                      rowspan: 1,
+                      colwidth: [100],
+                    },
+                    content: [{ type: "paragraph" }],
+                  },
+                ],
+              }, {
+                type: "tableRow",
+                content: [{
+                  type: "tableCell",
+                  attrs: {
+                    colspan: 1,
+                    rowspan: 1,
+                    colwidth: [100],
+                  },
+                  content: [{
+                    type: "paragraph",
+                    content: [{ type: "text", text: "ROWSPAN TRAILING CELL" }],
+                  }],
+                }],
+              }],
+            },
+            { type: "tableNote" },
+          ],
+        }],
+      }],
+    };
+
+    const xml = await documentXmlFor(input);
+    const outerTable = tableContaining(xml, "SPANNING INNER CELL");
+    const innerTable = innermostTableContaining(xml, "SPANNING INNER CELL");
+
+    expect(outerTable).toContain('<w:gridCol w:w="2340"/>');
+    expect(outerTable).toContain('<w:gridCol w:w="4680"/>');
+    expect(outerTable).toContain('<w:gridSpan w:val="2"/>');
+    expect(outerTable).toContain('<w:vMerge w:val="restart"/>');
+    expect(outerTable).toContain('<w:tcW w:type="dxa" w:w="7020"/>');
+    expect(innerTable).toContain('<w:tblInd w:type="dxa" w:w="720"/>');
+    expect(innerTable).toContain('<w:tblW w:type="dxa" w:w="6300"/>');
   });
 
   it("renders the keywords label in italics", () => {

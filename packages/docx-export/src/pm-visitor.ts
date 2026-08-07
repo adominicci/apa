@@ -36,6 +36,8 @@ interface VisitOptions {
   paragraphStyle?: string;
   /** Accumulated left indent applied while walking nested block quotes. */
   blockquoteIndent?: number;
+  /** Writable width of the current page or table-cell content container. */
+  contentWidth?: number;
   /** Explicit alignment for every paragraph in a table-cell context. */
   paragraphAlignment?: (typeof AlignmentType)[keyof typeof AlignmentType];
 }
@@ -237,6 +239,7 @@ export function visitBlocks(
           paragraphStyle: "Blockquote",
           blockquoteIndent: (options.blockquoteIndent ?? 0) + HALF_INCH,
           paragraphAlignment: options.paragraphAlignment,
+          contentWidth: options.contentWidth,
         });
         if (quoteBlocks.length > 0) {
           emittedFirst = true;
@@ -257,14 +260,15 @@ export function visitBlocks(
             state.ctx,
             state.citationCounter,
             state.tableCounter,
-            (cellBlocks, isHeader) =>
+            (cellBlocks, isHeader, contentWidth) =>
               visitBlocks(cellBlocks, state, {
                 paragraphStyle: "Normal",
                 paragraphAlignment: isHeader
                   ? AlignmentType.CENTER
                   : AlignmentType.LEFT,
+                contentWidth,
               }),
-            state.contentWidth,
+            options.contentWidth ?? state.contentWidth,
             options.blockquoteIndent,
           ),
         );
