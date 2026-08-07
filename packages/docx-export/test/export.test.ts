@@ -2,7 +2,7 @@ import { Packer } from "docx";
 import { strFromU8, unzipSync } from "fflate";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { Reference } from "@tesina/engine";
-import { exportDocx, type PMJson } from "../src/index.ts";
+import { exportDocx, type ExportImage, type PMJson } from "../src/index.ts";
 import { sampleEssayInput as sampleInput } from "../src/sample.ts";
 
 let documentXml = "";
@@ -91,6 +91,144 @@ function singleCellApaTable(title: string, cellText: string): PMJson {
       { type: "tableNote" },
     ],
   };
+}
+
+const testPng = Uint8Array.from([
+  137,
+  80,
+  78,
+  71,
+  13,
+  10,
+  26,
+  10,
+  0,
+  0,
+  0,
+  13,
+  73,
+  72,
+  68,
+  82,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  1,
+  8,
+  6,
+  0,
+  0,
+  0,
+  31,
+  21,
+  196,
+  137,
+  0,
+  0,
+  0,
+  13,
+  73,
+  68,
+  65,
+  84,
+  120,
+  156,
+  99,
+  100,
+  96,
+  96,
+  96,
+  0,
+  0,
+  0,
+  5,
+  0,
+  1,
+  135,
+  165,
+  172,
+  137,
+  0,
+  0,
+  0,
+  0,
+  73,
+  69,
+  78,
+  68,
+  174,
+  66,
+  96,
+  130,
+]);
+
+function figureBlock(title: string, src: string): PMJson {
+  return {
+    type: "figure",
+    content: [
+      {
+        type: "figureTitle",
+        content: [{ type: "text", text: title }],
+      },
+      { type: "figureImage", attrs: { src } },
+      { type: "figureNote" },
+    ],
+  };
+}
+
+function drawingExtents(xml: string): { cx: number; cy: number }[] {
+  return [...xml.matchAll(/<wp:extent cx="([^"]+)" cy="([^"]+)"\/>/g)].map(
+    (match) => ({ cx: Number(match[1]), cy: Number(match[2]) }),
+  );
+}
+
+function testImage(width: number, height: number): ExportImage {
+  return { data: testPng, type: "png", width, height };
+}
+
+function tableCell(
+  content: PMJson[],
+  attrs?: Record<string, unknown>,
+): PMJson {
+  return {
+    type: "tableCell",
+    ...(attrs ? { attrs } : {}),
+    content,
+  };
+}
+
+function apaTable(rows: PMJson[][]): PMJson {
+  return {
+    type: "apaTable",
+    content: [
+      { type: "tableTitle" },
+      {
+        type: "table",
+        content: rows.map((content) => ({
+          type: "tableRow",
+          content,
+        })),
+      },
+      { type: "tableNote" },
+    ],
+  };
+}
+
+function inputWithBody(
+  content: PMJson[],
+  images: Record<string, ExportImage>,
+): ReturnType<typeof sampleInput> {
+  const input = sampleInput();
+  input.images = images;
+  input.content = {
+    type: "doc",
+    content: [{ type: "sectionBody", content }],
+  };
+  return input;
 }
 
 const personalCommunication: Reference = {
@@ -1022,84 +1160,117 @@ describe("exportDocx (student, es)", () => {
     expect(documentXml).toContain("Elaboración propia");
   });
 
+  it("fits a wide figure to a regular table cell and preserves its aspect ratio", async () => {
+    const input = inputWithBody(
+      [
+        apaTable([[
+          tableCell([figureBlock("CELL FIGURE", "wide.png")]),
+          tableCell([{ type: "paragraph" }]),
+        ]]),
+      ],
+      { "wide.png": testImage(500, 250) },
+    );
+
+    const xml = await documentXmlFor(input);
+
+    // 4,680 twips / 15 twips per pixel = 312 x 156 px.
+    expect(drawingExtents(xml)).toEqual([{
+      cx: 2_971_800,
+      cy: 1_485_900,
+    }]);
+  });
+
+  it("uses a spanning cell's authored column width for its figure", async () => {
+    const input = inputWithBody(
+      [
+        apaTable([[
+          tableCell(
+            [figureBlock("SPANNING FIGURE", "spanning.png")],
+            { colspan: 2, colwidth: [100, 200] },
+          ),
+          tableCell([{ type: "paragraph" }], { colwidth: [100] }),
+        ]]),
+      ],
+      { "spanning.png": testImage(500, 250) },
+    );
+
+    const xml = await documentXmlFor(input);
+
+    // The 100:200:100 grid gives the spanning cell 7,020 twips, or 468 px.
+    expect(drawingExtents(xml)).toEqual([{
+      cx: 4_457_700,
+      cy: 2_228_850,
+    }]);
+  });
+
+  it("fits a quoted figure to its recursively narrowed inner-table cell", async () => {
+    const nestedFigure = {
+      type: "blockquote",
+      content: [figureBlock("NESTED FIGURE", "nested.png")],
+    };
+    const innerTable = apaTable([[tableCell([nestedFigure])]]);
+    const input = inputWithBody(
+      [
+        apaTable([[
+          tableCell([{ type: "blockquote", content: [innerTable] }]),
+          tableCell([{ type: "paragraph" }]),
+        ]]),
+      ],
+      { "nested.png": testImage(500, 250) },
+    );
+
+    const xml = await documentXmlFor(input);
+
+    // 4,680 twips, less two 720-twip quote indents, leaves 216 x 108 px.
+    expect(drawingExtents(xml)).toEqual([{
+      cx: 2_057_400,
+      cy: 1_028_700,
+    }]);
+  });
+
+  it("does not upscale a figure that already fits its table cell", async () => {
+    const input = inputWithBody(
+      [
+        apaTable([[
+          tableCell([figureBlock("SMALL FIGURE", "small.png")]),
+          tableCell([{ type: "paragraph" }]),
+        ]]),
+      ],
+      { "small.png": testImage(120, 90) },
+    );
+
+    const xml = await documentXmlFor(input);
+
+    expect(drawingExtents(xml)).toEqual([{
+      cx: 1_143_000,
+      cy: 857_250,
+    }]);
+  });
+
+  it("omits images with unusable dimensions without dropping their figure text", async () => {
+    const input = inputWithBody(
+      [
+        figureBlock("ZERO WIDTH FIGURE", "zero-width.png"),
+        figureBlock("BAD HEIGHT FIGURE", "bad-height.png"),
+      ],
+      {
+        "zero-width.png": testImage(0, 250),
+        "bad-height.png": testImage(250, Number.NaN),
+      },
+    );
+
+    const xml = await documentXmlFor(input);
+
+    expect(xml).toContain("ZERO WIDTH FIGURE");
+    expect(xml).toContain("BAD HEIGHT FIGURE");
+    expect(drawingExtents(xml)).toEqual([]);
+  });
+
   it("embeds the figure image when bytes are supplied", async () => {
-    // Smallest valid PNG (1x1 transparent pixel).
-    const png = Uint8Array.from([
-      137,
-      80,
-      78,
-      71,
-      13,
-      10,
-      26,
-      10,
-      0,
-      0,
-      0,
-      13,
-      73,
-      72,
-      68,
-      82,
-      0,
-      0,
-      0,
-      1,
-      0,
-      0,
-      0,
-      1,
-      8,
-      6,
-      0,
-      0,
-      0,
-      31,
-      21,
-      196,
-      137,
-      0,
-      0,
-      0,
-      13,
-      73,
-      68,
-      65,
-      84,
-      120,
-      156,
-      99,
-      100,
-      96,
-      96,
-      96,
-      0,
-      0,
-      0,
-      5,
-      0,
-      1,
-      135,
-      165,
-      172,
-      137,
-      0,
-      0,
-      0,
-      0,
-      73,
-      69,
-      78,
-      68,
-      174,
-      66,
-      96,
-      130,
-    ]);
     const input = sampleInput();
     input.images = {
       "essays/assets/sample-fig.png": {
-        data: png,
+        data: testPng,
         type: "png",
         width: 120,
         height: 90,

@@ -16,6 +16,7 @@ import { type DocContext, inlineToTextRuns } from "./runs.ts";
 const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: "auto" };
 const RULE = { style: BorderStyle.SINGLE, size: 4, color: "000000" };
 const MIN_TABLE_WIDTH = 1; // twip; prevents zero/negative widths in deep quotes
+const TWIPS_PER_PIXEL = 15; // 1,440 twips per inch at CSS's 96 px per inch
 
 interface CellPlacement {
   node: PMJson;
@@ -312,6 +313,7 @@ export function apaFigureBlocks(
   ctx: DocContext,
   citationCounter: { next: number },
   figureCounter: { n: number },
+  contentWidth: number,
   leftIndent = 0,
 ): Paragraph[] {
   figureCounter.n += 1;
@@ -348,7 +350,16 @@ export function apaFigureBlocks(
 
   const src = imageNode?.attrs?.["src"] as string | undefined;
   const image = src ? ctx.images[src] : undefined;
-  if (image) {
+  const availableWidth = Math.max(1, contentWidth - leftIndent);
+  const maxWidthPixels = Math.max(
+    1,
+    Math.floor(availableWidth / TWIPS_PER_PIXEL),
+  );
+  const hasUsableDimensions = image &&
+    Number.isFinite(image.width) && image.width > 0 &&
+    Number.isFinite(image.height) && image.height > 0;
+  if (image && hasUsableDimensions) {
+    const scale = Math.min(1, maxWidthPixels / image.width);
     out.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
@@ -357,7 +368,10 @@ export function apaFigureBlocks(
           new ImageRun({
             data: image.data,
             type: image.type,
-            transformation: { width: image.width, height: image.height },
+            transformation: {
+              width: image.width * scale,
+              height: image.height * scale,
+            },
           }),
         ],
       }),

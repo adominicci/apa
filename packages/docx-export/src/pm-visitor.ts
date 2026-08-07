@@ -282,6 +282,7 @@ export function visitBlocks(
             state.ctx,
             state.citationCounter,
             state.figureCounter,
+            options.contentWidth ?? state.contentWidth,
             options.blockquoteIndent,
           ),
         );
