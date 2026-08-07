@@ -1,7 +1,7 @@
 import { Paragraph, Tab, Table, TabStopType, TextRun } from "docx";
 import { getTerms } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
-import { type DocContext, inlineText, inlineToTextRuns } from "./runs.ts";
+import { type DocContext, inlineToTextRuns } from "./runs.ts";
 import {
   BULLET_LIST_REF,
   listTextIndent,
@@ -24,6 +24,24 @@ interface VisitState {
 interface VisitOptions {
   /** Style for the first block when it is a paragraph (abstract: "Normal"). */
   firstParagraphStyle?: string;
+}
+
+/**
+ * Removes the optional authored period and trailing space from a run-in
+ * heading's last text node. The visitor adds one styled ". " run after all
+ * rich inline content, so citations and marks remain separate engine-backed
+ * runs without ever producing a doubled period.
+ */
+function normalizedRunInContent(inline: readonly PMJson[]): PMJson[] {
+  const normalized = [...inline];
+  const last = normalized.at(-1);
+  if (last?.type === "text" && typeof last.text === "string") {
+    normalized[normalized.length - 1] = {
+      ...last,
+      text: last.text.replace(/\.?\s*$/, ""),
+    };
+  }
+  return normalized;
 }
 
 /**
@@ -132,27 +150,25 @@ export function visitBlocks(
       case "heading": {
         const level = Number(block.attrs?.["level"] ?? 1);
         if (level >= 4) {
-          const headingText = inlineText(block.content ?? []).replace(
-            /\.?\s*$/,
-            "",
-          );
-          // Advance the counter for any citations inside the heading even
-          // though run-in headings render as plain bold text.
-          inlineToTextRuns(
-            block.content ?? [],
+          const runInStyle = level === 5
+            ? { bold: true, italics: true }
+            : { bold: true };
+          const headingRuns = inlineToTextRuns(
+            normalizedRunInContent(block.content ?? []),
             state.ctx,
             state.citationCounter,
+            runInStyle,
           );
-          const headingRun = new TextRun({
-            text: `${headingText}. `,
-            bold: true,
-            ...(level === 5 ? { italics: true } : {}),
+          const punctuationRun = new TextRun({
+            text: ". ",
+            ...runInStyle,
           });
           const next = blocks[i + 1];
           if (next?.type === "paragraph") {
             i += 1;
             emit("BodyText", [
-              headingRun,
+              ...headingRuns,
+              punctuationRun,
               ...inlineToTextRuns(
                 next.content ?? [],
                 state.ctx,
@@ -160,7 +176,7 @@ export function visitBlocks(
               ),
             ]);
           } else {
-            emit("BodyText", [headingRun]);
+            emit("BodyText", [...headingRuns, punctuationRun]);
           }
         } else {
           emit(
@@ -200,6 +216,7 @@ export function visitBlocks(
             state.ctx,
             state.citationCounter,
             state.tableCounter,
+            (cellBlocks) => visitBlocks(cellBlocks, state),
           ),
         );
         break;

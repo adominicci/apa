@@ -63,13 +63,13 @@ export function buildDocContext(
 
 export function richRunsToTextRuns(
   runs: readonly RichRun[],
-  extra: { bold?: boolean } = {},
+  extra: { bold?: boolean; italics?: boolean } = {},
 ): TextRun[] {
   return runs.map(
     (run) =>
       new TextRun({
         text: run.text,
-        ...(run.italic ? { italics: true } : {}),
+        ...(run.italic || extra.italics ? { italics: true } : {}),
         ...(extra.bold ? { bold: true } : {}),
       }),
   );
@@ -136,7 +136,7 @@ export function inlineToTextRuns(
         ctx.locale,
         { firstOccurrenceRefIds },
       );
-      out.push(...richRunsToTextRuns(runs));
+      out.push(...richRunsToTextRuns(runs, overrides));
     } else if (node.type === "hardBreak") {
       out.push(new TextRun({ break: 1 }));
     }

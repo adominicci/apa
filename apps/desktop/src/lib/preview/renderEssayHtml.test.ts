@@ -16,6 +16,22 @@ const salgado: Reference = {
   pageEnd: "67",
 };
 
+const readingCouncil: Reference = {
+  id: "ref-reading-council",
+  type: "journalArticle",
+  authors: [{
+    kind: "group",
+    name: "Consejo de Escritura Regional",
+    abbreviation: "CER",
+  }],
+  date: { year: 2024 },
+  title: "Prácticas de escritura estudiantil",
+  journal: "Revista Académica Inventada",
+  volume: "4",
+  pageStart: "1",
+  pageEnd: "12",
+};
+
 function sampleEssay() {
   const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
   essay.titlePage = {
@@ -326,9 +342,101 @@ describe("renderEssayHtml", () => {
     expect(html).toContain('<figure class="apa-table">');
     expect(html).toContain("Tabla 1");
     expect(html).toContain("<em>Horas de lectura</em>");
-    expect(html).toContain("<th>Grupo</th>");
-    expect(html).toContain("<td>Primer año</td>");
+    expect(html).toContain("<th><p>Grupo</p></th>");
+    expect(html).toContain("<td><p>Primer año</p></td>");
     expect(html).toContain("Nota.");
+  });
+
+  it("preserves table-cell block structure and citation-rich run-in headings", () => {
+    const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    essay.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [
+          {
+            type: "apaTable",
+            content: [
+              {
+                type: "tableTitle",
+                content: [{ type: "text", text: "Contenido complejo" }],
+              },
+              {
+                type: "table",
+                content: [{
+                  type: "tableRow",
+                  content: [{
+                    type: "tableCell",
+                    content: [
+                      {
+                        type: "paragraph",
+                        content: [{ type: "text", text: "Primer bloque" }],
+                      },
+                      {
+                        type: "paragraph",
+                        content: [{ type: "text", text: "Segundo bloque" }],
+                      },
+                      {
+                        type: "orderedList",
+                        attrs: { listStyle: "decimal" },
+                        content: [{
+                          type: "listItem",
+                          content: [{
+                            type: "paragraph",
+                            content: [{
+                              type: "text",
+                              text: "TABLE CELL LIST ITEM ",
+                              marks: [{ type: "bold" }],
+                            }, {
+                              type: "citation",
+                              attrs: {
+                                items: [{ refId: "ref-reading-council" }],
+                                mode: "parenthetical",
+                              },
+                            }],
+                          }],
+                        }],
+                      },
+                    ],
+                  }],
+                }],
+              },
+              { type: "tableNote" },
+            ],
+          },
+          {
+            type: "heading",
+            attrs: { level: 5 },
+            content: [
+              { type: "text", text: "RUN IN HEADING CITATION " },
+              {
+                type: "citation",
+                attrs: {
+                  items: [{ refId: "ref-reading-council" }],
+                  mode: "parenthetical",
+                },
+              },
+            ],
+          },
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "Continúa el párrafo." }],
+          },
+        ],
+      }],
+    };
+
+    const html = renderEssayHtml(essay, essay.content, [readingCouncil]);
+
+    expect(html).toContain(
+      "<td><p>Primer bloque</p><p>Segundo bloque</p>" +
+        '<ol type="1"><li><p><strong>TABLE CELL LIST ITEM </strong>' +
+        "(Consejo de Escritura Regional [CER], 2024)</p></li></ol></td>",
+    );
+    expect(html).toContain(
+      "<p><strong><em>RUN IN HEADING CITATION (CER, 2024). " +
+        "</em></strong>Continúa el párrafo.</p>",
+    );
   });
 
   it("renders an APA figure with number, title, image URL, and note", () => {

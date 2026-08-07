@@ -1,6 +1,7 @@
 import { Packer } from "docx";
 import { strFromU8, unzipSync } from "fflate";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { Reference } from "@tesina/engine";
 import { exportDocx } from "../src/index.ts";
 import { sampleEssayInput as sampleInput } from "../src/sample.ts";
 
@@ -25,6 +26,21 @@ function paragraphsContaining(xml: string, text: string): string[] {
 function paragraphIndexContaining(xml: string, text: string): number {
   return (xml.match(/<w:p(?:>| [^>]*>)[\s\S]*?<\/w:p>/g) ?? [])
     .findIndex((candidate) => candidate.includes(text));
+}
+
+function tableCellContaining(text: string): string {
+  const cells = documentXml.match(/<w:tc(?:>| [^>]*>)[\s\S]*?<\/w:tc>/g) ??
+    [];
+  const cell = cells.find((candidate) => candidate.includes(text));
+  if (!cell) throw new Error(`Table cell not found: ${text}`);
+  return cell;
+}
+
+function textRunContaining(paragraph: string, text: string): string {
+  const runs = paragraph.match(/<w:r(?:>| [^>]*>)[\s\S]*?<\/w:r>/g) ?? [];
+  const run = runs.find((candidate) => candidate.includes(text));
+  if (!run) throw new Error(`Text run not found: ${text}`);
+  return run;
 }
 
 async function documentXmlFor(
@@ -291,8 +307,149 @@ describe("exportDocx (student, es)", () => {
   });
 
   it("merges level-4 headings run-in with the following paragraph", () => {
-    expect(documentXml).toContain("Detalle menor. ");
+    const paragraph = paragraphContaining("RUN IN HEADING CITATION");
+    const labelRun = textRunContaining(paragraph, "RUN IN HEADING CITATION");
+    const citationRun = textRunContaining(paragraph, "(Salgado, 2020)");
+
+    expect(paragraph).toContain("RUN IN HEADING CITATION");
+    expect(paragraph).toContain("(Salgado, 2020)");
+    expect(paragraph).toContain(". ");
+    expect(labelRun).toContain("<w:b/>");
+    expect(citationRun).toContain("<w:b/>");
+    expect(paragraph).toContain(
+      "El párrafo que sigue al encabezado nivel cuatro.",
+    );
     expect(documentXml).not.toMatch(/w:pStyle w:val="Heading4"/);
+  });
+
+  it("keeps level-5 heading citations bold italic and continuation text plain", async () => {
+    const input = sampleInput();
+    input.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [
+          {
+            type: "heading",
+            attrs: { level: 5 },
+            content: [
+              { type: "text", text: "Level five citation " },
+              {
+                type: "citation",
+                attrs: {
+                  items: [{ refId: "ref-salgado" }],
+                  mode: "parenthetical",
+                },
+              },
+            ],
+          },
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "Plain continuation" }],
+          },
+        ],
+      }],
+    };
+    const xml = await documentXmlFor(input);
+    const paragraph = paragraphsContaining(xml, "Level five citation")[0]!;
+    const citationRun = textRunContaining(paragraph, "(Salgado, 2020)");
+    const continuationRun = textRunContaining(paragraph, "Plain continuation");
+
+    expect(citationRun).toContain("<w:b/>");
+    expect(citationRun).toContain("<w:i/>");
+    expect(continuationRun).not.toContain("<w:b/>");
+    expect(continuationRun).not.toContain("<w:i/>");
+    expect(paragraph).not.toContain('w:pStyle w:val="Heading5"');
+  });
+
+  it("shares first-occurrence citation state from a table-cell list into a run-in heading", async () => {
+    const groupReference: Reference = {
+      id: "ref-regional-council",
+      type: "journalArticle",
+      authors: [{
+        kind: "group",
+        name: "Consejo de Escritura Regional",
+        abbreviation: "CER",
+      }],
+      date: { year: 2024 },
+      title: "Prácticas de escritura estudiantil",
+      journal: "Revista Académica Inventada",
+      volume: "4",
+      pageStart: "1",
+      pageEnd: "12",
+    };
+    const citation = {
+      type: "citation",
+      attrs: {
+        items: [{ refId: groupReference.id }],
+        mode: "parenthetical",
+      },
+    };
+    const input = sampleInput();
+    input.references = [groupReference];
+    input.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [
+          {
+            type: "apaTable",
+            content: [
+              {
+                type: "tableTitle",
+                content: [{ type: "text", text: "Citation order" }],
+              },
+              {
+                type: "table",
+                content: [{
+                  type: "tableRow",
+                  content: [{
+                    type: "tableCell",
+                    content: [{
+                      type: "bulletList",
+                      content: [{
+                        type: "listItem",
+                        content: [{
+                          type: "paragraph",
+                          content: [
+                            { type: "text", text: "First citation " },
+                            citation,
+                          ],
+                        }],
+                      }],
+                    }],
+                  }],
+                }],
+              },
+              { type: "tableNote" },
+            ],
+          },
+          {
+            type: "heading",
+            attrs: { level: 4 },
+            content: [
+              { type: "text", text: "Later citation " },
+              citation,
+            ],
+          },
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "Continuation" }],
+          },
+        ],
+      }],
+    };
+
+    const xml = await documentXmlFor(input);
+    const first = paragraphsContaining(xml, "First citation")[0]!;
+    const later = paragraphsContaining(xml, "Later citation")[0]!;
+
+    expect(first).toContain(
+      "(Consejo de Escritura Regional [CER], 2024)",
+    );
+    expect(first).toContain("<w:numPr>");
+    expect(later).toContain("(CER, 2024)");
+    expect(textRunContaining(later, "(CER, 2024)")).toContain("<w:b/>");
   });
 
   it("renders the keywords label in italics", () => {
@@ -403,6 +560,26 @@ describe("exportDocx (student, es)", () => {
     // A real table element with a bottom rule under the header row.
     expect(documentXml).toMatch(/<w:tbl>/);
     expect(documentXml).toMatch(/w:val="single"/);
+  });
+
+  it("preserves separate paragraphs, list numbering, marks, and citations inside table cells", () => {
+    const cell = tableCellContaining("Primer año");
+    const paragraphs = cell.match(/<w:p(?:>| [^>]*>)[\s\S]*?<\/w:p>/g) ?? [];
+    const continuation = paragraphs.find((paragraph) =>
+      paragraph.includes("Segundo bloque de celda")
+    );
+    const listItem = paragraphs.find((paragraph) =>
+      paragraph.includes("TABLE CELL LIST ITEM")
+    );
+
+    expect(paragraphs).toHaveLength(3);
+    expect(continuation).toContain("<w:i/>");
+    expect(listItem, "nested table-cell list item was dropped").toBeDefined();
+    if (!listItem) return;
+    expect(listItem).toContain("TABLE CELL LIST ITEM");
+    expect(listItem).toContain("(Padilla, 2017)");
+    expect(listItem).toContain("<w:b/>");
+    expect(listItem).toContain("<w:numPr>");
   });
 
   it("exports a mapped equation centered with its number at the right margin", () => {

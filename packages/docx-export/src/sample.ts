@@ -133,7 +133,16 @@ export function sampleEssayInput(
             {
               type: "heading",
               attrs: { level: 4 },
-              content: [{ type: "text", text: "Detalle menor" }],
+              content: [
+                { type: "text", text: "RUN IN HEADING CITATION " },
+                {
+                  type: "citation",
+                  attrs: {
+                    items: [{ refId: "ref-salgado" }],
+                    mode: "parenthetical",
+                  },
+                },
+              ],
             },
             {
               type: "paragraph",
@@ -203,10 +212,44 @@ export function sampleEssayInput(
                       content: [
                         {
                           type: "tableCell",
-                          content: [{
-                            type: "paragraph",
-                            content: [{ type: "text", text: "Primer año" }],
-                          }],
+                          content: [
+                            {
+                              type: "paragraph",
+                              content: [{ type: "text", text: "Primer año" }],
+                            },
+                            {
+                              type: "paragraph",
+                              content: [{
+                                type: "text",
+                                text: "Segundo bloque de celda",
+                                marks: [{ type: "italic" }],
+                              }],
+                            },
+                            {
+                              type: "orderedList",
+                              attrs: { listStyle: "lower-alpha" },
+                              content: [{
+                                type: "listItem",
+                                content: [{
+                                  type: "paragraph",
+                                  content: [
+                                    {
+                                      type: "text",
+                                      text: "TABLE CELL LIST ITEM ",
+                                      marks: [{ type: "bold" }],
+                                    },
+                                    {
+                                      type: "citation",
+                                      attrs: {
+                                        items: [{ refId: "ref-padilla" }],
+                                        mode: "parenthetical",
+                                      },
+                                    },
+                                  ],
+                                }],
+                              }],
+                            },
+                          ],
                         },
                         {
                           type: "tableCell",

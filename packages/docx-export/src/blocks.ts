@@ -26,6 +26,9 @@ export function apaTableBlocks(
   ctx: DocContext,
   citationCounter: { next: number },
   tableCounter: { n: number },
+  renderCellBlocks: (
+    blocks: readonly PMJson[],
+  ) => readonly (Paragraph | Table)[],
 ): (Paragraph | Table)[] {
   tableCounter.n += 1;
   const t = getTerms(ctx.locale);
@@ -77,20 +80,10 @@ export function apaTableBlocks(
         return new TableRow({
           tableHeader: isHeaderRow,
           children: (rowNode.content ?? []).map((cellNode) => {
-            const paragraphs = (cellNode.content ?? []).map(
-              (para) =>
-                new Paragraph({
-                  style: "Normal",
-                  children: inlineToTextRuns(
-                    para.content ?? [],
-                    ctx,
-                    citationCounter,
-                  ),
-                }),
-            );
+            const cellBlocks = renderCellBlocks(cellNode.content ?? []);
             return new TableCell({
-              children: paragraphs.length > 0
-                ? paragraphs
+              children: cellBlocks.length > 0
+                ? cellBlocks
                 : [new Paragraph({ style: "Normal" })],
               // The header row draws the rule beneath it (APA 7.8).
               borders: cellNode.type === "tableHeader"

@@ -127,10 +127,7 @@ function apaTableHtml(block: PMJson, state: RenderState): string {
     out += "<tr>";
     for (const cellNode of rowNode.content ?? []) {
       const tag = cellNode.type === "tableHeader" ? "th" : "td";
-      let inner = "";
-      for (const child of cellNode.content ?? []) {
-        inner += inlineHtml(child.content ?? [], state);
-      }
+      const inner = blocksHtml(cellNode.content ?? [], state);
       out += `<${tag}>${inner}</${tag}>`;
     }
     out += "</tr>";
@@ -334,6 +331,8 @@ section.body-sec { break-before: page; }
 .apa-table table { border-collapse: collapse; width: 100%; border-top: 1px solid #131313; border-bottom: 1px solid #131313; }
 .apa-table th, .apa-table td { padding: 3px 8px; text-align: left; vertical-align: top; }
 .apa-table th { border-bottom: 1px solid #131313; font-weight: normal; }
+.apa-table th p, .apa-table td p { margin: 0; text-indent: 0; }
+.apa-table th ul, .apa-table th ol, .apa-table td ul, .apa-table td ol { padding-left: 0.5in; }
 .apa-table .tbl-note { text-indent: 0; }
 .apa-figure { margin: 1em 0; break-inside: avoid; text-align: center; }
 .apa-figure .fig-cap { text-indent: 0; text-align: left; }
