@@ -102,14 +102,14 @@
       value={titlePage.course ?? ""}
       placeholder={m.cover_course_ph(undefined, { locale: language })}
       oninput={(e) =>
-      onChange({ course: e.currentTarget.value.trim() || undefined })}
+      onChange({ course: e.currentTarget.value || undefined })}
     />
     <input
       class="cf line"
       value={titlePage.instructor ?? ""}
       placeholder={m.cover_instructor_ph(undefined, { locale: language })}
       oninput={(e) =>
-      onChange({ instructor: e.currentTarget.value.trim() || undefined })}
+      onChange({ instructor: e.currentTarget.value || undefined })}
     />
     <input
       class="cf line date"
