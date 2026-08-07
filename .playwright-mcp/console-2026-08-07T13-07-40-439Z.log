@@ -1,0 +1,1868 @@
+[    1220ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=11be67e7:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte:46:58
+    at http://localhost:1420/src/routes/+layout.svelte:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=e3668078:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=e3668078:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=e3668078:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=e3668078:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=e3668078:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=e3668078:3002:3) @ http://localhost:1420/src/routes/+layout.svelte:48
+[    1220ms] [ERROR] No se pudo cargar la biblioteca: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-MAXGISO5.js?v=e3668078:77:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-23W6JD3Z.js?v=e3668078:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at LibraryStore.load (http://localhost:1420/src/lib/state/library.svelte.ts:53:48)
+    at http://localhost:1420/src/routes/+page.svelte:32:55
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=e3668078:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=e3668078:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=e3668078:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=e3668078:4331:21) @ http://localhost:1420/src/lib/state/library.svelte.ts:57
+[    1221ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-MAXGISO5.js?v=e3668078:77:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-23W6JD3Z.js?v=e3668078:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=e3668078:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=e3668078:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=e3668078:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=e3668078:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[    1228ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-MAXGISO5.js?v=e3668078:77:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-23W6JD3Z.js?v=e3668078:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=e3668078:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=e3668078:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=e3668078:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[    1230ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-MAXGISO5.js?v=e3668078:77:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=e3668078:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[    1836ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte:46:58
+    at http://localhost:1420/src/routes/+layout.svelte:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte:48
+[    1836ms] [ERROR] No se pudo cargar la biblioteca: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at LibraryStore.load (http://localhost:1420/src/lib/state/library.svelte.ts:53:48)
+    at http://localhost:1420/src/routes/+page.svelte:32:55
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/library.svelte.ts:57
+[    1836ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[    1837ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[    1839ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   19057ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte:46:58
+    at http://localhost:1420/src/routes/+layout.svelte:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte:48
+[   19057ms] [ERROR] No se pudo cargar la biblioteca: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at LibraryStore.load (http://localhost:1420/src/lib/state/library.svelte.ts:53:48)
+    at http://localhost:1420/src/routes/+page.svelte:32:55
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/library.svelte.ts:57
+[   19057ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   19057ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   19058ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20173ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080080:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080080:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080080:48
+[   20173ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20173ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20174ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20246ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080180:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080180:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080180:48
+[   20247ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20247ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20249ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20278ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080273:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080273:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080273:48
+[   20278ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20279ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20280ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20344ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080274:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080274:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080274:48
+[   20344ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20344ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20346ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20420ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080275:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080275:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080275:48
+[   20420ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20420ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20421ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20474ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080276:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080276:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080276:48
+[   20474ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20474ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20475ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20549ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080277:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080277:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080277:48
+[   20549ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20549ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20550ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20602ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080278:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080278:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080278:48
+[   20602ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20602ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20603ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20704ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080279:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080279:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080279:48
+[   20704ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20704ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20706ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20781ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080280:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080280:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080280:48
+[   20781ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20781ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20782ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20848ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080281:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080281:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080281:48
+[   20848ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20848ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20850ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20880ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080282:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080282:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080282:48
+[   20880ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20880ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20882ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20912ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080284:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080284:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080284:48
+[   20913ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20913ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20914ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20940ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080285:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080285:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080285:48
+[   20940ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20940ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20941ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   20991ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080286:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080286:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080286:48
+[   20991ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   20991ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   20992ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   21046ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080287:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080287:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080287:48
+[   21046ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   21046ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   21047ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   21072ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080289:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080289:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080289:48
+[   21072ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   21072ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   21073ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   21111ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080290:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080290:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080290:48
+[   21111ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   21111ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   21112ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   21176ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080291:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080291:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080291:48
+[   21176ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   21176ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   21178ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   21202ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080292:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080292:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080292:48
+[   21202ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   21202ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   21204ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   21228ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080295:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080295:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080295:48
+[   21228ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   21228ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   21230ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   21252ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080299:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080299:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080299:48
+[   21252ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   21252ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   21254ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   21268ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080300:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080300:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080300:48
+[   21268ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   21268ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   21269ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   21837ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080300:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080300:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080300:48
+[   21837ms] [ERROR] No se pudo cargar la biblioteca: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at LibraryStore.load (http://localhost:1420/src/lib/state/library.svelte.ts:53:48)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:55
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/library.svelte.ts:57
+[   21837ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   21837ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   21838ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   25682ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080300:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080300:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080300:48
+[   25682ms] [ERROR] No se pudo cargar la biblioteca: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at LibraryStore.load (http://localhost:1420/src/lib/state/library.svelte.ts:53:48)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:55
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/library.svelte.ts:57
+[   25682ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   25683ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   25684ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   33490ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092169:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092169:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108092169:48
+[   33490ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   33490ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   33492ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   33599ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092172:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092172:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108092172:48
+[   33599ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   33599ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   33601ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   33638ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092173:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092173:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108092173:48
+[   33638ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   33639ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   33640ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   33689ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092192:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092192:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108092192:48
+[   33689ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   33689ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   33690ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   25682ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080300:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108080300:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108080300:48
+[   25682ms] [ERROR] No se pudo cargar la biblioteca: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at LibraryStore.load (http://localhost:1420/src/lib/state/library.svelte.ts:53:48)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:55
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/library.svelte.ts:57
+[   25682ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   25683ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   25684ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   33490ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092169:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092169:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108092169:48
+[   33490ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   33490ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   33492ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   33599ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092172:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092172:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108092172:48
+[   33599ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   33599ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   33601ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   33638ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092173:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092173:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108092173:48
+[   33638ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   33639ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   33640ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   33689ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092192:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092192:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108092192:48
+[   33689ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   33689ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   33690ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   33783ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092325:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092325:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108092325:48
+[   33783ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts:62
+[   33783ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   33785ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108080300:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   34396ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092661:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092661:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108092661:48
+[   34396ms] [ERROR] No se pudo cargar la biblioteca: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at LibraryStore.load (http://localhost:1420/src/lib/state/library.svelte.ts:53:48)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108092661:32:55
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/library.svelte.ts:57
+[   34396ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108092324:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108092661:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108092324:62
+[   34397ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108092661:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   34398ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108092661:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   35165ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092661:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108092661:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108092661:48
+[   35166ms] [ERROR] No se pudo cargar la biblioteca: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at LibraryStore.load (http://localhost:1420/src/lib/state/library.svelte.ts:53:48)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108092661:32:55
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/library.svelte.ts:57
+[   35166ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108092324:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108092661:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108092324:62
+[   35166ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108092661:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[   35167ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108092661:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[   47894ms] TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at writeJsonAtomic (http://localhost:1420/src/lib/persist/atomic.ts:20:24)
+    at EssaysStore.create (http://localhost:1420/src/lib/state/essays.svelte.ts:96:34)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108092661:49:70
+    at LatestLaunch.run (http://localhost:1420/src/lib/state/latestLaunch.ts:8:25)
+    at Object.createEssay [as onCreate] (http://localhost:1420/src/routes/+page.svelte?t=1786108092661:49:47)
+    at createEssay (http://localhost:1420/src/lib/components/EssayHome.svelte?t=1786108092661:172:11)
+    at HTMLButtonElement.click_10 (http://localhost:1420/src/lib/components/EssayHome.svelte?t=1786108092661:443:14)
+[  178214ms] [WARNING] %c[svelte] ownership_invalid_mutation
+%cMutating unbound props (`essay`, at src/​lib/​components/​EditorScreen.svelte:581:4) is strongly discouraged. Consider using `bind:essay={...}` in src/routes/+page.svelte (or using a callback) instead
+https://svelte.dev/e/ownership_invalid_mutation font-weight: bold font-weight: normal @ http://localhost:1420/@fs/Users/andresdominicci/Projects/apa-v0.1.0-release/node_modules/.deno/@sveltejs+kit@2.69.2/node_modules/@sveltejs/kit/src/runtime/client/client.js?v=20a9927a:3440
+[  178214ms] [WARNING] %c[svelte] ownership_invalid_mutation
+%cMutating unbound props (`essay`, at src/​lib/​components/​EditorScreen.svelte:582:4) is strongly discouraged. Consider using `bind:essay={...}` in src/routes/+page.svelte (or using a callback) instead
+https://svelte.dev/e/ownership_invalid_mutation font-weight: bold font-weight: normal @ http://localhost:1420/@fs/Users/andresdominicci/Projects/apa-v0.1.0-release/node_modules/.deno/@sveltejs+kit@2.69.2/node_modules/@sveltejs/kit/src/runtime/client/client.js?v=20a9927a:3440
+[  178714ms] [WARNING] %c[svelte] ownership_invalid_mutation
+%cMutating unbound props (`essay`, at src/​lib/​components/​EditorScreen.svelte:305:8) is strongly discouraged. Consider using `bind:essay={...}` in src/routes/+page.svelte (or using a callback) instead
+https://svelte.dev/e/ownership_invalid_mutation font-weight: bold font-weight: normal @ http://localhost:1420/@fs/Users/andresdominicci/Projects/apa-v0.1.0-release/node_modules/.deno/@sveltejs+kit@2.69.2/node_modules/@sveltejs/kit/src/runtime/client/client.js?v=20a9927a:3440
+[  178714ms] [WARNING] %c[svelte] ownership_invalid_mutation
+%cMutating unbound props (`essay`, at src/​lib/​components/​EditorScreen.svelte:306:8) is strongly discouraged. Consider using `bind:essay={...}` in src/routes/+page.svelte (or using a callback) instead
+https://svelte.dev/e/ownership_invalid_mutation font-weight: bold font-weight: normal @ http://localhost:1420/@fs/Users/andresdominicci/Projects/apa-v0.1.0-release/node_modules/.deno/@sveltejs+kit@2.69.2/node_modules/@sveltejs/kit/src/runtime/client/client.js?v=20a9927a:3440
+[  178715ms] [WARNING] %c[svelte] ownership_invalid_mutation
+%cMutating unbound props (`essay`, at src/​lib/​components/​EditorScreen.svelte:307:8) is strongly discouraged. Consider using `bind:essay={...}` in src/routes/+page.svelte (or using a callback) instead
+https://svelte.dev/e/ownership_invalid_mutation font-weight: bold font-weight: normal @ http://localhost:1420/@fs/Users/andresdominicci/Projects/apa-v0.1.0-release/node_modules/.deno/@sveltejs+kit@2.69.2/node_modules/@sveltejs/kit/src/runtime/client/client.js?v=20a9927a:3440
+[  208372ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108268372:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108268372:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108268372:48
+[  208373ms] [ERROR] No se pudo cargar la biblioteca: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at LibraryStore.load (http://localhost:1420/src/lib/state/library.svelte.ts:53:48)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108268372:32:55
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/library.svelte.ts:57
+[  208373ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108268155:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108268372:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108268155:62
+[  208373ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108268372:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[  208375ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108268372:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[  209109ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108268372:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108268372:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108268372:48
+[  209109ms] [ERROR] No se pudo cargar la biblioteca: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at LibraryStore.load (http://localhost:1420/src/lib/state/library.svelte.ts:53:48)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108268372:32:55
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/library.svelte.ts:57
+[  209109ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108268155:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108268372:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108268155:62
+[  209109ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108268372:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[  209110ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108268372:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[  218128ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108278028:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108278028:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108278028:48
+[  218129ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108268155:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108268372:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108268155:62
+[  218129ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108268372:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[  218130ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108268372:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[  218456ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108278216:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108278216:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108278216:48
+[  218456ms] [ERROR] No se pudo cargar la biblioteca: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at LibraryStore.load (http://localhost:1420/src/lib/state/library.svelte.ts:53:48)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108278216:32:55
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/library.svelte.ts:57
+[  218456ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108278180:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108278216:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108278180:62
+[  218457ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108278216:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[  218459ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108278216:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
+[  219040ms] [ERROR] No se pudieron cargar las notas de versión: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at getVersion (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_api_app.js?v=20a9927a:86:10)
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108278216:46:58
+    at http://localhost:1420/src/routes/+layout.svelte?t=1786108278216:53:5
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21)
+    at flush_queued_effects (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3310:7)
+    at _Batch.process_fn (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:3002:3) @ http://localhost:1420/src/routes/+layout.svelte?t=1786108278216:48
+[  219040ms] [ERROR] No se pudo cargar la biblioteca: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at LibraryStore.load (http://localhost:1420/src/lib/state/library.svelte.ts:53:48)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108278216:32:55
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/library.svelte.ts:57
+[  219040ms] [ERROR] No se pudo cargar settings.json: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at readJson (http://localhost:1420/src/lib/persist/atomic.ts:27:24)
+    at UiSettingsStore.load (http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108278180:56:52)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108278216:32:92
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18)
+    at update_effect (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4331:21) @ http://localhost:1420/src/lib/state/uiLocale.svelte.ts?t=1786108278180:62
+[  219041ms] [ERROR] No se pudo cargar el índice de ensayos: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at appDataDir (http://localhost:1420/node_modules/.vite/deps/chunk-KZT2256T.js?v=20a9927a:38:10)
+    at resolveAbsolute (http://localhost:1420/src/lib/persist/atomic.ts:12:27)
+    at fileExists (http://localhost:1420/src/lib/persist/atomic.ts:38:29)
+    at #migrateLegacyDraft (http://localhost:1420/src/lib/state/essays.svelte.ts:73:39)
+    at EssaysStore.loadIndex (http://localhost:1420/src/lib/state/essays.svelte.ts:50:59)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108278216:32:70
+    at untrack (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4508:12)
+    at $effect (http://localhost:1420/node_modules/.vite/deps/chunk-CQW2YQAB.js?v=20a9927a:4287:23)
+    at update_reaction (http://localhost:1420/node_modules/.vite/deps/chunk-4C5QYTGH.js?v=20a9927a:4190:18) @ http://localhost:1420/src/lib/state/essays.svelte.ts:65
+[  219041ms] [ERROR] No se pudo comprobar actualizaciones: TypeError: Cannot read properties of undefined (reading 'invoke')
+    at invoke (http://localhost:1420/node_modules/.vite/deps/chunk-WOG7CFV5.js?v=20a9927a:103:37)
+    at Object.check (http://localhost:1420/node_modules/.vite/deps/@tauri-apps_plugin-updater.js?v=20a9927a:65:26)
+    at UpdaterStore.check (http://localhost:1420/src/lib/state/updater.svelte.ts:77:69)
+    at http://localhost:1420/src/routes/+page.svelte?t=1786108278216:36:16 @ http://localhost:1420/src/lib/state/updater.svelte.ts:87
