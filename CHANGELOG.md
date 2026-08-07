@@ -5,6 +5,15 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-07
+
+### Fixed
+
+- Opening a paper preview no longer changes the fonts in menus, panels, or other
+  parts of the app.
+- Improved the checks for app update downloads so broken update files are
+  caught before a release reaches users.
+
 ## [0.1.0] - 2026-08-07
 
 ### Added
@@ -32,5 +41,6 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/apa/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/adominicci/apa/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/adominicci/apa/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/adominicci/apa/releases/tag/v0.1.0

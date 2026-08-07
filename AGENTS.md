@@ -15,6 +15,24 @@ functional clone of Essayist — never copy its name, code, text, or assets.
   contract** — it must never import app/Tauri code.
 - `apps/desktop` — the Svelte 5 + Tauri app.
 
+## Release every change
+
+- Every change merged into `main` MUST include the next app version. Use a patch
+  version unless the change clearly requires a minor or major version.
+- Keep the version in `apps/desktop/package.json`,
+  `apps/desktop/src-tauri/tauri.conf.json`,
+  `apps/desktop/src-tauri/Cargo.toml`, the Tesina entry in
+  `apps/desktop/src-tauri/Cargo.lock`, the visible version in both message
+  files, and the current-version statements in `README.md` in sync.
+- Move the completed items from `CHANGELOG.md` under `Unreleased` into a dated
+  section for the new version. Release notes must explain what users will
+  notice in plain English. Do not use technical jargon, internal file names, or
+  implementation details.
+- A change is not finished when its PR reaches `main`. Tag that exact `main`
+  commit with the matching `v` version, let the release workflow create its
+  draft, verify the updater files, and publish the release so users can receive
+  it.
+
 ## Verify EVERY change (all from repo root)
 
 ```
