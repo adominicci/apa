@@ -264,6 +264,7 @@ export function visitBlocks(
                   ? AlignmentType.CENTER
                   : AlignmentType.LEFT,
               }),
+            state.contentWidth,
             options.blockquoteIndent,
           ),
         );

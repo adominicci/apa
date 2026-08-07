@@ -2,7 +2,7 @@ import { Packer } from "docx";
 import { strFromU8, unzipSync } from "fflate";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { Reference } from "@tesina/engine";
-import { exportDocx } from "../src/index.ts";
+import { exportDocx, type PMJson } from "../src/index.ts";
 import { sampleEssayInput as sampleInput } from "../src/sample.ts";
 
 let documentXml = "";
@@ -645,7 +645,7 @@ describe("exportDocx (student, es)", () => {
     expect(textRunContaining(later, "(CER, 2024)")).toContain("<w:b/>");
   });
 
-  it("preserves and indents nested-quote table and figure content with shared counters", async () => {
+  it("preserves and fits nested-quote table and figure content with shared counters", async () => {
     const groupReference: Reference = {
       id: "ref-nested-regional-council",
       type: "journalArticle",
@@ -688,7 +688,13 @@ describe("exportDocx (student, es)", () => {
                   type: "tableRow",
                   content: [{
                     type: "tableCell",
-                    content: [{ type: "paragraph" }],
+                    content: [{
+                      type: "paragraph",
+                      content: [{
+                        type: "text",
+                        text: "TOP LEVEL TABLE CELL",
+                      }],
+                    }],
                   }],
                 }],
               },
@@ -780,6 +786,7 @@ describe("exportDocx (student, es)", () => {
     const tableCaption = paragraphsContaining(xml, "Tabla 2")[0]!;
     const tableTitle = paragraphsContaining(xml, "NESTED QUOTE TABLE")[0]!;
     const tableNote = paragraphsContaining(xml, "Nested table note")[0]!;
+    const topLevelTable = tableContaining(xml, "TOP LEVEL TABLE CELL");
     const table = tableContaining(xml, "NESTED QUOTE TABLE CELL");
     const figureCaption = paragraphsContaining(xml, "Figura 2")[0]!;
     const figureTitle = paragraphsContaining(xml, "NESTED QUOTE FIGURE")[0]!;
@@ -790,7 +797,10 @@ describe("exportDocx (student, es)", () => {
     expect(tableCaption).toContain('w:left="1440"');
     expect(tableTitle).toContain('w:left="1440"');
     expect(tableNote).toContain('w:left="1440"');
+    expect(topLevelTable).toContain('<w:tblW w:type="pct" w:w="100%"/>');
+    expect(topLevelTable).not.toContain("<w:tblInd");
     expect(table).toContain('<w:tblInd w:type="dxa" w:w="1440"/>');
+    expect(table).toContain('<w:tblW w:type="dxa" w:w="7920"/>');
     expect(table).toContain("NESTED QUOTE TABLE CELL");
     expect(figureCaption).toContain('w:left="1440"');
     expect(figureTitle).toContain('w:left="1440"');
@@ -799,6 +809,28 @@ describe("exportDocx (student, es)", () => {
       "(Consejo de Escritura Regional [CER], 2024)",
     );
     expect(figureTitle).toContain("(CER, 2024)");
+  });
+
+  it("keeps a table inside page bounds when quote nesting consumes its writable width", async () => {
+    const input = sampleInput();
+    const tableBlock = (input.content as PMJson).content
+      ?.find((node) => node.type === "sectionBody")?.content
+      ?.find((node) => node.type === "apaTable");
+    if (!tableBlock) throw new Error("Sample table not found");
+    const nestedTable = Array.from({ length: 13 }).reduce<PMJson>(
+      (child) => ({ type: "blockquote", content: [child] }),
+      tableBlock,
+    );
+    input.content = {
+      type: "doc",
+      content: [{ type: "sectionBody", content: [nestedTable] }],
+    };
+
+    const xml = await documentXmlFor(input);
+    const table = tableContaining(xml, "Primer año");
+
+    expect(table).toContain('<w:tblInd w:type="dxa" w:w="9359"/>');
+    expect(table).toContain('<w:tblW w:type="dxa" w:w="1"/>');
   });
 
   it("renders the keywords label in italics", () => {

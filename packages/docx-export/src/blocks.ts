@@ -15,11 +15,38 @@ import { type DocContext, inlineToTextRuns } from "./runs.ts";
 
 const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: "auto" };
 const RULE = { style: BorderStyle.SINGLE, size: 4, color: "000000" };
+const MIN_TABLE_WIDTH = 1; // twip; prevents zero/negative widths in deep quotes
 
 function paragraphIndent(
   leftIndent: number,
 ): { indent?: { left: number } } {
   return leftIndent > 0 ? { indent: { left: leftIndent } } : {};
+}
+
+/**
+ * Word resolves percentage table widths against the full writable page even
+ * when `tblInd` is present. Indented tables therefore need an exact remaining
+ * width in twips; top-level tables keep their existing responsive 100% width.
+ */
+function tableLayout(contentWidth: number, leftIndent: number) {
+  if (leftIndent <= 0) {
+    return { width: { size: 100, type: WidthType.PERCENTAGE } };
+  }
+
+  const boundedContentWidth = Math.max(contentWidth, MIN_TABLE_WIDTH);
+  const boundedLeftIndent = Math.min(
+    leftIndent,
+    boundedContentWidth - MIN_TABLE_WIDTH,
+  );
+  return {
+    width: {
+      size: boundedContentWidth - boundedLeftIndent,
+      type: WidthType.DXA,
+    },
+    ...(boundedLeftIndent > 0
+      ? { indent: { size: boundedLeftIndent, type: WidthType.DXA } }
+      : {}),
+  };
 }
 
 /**
@@ -36,6 +63,7 @@ export function apaTableBlocks(
     blocks: readonly PMJson[],
     isHeader: boolean,
   ) => readonly (Paragraph | Table)[],
+  contentWidth: number,
   leftIndent = 0,
 ): (Paragraph | Table)[] {
   tableCounter.n += 1;
@@ -74,10 +102,7 @@ export function apaTableBlocks(
   const rows = tableNode?.content ?? [];
   out.push(
     new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      ...(leftIndent > 0
-        ? { indent: { size: leftIndent, type: WidthType.DXA } }
-        : {}),
+      ...tableLayout(contentWidth, leftIndent),
       borders: {
         top: RULE,
         bottom: RULE,
