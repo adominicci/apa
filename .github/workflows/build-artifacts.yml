@@ -17,15 +17,18 @@ jobs:
       matrix:
         include:
           - platform: macos-latest
+            expectedSuffixes: '[".app",".dmg"]'
             args: >-
               --target universal-apple-darwin
               --bundles app,dmg
               --config '{"bundle":{"createUpdaterArtifacts":false}}'
           - platform: windows-latest
+            expectedSuffixes: '[".msi","-setup.exe"]'
             args: >-
               --bundles msi,nsis
               --config '{"bundle":{"createUpdaterArtifacts":false}}'
           - platform: ubuntu-22.04
+            expectedSuffixes: '[".AppImage",".deb"]'
             args: >-
               --bundles appimage,deb
               --config '{"bundle":{"createUpdaterArtifacts":false}}'
@@ -67,6 +70,7 @@ jobs:
         run: deno install
 
       - name: Compile installer bundles
+        id: tauri-build
         uses: tauri-apps/tauri-action@v1
         with:
           projectPath: apps/desktop
@@ -74,3 +78,13 @@ jobs:
           uploadUpdaterJson: false
           uploadWorkflowArtifacts: false
           args: ${{ matrix.args }}
+
+      - name: Verify installer bundles
+        env:
+          TAURI_ARTIFACT_PATHS: ${{ steps.tauri-build.outputs.artifactPaths }}
+          EXPECTED_INSTALLER_SUFFIXES: ${{ matrix.expectedSuffixes }}
+        run: >-
+          deno run
+          --allow-env=TAURI_ARTIFACT_PATHS,EXPECTED_INSTALLER_SUFFIXES
+          --allow-read
+          scripts/verify-installer-artifacts.ts
