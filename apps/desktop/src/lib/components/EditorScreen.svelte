@@ -423,6 +423,7 @@
     lastDoc = docJson;
     words = wordCount;
     citedCounts = collectCitedRefIds(docJson);
+    essay.referencesSnapshot = snapshotForPersist();
     outline = buildOutline(docJson);
     if (editor) abstractPresent = hasAbstract(editor);
     scheduleSave();

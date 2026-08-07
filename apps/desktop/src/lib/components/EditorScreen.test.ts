@@ -526,6 +526,43 @@ describe("editor preview round trip", () => {
 });
 
 describe("APA export reference integrity", () => {
+  it("preserves a newly cited reference deleted during the autosave debounce", async () => {
+    vi.useFakeTimers();
+    const cited = reference("deleted-before-autosave");
+    runtime.libraryReferences = [cited];
+    runtime.persist.mockResolvedValue(undefined);
+    const essay = exportableEssay(bodyDoc("Seed"));
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    runtime.editors[0]!.commands.setContent(citationDoc(cited.id));
+    flushSync();
+    runtime.libraryReferences = [];
+
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(runtime.persist).toHaveBeenCalledOnce();
+    const persisted = runtime.persist.mock.calls[0]![0] as Essay;
+    expect(persisted.referencesSnapshot).toEqual([cited]);
+
+    exportButton().click();
+    await vi.waitFor(() => {
+      expect(runtime.exportEssayToDocx).toHaveBeenCalledOnce();
+    });
+    expect(runtime.exportEssayToDocx.mock.calls[0]![2]).toEqual([cited]);
+
+    await unmount(component);
+  });
+
   it("exports a cited snapshot fallback without a missing citation marker", async () => {
     const cited = reference("deleted-ref");
     const essay = exportableEssay(citationDoc(cited.id));
