@@ -1,4 +1,12 @@
 import { describe, expect, it } from "vitest";
+import {
+  parseWorkflowYaml,
+  workflowPolicyViolations,
+  workflowPropertyValues,
+  type WorkflowRecord,
+  workflowSteps,
+  workflowUses,
+} from "./workflow-policy.ts";
 
 const root = decodeURIComponent(new URL("../", import.meta.url).pathname);
 const releaseWorkflow = await Deno.readTextFile(
@@ -18,105 +26,77 @@ for await (const entry of Deno.readDir(workflowDirectory)) {
   }
 }
 workflowFiles.sort((left, right) => left.name.localeCompare(right.name));
+const releaseDocument = parseWorkflowYaml(releaseWorkflow);
+const mergeDocument = parseWorkflowYaml(mergeWorkflow);
 const tauriConfig = JSON.parse(
   await Deno.readTextFile(`${root}apps/desktop/src-tauri/tauri.conf.json`),
 );
 
-function workflowStep(name: string): string {
-  const marker = `      - name: ${name}\n`;
-  const start = releaseWorkflow.indexOf(marker);
-  if (start === -1) {
+function workflowStep(name: string): WorkflowRecord {
+  const matches = workflowSteps(releaseDocument).filter((step) =>
+    step.name === name
+  );
+  if (matches.length !== 1) {
     throw new Error(`Release workflow is missing step: ${name}`);
   }
-  const end = releaseWorkflow.indexOf("\n      - ", start + marker.length);
-  return releaseWorkflow.slice(start, end === -1 ? undefined : end);
+  return matches[0];
 }
 
-function actionReferences(source: string): string[] {
-  return [
-    ...source.matchAll(/^\s*(?:-\s*)?uses:\s*([^\s#]+)(?:\s+#.*)?$/gm),
-  ].map((match) => match[1]);
+function stringField(record: WorkflowRecord, field: string): string {
+  const value = record[field];
+  if (typeof value !== "string") {
+    throw new Error(`Workflow field ${field} must be a string.`);
+  }
+  return value;
 }
 
-function workflowSteps(source: string): string[] {
-  const lines = source.split("\n");
-  const starts = lines.flatMap((line, index) => {
-    const match = line.match(/^(\s*)-\s+(?:name|uses|run|id|if):/);
-    return match ? [{ index, indentation: match[1].length }] : [];
-  });
-
-  return starts.map(({ index, indentation }) => {
-    const end = starts.find(
-      (candidate) =>
-        candidate.index > index && candidate.indentation === indentation,
-    )?.index;
-    return lines.slice(index, end).join("\n");
-  });
+function recordField(record: WorkflowRecord, field: string): WorkflowRecord {
+  const value = record[field];
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Workflow field ${field} must be a mapping.`);
+  }
+  return value as WorkflowRecord;
 }
 
-function permissionDeclarations(source: string): string[][] {
-  const lines = source.split("\n");
-  return lines.flatMap((line, index) => {
-    const match = line.match(/^(\s*)permissions:\s*(.*)$/);
-    if (!match) return [];
+function actionSteps(document: WorkflowRecord, ownerAndRepo: string) {
+  return workflowSteps(document).filter((step) =>
+    typeof step.uses === "string" && step.uses.startsWith(`${ownerAndRepo}@`)
+  );
+}
 
-    if (match[2]) return [[match[2]]];
-
-    const indentation = match[1].length;
-    const end = lines.findIndex((candidate, candidateIndex) =>
-      candidateIndex > index && candidate.trim() !== "" &&
-      (candidate.match(/^\s*/)?.[0].length ?? 0) <= indentation
-    );
-    return [[
-      ...lines.slice(index + 1, end === -1 ? undefined : end)
-        .filter((candidate) => candidate.trim() !== "")
-        .map((candidate) => candidate.trim()),
-    ]];
-  });
+function assertNoProperty(document: WorkflowRecord, property: string): void {
+  expect(workflowPropertyValues(document, property), property).toEqual([]);
 }
 
 describe("release workflow contract", () => {
-  it("pins every external action in every workflow to a full commit SHA", () => {
+  it("enforces structural action, checkout, and permission policy", () => {
     for (const workflow of workflowFiles) {
-      for (const reference of actionReferences(workflow.source)) {
-        expect(reference, `${workflow.name}: ${reference}`).toMatch(
-          /^[^@]+@[0-9a-f]{40}$/,
-        );
-      }
+      expect(
+        workflowPolicyViolations(workflow.name, workflow.source),
+        workflow.name,
+      ).toEqual([]);
     }
   });
 
-  it("disables persisted checkout credentials in every workflow", () => {
+  it("checks out source without persisting credentials in every workflow", () => {
     for (const workflow of workflowFiles) {
-      const checkoutSteps = workflowSteps(workflow.source).filter((step) =>
-        /uses:\s*actions\/checkout@/.test(step)
-      );
+      const document = parseWorkflowYaml(workflow.source);
+      const checkoutSteps = actionSteps(document, "actions/checkout");
       expect(checkoutSteps, `${workflow.name} checkout steps`).not.toHaveLength(
         0,
       );
       for (const step of checkoutSteps) {
-        expect(step, `${workflow.name} checkout step`).toMatch(
-          /persist-credentials:\s*false/,
-        );
+        expect(recordField(step, "with")["persist-credentials"]).toBe(false);
       }
     }
   });
 
-  it("keeps non-release workflows read-only and release writes draft-only", () => {
+  it("resolves every parsed uses node to a supported immutable reference", () => {
     for (const workflow of workflowFiles) {
-      const permissions = permissionDeclarations(workflow.source);
-      if (workflow.name === "release.yml") {
-        expect(permissions).toEqual([["contents: write"]]);
-        expect(workflow.source).toContain("releaseDraft: true");
-        expect(workflow.source).not.toContain("releaseDraft: false");
-      } else {
-        expect(permissions, `${workflow.name} permissions`).toEqual([
-          ["contents: read"],
-        ]);
-        expect(workflow.source).not.toMatch(
-          /tagName:|releaseName:|releaseDraft:|GITHUB_TOKEN/,
-        );
-      }
+      expect(workflowUses(parseWorkflowYaml(workflow.source)).length).toBe(
+        workflowPropertyValues(parseWorkflowYaml(workflow.source), "uses")
+          .length,
+      );
     }
   });
 
@@ -143,9 +123,6 @@ describe("release workflow contract", () => {
     );
     expect(releaseWorkflow).toContain(
       "tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1",
-    );
-    expect(releaseWorkflow).not.toMatch(
-      /uses:\s+[^\n]+@(v\d+|main|master)\s*$/m,
     );
   });
 
@@ -185,8 +162,9 @@ describe("release workflow contract", () => {
   });
 
   it("gives write permission only to the release job", () => {
-    expect(releaseWorkflow.match(/contents: write/g)).toHaveLength(1);
-    expect(releaseWorkflow).not.toContain("contents: read");
+    expect(workflowPropertyValues(releaseDocument, "permissions")).toEqual([
+      { contents: "write" },
+    ]);
   });
 
   it("configures updater artifacts and documented ad-hoc macOS signing", () => {
@@ -209,33 +187,43 @@ describe("release workflow contract", () => {
 
   it("prebuilds the locked verifier before the secret-bearing release action", () => {
     const prebuild = workflowStep("Build locked updater verifier");
-    expect(prebuild).toContain("cargo build");
-    expect(prebuild).toContain("--locked");
-    expect(prebuild).toContain(
+    const run = stringField(prebuild, "run");
+    expect(run).toContain("cargo build");
+    expect(run).toContain("--locked");
+    expect(run).toContain(
       "--manifest-path scripts/updater-signature-verifier/Cargo.toml",
     );
-    expect(prebuild).toContain("GITHUB_OUTPUT");
-    expect(releaseWorkflow.indexOf(prebuild)).toBeLessThan(
-      releaseWorkflow.indexOf("tauri-apps/tauri-action@"),
+    expect(run).toContain("GITHUB_OUTPUT");
+    expect(workflowSteps(releaseDocument).indexOf(prebuild)).toBeLessThan(
+      workflowSteps(releaseDocument).findIndex((step) =>
+        typeof step.uses === "string" &&
+        step.uses.startsWith("tauri-apps/tauri-action@")
+      ),
     );
   });
 
   it("limits the token-bearing step to downloading fixed draft inputs", () => {
     const download = workflowStep("Download draft release verification inputs");
-    expect(download).toContain("GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}");
-    expect(download).toContain("gh api");
-    expect(download).toContain("GITHUB_OUTPUT");
-    expect(download).not.toMatch(/\b(?:cargo|deno)\b/);
+    const run = stringField(download, "run");
+    expect(recordField(download, "env").GH_TOKEN).toBe(
+      "${{ secrets.GITHUB_TOKEN }}",
+    );
+    expect(run).toContain("gh api");
+    expect(run).toContain("GITHUB_OUTPUT");
+    expect(run).not.toMatch(/\b(?:cargo|deno)\b/);
   });
 
   it("cryptographically verifies the downloaded updater archive offline", () => {
     const verification = workflowStep(
       "Verify downloaded draft release and updater manifest",
     );
-    expect(verification).toContain("scripts/verify-release-draft.ts");
-    expect(verification).toContain("UPDATER_VERIFIER_BINARY");
-    expect(verification).not.toMatch(/\bcargo\s+run\b/);
-    expect(verification).not.toMatch(/\b(?:GH_TOKEN|GITHUB_TOKEN)\b/);
+    const run = stringField(verification, "run");
+    const env = recordField(verification, "env");
+    expect(run).toContain("scripts/verify-release-draft.ts");
+    expect(run).toContain("UPDATER_VERIFIER_BINARY");
+    expect(run).not.toMatch(/\bcargo\s+run\b/);
+    expect(env).not.toHaveProperty("GH_TOKEN");
+    expect(env).not.toHaveProperty("GITHUB_TOKEN");
     expect(releaseWorkflow).toContain(
       'select(.name == "Tesina-macos-universal.app.tar.gz")',
     );
@@ -249,13 +237,22 @@ describe("release workflow contract", () => {
   });
 
   it("preserves the merge workflow's no-upload policy", () => {
-    expect(mergeWorkflow).toMatch(/macos-latest/);
-    expect(mergeWorkflow).toMatch(/windows-latest/);
-    expect(mergeWorkflow).toMatch(/ubuntu-22\.04/);
-    expect(mergeWorkflow).toContain("uploadUpdaterJson: false");
-    expect(mergeWorkflow).toContain("uploadWorkflowArtifacts: false");
-    expect(mergeWorkflow).not.toMatch(
-      /tagName:|releaseName:|releaseDraft:|contents: write|GITHUB_TOKEN/,
+    const platforms = workflowPropertyValues(mergeDocument, "platform");
+    expect(platforms).toEqual(
+      expect.arrayContaining([
+        "macos-latest",
+        "windows-latest",
+        "ubuntu-22.04",
+      ]),
     );
+    const tauriSteps = actionSteps(mergeDocument, "tauri-apps/tauri-action");
+    expect(tauriSteps).toHaveLength(1);
+    const inputs = recordField(tauriSteps[0], "with");
+    expect(inputs.uploadUpdaterJson).toBe(false);
+    expect(inputs.uploadWorkflowArtifacts).toBe(false);
+    assertNoProperty(mergeDocument, "tagName");
+    assertNoProperty(mergeDocument, "releaseName");
+    assertNoProperty(mergeDocument, "releaseDraft");
+    assertNoProperty(mergeDocument, "GITHUB_TOKEN");
   });
 });
