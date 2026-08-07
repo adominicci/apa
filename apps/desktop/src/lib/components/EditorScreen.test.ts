@@ -8,6 +8,8 @@ import { strFromU8, unzipSync } from "fflate";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Essay } from "$lib/model/essay";
 import { m } from "$lib/paraglide/messages";
+import { persistence } from "$lib/persist/coordinator";
+import { createCloseRequestHandler } from "$lib/persist/windowClose";
 import EditorScreen from "./EditorScreen.svelte";
 
 const runtime = vi.hoisted(() => ({
@@ -17,6 +19,17 @@ const runtime = vi.hoisted(() => ({
   libraryReferences: [] as Reference[],
   exportEssayToDocx: vi.fn(),
 }));
+
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve(value: T | PromiseLike<T>): void;
+}
+
+function deferred<T>(): Deferred<T> {
+  let resolve!: Deferred<T>["resolve"];
+  const promise = new Promise<T>((done) => (resolve = done));
+  return { promise, resolve };
+}
 
 vi.mock("$lib/editor/createEditor", async () => {
   const actual = await vi.importActual<
@@ -174,6 +187,80 @@ afterEach(() => {
 });
 
 describe("editor preview round trip", () => {
+  it("flushes the latest edit before an app close inside the debounce window", async () => {
+    vi.useFakeTimers();
+    const essay = essayWithBody("Seed");
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    runtime.editors[0]!.commands.setContent(bodyDoc("Close-safe edit"));
+    flushSync();
+    const destroy = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const close = createCloseRequestHandler({
+      flushPending: () => persistence.flushPending(),
+      destroy,
+      onError: vi.fn(),
+    });
+    const preventDefault = vi.fn();
+
+    await close({ preventDefault });
+
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(runtime.persist).toHaveBeenCalledOnce();
+    expect(docText(runtime.persist.mock.calls[0]![0].content)).toContain(
+      "Close-safe edit",
+    );
+    expect(destroy).toHaveBeenCalledOnce();
+    await unmount(component);
+  });
+
+  it("serializes rapid edits so an older write cannot commit last", async () => {
+    vi.useFakeTimers();
+    const firstWrite = deferred<void>();
+    const committed: string[] = [];
+    runtime.persist.mockImplementation((saved: Essay) => {
+      const text = docText(saved.content);
+      if (runtime.persist.mock.calls.length === 1) {
+        return firstWrite.promise.then(() => {
+          committed.push(text);
+        });
+      }
+      committed.push(text);
+      return Promise.resolve();
+    });
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay: essayWithBody("Seed"),
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    runtime.editors[0]!.commands.setContent(bodyDoc("Older edit"));
+    await vi.advanceTimersByTimeAsync(500);
+    runtime.editors[0]!.commands.setContent(bodyDoc("Newest edit"));
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(runtime.persist).toHaveBeenCalledOnce();
+    firstWrite.resolve();
+    await vi.waitFor(() => expect(runtime.persist).toHaveBeenCalledTimes(2));
+    expect(committed).toEqual(["Older edit", "Newest edit"]);
+    await unmount(component);
+  });
+
   it("keeps rapid edits visible and persists both sides of a preview toggle", async () => {
     vi.useFakeTimers();
     runtime.persist.mockImplementation((essay: Essay) => {

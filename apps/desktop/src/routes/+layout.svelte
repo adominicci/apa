@@ -6,6 +6,7 @@
   import { onMount } from "svelte";
   import type { Snippet } from "svelte";
   import { getVersion } from "@tauri-apps/api/app";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import ReleaseNotesModal from "$lib/components/ReleaseNotesModal.svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { updater } from "$lib/state/updater.svelte";
@@ -16,6 +17,9 @@
     type ReleaseNotesStorage,
   } from "$lib/update/releaseNotes";
   import { m } from "$lib/paraglide/messages";
+  import { library } from "$lib/state/library.svelte";
+  import { persistence } from "$lib/persist/coordinator";
+  import { createCloseRequestHandler } from "$lib/persist/windowClose";
 
   interface Props {
     children: Snippet;
@@ -48,6 +52,39 @@
         runningVersionResolved = true;
       }
     })();
+  });
+
+  onMount(() => {
+    const unregisterLibrary = persistence.register(() =>
+      library.flushPending()
+    );
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+
+    if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+      const appWindow = getCurrentWindow();
+      const close = createCloseRequestHandler({
+        flushPending: () => persistence.flushPending(),
+        destroy: () => appWindow.destroy(),
+        onError: (error) => {
+          console.error("No se pudo cerrar la aplicación:", error);
+        },
+      });
+      void appWindow.onCloseRequested((event) => {
+        void close(event);
+      }).then((stop) => {
+        if (disposed) stop();
+        else unlisten = stop;
+      }).catch((error) => {
+        console.error("No se pudo preparar el cierre seguro:", error);
+      });
+    }
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+      unregisterLibrary();
+    };
   });
 
   const releaseNotesResolutionPending = $derived(

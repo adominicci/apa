@@ -4,6 +4,7 @@ import {
   type ReleaseNotesStorage,
   savePendingReleaseNotes,
 } from "$lib/update/releaseNotes";
+import { persistence } from "$lib/persist/coordinator";
 
 export interface UpdaterUpdate {
   version: string;
@@ -13,12 +14,14 @@ export interface UpdaterUpdate {
 
 export interface UpdaterDependencies {
   check(): Promise<UpdaterUpdate | null>;
+  flushPending(): Promise<void>;
   relaunch(): Promise<void>;
   storage(): ReleaseNotesStorage | null;
 }
 
 const defaultDependencies: UpdaterDependencies = {
   check: tauriCheck,
+  flushPending: () => persistence.flushPending(),
   relaunch,
   storage: () => {
     try {
@@ -111,6 +114,7 @@ export class UpdaterStore {
         }
       });
       this.progress = 100;
+      await this.#dependencies.flushPending();
       try {
         const storage = this.#dependencies.storage();
         if (storage) {

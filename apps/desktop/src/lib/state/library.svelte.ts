@@ -29,11 +29,12 @@ interface LibraryFile {
  * deleted reference from an essay's denormalized copy is handled by
  * `restore()` (see model/reconcile.ts).
  */
-class LibraryStore {
+export class LibraryStore {
   references = $state<Reference[]>([]);
   collections = $state<RefCollection[]>([]);
   loaded = $state(false);
   #saveTimer: ReturnType<typeof setTimeout> | undefined;
+  #writeChain: Promise<void> = Promise.resolve();
 
   async load(): Promise<void> {
     if (this.loaded) return;
@@ -48,18 +49,37 @@ class LibraryStore {
     }
   }
 
+  #snapshot(): LibraryFile {
+    return {
+      schemaVersion: 1,
+      references: $state.snapshot(this.references) as Reference[],
+      collections: $state.snapshot(this.collections) as RefCollection[],
+    };
+  }
+
+  #enqueue(file: LibraryFile): Promise<void> {
+    const write = this.#writeChain.catch(() => undefined).then(() =>
+      writeJsonAtomic(LIBRARY_FILE, file)
+    );
+    this.#writeChain = write;
+    return write;
+  }
+
   #persist(): void {
     clearTimeout(this.#saveTimer);
     this.#saveTimer = setTimeout(() => {
-      const file: LibraryFile = {
-        schemaVersion: 1,
-        references: $state.snapshot(this.references) as Reference[],
-        collections: $state.snapshot(this.collections) as RefCollection[],
-      };
-      writeJsonAtomic(LIBRARY_FILE, file).catch((err) => {
+      this.#saveTimer = undefined;
+      this.#enqueue(this.#snapshot()).catch((err) => {
         console.error("No se pudo guardar la biblioteca:", err);
       });
     }, 300);
+  }
+
+  /** Persist the latest state after every already-started atomic write. */
+  async flushPending(): Promise<void> {
+    clearTimeout(this.#saveTimer);
+    this.#saveTimer = undefined;
+    await this.#enqueue(this.#snapshot());
   }
 
   add(ref: Reference): void {

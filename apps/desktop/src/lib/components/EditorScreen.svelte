@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from "svelte";
+  import { onMount, untrack } from "svelte";
   import type { Editor as TiptapEditor } from "@tiptap/core";
   import type { CitationAttrs, DocLocale, Reference } from "@tesina/engine";
   import { getTerms } from "@tesina/engine";
@@ -68,6 +68,7 @@
     type TitlePageValidationMessageKey,
   } from "$lib/model/titlePageValidation";
   import { m } from "$lib/paraglide/messages";
+  import { persistence } from "$lib/persist/coordinator";
 
   interface Props {
     essay: Essay;
@@ -133,6 +134,9 @@
   );
   let lastDoc = $state<unknown>(untrack(() => essay.content));
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
+  let requestedSaveRevision = 0;
+  let persistedSaveRevision = 0;
+  let saveChain: Promise<void> = Promise.resolve();
 
   const citationEnv: CitationEnv = {
     refsById: untrack(() => library.byId()),
@@ -294,43 +298,87 @@
     return merged;
   }
 
+  function capturePersistSnapshot(): Essay {
+    essay.settings.documentLanguage = documentLanguage;
+    essay.content = lastDoc;
+    essay.referencesSnapshot = snapshotForPersist();
+    return structuredClone($state.snapshot(essay) as Essay);
+  }
+
+  function enqueuePersist(revision: number): Promise<void> {
+    const snapshot = capturePersistSnapshot();
+    const write = saveChain.catch(() => undefined).then(async () => {
+      await essays.persist(snapshot);
+      persistedSaveRevision = Math.max(persistedSaveRevision, revision);
+      if (revision === requestedSaveRevision) status = "guardado";
+    });
+    saveChain = write;
+    return write;
+  }
+
+  function reportPersistError(error: unknown, revision: number) {
+    console.error("No se pudo guardar el ensayo:", error);
+    if (revision === requestedSaveRevision) status = "error";
+  }
+
   function scheduleSave() {
+    requestedSaveRevision += 1;
+    const revision = requestedSaveRevision;
     status = "guardando";
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(async () => {
-      try {
-        essay.settings.documentLanguage = documentLanguage;
-        essay.content = lastDoc;
-        essay.referencesSnapshot = snapshotForPersist();
-        await essays.persist(essay);
-        status = "guardado";
-      } catch (err) {
-        console.error("No se pudo guardar el ensayo:", err);
-        status = "error";
-      }
+    saveTimer = setTimeout(() => {
+      saveTimer = undefined;
+      void enqueuePersist(revision).catch((error) => {
+        reportPersistError(error, revision);
+      });
     }, 500);
   }
 
-  // Flush the debounced autosave before the editor unmounts for the manager;
-  // otherwise the pending 500 ms timer would race the navigation and lose the
-  // latest content + snapshot.
-  async function openLibrary() {
+  async function persistNow(): Promise<void> {
     clearTimeout(saveTimer);
-    try {
-      essay.settings.documentLanguage = documentLanguage;
-      essay.content = lastDoc;
-      essay.referencesSnapshot = snapshotForPersist();
-      await essays.persist(essay);
-      status = "guardado";
-    } catch (err) {
-      console.error("No se pudo guardar el ensayo:", err);
-      status = "error";
-      // Stay in the editor so the error is visible and the user can retry —
-      // the debounce is already cleared, so navigating away would lose the
-      // unpersisted content/snapshot.
+    saveTimer = undefined;
+    if (persistedSaveRevision >= requestedSaveRevision) {
+      await saveChain;
       return;
     }
-    onOpenLibrary();
+    const revision = requestedSaveRevision;
+    status = "guardando";
+    try {
+      await enqueuePersist(revision);
+    } catch (error) {
+      reportPersistError(error, revision);
+      throw error;
+    }
+  }
+
+  onMount(() => {
+    const unregister = persistence.register(persistNow);
+    return () => {
+      // Svelte destruction cannot await cleanup. Keep the callback registered
+      // until its serialized final write settles so a concurrent app-close
+      // barrier can still observe it.
+      void persistNow().catch((error) => {
+        reportPersistError(error, requestedSaveRevision);
+      }).finally(unregister);
+    };
+  });
+
+  async function leaveEditor(destination: () => void) {
+    try {
+      await persistNow();
+    } catch {
+      // Stay in the editor so the visible error can be retried.
+      return;
+    }
+    destination();
+  }
+
+  async function goBack() {
+    await leaveEditor(onBack);
+  }
+
+  async function openLibrary() {
+    await leaveEditor(onOpenLibrary);
   }
 
   function handleUpdate(docJson: unknown, wordCount: number) {
@@ -616,7 +664,7 @@
   <header class="titlebar" data-tauri-drag-region>
     <div class="tb-left">
       <div class="traffic-space"></div>
-      <button class="icon-btn" onclick={onBack} title={m.tb_back()} aria-label={m.tb_back()}>
+      <button class="icon-btn" onclick={goBack} title={m.tb_back()} aria-label={m.tb_back()}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" width="16" height="16"><path d="M14 6l-6 6 6 6" /></svg>
       </button>
     </div>

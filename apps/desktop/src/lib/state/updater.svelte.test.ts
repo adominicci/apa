@@ -49,6 +49,7 @@ describe("UpdaterStore install lifecycle", () => {
   it("persists manifest notes after installation and before relaunch", async () => {
     const storage = new MemoryStorage();
     let installed = false;
+    let flushed = false;
     let relaunched = false;
     const dependencies: UpdaterDependencies = {
       check: () =>
@@ -62,8 +63,15 @@ describe("UpdaterStore install lifecycle", () => {
           },
         }),
       storage: () => storage,
+      flushPending: () => {
+        expect(installed).toBe(true);
+        expect(readPendingReleaseNotes(storage)).toBeNull();
+        flushed = true;
+        return Promise.resolve();
+      },
       relaunch: () => {
         expect(installed).toBe(true);
+        expect(flushed).toBe(true);
         expect(readPendingReleaseNotes(storage)).toEqual({
           version: "0.2.0",
           body: "Citation fixes\nExport improvements",
@@ -106,6 +114,7 @@ describe("UpdaterStore install lifecycle", () => {
           },
         }),
       storage: () => storage,
+      flushPending: () => Promise.resolve(),
       relaunch: () => {
         relaunched = true;
         return Promise.resolve();
@@ -157,6 +166,7 @@ describe("UpdaterStore install lifecycle", () => {
           : checkB.promise;
       },
       storage: () => storage,
+      flushPending: () => Promise.resolve(),
       relaunch: () => Promise.resolve(),
     };
     const store = new UpdaterStore(dependencies);
@@ -199,6 +209,7 @@ describe("UpdaterStore install lifecycle", () => {
           },
         }),
       storage: () => storage,
+      flushPending: () => Promise.resolve(),
       relaunch: () => Promise.resolve(),
     };
     const store = new UpdaterStore(dependencies);
@@ -226,6 +237,7 @@ describe("UpdaterStore install lifecycle", () => {
           downloadAndInstall: () => Promise.resolve(),
         }),
       storage: () => storage,
+      flushPending: () => Promise.resolve(),
       relaunch: () => Promise.reject(new Error("relaunch unavailable")),
     });
 
@@ -259,6 +271,7 @@ describe("UpdaterStore install lifecycle", () => {
           throw new Error("quota unavailable");
         },
       }),
+      flushPending: () => Promise.resolve(),
       relaunch: () => {
         relaunched = true;
         return Promise.resolve();
@@ -270,5 +283,73 @@ describe("UpdaterStore install lifecycle", () => {
 
     expect(relaunched).toBe(true);
     expect(store.progress).toBe(100);
+  });
+
+  it("waits for editor and library persistence before marking and relaunching", async () => {
+    const storage = new MemoryStorage();
+    const flushing = deferred<void>();
+    let relaunched = false;
+    const store = new UpdaterStore({
+      check: () =>
+        Promise.resolve({
+          version: "0.2.0",
+          body: "Persistence barrier",
+          downloadAndInstall: () => Promise.resolve(),
+        }),
+      storage: () => storage,
+      flushPending: () => flushing.promise,
+      relaunch: () => {
+        relaunched = true;
+        return Promise.resolve();
+      },
+    });
+    await store.check();
+
+    const installing = store.install();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(readPendingReleaseNotes(storage)).toBeNull();
+    expect(relaunched).toBe(false);
+    flushing.resolve();
+    await installing;
+    expect(readPendingReleaseNotes(storage)).toEqual({
+      version: "0.2.0",
+      body: "Persistence barrier",
+    });
+    expect(relaunched).toBe(true);
+  });
+
+  it("does not mark or relaunch when persistence flushing rejects", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(
+      () => {},
+    );
+    const storage = new MemoryStorage();
+    let relaunched = false;
+    const store = new UpdaterStore({
+      check: () =>
+        Promise.resolve({
+          version: "0.2.0",
+          body: "Must not be marked",
+          downloadAndInstall: () => Promise.resolve(),
+        }),
+      storage: () => storage,
+      flushPending: () => Promise.reject(new Error("disk full")),
+      relaunch: () => {
+        relaunched = true;
+        return Promise.resolve();
+      },
+    });
+
+    try {
+      await store.check();
+      await store.install();
+
+      expect(store.status).toBe("error");
+      expect(readPendingReleaseNotes(storage)).toBeNull();
+      expect(relaunched).toBe(false);
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });
