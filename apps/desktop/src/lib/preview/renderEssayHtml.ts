@@ -202,13 +202,21 @@ function listHtml(
   let out = `<${tag}${typeAttr}>`;
   for (const item of block.content ?? []) {
     out += "<li>";
+    let segment: PMJson[] = [];
+    const flushSegment = () => {
+      if (segment.length === 0) return;
+      out += blocksHtml(segment, state);
+      segment = [];
+    };
     for (const child of item.content ?? []) {
       if (child.type === "bulletList" || child.type === "orderedList") {
+        flushSegment();
         out += listHtml(child, state, depth + 1, seedLettered);
       } else {
-        out += inlineHtml(child.content ?? [], state);
+        segment.push(child);
       }
     }
+    flushSegment();
     out += "</li>";
   }
   out += `</${tag}>`;
@@ -300,6 +308,7 @@ h3 { font-style: italic; }
 blockquote { margin: 0 0 0 0.5in; }
 blockquote p { text-indent: 0; }
 ul, ol { margin: 0; padding-left: 1in; }
+li > p { margin: 0; text-indent: 0; }
 li ul, li ol { padding-left: 0.5in; }
 .title-page { text-align: center; break-after: page; }
 .title-page .spacer { height: 6em; }
