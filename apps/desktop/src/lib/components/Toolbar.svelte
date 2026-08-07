@@ -30,7 +30,10 @@
 <div class="float-menu" data-dock={dock}>
   {@render children()}
   <div class="fm-sep"></div>
-  <div class="menu-wrap" {@attach open && dismissable(() => (open = false))}>
+  <div
+    class="menu-wrap position-menu"
+    {@attach open && dismissable(() => (open = false))}
+  >
     <button
       class="fm-btn fm-btn-icon"
       data-tip={m.toolbar_position()}

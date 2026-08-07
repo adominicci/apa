@@ -1,37 +1,34 @@
 <script module lang="ts">
-  import type { PaperVariant, TitlePage } from "$lib/model/essay";
+  import type { TitlePage } from "$lib/model/essay";
 
-  /** Patch shape covering both the title-page form data and the two settings
-   * fields the cover can change (variant, running head). */
-  export type CoverPatch =
-    & Partial<TitlePage>
-    & { variant?: PaperVariant; runningHead?: string };
+  export type CoverPatch = Partial<TitlePage>;
 </script>
 
 <script lang="ts">
-  import type { DocLocale } from "@tesina/engine";
-  import type { EssaySettings } from "$lib/model/essay";
+  import { buildStudentTitlePage, type DocLocale } from "@tesina/engine";
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
     titlePage: TitlePage;
-    settings: EssaySettings;
     language: DocLocale;
     onChange: (patch: CoverPatch) => void;
-    /** Opens the structured modal (all fields, variant switch). */
+    /** Opens the structured modal for all student title-page fields. */
     onOpenForm: () => void;
   }
 
-  let { titlePage, settings, language, onChange, onOpenForm }: Props = $props();
+  let { titlePage, language, onChange, onOpenForm }: Props = $props();
 
-  const professional = $derived(settings.variant === "professional");
-
-  function lines(text: string): string[] {
-    return text
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line !== "");
-  }
+  const studentTitlePage = $derived(
+    buildStudentTitlePage({
+      locale: language,
+      title: titlePage.title,
+      authors: titlePage.authors,
+      affiliations: titlePage.affiliations,
+      course: titlePage.course ?? "",
+      instructor: titlePage.instructor ?? "",
+      dueDate: titlePage.dueDate ?? "",
+    }),
+  );
 </script>
 
 <div class="apa-editor cover-sheet" data-doclang={language}>
@@ -47,15 +44,6 @@
       </svg>
     </button>
 
-    {#if professional}
-      <input
-        class="cf running-head"
-        value={settings.runningHead ?? ""}
-        placeholder={m.cover_running_head_ph(undefined, { locale: language })}
-        oninput={(e) => onChange({ runningHead: e.currentTarget.value })}
-      />
-    {/if}
-
     <div class="cover-spacer"></div>
 
     <input
@@ -67,57 +55,68 @@
 
     <div class="gap"></div>
 
-    <textarea
-      class="cf people"
-      rows="1"
-      value={titlePage.authors.join("\n")}
-      placeholder={m.cover_authors_ph(undefined, { locale: language })}
-      oninput={(e) => onChange({ authors: lines(e.currentTarget.value) })}
-    ></textarea>
-    <textarea
-      class="cf people"
-      rows="1"
-      value={titlePage.affiliations.join("\n")}
-      placeholder={m.cover_affil_ph(undefined, { locale: language })}
-      oninput={(e) => onChange({ affiliations: lines(e.currentTarget.value) })}
-    ></textarea>
+    <button
+      type="button"
+      class="cf people byline-field"
+      onclick={onOpenForm}
+      aria-label={m.cover_open_form(undefined, { locale: language })}
+    >
+      {#if studentTitlePage.byline.authorLine.length > 0}
+        {#each studentTitlePage.byline.authorLine as token, index (`${index}:${token.kind}:${token.text}`)}
+          {#if token.kind === "superscript"}
+            <sup>{token.text}</sup>
+          {:else}
+            {token.text}
+          {/if}
+        {/each}
+      {:else}
+        <span class="placeholder">
+          {m.cover_authors_ph(undefined, { locale: language })}
+        </span>
+      {/if}
+    </button>
+    <button
+      type="button"
+      class="cf people byline-field affiliations-field"
+      onclick={onOpenForm}
+      aria-label={m.cover_open_form(undefined, { locale: language })}
+    >
+      {#if studentTitlePage.byline.affiliations.length > 0}
+        {#each studentTitlePage.byline.affiliations as affiliation (affiliation.name)}
+          <span class="affiliation-line">
+            {#if affiliation.number !== undefined}
+              <sup>{affiliation.number}</sup>
+            {/if}
+            {affiliation.name}
+          </span>
+        {/each}
+      {:else}
+        <span class="placeholder">
+          {m.cover_affil_ph(undefined, { locale: language })}
+        </span>
+      {/if}
+    </button>
 
-    {#if !professional}
-      <input
-        class="cf line"
-        value={titlePage.course ?? ""}
-        placeholder={m.cover_course_ph(undefined, { locale: language })}
-        oninput={(e) =>
-        onChange({ course: e.currentTarget.value.trim() || undefined })}
-      />
-      <input
-        class="cf line"
-        value={titlePage.instructor ?? ""}
-        placeholder={m.cover_instructor_ph(undefined, { locale: language })}
-        oninput={(e) =>
-        onChange({ instructor: e.currentTarget.value.trim() || undefined })}
-      />
-      <input
-        class="cf line date"
-        type="date"
-        value={titlePage.dueDate ?? ""}
-        oninput={(e) =>
-        onChange({ dueDate: e.currentTarget.value || undefined })}
-      />
-    {/if}
-
-    {#if professional}
-      <div class="gap-lg"></div>
-      <p class="note-label">{m.cover_author_note(undefined, { locale: language })}</p>
-      <textarea
-        class="cf note"
-        rows="2"
-        value={titlePage.authorNote ?? ""}
-        placeholder={m.cover_author_note_ph(undefined, { locale: language })}
-        oninput={(e) =>
-        onChange({ authorNote: e.currentTarget.value.trim() || undefined })}
-      ></textarea>
-    {/if}
+    <input
+      class="cf line"
+      value={titlePage.course ?? ""}
+      placeholder={m.cover_course_ph(undefined, { locale: language })}
+      oninput={(e) =>
+      onChange({ course: e.currentTarget.value || undefined })}
+    />
+    <input
+      class="cf line"
+      value={titlePage.instructor ?? ""}
+      placeholder={m.cover_instructor_ph(undefined, { locale: language })}
+      oninput={(e) =>
+      onChange({ instructor: e.currentTarget.value || undefined })}
+    />
+    <input
+      class="cf line date"
+      type="date"
+      value={titlePage.dueDate ?? ""}
+      oninput={(e) => onChange({ dueDate: e.currentTarget.value || undefined })}
+    />
   </article>
 </div>
 
@@ -169,11 +168,6 @@
     height: 24px;
   }
 
-  .gap-lg {
-    flex: 1;
-    min-height: 1in;
-  }
-
   /* Editable fields blend into the page in the chosen APA font, double-spaced. */
   .cf {
     font-family: var(--doc-font, var(--serif));
@@ -204,32 +198,32 @@
     font-weight: 700;
   }
 
-  .cf.people,
-  .cf.note {
+  .cf.people {
     field-sizing: content;
     overflow: hidden;
   }
 
-  .running-head {
-    position: absolute;
-    top: 14px;
-    left: 0;
-    text-align: left;
-    font-size: 11pt;
-    letter-spacing: 0.04em;
+  .byline-field {
+    cursor: pointer;
+  }
+
+  .byline-field sup {
+    font-size: 0.7em;
+    line-height: 0;
+    vertical-align: super;
+  }
+
+  .affiliation-line {
+    display: block;
+  }
+
+  .placeholder {
     color: var(--muted);
-    width: auto;
-    max-width: 60%;
+    opacity: 0.55;
   }
 
   .date {
     width: auto;
   }
 
-  .note-label {
-    font-weight: 700;
-    margin: 0;
-    font-family: var(--doc-font, var(--serif));
-    font-size: var(--doc-font-size, 12pt);
-  }
 </style>

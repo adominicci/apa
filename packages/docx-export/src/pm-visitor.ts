@@ -1,9 +1,18 @@
-import { Paragraph, Tab, Table, TabStopType, TextRun } from "docx";
+import {
+  AlignmentType,
+  Paragraph,
+  Tab,
+  Table,
+  TabStopType,
+  TextRun,
+} from "docx";
 import { getTerms } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
-import { type DocContext, inlineText, inlineToTextRuns } from "./runs.ts";
+import { hasAuthoredBodyTitle } from "./body-title.ts";
+import { type DocContext, inlineToTextRuns } from "./runs.ts";
 import {
   BULLET_LIST_REF,
+  HALF_INCH,
   listTextIndent,
   LOWER_ALPHA_REF,
   ORDERED_LIST_REF,
@@ -24,8 +33,37 @@ interface VisitState {
 interface VisitOptions {
   /** Style for the first block when it is a paragraph (abstract: "Normal"). */
   firstParagraphStyle?: string;
-  /** Page break on the first emitted paragraph (body section). */
+  /** Page break on the first emitted paragraph (legacy authored body title). */
   firstPageBreak?: boolean;
+  /** Default paragraph style for a recursive context such as a block quote. */
+  paragraphStyle?: string;
+  /** Accumulated left indent applied while walking nested block quotes. */
+  blockquoteIndent?: number;
+  /** Writable width of the current page or table-cell content container. */
+  contentWidth?: number;
+  /** Explicit alignment for every paragraph in a table-cell context. */
+  paragraphAlignment?: (typeof AlignmentType)[keyof typeof AlignmentType];
+}
+
+/**
+ * Removes the optional authored period from a run-in heading's last meaningful
+ * text node. Trailing whitespace-only text and hard breaks remain intact; the
+ * scan skips only those schema-valid nodes and stops at any other inline atom.
+ */
+function normalizedRunInContent(inline: readonly PMJson[]): PMJson[] {
+  const normalized = [...inline];
+  for (let i = normalized.length - 1; i >= 0; i--) {
+    const node = normalized[i]!;
+    if (node.type === "hardBreak") continue;
+    if (node.type !== "text" || typeof node.text !== "string") break;
+    if (node.text.trim() === "") continue;
+    normalized[i] = {
+      ...node,
+      text: node.text.replace(/\.(\s*)$/, "$1"),
+    };
+    break;
+  }
+  return normalized;
 }
 
 /**
@@ -50,12 +88,29 @@ export function visitBlocks(
   ) => {
     const first = !emittedFirst;
     emittedFirst = true;
+    const explicitIndent = extra["indent"] as
+      | Record<string, unknown>
+      | undefined;
+    const alignedExtra = options.paragraphAlignment
+      ? { alignment: options.paragraphAlignment, ...extra }
+      : extra;
+    const contextualExtra = options.blockquoteIndent
+      ? {
+        ...alignedExtra,
+        indent: {
+          ...explicitIndent,
+          left: (typeof explicitIndent?.["left"] === "number"
+            ? explicitIndent["left"]
+            : 0) + options.blockquoteIndent,
+        },
+      }
+      : alignedExtra;
     out.push(
       new Paragraph({
         style,
         children,
         ...(first && options.firstPageBreak ? { pageBreakBefore: true } : {}),
-        ...extra,
+        ...contextualExtra,
       }),
     );
   };
@@ -102,11 +157,16 @@ export function visitBlocks(
             ),
             markerEmitted
               ? { indent: { left: listTextIndent(depth) } }
+              : options.blockquoteIndent
+              ? {
+                ...markerProps,
+                indent: { left: listTextIndent(depth), hanging: 360 },
+              }
               : markerProps,
           );
           markerEmitted = true;
         } else {
-          const specialBlocks = visitBlocks([child], state);
+          const specialBlocks = visitBlocks([child], state, options);
           if (specialBlocks.length > 0) {
             emittedFirst = true;
             out.push(...specialBlocks);
@@ -122,7 +182,7 @@ export function visitBlocks(
       case "paragraph": {
         const style = !emittedFirst && options.firstParagraphStyle
           ? options.firstParagraphStyle
-          : "BodyText";
+          : options.paragraphStyle ?? "BodyText";
         emit(
           style,
           inlineToTextRuns(
@@ -136,27 +196,25 @@ export function visitBlocks(
       case "heading": {
         const level = Number(block.attrs?.["level"] ?? 1);
         if (level >= 4) {
-          const headingText = inlineText(block.content ?? []).replace(
-            /\.?\s*$/,
-            "",
-          );
-          // Advance the counter for any citations inside the heading even
-          // though run-in headings render as plain bold text.
-          inlineToTextRuns(
-            block.content ?? [],
+          const runInStyle = level === 5
+            ? { bold: true, italics: true }
+            : { bold: true };
+          const headingRuns = inlineToTextRuns(
+            normalizedRunInContent(block.content ?? []),
             state.ctx,
             state.citationCounter,
+            runInStyle,
           );
-          const headingRun = new TextRun({
-            text: `${headingText}. `,
-            bold: true,
-            ...(level === 5 ? { italics: true } : {}),
+          const punctuationRun = new TextRun({
+            text: ". ",
+            ...runInStyle,
           });
           const next = blocks[i + 1];
           if (next?.type === "paragraph") {
             i += 1;
-            emit("BodyText", [
-              headingRun,
+            emit(options.paragraphStyle ?? "BodyText", [
+              ...headingRuns,
+              punctuationRun,
               ...inlineToTextRuns(
                 next.content ?? [],
                 state.ctx,
@@ -164,7 +222,10 @@ export function visitBlocks(
               ),
             ]);
           } else {
-            emit("BodyText", [headingRun]);
+            emit(options.paragraphStyle ?? "BodyText", [
+              ...headingRuns,
+              punctuationRun,
+            ]);
           }
         } else {
           emit(
@@ -179,15 +240,15 @@ export function visitBlocks(
         break;
       }
       case "blockquote": {
-        for (const child of block.content ?? []) {
-          emit(
-            "Blockquote",
-            inlineToTextRuns(
-              child.content ?? [],
-              state.ctx,
-              state.citationCounter,
-            ),
-          );
+        const quoteBlocks = visitBlocks(block.content ?? [], state, {
+          paragraphStyle: "Blockquote",
+          blockquoteIndent: (options.blockquoteIndent ?? 0) + HALF_INCH,
+          paragraphAlignment: options.paragraphAlignment,
+          contentWidth: options.contentWidth,
+        });
+        if (quoteBlocks.length > 0) {
+          emittedFirst = true;
+          out.push(...quoteBlocks);
         }
         break;
       }
@@ -204,6 +265,16 @@ export function visitBlocks(
             state.ctx,
             state.citationCounter,
             state.tableCounter,
+            (cellBlocks, isHeader, contentWidth) =>
+              visitBlocks(cellBlocks, state, {
+                paragraphStyle: "Normal",
+                paragraphAlignment: isHeader
+                  ? AlignmentType.CENTER
+                  : AlignmentType.LEFT,
+                contentWidth,
+              }),
+            options.contentWidth ?? state.contentWidth,
+            options.blockquoteIndent,
           ),
         );
         break;
@@ -216,6 +287,8 @@ export function visitBlocks(
             state.ctx,
             state.citationCounter,
             state.figureCounter,
+            options.contentWidth ?? state.contentWidth,
+            options.blockquoteIndent,
           ),
         );
         break;
@@ -223,7 +296,6 @@ export function visitBlocks(
       case "apaEquation": {
         // Numbered "(1)" in both document languages — never through
         // getTerms, mirroring the preview (renderEssayHtml.ts).
-        const first = !emittedFirst;
         emittedFirst = true;
         state.equationCounter.n += 1;
         const latex = (block.attrs?.["latex"] as string | undefined) ?? "";
@@ -239,9 +311,6 @@ export function visitBlocks(
         out.push(
           new Paragraph({
             style: "Normal",
-            ...(first && options.firstPageBreak
-              ? { pageBreakBefore: true }
-              : {}),
             tabStops: [
               {
                 type: TabStopType.CENTER,
@@ -262,7 +331,7 @@ export function visitBlocks(
       }
       case "keywordsLine": {
         const t = getTerms(state.ctx.locale);
-        emit("BodyText", [
+        emit(options.paragraphStyle ?? "BodyText", [
           new TextRun({ text: `${t.headings.keywords} `, italics: true }),
           ...inlineToTextRuns(
             block.content ?? [],
@@ -280,16 +349,19 @@ export function visitBlocks(
 }
 
 /**
- * Walks Tesina's sectioned doc in order: abstract (own page, localized
- * heading, first paragraph unindented per APA 2.9), body (own page),
- * appendices (own page each; letters only when there are two or more,
- * APA 2.14).
+ * Visits every authored section once with one shared render state, while
+ * separating abstract/body output from appendices so the caller can place the
+ * derived references page between them.
  */
 export function visitDocument(
   content: PMJson,
   ctx: DocContext,
   contentWidth: number,
-): (Paragraph | Table)[] {
+  bodyTitle: string,
+): {
+  beforeReferences: (Paragraph | Table)[];
+  appendices: (Paragraph | Table)[];
+} {
   const t = getTerms(ctx.locale);
   const state: VisitState = {
     ctx,
@@ -305,42 +377,55 @@ export function visitDocument(
     (s) => s.type === "sectionAppendix",
   ).length;
   let appendixIndex = 0;
-  const out: (Paragraph | Table)[] = [];
+  const beforeReferences: (Paragraph | Table)[] = [];
+  const appendices: (Paragraph | Table)[] = [];
 
   for (const section of sections) {
     if (section.type === "sectionAbstract") {
-      out.push(
+      beforeReferences.push(
         new Paragraph({
           style: "Heading1",
           children: [new TextRun(t.headings.abstract)],
           pageBreakBefore: true,
         }),
       );
-      out.push(
+      beforeReferences.push(
         ...visitBlocks(section.content ?? [], state, {
           firstParagraphStyle: "Normal",
         }),
       );
     } else if (section.type === "sectionBody") {
-      out.push(
-        ...visitBlocks(section.content ?? [], state, {
-          firstPageBreak: true,
-        }),
+      const authoredBodyTitle = hasAuthoredBodyTitle(section, bodyTitle);
+      if (!authoredBodyTitle) {
+        beforeReferences.push(
+          new Paragraph({
+            style: "Heading1",
+            pageBreakBefore: true,
+            children: [new TextRun({ text: bodyTitle, bold: true })],
+          }),
+        );
+      }
+      beforeReferences.push(
+        ...visitBlocks(
+          section.content ?? [],
+          state,
+          authoredBodyTitle ? { firstPageBreak: true } : {},
+        ),
       );
     } else if (section.type === "sectionAppendix") {
       appendixIndex += 1;
       const letter = appendixCount > 1
         ? ` ${String.fromCharCode(64 + appendixIndex)}`
         : "";
-      out.push(
+      appendices.push(
         new Paragraph({
           style: "Heading1",
           children: [new TextRun(`${t.headings.appendix}${letter}`)],
           pageBreakBefore: true,
         }),
       );
-      out.push(...visitBlocks(section.content ?? [], state));
+      appendices.push(...visitBlocks(section.content ?? [], state));
     }
   }
-  return out;
+  return { beforeReferences, appendices };
 }

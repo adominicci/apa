@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { untrack } from "svelte";
+  import { onMount, untrack } from "svelte";
   import type { Editor as TiptapEditor } from "@tiptap/core";
+  import { hasAuthoredBodyTitle } from "@tesina/docx-export";
   import type { CitationAttrs, DocLocale, Reference } from "@tesina/engine";
   import { getTerms } from "@tesina/engine";
   import type {
@@ -15,7 +16,6 @@
   import CoverSheet, {
     type CoverPatch,
   } from "$lib/components/CoverSheet.svelte";
-  import ReferencesSheet from "$lib/components/ReferencesSheet.svelte";
   import CitationPopover from "$lib/components/CitationPopover.svelte";
   import HeadingMenu from "$lib/components/HeadingMenu.svelte";
   import ListMenu from "$lib/components/ListMenu.svelte";
@@ -30,6 +30,10 @@
   import BibImportModal from "$lib/components/BibImportModal.svelte";
   import TitlePageForm from "$lib/components/TitlePageForm.svelte";
   import { collectCitedRefIds } from "$lib/editor/citedRefs";
+  import {
+    type ReferenceDecorationEnv,
+    refreshReferenceDecoration,
+  } from "$lib/editor/referenceDecoration";
   import {
     canInsertApaEquation,
     insertApaEquation,
@@ -58,15 +62,38 @@
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { dismissable } from "$lib/dom/dismiss";
   import { exportEssayToDocx } from "$lib/export/exportEssay";
+  import { resolveReferencesForExport } from "$lib/export/referenceResolution";
+  import {
+    createStudentExportSnapshot,
+    runStudentTitlePageValidatedExport,
+    type TitlePageValidationMessageKey,
+  } from "$lib/model/titlePageValidation";
   import { m } from "$lib/paraglide/messages";
+  import {
+    persistence,
+    type PersistenceRegistration,
+  } from "$lib/persist/coordinator";
 
   interface Props {
     essay: Essay;
+    newlyCreated: boolean;
+    onLaunchConsumed: () => void;
     onBack: () => void;
     onOpenLibrary: () => void;
   }
 
-  let { essay, onBack, onOpenLibrary }: Props = $props();
+  interface EssayWriteAttempt {
+    revision: number;
+    promise: Promise<void>;
+  }
+
+  let {
+    essay,
+    newlyCreated,
+    onLaunchConsumed,
+    onBack,
+    onOpenLibrary,
+  }: Props = $props();
 
   // Remounted per essay via {#key essay.id}; initial captures are deliberate.
   let documentLanguage = $state<DocLocale>(
@@ -80,7 +107,7 @@
   let citePopoverOpen = $state(false);
   let refFormOpen = $state(false);
   let citeOnSave = $state(false);
-  let titleFormOpen = $state(false);
+  let titleFormOpen = $state(untrack(() => newlyCreated));
   let addMenuOpen = $state(false);
   let outlineOpen = $state(true);
   let refsOpen = $state(true);
@@ -91,6 +118,7 @@
   let confirmingDelete = $state<string | null>(null);
   let exporting = $state(false);
   let exportMessage = $state("");
+  let titlePageValidationError = $state("");
   let essayTitle = $state(untrack(() => essay.titlePage.title));
   let outline = $state<OutlineItem[]>(
     untrack(() => buildOutline(essay.content)),
@@ -115,6 +143,12 @@
   );
   let lastDoc = $state<unknown>(untrack(() => essay.content));
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
+  let requestedSaveRevision = 0;
+  let persistedSaveRevision = 0;
+  let saveChain: Promise<void> = Promise.resolve();
+  let activeSaveAttempt: EssayWriteAttempt | null = null;
+  let activePersistFlush: Promise<void> | null = null;
+  let persistenceRegistration: PersistenceRegistration | null = null;
 
   const citationEnv: CitationEnv = {
     refsById: untrack(() => library.byId()),
@@ -152,21 +186,37 @@
   /** Editor sheets render in the chosen APA font via inherited CSS vars. */
   const docFont = $derived(APA_FONTS[essay.settings.font]);
   const sheetFontStyle = $derived(
-    `--doc-font: ${docFont.stack}; --doc-font-size: ${docFont.sizePt}pt`,
+    `--doc-font: ${docFont.stack}; --doc-font-size: ${docFont.sizePt}pt; --body-title: ${
+      hasAuthoredBodyTitle(lastDoc, essayTitle)
+        ? "none"
+        : JSON.stringify(essayTitle)
+    }`,
   );
-  /** References shown on the live references sheet, matching the export. */
-  const sheetReferences = $derived.by(() => {
-    if (essay.settings.includeUncitedReferences) {
-      return [...library.byId().values()];
-    }
-    // Recompute from the reactive cited counts + library.
-    const byId = library.byId();
-    const out: Reference[] = [];
-    for (const refId of citedCounts.keys()) {
-      const ref = byId.get(refId);
-      if (ref) out.push(ref);
-    }
-    return out;
+  /** One reactive selection shared by the live sheet, preview, and export. */
+  const referenceResolution = $derived.by(() =>
+    resolveReferencesForExport(
+      citedCounts.keys(),
+      library.references,
+      essay.referencesSnapshot ?? [],
+      essay.settings.includeUncitedReferences,
+    )
+  );
+  const referencesForExport = $derived(referenceResolution.references);
+  const referenceEnv: ReferenceDecorationEnv = {
+    references: untrack(() => referencesForExport),
+    locale: untrack(() => documentLanguage),
+    emptyLabel: untrack(() =>
+      m.refsheet_empty(undefined, { locale: documentLanguage })
+    ),
+  };
+
+  $effect(() => {
+    referenceEnv.references = referencesForExport;
+    referenceEnv.locale = documentLanguage;
+    referenceEnv.emptyLabel = m.refsheet_empty(undefined, {
+      locale: documentLanguage,
+    });
+    if (editor && !editor.isDestroyed) refreshReferenceDecoration(editor);
   });
 
   const abstractLabel = $derived(
@@ -178,6 +228,23 @@
   const appendixLabel = $derived(
     getTerms(documentLanguage).headings.appendix,
   );
+
+  function localizeTitlePageValidation(
+    key: TitlePageValidationMessageKey,
+  ): string {
+    const messages: Record<TitlePageValidationMessageKey, () => string> = {
+      titlepage_error_missing_title: m.titlepage_error_missing_title,
+      titlepage_error_missing_authors: m.titlepage_error_missing_authors,
+      titlepage_error_missing_affiliations:
+        m.titlepage_error_missing_affiliations,
+      titlepage_error_missing_course: m.titlepage_error_missing_course,
+      titlepage_error_missing_instructor: m.titlepage_error_missing_instructor,
+      titlepage_error_missing_due_date: m.titlepage_error_missing_due_date,
+      titlepage_error_ambiguous_affiliations:
+        m.titlepage_error_ambiguous_affiliations,
+    };
+    return messages[key]();
+  }
 
   const STATUS_LABELS = {
     guardando: m.editor_status_saving,
@@ -247,49 +314,121 @@
     return merged;
   }
 
+  function capturePersistSnapshot(): Essay {
+    essay.settings.documentLanguage = documentLanguage;
+    essay.content = lastDoc;
+    essay.referencesSnapshot = snapshotForPersist();
+    return structuredClone($state.snapshot(essay) as Essay);
+  }
+
+  function enqueuePersist(revision: number): Promise<void> {
+    if (persistedSaveRevision >= revision) return Promise.resolve();
+    if (activeSaveAttempt?.revision === revision) {
+      return activeSaveAttempt.promise;
+    }
+
+    const snapshot = capturePersistSnapshot();
+    const write = saveChain.catch(() => undefined).then(async () => {
+      await essays.persist(snapshot);
+      persistedSaveRevision = Math.max(persistedSaveRevision, revision);
+      if (revision === requestedSaveRevision) status = "guardado";
+    });
+    const attempt = { revision, promise: write };
+    activeSaveAttempt = attempt;
+    saveChain = write;
+    const clear = () => {
+      if (activeSaveAttempt === attempt) activeSaveAttempt = null;
+    };
+    void write.then(clear, clear);
+    return write;
+  }
+
+  function reportPersistError(error: unknown, revision: number) {
+    console.error("No se pudo guardar el ensayo:", error);
+    if (revision === requestedSaveRevision) status = "error";
+  }
+
   function scheduleSave() {
+    requestedSaveRevision += 1;
+    persistenceRegistration?.markDirty();
+    const revision = requestedSaveRevision;
     status = "guardando";
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(async () => {
-      try {
-        essay.settings.documentLanguage = documentLanguage;
-        essay.content = lastDoc;
-        essay.referencesSnapshot = snapshotForPersist();
-        await essays.persist(essay);
-        status = "guardado";
-      } catch (err) {
-        console.error("No se pudo guardar el ensayo:", err);
-        status = "error";
-      }
+    saveTimer = setTimeout(() => {
+      saveTimer = undefined;
+      void enqueuePersist(revision).catch((error) => {
+        reportPersistError(error, revision);
+      });
     }, 500);
   }
 
-  // Flush the debounced autosave before the editor unmounts for the manager;
-  // otherwise the pending 500 ms timer would race the navigation and lose the
-  // latest content + snapshot.
-  async function openLibrary() {
-    clearTimeout(saveTimer);
+  function persistNow(): Promise<void> {
+    if (activePersistFlush) return activePersistFlush;
+    const active = flushUntilCaughtUp();
+    activePersistFlush = active;
+    const clear = () => {
+      if (activePersistFlush === active) activePersistFlush = null;
+    };
+    void active.then(clear, clear);
+    return active;
+  }
+
+  async function flushUntilCaughtUp(): Promise<void> {
+    while (persistedSaveRevision < requestedSaveRevision) {
+      clearTimeout(saveTimer);
+      saveTimer = undefined;
+      const revision = requestedSaveRevision;
+      status = "guardando";
+      try {
+        await enqueuePersist(revision);
+      } catch (error) {
+        reportPersistError(error, revision);
+        throw error;
+      }
+    }
+  }
+
+  onMount(() => {
+    const registration = persistence.register(persistNow);
+    persistenceRegistration = registration;
+    return () => {
+      // Svelte destruction cannot await cleanup. Keep the callback registered
+      // until its serialized final write settles so a concurrent app-close
+      // barrier can still observe it.
+      void persistNow().catch((error) => {
+        reportPersistError(error, requestedSaveRevision);
+      }).finally(() => {
+        if (persistenceRegistration === registration) {
+          persistenceRegistration = null;
+        }
+        registration.unregister();
+      });
+    };
+  });
+
+  async function leaveEditor(destination: () => void) {
     try {
-      essay.settings.documentLanguage = documentLanguage;
-      essay.content = lastDoc;
-      essay.referencesSnapshot = snapshotForPersist();
-      await essays.persist(essay);
-      status = "guardado";
-    } catch (err) {
-      console.error("No se pudo guardar el ensayo:", err);
-      status = "error";
-      // Stay in the editor so the error is visible and the user can retry —
-      // the debounce is already cleared, so navigating away would lose the
-      // unpersisted content/snapshot.
+      await persistNow();
+    } catch {
+      // Stay in the editor so the visible error can be retried.
       return;
     }
-    onOpenLibrary();
+    destination();
+  }
+
+  async function goBack() {
+    await leaveEditor(onBack);
+  }
+
+  async function openLibrary() {
+    await leaveEditor(onOpenLibrary);
   }
 
   function handleUpdate(docJson: unknown, wordCount: number) {
     lastDoc = docJson;
     words = wordCount;
     citedCounts = collectCitedRefIds(docJson);
+    essay.referencesSnapshot = snapshotForPersist();
     outline = buildOutline(docJson);
     if (editor) abstractPresent = hasAbstract(editor);
     scheduleSave();
@@ -406,17 +545,48 @@
 
   async function handleExport() {
     if (!editor || exporting) return;
+    const currentEditor = editor;
     exporting = true;
     exportMessage = "";
+    titlePageValidationError = "";
     try {
-      const references = essay.settings.includeUncitedReferences
-        ? [...library.byId().values()]
-        : snapshotCitedRefs();
-      const outcome = await exportEssayToDocx(
-        essay,
-        lastDoc ?? editor.getJSON(),
-        references,
+      const documentSnapshot = lastDoc ?? currentEditor.getJSON();
+      const exportReferences = resolveReferencesForExport(
+        collectCitedRefIds(documentSnapshot).keys(),
+        library.references,
+        essay.referencesSnapshot ?? [],
+        essay.settings.includeUncitedReferences,
       );
+      if (exportReferences.unresolvedCitedRefIds.length > 0) {
+        exportMessage = m.editor_export_missing_references();
+        return;
+      }
+      const exportSnapshot = createStudentExportSnapshot(
+        essay,
+        documentSnapshot,
+        exportReferences.references,
+        documentLanguage,
+      );
+      const result = await runStudentTitlePageValidatedExport(
+        exportSnapshot,
+        async (snapshot) => {
+          return await exportEssayToDocx(
+            snapshot.essay,
+            snapshot.document,
+            snapshot.references,
+          );
+        },
+      );
+      if (result.status === "blocked") {
+        titlePageValidationError = localizeTitlePageValidation(
+          result.messageKey,
+        );
+        exportMessage = titlePageValidationError;
+        titleFormOpen = true;
+        return;
+      }
+
+      const outcome = result.outcome;
       if (outcome.status === "saved") {
         exportMessage = m.editor_exported({ path: outcome.path });
       } else if (outcome.status === "error") {
@@ -509,30 +679,22 @@
 
   function handleSaveTitlePage(titlePage: TitlePage, settings: EssaySettings) {
     essay.titlePage = titlePage;
-    essay.settings = { ...settings, documentLanguage };
+    essay.settings = {
+      ...settings,
+      documentLanguage,
+      variant: "student",
+    };
     essayTitle = titlePage.title;
+    titlePageValidationError = "";
+    exportMessage = "";
     titleFormOpen = false;
     scheduleSave();
   }
 
-  /** Applies an inline cover edit, splitting title-page vs settings fields. */
+  /** Applies an inline edit from the student title-page sheet. */
   function handleCoverChange(patch: CoverPatch) {
-    const { variant, runningHead, ...tp } = patch;
-    if (Object.keys(tp).length > 0) {
-      essay.titlePage = { ...essay.titlePage, ...tp };
-      if (tp.title !== undefined) essayTitle = essay.titlePage.title;
-    }
-    if (variant !== undefined || runningHead !== undefined) {
-      const next: EssaySettings = { ...essay.settings };
-      if (variant !== undefined) next.variant = variant;
-      if (runningHead !== undefined) {
-        const rh = runningHead.trim().toUpperCase().slice(0, 50);
-        if (rh) next.runningHead = rh;
-        else delete next.runningHead;
-      }
-      if (next.variant === "student") delete next.runningHead;
-      essay.settings = next;
-    }
+    essay.titlePage = { ...essay.titlePage, ...patch };
+    if (patch.title !== undefined) essayTitle = essay.titlePage.title;
     scheduleSave();
   }
 </script>
@@ -546,7 +708,7 @@
   <header class="titlebar" data-tauri-drag-region>
     <div class="tb-left">
       <div class="traffic-space"></div>
-      <button class="icon-btn" onclick={onBack} title={m.tb_back()} aria-label={m.tb_back()}>
+      <button class="icon-btn" onclick={goBack} title={m.tb_back()} aria-label={m.tb_back()}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" width="16" height="16"><path d="M14 6l-6 6 6 6" /></svg>
       </button>
     </div>
@@ -697,7 +859,7 @@
             <PrintPreview
               {essay}
               docJson={lastDoc ?? editor?.getJSON()}
-              references={snapshotCitedRefs()}
+              references={referencesForExport}
               onPageCount={(pages) => (pageCount = pages)}
             />
           {/key}
@@ -706,23 +868,21 @@
         <div class="sheet-stack" style={sheetFontStyle}>
           <CoverSheet
             titlePage={essay.titlePage}
-            settings={essay.settings}
             language={documentLanguage}
             onChange={handleCoverChange}
             onOpenForm={() => (titleFormOpen = true)}
           />
           <Editor
-            initialDoc={essay.content}
+            initialDoc={lastDoc}
+            {newlyCreated}
+            {onLaunchConsumed}
             {documentLanguage}
             {citationEnv}
+            {referenceEnv}
             onUpdate={handleUpdate}
             onReady={handleReady}
             onEditEquation={(pos, latex) =>
               (equationDialog = { mode: "edit", pos, latex })}
-          />
-          <ReferencesSheet
-            references={sheetReferences}
-            language={documentLanguage}
           />
         </div>
       {/if}
@@ -888,7 +1048,7 @@
       </button>
       <div class="fm-sep"></div>
       <button
-        class="fm-btn"
+        class="fm-btn fm-primary-action"
         onclick={handleExport}
         disabled={!editor || exporting}
         data-tip={exporting ? m.editor_exporting() : m.editor_export()}
@@ -992,6 +1152,7 @@
   <TitlePageForm
     titlePage={essay.titlePage}
     settings={essay.settings}
+    validationMessage={titlePageValidationError}
     onSave={handleSaveTitlePage}
     onClose={() => (titleFormOpen = false)}
   />

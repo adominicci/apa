@@ -3,10 +3,23 @@
   // (app.html), NOT imported here — a Vite-processed @font-face kept getting
   // dropped in dev (WKWebView HMR + dev-server url() 404s). See AGENTS.md.
   import "$lib/styles/tokens.css";
+  import { onMount } from "svelte";
   import type { Snippet } from "svelte";
+  import { getVersion } from "@tauri-apps/api/app";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
+  import ReleaseNotesModal from "$lib/components/ReleaseNotesModal.svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { updater } from "$lib/state/updater.svelte";
+  import {
+    clearPendingReleaseNotes,
+    type PendingReleaseNotes,
+    releaseNotesForVersion,
+    type ReleaseNotesStorage,
+  } from "$lib/update/releaseNotes";
   import { m } from "$lib/paraglide/messages";
+  import { library } from "$lib/state/library.svelte";
+  import { persistence } from "$lib/persist/coordinator";
+  import { createCloseRequestHandler } from "$lib/persist/windowClose";
 
   interface Props {
     children: Snippet;
@@ -16,6 +29,92 @@
 
   // Per-session dismissal; the banner returns next launch if still available.
   let updateDismissed = $state(false);
+  let runningVersion = $state<string | null>(null);
+  let runningVersionResolved = $state(false);
+  let releaseNotesDismissed = $state(false);
+
+  function browserStorage(): ReleaseNotesStorage | null {
+    try {
+      return typeof localStorage === "undefined" ? null : localStorage;
+    } catch {
+      return null;
+    }
+  }
+
+  onMount(() => {
+    void (async () => {
+      try {
+        runningVersion = await getVersion();
+      } catch (err) {
+        // Release notes are optional and must never delay or block startup.
+        console.error("No se pudieron cargar las notas de versión:", err);
+      } finally {
+        runningVersionResolved = true;
+      }
+    })();
+  });
+
+  onMount(() => {
+    const libraryPersistence = persistence.register(() =>
+      library.flushPending()
+    );
+    library.setPersistenceDirtyNotifier(libraryPersistence.markDirty);
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+
+    if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
+      const appWindow = getCurrentWindow();
+      const close = createCloseRequestHandler({
+        flushPending: () => persistence.flushPending(),
+        destroy: () => appWindow.destroy(),
+        onError: (error) => {
+          console.error("No se pudo cerrar la aplicación:", error);
+        },
+      });
+      void appWindow.onCloseRequested((event) => {
+        void close(event);
+      }).then((stop) => {
+        if (disposed) stop();
+        else unlisten = stop;
+      }).catch((error) => {
+        console.error("No se pudo preparar el cierre seguro:", error);
+      });
+    }
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+      library.setPersistenceDirtyNotifier(null);
+      libraryPersistence.unregister();
+    };
+  });
+
+  const releaseNotesResolutionPending = $derived(
+    !runningVersionResolved || !uiLocale.loaded,
+  );
+
+  const releaseNotes = $derived.by((): PendingReleaseNotes | null => {
+    if (
+      releaseNotesResolutionPending || !runningVersion ||
+      releaseNotesDismissed
+    ) {
+      return null;
+    }
+    const storage = browserStorage();
+    if (!storage) return null;
+    return releaseNotesForVersion(
+      storage,
+      runningVersion,
+      m.release_notes_fallback(undefined, { locale: uiLocale.current }),
+    );
+  });
+
+  function dismissReleaseNotes() {
+    const displayed = releaseNotes;
+    const storage = browserStorage();
+    if (storage && displayed) clearPendingReleaseNotes(storage, displayed);
+    releaseNotesDismissed = true;
+  }
 
   // Resolve "system" against the OS preference, live.
   $effect(() => {
@@ -31,7 +130,7 @@
   });
 </script>
 
-{#if updater.status !== "idle" && !updateDismissed}
+{#if !releaseNotesResolutionPending && !releaseNotes && updater.status !== "idle" && !updateDismissed}
   <div class="update-banner" role="status">
     {#if updater.status === "downloading"}
       <span>{m.update_downloading({ percent: updater.progress })}</span>
@@ -57,6 +156,14 @@
       >×</button>
     {/if}
   </div>
+{/if}
+
+{#if releaseNotes}
+  <ReleaseNotesModal
+    version={releaseNotes.version}
+    body={releaseNotes.body}
+    onClose={dismissReleaseNotes}
+  />
 {/if}
 
 {@render children()}

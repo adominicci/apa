@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import type { DocLocale } from "@tesina/engine";
   import type { Essay } from "$lib/model/essay";
   import EssayHome from "$lib/components/EssayHome.svelte";
   import EditorScreen from "$lib/components/EditorScreen.svelte";
@@ -9,11 +10,17 @@
   import { missingCitedRefs } from "$lib/model/reconcile";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { updater } from "$lib/state/updater.svelte";
+  import {
+    LatestLaunch,
+    type LaunchValue,
+  } from "$lib/state/latestLaunch";
 
   // Router-less shell (plan §app shell): a desktop app, not a website.
-  let currentEssay = $state<Essay | null>(null);
+  let currentLaunch = $state<LaunchValue<Essay> | null>(null);
+  let currentEssayKey = $state<string | null>(null);
   let libraryOpen = $state(false);
   let booted = $state(false);
+  const latestLaunch = new LatestLaunch();
 
   onMount(async () => {
     await Promise.all([
@@ -26,24 +33,54 @@
     void updater.check();
   });
 
-  async function openEssay(id: string) {
-    const essay = await essays.load(id);
-    if (!essay) return;
+  function applyLaunch(launch: LaunchValue<Essay>) {
     // Restore any cited reference that was deleted from the library while this
     // essay was closed — before the editor mounts and builds its citationEnv.
     library.restore(
       missingCitedRefs(
-        essay.content,
-        essay.referencesSnapshot,
+        launch.value.content,
+        launch.value.referencesSnapshot,
         new Set(library.byId().keys()),
       ),
     );
-    currentEssay = essay;
+    currentEssayKey = launch.value.id;
+    currentLaunch = launch;
+  }
+
+  async function createEssay(language: DocLocale) {
+    try {
+      await latestLaunch.run(
+        true,
+        () => essays.create(language),
+        applyLaunch,
+        (created) => essays.remove(created.id),
+      );
+    } catch (err) {
+      console.error("No se pudo crear o limpiar el ensayo:", err);
+    }
+  }
+
+  async function openEssay(id: string) {
+    await latestLaunch.run(false, () => essays.load(id), applyLaunch);
+  }
+
+  function consumeLaunch() {
+    const launch = currentLaunch;
+    if (!launch?.newlyCreated) return;
+    launch.newlyCreated = false;
   }
 
   function goHome() {
-    currentEssay = null;
+    latestLaunch.invalidate();
+    currentLaunch = null;
+    currentEssayKey = null;
     essays.loadIndex();
+  }
+
+  function openLibrary() {
+    latestLaunch.invalidate();
+    consumeLaunch();
+    libraryOpen = true;
   }
 </script>
 
@@ -53,18 +90,21 @@
   {#key uiLocale.current}
     {#if libraryOpen}
       <LibraryScreen onBack={() => (libraryOpen = false)} />
-    {:else if currentEssay}
-      {#key currentEssay.id}
+    {:else if currentLaunch}
+      {#key currentEssayKey}
         <EditorScreen
-          essay={currentEssay}
+          essay={currentLaunch.value}
+          newlyCreated={currentLaunch.newlyCreated}
+          onLaunchConsumed={consumeLaunch}
           onBack={goHome}
-          onOpenLibrary={() => (libraryOpen = true)}
+          onOpenLibrary={openLibrary}
         />
       {/key}
     {:else}
       <EssayHome
+        onCreate={createEssay}
         onOpen={openEssay}
-        onOpenLibrary={() => (libraryOpen = true)}
+        onOpenLibrary={openLibrary}
       />
     {/if}
   {/key}

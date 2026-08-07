@@ -102,6 +102,7 @@
   border-radius: var(--r-pill);
   box-shadow: var(--elev-raised);
   z-index: 40;
+  max-inline-size: calc(100vw - 16px);
   transition: left 220ms var(--ease), right 220ms var(--ease);
 }
 
@@ -406,5 +407,124 @@
     bottom: calc(100% + 12px);
     left: 50%;
     transform: translateX(-50%);
+  }
+}
+
+/*
+ * The complete horizontal bar is 1413px wide in Spanish. At the first width
+ * where it no longer fits with an 8px viewport inset, keep the two primary
+ * action labels and collapse only redundant secondary text. Every action
+ * remains in place and keeps its icon, accessible name, and popover.
+ */
+@media (max-width: 1428px) {
+  .float-menu[data-dock="bottom"]
+    .fm-btn:not(.primary):not(.fm-primary-action)
+    .fm-label,
+  .float-menu[data-dock="top"]
+    .fm-btn:not(.primary):not(.fm-primary-action)
+    .fm-label,
+  .float-menu[data-dock="left"]
+    .fm-btn:not(.primary):not(.fm-primary-action)
+    .fm-label,
+  .float-menu[data-dock="right"]
+    .fm-btn:not(.primary):not(.fm-primary-action)
+    .fm-label,
+  .float-menu .fm-count {
+    display: none;
+  }
+
+  .float-menu[data-dock="bottom"] .fm-btn:not(.primary):not(.fm-primary-action),
+  .float-menu[data-dock="top"] .fm-btn:not(.primary):not(.fm-primary-action) {
+    position: relative;
+  }
+
+  .float-menu[data-dock="bottom"]
+    .fm-btn:not(.primary):not(.fm-primary-action)::after,
+  .float-menu[data-dock="top"]
+    .fm-btn:not(.primary):not(.fm-primary-action)::after {
+    content: attr(data-tip);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    background: var(--surface);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    box-shadow: var(--elev-raised);
+    padding: 4px 9px;
+    font-size: 12px;
+    font-weight: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--fast) var(--ease);
+    z-index: 70;
+  }
+
+  .float-menu[data-dock="bottom"]
+    .fm-btn:not(.primary):not(.fm-primary-action)::after {
+    bottom: calc(100% + 8px);
+  }
+
+  .float-menu[data-dock="top"]
+    .fm-btn:not(.primary):not(.fm-primary-action)::after {
+    top: calc(100% + 8px);
+  }
+
+  .float-menu[data-dock="bottom"]
+    .fm-btn:not(.primary):not(.fm-primary-action):hover::after,
+  .float-menu[data-dock="bottom"]
+    .fm-btn:not(.primary):not(.fm-primary-action):focus-visible::after,
+  .float-menu[data-dock="top"]
+    .fm-btn:not(.primary):not(.fm-primary-action):hover::after,
+  .float-menu[data-dock="top"]
+    .fm-btn:not(.primary):not(.fm-primary-action):focus-visible::after {
+    opacity: 1;
+  }
+}
+
+/* The first and last horizontal popovers align with their toolbar edge so
+   their fixed widths cannot cross the viewport at supported window sizes. */
+.float-menu[data-dock="bottom"] .fab-cite .pop,
+.float-menu[data-dock="top"] .fab-cite .pop {
+  right: auto;
+  left: 0;
+  transform: none;
+}
+
+.float-menu[data-dock="bottom"] .position-menu .menu-pop,
+.float-menu[data-dock="top"] .position-menu .menu-pop {
+  right: 0;
+  left: auto;
+  transform: none;
+}
+
+/* Side preferences render as a horizontal bar below 1100px. Restore the
+   secondary icon tooltips in that forced-bottom layout. */
+@media (max-width: 1100px) {
+  .float-menu[data-dock="left"]
+    .fm-btn:not(.primary):not(.fm-primary-action)::after,
+  .float-menu[data-dock="right"]
+    .fm-btn:not(.primary):not(.fm-primary-action)::after {
+    content: attr(data-tip);
+    top: auto;
+    right: auto;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .float-menu[data-dock="left"] .fab-cite .pop,
+  .float-menu[data-dock="right"] .fab-cite .pop {
+    right: auto;
+    left: 0;
+    transform: none;
+  }
+
+  .float-menu[data-dock="left"] .position-menu .menu-pop,
+  .float-menu[data-dock="right"] .position-menu .menu-pop {
+    right: 0;
+    left: auto;
+    transform: none;
   }
 }

@@ -85,7 +85,7 @@ export function sampleEssayInput(
       title: "Hábitos de lectura en la universidad",
       authors: ["Ana María Ruiz"],
       affiliations: ["Departamento de Educación, Universidad del Valle"],
-      course: "EDU 301",
+      course: "EDU 301: Fundamentos de la educación",
       instructor: "Dra. Carmen Solís",
       dueDate: "2026-07-11",
     },
@@ -117,14 +117,6 @@ export function sampleEssayInput(
           type: "sectionBody",
           content: [
             {
-              type: "heading",
-              attrs: { level: 1 },
-              content: [{
-                type: "text",
-                text: "Hábitos de lectura en la universidad",
-              }],
-            },
-            {
               type: "paragraph",
               content: [
                 { type: "text", text: "La lectura en pantalla domina " },
@@ -141,7 +133,16 @@ export function sampleEssayInput(
             {
               type: "heading",
               attrs: { level: 4 },
-              content: [{ type: "text", text: "Detalle menor" }],
+              content: [
+                { type: "text", text: "RUN IN HEADING CITATION " },
+                {
+                  type: "citation",
+                  attrs: {
+                    items: [{ refId: "ref-salgado" }],
+                    mode: "parenthetical",
+                  },
+                },
+              ],
             },
             {
               type: "paragraph",
@@ -211,10 +212,67 @@ export function sampleEssayInput(
                       content: [
                         {
                           type: "tableCell",
-                          content: [{
-                            type: "paragraph",
-                            content: [{ type: "text", text: "Primer año" }],
-                          }],
+                          content: [
+                            {
+                              type: "paragraph",
+                              content: [{ type: "text", text: "Primer año" }],
+                            },
+                            {
+                              type: "paragraph",
+                              content: [{
+                                type: "text",
+                                text: "Segundo bloque de celda",
+                                marks: [{ type: "italic" }],
+                              }],
+                            },
+                            {
+                              type: "blockquote",
+                              content: [
+                                {
+                                  type: "heading",
+                                  attrs: { level: 3 },
+                                  content: [{
+                                    type: "text",
+                                    text: "TABLE CELL BLOCKQUOTE HEADING",
+                                  }],
+                                },
+                                {
+                                  type: "paragraph",
+                                  content: [{
+                                    type: "text",
+                                    text: "Quoted cell introduction",
+                                  }],
+                                },
+                                {
+                                  type: "orderedList",
+                                  attrs: { listStyle: "lower-alpha" },
+                                  content: [{
+                                    type: "listItem",
+                                    content: [{
+                                      type: "paragraph",
+                                      content: [
+                                        {
+                                          type: "text",
+                                          text:
+                                            "TABLE CELL BLOCKQUOTE LIST ITEM ",
+                                          marks: [{ type: "bold" }],
+                                        },
+                                        {
+                                          type: "citation",
+                                          attrs: {
+                                            items: [{
+                                              refId: "ref-padilla",
+                                            }],
+                                            mode: "parenthetical",
+                                          },
+                                        },
+                                      ],
+                                    }],
+                                  }],
+                                },
+                              ],
+                            },
+                          ],
                         },
                         {
                           type: "tableCell",

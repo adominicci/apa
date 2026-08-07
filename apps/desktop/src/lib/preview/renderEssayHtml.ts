@@ -1,5 +1,6 @@
 import {
   buildReferenceList,
+  buildStudentTitlePage,
   formatCitation,
   getTerms,
   type Reference,
@@ -9,6 +10,7 @@ import type { CitationAttrs, DocLocale } from "@tesina/engine";
 import {
   buildDocContext,
   type DocContext,
+  hasAuthoredBodyTitle,
   type PMJson,
 } from "@tesina/docx-export";
 import type { Essay } from "$lib/model/essay";
@@ -32,6 +34,16 @@ function runsToHtml(runs: readonly RichRun[]): string {
   return runs
     .map((r) => (r.italic ? `<em>${esc(r.text)}</em>` : esc(r.text)))
     .join("");
+}
+
+function studentAuthorLineHtml(
+  tokens: ReturnType<typeof buildStudentTitlePage>["byline"]["authorLine"],
+): string {
+  return tokens.map((token) =>
+    token.kind === "superscript"
+      ? `<sup>${esc(token.text)}</sup>`
+      : esc(token.text)
+  ).join("");
 }
 
 function isoToLongDate(iso: string, locale: DocLocale): string {
@@ -96,6 +108,28 @@ function inlineHtml(inline: readonly PMJson[], state: RenderState): string {
   return out;
 }
 
+/**
+ * Removes an authored terminal period from the last meaningful text node
+ * before inline marks become HTML tags. Schema-valid trailing whitespace and
+ * hard breaks stay untouched; this scan skips only those trailing nodes and
+ * stops at any other inline atom rather than acting as a broad normalizer.
+ */
+function normalizedRunInContent(inline: readonly PMJson[]): PMJson[] {
+  const normalized = [...inline];
+  for (let i = normalized.length - 1; i >= 0; i--) {
+    const node = normalized[i]!;
+    if (node.type === "hardBreak") continue;
+    if (node.type !== "text" || typeof node.text !== "string") break;
+    if (node.text.trim() === "") continue;
+    normalized[i] = {
+      ...node,
+      text: node.text.replace(/\.(\s*)$/, "$1"),
+    };
+    break;
+  }
+  return normalized;
+}
+
 /** Renders an APA table figure: "Table N" caption, italic title, grid, note. */
 function apaTableHtml(block: PMJson, state: RenderState): string {
   state.tableNo.n += 1;
@@ -105,9 +139,9 @@ function apaTableHtml(block: PMJson, state: RenderState): string {
   const tableNode = children.find((c) => c.type === "table");
   const noteNode = children.find((c) => c.type === "tableNote");
 
-  let out = `<figure class="apa-table"><p class="tbl-cap">${
+  let out = `<figure class="apa-table"><p class="tbl-cap"><strong>${
     esc(t.headings.table)
-  } ${state.tableNo.n}<br /><em>${
+  } ${state.tableNo.n}</strong><br /><em>${
     titleNode ? inlineHtml(titleNode.content ?? [], state) : ""
   }</em></p>`;
 
@@ -116,10 +150,7 @@ function apaTableHtml(block: PMJson, state: RenderState): string {
     out += "<tr>";
     for (const cellNode of rowNode.content ?? []) {
       const tag = cellNode.type === "tableHeader" ? "th" : "td";
-      let inner = "";
-      for (const child of cellNode.content ?? []) {
-        inner += inlineHtml(child.content ?? [], state);
-      }
+      const inner = blocksHtml(cellNode.content ?? [], state);
       out += `<${tag}>${inner}</${tag}>`;
     }
     out += "</tr>";
@@ -142,9 +173,9 @@ function apaFigureHtml(block: PMJson, state: RenderState): string {
   const imageNode = children.find((c) => c.type === "figureImage");
   const noteNode = children.find((c) => c.type === "figureNote");
 
-  let out = `<figure class="apa-figure"><p class="fig-cap">${
+  let out = `<figure class="apa-figure"><p class="fig-cap"><strong>${
     esc(t.headings.figure)
-  } ${state.figureNo.n}<br /><em>${
+  } ${state.figureNo.n}</strong><br /><em>${
     titleNode ? inlineHtml(titleNode.content ?? [], state) : ""
   }</em></p>`;
 
@@ -240,9 +271,9 @@ function blocksHtml(
     } else if (block.type === "heading") {
       const level = Number(block.attrs?.["level"] ?? 1);
       if (level >= 4) {
-        const text = inlineHtml(block.content ?? [], state).replace(
-          /\.?\s*$/,
-          "",
+        const text = inlineHtml(
+          normalizedRunInContent(block.content ?? []),
+          state,
         );
         const open = level === 5 ? "<strong><em>" : "<strong>";
         const close = level === 5 ? "</em></strong>" : "</strong>";
@@ -261,11 +292,9 @@ function blocksHtml(
         }</h${level}>`;
       }
     } else if (block.type === "blockquote") {
-      out += "<blockquote>";
-      for (const child of block.content ?? []) {
-        out += `<p>${inlineHtml(child.content ?? [], state)}</p>`;
-      }
-      out += "</blockquote>";
+      out += `<blockquote>${
+        blocksHtml(block.content ?? [], state)
+      }</blockquote>`;
     } else if (block.type === "bulletList" || block.type === "orderedList") {
       out += listHtml(block, state);
     } else if (block.type === "apaTable") {
@@ -316,12 +345,15 @@ li ul, li ol { padding-left: 0.5in; }
 .title-page p { text-indent: 0; }
 .rh-set { string-set: runhead content(text); display: none; }
 section.abstract, section.appendix, section.references { break-before: page; }
+section.body-sec { break-before: page; }
 .ref-entry { padding-left: 0.5in; text-indent: -0.5in; }
 .apa-table { margin: 1em 0; break-inside: avoid; }
 .apa-table .tbl-cap { text-indent: 0; }
 .apa-table table { border-collapse: collapse; width: 100%; border-top: 1px solid #131313; border-bottom: 1px solid #131313; }
 .apa-table th, .apa-table td { padding: 3px 8px; text-align: left; vertical-align: top; }
-.apa-table th { border-bottom: 1px solid #131313; font-weight: normal; }
+.apa-table th { border-bottom: 1px solid #131313; font-weight: normal; text-align: center; }
+.apa-table th p, .apa-table td p { margin: 0; text-indent: 0; }
+.apa-table th ul, .apa-table th ol, .apa-table td ul, .apa-table td ol { padding-left: 0.5in; }
 .apa-table .tbl-note { text-indent: 0; }
 .apa-figure { margin: 1em 0; break-inside: avoid; text-align: center; }
 .apa-figure .fig-cap { text-indent: 0; text-align: left; }
@@ -353,6 +385,15 @@ export function renderEssayHtml(
     mathml,
   };
   const { titlePage } = essay;
+  const studentTitlePage = buildStudentTitlePage({
+    locale,
+    title: titlePage.title,
+    authors: titlePage.authors,
+    affiliations: titlePage.affiliations,
+    course: titlePage.course ?? "",
+    instructor: titlePage.instructor ?? "",
+    dueDate: titlePage.dueDate ?? "",
+  });
 
   let html = "";
   if (essay.settings.variant === "professional") {
@@ -364,8 +405,17 @@ export function renderEssayHtml(
 
   html += `<div class="title-page"><div class="spacer"></div>`;
   html += `<p class="tp-title">${esc(titlePage.title)}</p><p>&nbsp;</p>`;
-  for (const author of titlePage.authors) html += `<p>${esc(author)}</p>`;
-  for (const aff of titlePage.affiliations) html += `<p>${esc(aff)}</p>`;
+  if (studentTitlePage.byline.authorLine.length > 0) {
+    html += `<p class="tp-authors">${
+      studentAuthorLineHtml(studentTitlePage.byline.authorLine)
+    }</p>`;
+  }
+  for (const affiliation of studentTitlePage.byline.affiliations) {
+    const number = affiliation.number === undefined
+      ? ""
+      : `<sup>${affiliation.number}</sup>`;
+    html += `<p class="tp-affiliation">${number}${esc(affiliation.name)}</p>`;
+  }
   if (titlePage.course) html += `<p>${esc(titlePage.course)}</p>`;
   if (titlePage.instructor) html += `<p>${esc(titlePage.instructor)}</p>`;
   if (titlePage.dueDate) {
@@ -374,47 +424,45 @@ export function renderEssayHtml(
   html += `</div>`;
 
   const doc = docJson as PMJson;
-  for (const section of doc.content ?? []) {
+  const sections = doc.content ?? [];
+  for (const section of sections) {
     if (section.type === "sectionAbstract") {
       html += `<section class="abstract"><h1>${esc(t.headings.abstract)}</h1>`;
       html += blocksHtml(section.content ?? [], state, "no-indent");
       html += "</section>";
     } else if (section.type === "sectionBody") {
       html += `<section class="body-sec">`;
-      html += blocksHtml(section.content ?? [], state);
-      html += "</section>";
-    } else if (section.type === "sectionAppendix") {
-      html += `<section class="appendix">`;
+      if (!hasAuthoredBodyTitle(section, titlePage.title)) {
+        html += `<h1 class="body-title">${esc(titlePage.title)}</h1>`;
+      }
       html += blocksHtml(section.content ?? [], state);
       html += "</section>";
     }
   }
 
-  // Appendix headings with computed letters (only when 2+, APA 2.14).
-  const appendices = (doc.content ?? []).filter(
-    (s) => s.type === "sectionAppendix",
-  ).length;
-  if (appendices > 0) {
-    let index = 0;
-    html = html.replaceAll('<section class="appendix">', () => {
-      index += 1;
-      const letter = appendices > 1
-        ? ` ${String.fromCharCode(64 + index)}`
-        : "";
-      return `<section class="appendix"><h1>${
-        esc(t.headings.appendix)
-      }${letter}</h1>`;
-    });
-  }
-
-  if (references.length > 0) {
-    const { entries } = buildReferenceList(references, locale);
+  const { entries: referenceEntries } = buildReferenceList(references, locale);
+  if (referenceEntries.length > 0) {
     html += `<section class="references"><h1>${
       esc(t.headings.references)
     }</h1>`;
-    for (const entry of entries) {
+    for (const entry of referenceEntries) {
       html += `<p class="ref-entry">${runsToHtml(entry.runs)}</p>`;
     }
+    html += "</section>";
+  }
+
+  // Appendices follow references; letters appear only when there are 2+.
+  const appendices = sections.filter(
+    (s) => s.type === "sectionAppendix",
+  );
+  for (const [index, appendix] of appendices.entries()) {
+    const letter = appendices.length > 1
+      ? ` ${String.fromCharCode(65 + index)}`
+      : "";
+    html += `<section class="appendix"><h1>${
+      esc(t.headings.appendix)
+    }${letter}</h1>`;
+    html += blocksHtml(appendix.content ?? [], state);
     html += "</section>";
   }
 

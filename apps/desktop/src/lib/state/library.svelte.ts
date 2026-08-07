@@ -22,6 +22,11 @@ interface LibraryFile {
   collections?: RefCollection[];
 }
 
+interface LibraryWriteAttempt {
+  revision: number;
+  promise: Promise<void>;
+}
+
 /**
  * The universal reference library (plan §data model): source of truth in
  * $APPDATA/library.json, shared by every essay. Collections (tag-like) live
@@ -29,11 +34,17 @@ interface LibraryFile {
  * deleted reference from an essay's denormalized copy is handled by
  * `restore()` (see model/reconcile.ts).
  */
-class LibraryStore {
+export class LibraryStore {
   references = $state<Reference[]>([]);
   collections = $state<RefCollection[]>([]);
   loaded = $state(false);
   #saveTimer: ReturnType<typeof setTimeout> | undefined;
+  #writeChain: Promise<void> = Promise.resolve();
+  #requestedRevision = 0;
+  #persistedRevision = 0;
+  #activeWrite: LibraryWriteAttempt | null = null;
+  #activeFlush: Promise<void> | null = null;
+  #notifyPersistenceDirty: (() => void) | null = null;
 
   async load(): Promise<void> {
     if (this.loaded) return;
@@ -48,18 +59,72 @@ class LibraryStore {
     }
   }
 
+  #snapshot(): LibraryFile {
+    return {
+      schemaVersion: 1,
+      references: $state.snapshot(this.references) as Reference[],
+      collections: $state.snapshot(this.collections) as RefCollection[],
+    };
+  }
+
+  #enqueue(revision: number): Promise<void> {
+    if (this.#persistedRevision >= revision) return Promise.resolve();
+    if (this.#activeWrite?.revision === revision) {
+      return this.#activeWrite.promise;
+    }
+
+    const file = this.#snapshot();
+    const write = this.#writeChain.catch(() => undefined).then(async () => {
+      await writeJsonAtomic(LIBRARY_FILE, file);
+      this.#persistedRevision = Math.max(this.#persistedRevision, revision);
+    });
+    const attempt = { revision, promise: write };
+    this.#activeWrite = attempt;
+    this.#writeChain = write;
+    const clear = () => {
+      if (this.#activeWrite === attempt) this.#activeWrite = null;
+    };
+    void write.then(clear, clear);
+    return write;
+  }
+
   #persist(): void {
+    this.#requestedRevision += 1;
+    this.#notifyPersistenceDirty?.();
+    const revision = this.#requestedRevision;
     clearTimeout(this.#saveTimer);
     this.#saveTimer = setTimeout(() => {
-      const file: LibraryFile = {
-        schemaVersion: 1,
-        references: $state.snapshot(this.references) as Reference[],
-        collections: $state.snapshot(this.collections) as RefCollection[],
-      };
-      writeJsonAtomic(LIBRARY_FILE, file).catch((err) => {
+      this.#saveTimer = undefined;
+      this.#enqueue(revision).catch((err) => {
         console.error("No se pudo guardar la biblioteca:", err);
       });
     }, 300);
+  }
+
+  /** Connect this app-lifetime store to its coordinator registration. */
+  setPersistenceDirtyNotifier(notify: (() => void) | null): void {
+    this.#notifyPersistenceDirty = notify;
+  }
+
+  /** Persist the latest state after every already-started atomic write. */
+  flushPending(): Promise<void> {
+    if (this.#activeFlush) return this.#activeFlush;
+    const active = this.#flushUntilCaughtUp();
+    this.#activeFlush = active;
+    const clear = () => {
+      if (this.#activeFlush === active) this.#activeFlush = null;
+    };
+    void active.then(clear, clear);
+    return active;
+  }
+
+  async #flushUntilCaughtUp(): Promise<void> {
+    while (this.#persistedRevision < this.#requestedRevision) {
+      clearTimeout(this.#saveTimer);
+      this.#saveTimer = undefined;
+      const revision = this.#requestedRevision;
+      await this.#enqueue(revision);
+    }
   }
 
   add(ref: Reference): void {

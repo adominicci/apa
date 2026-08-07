@@ -6,13 +6,22 @@ import { type CitationEnv, createCitationExtension } from "./citation.ts";
 import { OrderedListStyleAttr } from "./lists.ts";
 import { blockExtensions, createApaEquationExtension } from "./blocks.ts";
 import { defaultDoc, ensureSectionedDoc } from "./migrate.ts";
+import {
+  createReferenceDecorationExtension,
+  type ReferenceDecorationEnv,
+} from "./referenceDecoration.ts";
+import { ApaPresentationDecoration } from "./presentationDecoration.ts";
 
 export interface CreateEditorArgs {
   element: HTMLElement;
   /** ProseMirror doc JSON from a saved essay; empty sectioned doc when absent. */
   content?: unknown;
+  /** A just-created paper starts at its title-page task, outside ProseMirror. */
+  newlyCreated: boolean;
   /** Live library + document language; mutated by the app, see citation.ts. */
   citationEnv: CitationEnv;
+  /** Derived references page rendered as editor chrome before appendices. */
+  referenceEnv: ReferenceDecorationEnv;
   onUpdate?: (docJson: unknown, words: number) => void;
   /** Opens the LaTeX dialog pre-filled with an equation's current LaTeX, from
    * its pencil menu. External callback threaded into the schema, same shape
@@ -33,7 +42,15 @@ export function countWords(doc: PMNode): number {
  * Citations, figures, and footnotes land in later M2 iterations.
  */
 export function createTesinaEditor(
-  { element, content, citationEnv, onUpdate, onEditEquation }: CreateEditorArgs,
+  {
+    element,
+    content,
+    newlyCreated,
+    citationEnv,
+    referenceEnv,
+    onUpdate,
+    onEditEquation,
+  }: CreateEditorArgs,
 ): Editor {
   return new Editor({
     element,
@@ -51,11 +68,13 @@ export function createTesinaEditor(
       ...blockExtensions,
       createApaEquationExtension(onEditEquation ?? (() => {})),
       createCitationExtension(citationEnv),
+      ApaPresentationDecoration,
+      createReferenceDecorationExtension(referenceEnv),
     ],
     content: (content !== undefined
       ? ensureSectionedDoc(content)
       : defaultDoc()) as Content,
-    autofocus: "end",
+    autofocus: newlyCreated ? false : "end",
     onUpdate({ editor }) {
       onUpdate?.(editor.getJSON(), countWords(editor.state.doc));
     },

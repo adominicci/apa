@@ -34,6 +34,18 @@ export type {
 export { getTerms, terms } from "./locale/index.ts";
 export type { DocLocale, LocaleTerms } from "./locale/terms.ts";
 
+// Student title pages
+export {
+  buildStudentTitlePage,
+  type StudentTitlePageAffiliation,
+  type StudentTitlePageAuthor,
+  type StudentTitlePageAuthorLineToken,
+  type StudentTitlePageByline,
+  type StudentTitlePageInput,
+  type StudentTitlePageIssue,
+  type StudentTitlePageResult,
+} from "./paper/student-title-page.ts";
+
 // Reference list
 export {
   assignYearSuffixes,

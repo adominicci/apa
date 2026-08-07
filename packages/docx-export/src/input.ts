@@ -41,7 +41,8 @@ export interface ExportTitlePage {
 export interface ExportImage {
   data: Uint8Array;
   type: "png" | "jpg" | "gif" | "bmp";
-  /** Display size in pixels, already scaled to fit the content column. */
+  /** Display size in pixels, scaled to the page content column. The exporter
+   * may scale it down further inside a narrower nested container. */
   width: number;
   height: number;
 }

@@ -16,6 +16,48 @@ const salgado: Reference = {
   pageEnd: "67",
 };
 
+const readingCouncil: Reference = {
+  id: "ref-reading-council",
+  type: "journalArticle",
+  authors: [{
+    kind: "group",
+    name: "Consejo de Escritura Regional",
+    abbreviation: "CER",
+  }],
+  date: { year: 2024 },
+  title: "Prácticas de escritura estudiantil",
+  journal: "Revista Académica Inventada",
+  volume: "4",
+  pageStart: "1",
+  pageEnd: "12",
+};
+
+const personalCommunication: Reference = {
+  id: "ref-personal",
+  type: "personalCommunication",
+  authors: [{ kind: "person", family: "Salgado", given: "Nora" }],
+  date: { year: 2026, month: 7, day: 3 },
+  title: "Conversación sobre hábitos de lectura",
+};
+
+function citationOnlyEssay(refId: string) {
+  const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+  essay.content = {
+    type: "doc",
+    content: [{
+      type: "sectionBody",
+      content: [{
+        type: "paragraph",
+        content: [{
+          type: "citation",
+          attrs: { items: [{ refId }], mode: "parenthetical" },
+        }],
+      }],
+    }],
+  };
+  return essay;
+}
+
 function sampleEssay() {
   const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
   essay.titlePage = {
@@ -160,11 +202,45 @@ function listEssay() {
 }
 
 describe("renderEssayHtml", () => {
+  it("uses a matching authored leading H1 as the legacy body title", () => {
+    const essay = sampleEssay();
+    essay.titlePage.title = "Legacy Body Title";
+    essay.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [
+          {
+            type: "heading",
+            attrs: { level: 1 },
+            content: [{ type: "text", text: "Legacy Body Title" }],
+          },
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "Authored opening" }],
+          },
+        ],
+      }],
+    };
+
+    const html = renderEssayHtml(essay, essay.content, []);
+
+    expect(html.match(/Legacy Body Title/g)).toHaveLength(2);
+    expect(html).toContain(
+      '<section class="body-sec"><h1>Legacy Body Title</h1><p>Authored opening</p>',
+    );
+    expect(html).not.toContain('<h1 class="body-title">');
+  });
+
   it("renders title page, sections, citations, and references", () => {
     const html = renderEssayHtml(sampleEssay(), sampleEssay().content, [
       salgado,
     ]);
-    expect(html).toContain("Hábitos de lectura &lt;en&gt; la universidad");
+    const title = "Hábitos de lectura &lt;en&gt; la universidad";
+    expect(html.match(new RegExp(title, "g"))).toHaveLength(2);
+    expect(html).toContain(
+      `<section class="body-sec"><h1 class="body-title">${title}</h1>`,
+    );
     expect(html).toContain("11 de julio de 2026");
     expect(html).toContain("<h1>Resumen</h1>");
     expect(html).toContain("Palabras clave:");
@@ -174,6 +250,120 @@ describe("renderEssayHtml", () => {
     expect(html).toContain("<h1>Referencias</h1>");
     expect(html).toContain('class="ref-entry"');
     expect(html).toContain("<em>Revista de Estudios Imaginarios, 12</em>");
+  });
+
+  it("renders a shared-affiliation byline without superscript numbers", () => {
+    const essay = sampleEssay();
+    essay.titlePage.authors = ["Ana María Ruiz", "Jordan Lee"];
+    essay.titlePage.affiliations = ["Departamento de Educación"];
+
+    const html = renderEssayHtml(essay, essay.content, []);
+
+    expect(html).toContain(
+      '<p class="tp-authors">Ana María Ruiz y Jordan Lee</p>',
+    );
+    expect(html).toContain(
+      '<p class="tp-affiliation">Departamento de Educación</p>',
+    );
+    expect(html.match(/<p class="tp-(?:authors|affiliation)">.*?<\/p>/g))
+      .not.toContainEqual(expect.stringContaining("<sup>"));
+  });
+
+  it("keeps personal communications in text without an empty references page", () => {
+    const essay = citationOnlyEssay(personalCommunication.id);
+
+    const html = renderEssayHtml(essay, essay.content, [personalCommunication]);
+
+    expect(html).toContain(
+      "(N. Salgado, comunicación personal, 3 de julio de 2026)",
+    );
+    expect(html).not.toContain("???");
+    expect(html).not.toContain('<section class="references">');
+    expect(html).not.toContain("<h1>Referencias</h1>");
+  });
+
+  it("renders one references page for mixed personal and retrievable sources", () => {
+    const essay = citationOnlyEssay(personalCommunication.id);
+
+    const html = renderEssayHtml(essay, essay.content, [
+      personalCommunication,
+      salgado,
+    ]);
+
+    expect(html.match(/<section class="references">/g)).toHaveLength(1);
+    expect(html).toContain("Salgado, N. (2020)");
+    expect(html).not.toContain("Conversación sobre hábitos de lectura");
+  });
+
+  it("links different author affiliations with superscript numbers", () => {
+    const essay = createEmptyEssay("en", "2026-07-11T12:00:00.000Z");
+    essay.titlePage = {
+      title: "Reading Habits",
+      authors: ["Ana Ruiz", "Jordan Lee", "Lucía Pérez"],
+      affiliations: [
+        "University of Puerto Rico",
+        "Caribbean College",
+        "University of Puerto Rico",
+      ],
+      course: "EDU 301",
+      instructor: "Dr. Rivera",
+      dueDate: "2026-08-07",
+    };
+
+    const html = renderEssayHtml(essay, essay.content, []);
+
+    expect(html).toContain(
+      '<p class="tp-authors">Ana Ruiz<sup>1</sup>, Jordan Lee<sup>2</sup>, and Lucía Pérez<sup>1</sup></p>',
+    );
+    expect(html).toContain(
+      '<p class="tp-affiliation"><sup>1</sup>University of Puerto Rico</p>',
+    );
+    expect(html).toContain(
+      '<p class="tp-affiliation"><sup>2</sup>Caribbean College</p>',
+    );
+  });
+
+  it("orders references between the body and multiple appendices", () => {
+    const essay = sampleEssay();
+    essay.content = {
+      type: "doc",
+      content: [
+        {
+          type: "sectionBody",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "Body order marker" }],
+          }],
+        },
+        {
+          type: "sectionAppendix",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "First appendix marker" }],
+          }],
+        },
+        {
+          type: "sectionAppendix",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "Second appendix marker" }],
+          }],
+        },
+      ],
+    };
+
+    const html = renderEssayHtml(essay, essay.content, [salgado]);
+    const body = html.indexOf("Body order marker");
+    const references = html.indexOf('<section class="references">');
+    const appendixA = html.indexOf("First appendix marker");
+    const appendixB = html.indexOf("Second appendix marker");
+
+    expect(body).toBeGreaterThan(-1);
+    expect(references).toBeGreaterThan(body);
+    expect(appendixA).toBeGreaterThan(references);
+    expect(appendixB).toBeGreaterThan(appendixA);
+    expect(html).toContain("<h1>Apéndice A</h1>");
+    expect(html).toContain("<h1>Apéndice B</h1>");
   });
 
   it("renders an APA table with number, title, grid, and note", () => {
@@ -189,7 +379,7 @@ describe("renderEssayHtml", () => {
               content: [
                 {
                   type: "tableTitle",
-                  content: [{ type: "text", text: "Horas de lectura" }],
+                  content: [{ type: "text", text: "Horas <de> lectura" }],
                 },
                 {
                   type: "table",
@@ -232,11 +422,362 @@ describe("renderEssayHtml", () => {
     };
     const html = renderEssayHtml(essay, essay.content, []);
     expect(html).toContain('<figure class="apa-table">');
-    expect(html).toContain("Tabla 1");
-    expect(html).toContain("<em>Horas de lectura</em>");
-    expect(html).toContain("<th>Grupo</th>");
-    expect(html).toContain("<td>Primer año</td>");
+    expect(html).toContain(
+      '<p class="tbl-cap"><strong>Tabla 1</strong><br />' +
+        "<em>Horas &lt;de&gt; lectura</em></p>",
+    );
+    expect(html).toContain("<th><p>Grupo</p></th>");
+    expect(html).toContain("<td><p>Primer año</p></td>");
     expect(html).toContain("Nota.");
+  });
+
+  it("preserves table-cell block structure and citation-rich run-in headings", () => {
+    const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    essay.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [
+          {
+            type: "apaTable",
+            content: [
+              {
+                type: "tableTitle",
+                content: [{ type: "text", text: "Contenido complejo" }],
+              },
+              {
+                type: "table",
+                content: [{
+                  type: "tableRow",
+                  content: [{
+                    type: "tableCell",
+                    content: [
+                      {
+                        type: "paragraph",
+                        content: [{ type: "text", text: "Primer bloque" }],
+                      },
+                      {
+                        type: "paragraph",
+                        content: [{ type: "text", text: "Segundo bloque" }],
+                      },
+                      {
+                        type: "blockquote",
+                        content: [
+                          {
+                            type: "heading",
+                            attrs: { level: 3 },
+                            content: [{
+                              type: "text",
+                              text: "TABLE CELL BLOCKQUOTE HEADING",
+                            }],
+                          },
+                          {
+                            type: "paragraph",
+                            content: [{
+                              type: "text",
+                              text: "Quoted cell introduction",
+                            }],
+                          },
+                          {
+                            type: "orderedList",
+                            attrs: { listStyle: "decimal" },
+                            content: [{
+                              type: "listItem",
+                              content: [{
+                                type: "paragraph",
+                                content: [{
+                                  type: "text",
+                                  text: "TABLE CELL BLOCKQUOTE LIST ITEM ",
+                                  marks: [{ type: "bold" }],
+                                }, {
+                                  type: "citation",
+                                  attrs: {
+                                    items: [{
+                                      refId: "ref-reading-council",
+                                    }],
+                                    mode: "parenthetical",
+                                  },
+                                }],
+                              }],
+                            }],
+                          },
+                        ],
+                      },
+                    ],
+                  }],
+                }],
+              },
+              { type: "tableNote" },
+            ],
+          },
+          {
+            type: "heading",
+            attrs: { level: 5 },
+            content: [
+              { type: "text", text: "RUN IN HEADING CITATION " },
+              {
+                type: "citation",
+                attrs: {
+                  items: [{ refId: "ref-reading-council" }],
+                  mode: "parenthetical",
+                },
+              },
+            ],
+          },
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "Continúa el párrafo." }],
+          },
+        ],
+      }],
+    };
+
+    const html = renderEssayHtml(essay, essay.content, [readingCouncil]);
+
+    expect(html).toContain(
+      "<td><p>Primer bloque</p><p>Segundo bloque</p>" +
+        "<blockquote><h3>TABLE CELL BLOCKQUOTE HEADING</h3>" +
+        "<p>Quoted cell introduction</p>" +
+        '<ol type="1"><li><p><strong>TABLE CELL BLOCKQUOTE LIST ITEM </strong>' +
+        "(Consejo de Escritura Regional [CER], 2024)</p></li></ol>" +
+        "</blockquote></td>",
+    );
+    expect(html).toContain(
+      "<p><strong><em>RUN IN HEADING CITATION (CER, 2024). " +
+        "</em></strong>Continúa el párrafo.</p>",
+    );
+  });
+
+  it.each([
+    {
+      level: 4,
+      terminalMark: "italic",
+      label: "Result ",
+      marked: "marked.",
+      trailing: [{ type: "hardBreak" }],
+      continuation: "Level four continuation.",
+      expected:
+        "<p><strong>Result (Consejo de Escritura Regional [CER], 2024) <em>marked</em><br />. </strong>Level four continuation. (CER, 2024)</p>",
+      duplicate: "marked.</em><br />. ",
+    },
+    {
+      level: 5,
+      terminalMark: "underline",
+      label: "Finding ",
+      marked: "underlined.",
+      trailing: [{
+        type: "text",
+        text: "   ",
+        marks: [{ type: "italic" }],
+      }],
+      continuation: "Level five continuation.",
+      expected:
+        "<p><strong><em>Finding (Consejo de Escritura Regional [CER], 2024) <u>underlined</u><em>   </em>. </em></strong>Level five continuation. (CER, 2024)</p>",
+      duplicate: "underlined.</u><em>   </em>. ",
+    },
+  ])(
+    "normalizes a marked terminal period once for a level-$level run-in heading",
+    (
+      {
+        level,
+        terminalMark,
+        label,
+        marked,
+        trailing,
+        continuation,
+        expected,
+        duplicate,
+      },
+    ) => {
+      const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+      essay.content = {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [
+            {
+              type: "heading",
+              attrs: { level },
+              content: [
+                { type: "text", text: label },
+                {
+                  type: "citation",
+                  attrs: {
+                    items: [{ refId: "ref-reading-council" }],
+                    mode: "parenthetical",
+                  },
+                },
+                { type: "text", text: " " },
+                {
+                  type: "text",
+                  text: marked,
+                  marks: [{
+                    type: terminalMark,
+                  }],
+                },
+                ...trailing,
+              ],
+            },
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: `${continuation} ` },
+                {
+                  type: "citation",
+                  attrs: {
+                    items: [{ refId: "ref-reading-council" }],
+                    mode: "parenthetical",
+                  },
+                },
+              ],
+            },
+          ],
+        }],
+      };
+
+      const html = renderEssayHtml(essay, essay.content, [readingCouncil]);
+
+      expect(html).toContain(expected);
+      expect(html).not.toContain(duplicate);
+    },
+  );
+
+  it("preserves nested-quote table and figure content, citations, and counters", () => {
+    const essay = createEmptyEssay("es", "2026-07-11T12:00:00.000Z");
+    essay.content = {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [
+          {
+            type: "apaTable",
+            content: [
+              {
+                type: "tableTitle",
+                content: [{ type: "text", text: "Top-level table" }],
+              },
+              {
+                type: "table",
+                content: [{
+                  type: "tableRow",
+                  content: [{
+                    type: "tableCell",
+                    content: [{ type: "paragraph" }],
+                  }],
+                }],
+              },
+              { type: "tableNote" },
+            ],
+          },
+          {
+            type: "figure",
+            content: [
+              {
+                type: "figureTitle",
+                content: [{ type: "text", text: "Top-level figure" }],
+              },
+              { type: "figureImage", attrs: { src: "missing-top.png" } },
+              { type: "figureNote" },
+            ],
+          },
+          {
+            type: "blockquote",
+            content: [{
+              type: "blockquote",
+              content: [
+                {
+                  type: "apaTable",
+                  content: [
+                    {
+                      type: "tableTitle",
+                      content: [
+                        { type: "text", text: "NESTED QUOTE TABLE " },
+                        {
+                          type: "citation",
+                          attrs: {
+                            items: [{ refId: "ref-reading-council" }],
+                            mode: "parenthetical",
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      type: "table",
+                      content: [{
+                        type: "tableRow",
+                        content: [{
+                          type: "tableCell",
+                          content: [{
+                            type: "paragraph",
+                            content: [{
+                              type: "text",
+                              text: "NESTED QUOTE TABLE CELL",
+                            }],
+                          }],
+                        }],
+                      }],
+                    },
+                    {
+                      type: "tableNote",
+                      content: [{
+                        type: "text",
+                        text: "Nested table note",
+                      }],
+                    },
+                  ],
+                },
+                {
+                  type: "figure",
+                  content: [
+                    {
+                      type: "figureTitle",
+                      content: [
+                        { type: "text", text: "NESTED QUOTE FIGURE " },
+                        {
+                          type: "citation",
+                          attrs: {
+                            items: [{ refId: "ref-reading-council" }],
+                            mode: "parenthetical",
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      type: "figureImage",
+                      attrs: { src: "missing-nested.png" },
+                    },
+                    {
+                      type: "figureNote",
+                      content: [{
+                        type: "text",
+                        text: "Nested figure note",
+                      }],
+                    },
+                  ],
+                },
+              ],
+            }],
+          },
+        ],
+      }],
+    };
+
+    const html = renderEssayHtml(essay, essay.content, [readingCouncil]);
+
+    expect(html).toContain("Tabla 1");
+    expect(html).toContain("Figura 1");
+    expect(html).toContain(
+      '<blockquote><blockquote><figure class="apa-table">',
+    );
+    expect(html).toContain("Tabla 2");
+    expect(html).toContain("Figura 2");
+    expect(html).toContain("NESTED QUOTE TABLE CELL");
+    expect(html).toContain("Nested table note");
+    expect(html).toContain("Nested figure note");
+    expect(html).toContain(
+      "NESTED QUOTE TABLE (Consejo de Escritura Regional [CER], 2024)",
+    );
+    expect(html).toContain("NESTED QUOTE FIGURE (CER, 2024)");
   });
 
   it("renders an APA figure with number, title, image URL, and note", () => {
@@ -252,7 +793,7 @@ describe("renderEssayHtml", () => {
               content: [
                 {
                   type: "figureTitle",
-                  content: [{ type: "text", text: "Distribución" }],
+                  content: [{ type: "text", text: "Distribución <por>" }],
                 },
                 {
                   type: "figureImage",
@@ -271,8 +812,10 @@ describe("renderEssayHtml", () => {
     const urls = new Map([["essays/assets/x.png", "blob:fake-url"]]);
     const html = renderEssayHtml(essay, essay.content, [], urls);
     expect(html).toContain('<figure class="apa-figure">');
-    expect(html).toContain("Figura 1");
-    expect(html).toContain("<em>Distribución</em>");
+    expect(html).toContain(
+      '<p class="fig-cap"><strong>Figura 1</strong><br />' +
+        "<em>Distribución &lt;por&gt;</em></p>",
+    );
     expect(html).toContain('src="blob:fake-url"');
     expect(html).toContain("Nota.");
   });
@@ -468,6 +1011,15 @@ describe("renderEssayHtml", () => {
 });
 
 describe("renderEssayCss", () => {
+  it("centers table headers while leaving body cells left-aligned", () => {
+    const css = renderEssayCss(sampleEssay().settings);
+
+    expect(css).toMatch(
+      /\.apa-table th, \.apa-table td \{[^}]*text-align: left;/s,
+    );
+    expect(css).toMatch(/\.apa-table th \{[^}]*text-align: center;/s);
+  });
+
   it("sets page size and margin per settings", () => {
     const essay = sampleEssay();
     const css = renderEssayCss(essay.settings);
@@ -480,6 +1032,14 @@ describe("renderEssayCss", () => {
     const proCss = renderEssayCss(essay.settings);
     expect(proCss).toContain("size: A4;");
     expect(proCss).toContain("@top-left");
+  });
+
+  it("starts the body on a new page independently of an abstract", () => {
+    const css = renderEssayCss(sampleEssay().settings);
+
+    expect(css).toMatch(
+      /section\.body-sec\s*\{[^}]*break-before:\s*page;/s,
+    );
   });
 
   it("indents nested lists 0.5in per level, matching the editor and DOCX", () => {
