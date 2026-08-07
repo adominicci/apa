@@ -343,6 +343,7 @@ describe("exportDocx (student, es)", () => {
     const markerBulletNumbering = numberingDefinitionForParagraph(bulletMarker);
     const topLevelBullet = numberingLevel(markerBulletNumbering, 0);
     const nestedBullet = numberingLevel(markerBulletNumbering, 1);
+    const thirdLevelBullet = numberingLevel(markerBulletNumbering, 2);
 
     expect(marker).toContain("<w:numPr>");
     expect(continuation).not.toContain("<w:numPr>");
@@ -357,9 +358,15 @@ describe("exportDocx (student, es)", () => {
     expect(bulletContinuation).toContain('w:left="2160"');
     expect(bulletNumbering).toContain('w:left="1440"');
     expect(bulletNumbering).toContain('w:left="2160"');
+    expect(bulletNumbering).toContain('w:lvlText w:val="●"');
+    expect(bulletNumbering).toContain('w:lvlText w:val="○"');
+    expect(bulletNumbering).toContain('w:lvlText w:val="■"');
     expect(markerBulletNumbering).toContain('w:numFmt w:val="bullet"');
     expect(topLevelBullet).toContain('w:left="1440"');
     expect(nestedBullet).toContain('w:left="2160"');
+    expect(topLevelBullet).toContain('w:lvlText w:val="●"');
+    expect(nestedBullet).toContain('w:lvlText w:val="○"');
+    expect(thirdLevelBullet).toContain('w:lvlText w:val="■"');
   });
 
   it("cascades ordered-list markers by depth (decimal → letter → roman)", () => {

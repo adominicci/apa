@@ -147,7 +147,7 @@ function bulletLevels() {
   return Array.from({ length: 9 }, (_, level) => ({
     level,
     format: LevelFormat.BULLET,
-    text: "•",
+    text: ["●", "○", "■"][level % 3],
     alignment: AlignmentType.START,
     style: {
       paragraph: {
