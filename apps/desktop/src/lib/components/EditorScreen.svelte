@@ -509,30 +509,20 @@
 
   function handleSaveTitlePage(titlePage: TitlePage, settings: EssaySettings) {
     essay.titlePage = titlePage;
-    essay.settings = { ...settings, documentLanguage };
+    essay.settings = {
+      ...settings,
+      documentLanguage,
+      variant: "student",
+    };
     essayTitle = titlePage.title;
     titleFormOpen = false;
     scheduleSave();
   }
 
-  /** Applies an inline cover edit, splitting title-page vs settings fields. */
+  /** Applies an inline edit from the student title-page sheet. */
   function handleCoverChange(patch: CoverPatch) {
-    const { variant, runningHead, ...tp } = patch;
-    if (Object.keys(tp).length > 0) {
-      essay.titlePage = { ...essay.titlePage, ...tp };
-      if (tp.title !== undefined) essayTitle = essay.titlePage.title;
-    }
-    if (variant !== undefined || runningHead !== undefined) {
-      const next: EssaySettings = { ...essay.settings };
-      if (variant !== undefined) next.variant = variant;
-      if (runningHead !== undefined) {
-        const rh = runningHead.trim().toUpperCase().slice(0, 50);
-        if (rh) next.runningHead = rh;
-        else delete next.runningHead;
-      }
-      if (next.variant === "student") delete next.runningHead;
-      essay.settings = next;
-    }
+    essay.titlePage = { ...essay.titlePage, ...patch };
+    if (patch.title !== undefined) essayTitle = essay.titlePage.title;
     scheduleSave();
   }
 </script>
@@ -706,7 +696,6 @@
         <div class="sheet-stack" style={sheetFontStyle}>
           <CoverSheet
             titlePage={essay.titlePage}
-            settings={essay.settings}
             language={documentLanguage}
             onChange={handleCoverChange}
             onOpenForm={() => (titleFormOpen = true)}

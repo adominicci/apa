@@ -3,6 +3,7 @@ import {
   createEmptyEssay,
   docPreview,
   essayFromLegacyDraft,
+  normalizeForStudentRelease,
   summarize,
 } from "./essay.ts";
 
@@ -114,6 +115,42 @@ describe("createEmptyEssay", () => {
       type: "doc",
       content: [{ type: "sectionBody", content: [{ type: "paragraph" }] }],
     });
+  });
+
+  it("ignores the dormant professional option in the student-only release", () => {
+    const essay = createEmptyEssay(
+      "en",
+      "2026-07-11T12:00:00.000Z",
+      "professional",
+    );
+
+    expect(essay.settings.variant).toBe("student");
+    expect(essay.schemaVersion).toBe(2);
+  });
+});
+
+describe("normalizeForStudentRelease", () => {
+  it("opens a pre-release professional essay as a student paper", () => {
+    const essay = createEmptyEssay("en", "2026-07-11T12:00:00.000Z");
+    essay.settings.variant = "professional";
+
+    const normalized = normalizeForStudentRelease(essay);
+
+    expect(normalized.settings.variant).toBe("student");
+    expect(normalized.schemaVersion).toBe(2);
+  });
+
+  it("preserves dormant professional metadata for future compatibility", () => {
+    const essay = createEmptyEssay("en", "2026-07-11T12:00:00.000Z");
+    essay.settings.variant = "professional";
+    essay.settings.runningHead = "LEGACY HEAD";
+    essay.titlePage.authorNote = "Legacy note";
+
+    const normalized = normalizeForStudentRelease(essay);
+
+    expect(normalized.settings.runningHead).toBe("LEGACY HEAD");
+    expect(normalized.titlePage.authorNote).toBe("Legacy note");
+    expect(essay.settings.variant).toBe("professional");
   });
 });
 

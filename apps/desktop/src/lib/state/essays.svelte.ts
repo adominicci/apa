@@ -3,6 +3,7 @@ import {
   type Essay,
   essayFromLegacyDraft,
   type EssaySummary,
+  normalizeForStudentRelease,
   summarize,
 } from "$lib/model/essay";
 import type { DocLocale } from "@tesina/engine";
@@ -66,24 +67,25 @@ class EssaysStore {
     this.summaries = [summary, ...rest];
   }
 
-  async create(
-    language: DocLocale,
-    variant: "student" | "professional" = "student",
-  ): Promise<Essay> {
-    const essay = createEmptyEssay(language, new Date().toISOString(), variant);
+  async create(language: DocLocale): Promise<Essay> {
+    const essay = createEmptyEssay(language, new Date().toISOString());
     await writeJsonAtomic(essayPath(essay.id), essay);
     this.#upsertSummary(essay);
     return essay;
   }
 
   async load(id: string): Promise<Essay | null> {
-    return await readJson<Essay>(essayPath(id));
+    const essay = await readJson<Essay>(essayPath(id));
+    return essay ? normalizeForStudentRelease(essay) : null;
   }
 
   async persist(essay: Essay): Promise<void> {
-    essay.updatedAt = new Date().toISOString();
-    await writeJsonAtomic(essayPath(essay.id), essay);
-    this.#upsertSummary(essay);
+    const normalized = normalizeForStudentRelease(essay);
+    normalized.updatedAt = new Date().toISOString();
+    essay.settings.variant = "student";
+    essay.updatedAt = normalized.updatedAt;
+    await writeJsonAtomic(essayPath(normalized.id), normalized);
+    this.#upsertSummary(normalized);
   }
 
   async rename(id: string, title: string): Promise<void> {

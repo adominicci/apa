@@ -118,14 +118,14 @@ export function defaultSettings(language: DocLocale): EssaySettings {
 export function createEmptyEssay(
   language: DocLocale,
   now = new Date().toISOString(),
-  variant: PaperVariant = "student",
+  _variant: PaperVariant = "student",
 ): Essay {
   return {
     schemaVersion: 2,
     id: crypto.randomUUID(),
     createdAt: now,
     updatedAt: now,
-    settings: { ...defaultSettings(language), variant },
+    settings: defaultSettings(language),
     titlePage: {
       title: language === "es" ? "Ensayo sin título" : "Untitled essay",
       authors: [],
@@ -136,6 +136,18 @@ export function createEmptyEssay(
       content: [{ type: "sectionBody", content: [{ type: "paragraph" }] }],
     },
     referencesSnapshot: [],
+  };
+}
+
+/**
+ * Presents every supported document as a student paper in v0.1.0 without
+ * discarding dormant professional metadata needed by a future release.
+ */
+export function normalizeForStudentRelease(essay: Essay): Essay {
+  return {
+    ...essay,
+    settings: { ...essay.settings, variant: "student" },
+    titlePage: { ...essay.titlePage },
   };
 }
 

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { DocLocale } from "@tesina/engine";
-  import type { EssaySummary, PaperVariant } from "$lib/model/essay";
+  import type { EssaySummary } from "$lib/model/essay";
   import { essays } from "$lib/state/essays.svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import Modal from "$lib/components/Modal.svelte";
@@ -37,12 +37,9 @@
     return list;
   });
 
-  async function createEssay(
-    language: DocLocale,
-    variant: PaperVariant = "student",
-  ) {
+  async function createEssay(language: DocLocale) {
     creating = false;
-    const essay = await essays.create(language, variant);
+    const essay = await essays.create(language);
     onOpen(essay.id);
   }
 
@@ -154,12 +151,10 @@
         <div class="lib">
           <div class="grid">
             {#each [
-              { lang: "es" as DocLocale, variant: "student" as PaperVariant, name: m.template_student(), sub: m.template_in_spanish() },
-              { lang: "es" as DocLocale, variant: "professional" as PaperVariant, name: m.template_professional(), sub: m.template_in_spanish() },
-              { lang: "en" as DocLocale, variant: "student" as PaperVariant, name: m.template_student(), sub: m.template_in_english() },
-              { lang: "en" as DocLocale, variant: "professional" as PaperVariant, name: m.template_professional(), sub: m.template_in_english() },
+              { lang: "es" as DocLocale, name: m.template_student(), sub: m.template_in_spanish() },
+              { lang: "en" as DocLocale, name: m.template_student(), sub: m.template_in_english() },
             ] as tpl (tpl.name + tpl.sub)}
-              <button class="essay tpl" onclick={() => createEssay(tpl.lang, tpl.variant)}>
+              <button class="essay tpl" onclick={() => createEssay(tpl.lang)}>
                 <div class="essay-thumb">
                   <div class="ln title"></div>
                   <div class="ln"></div>
