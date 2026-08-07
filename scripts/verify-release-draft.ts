@@ -67,7 +67,10 @@ export function verifyReleaseDraft(contract: ReleaseDraftContract): void {
     const asset = record(`release asset ${index + 1}`, value);
     return {
       name: stringField(`release asset ${index + 1} name`, asset.name),
-      url: stringField(`release asset ${index + 1} URL`, asset.url),
+      url: stringField(
+        `release asset ${index + 1} browser download URL`,
+        asset.browser_download_url,
+      ),
     };
   });
   const actualAssetNames = assets.map(({ name }) => name).sort();
