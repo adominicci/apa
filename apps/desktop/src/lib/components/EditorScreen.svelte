@@ -58,6 +58,10 @@
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { dismissable } from "$lib/dom/dismiss";
   import { exportEssayToDocx } from "$lib/export/exportEssay";
+  import {
+    runStudentTitlePageValidatedExport,
+    type TitlePageValidationMessageKey,
+  } from "$lib/model/titlePageValidation";
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
@@ -91,6 +95,7 @@
   let confirmingDelete = $state<string | null>(null);
   let exporting = $state(false);
   let exportMessage = $state("");
+  let titlePageValidationError = $state("");
   let essayTitle = $state(untrack(() => essay.titlePage.title));
   let outline = $state<OutlineItem[]>(
     untrack(() => buildOutline(essay.content)),
@@ -178,6 +183,23 @@
   const appendixLabel = $derived(
     getTerms(documentLanguage).headings.appendix,
   );
+
+  function localizeTitlePageValidation(
+    key: TitlePageValidationMessageKey,
+  ): string {
+    const messages: Record<TitlePageValidationMessageKey, () => string> = {
+      titlepage_error_missing_title: m.titlepage_error_missing_title,
+      titlepage_error_missing_authors: m.titlepage_error_missing_authors,
+      titlepage_error_missing_affiliations:
+        m.titlepage_error_missing_affiliations,
+      titlepage_error_missing_course: m.titlepage_error_missing_course,
+      titlepage_error_missing_instructor: m.titlepage_error_missing_instructor,
+      titlepage_error_missing_due_date: m.titlepage_error_missing_due_date,
+      titlepage_error_ambiguous_affiliations:
+        m.titlepage_error_ambiguous_affiliations,
+    };
+    return messages[key]();
+  }
 
   const STATUS_LABELS = {
     guardando: m.editor_status_saving,
@@ -406,17 +428,35 @@
 
   async function handleExport() {
     if (!editor || exporting) return;
+    const currentEditor = editor;
     exporting = true;
     exportMessage = "";
+    titlePageValidationError = "";
     try {
-      const references = essay.settings.includeUncitedReferences
-        ? [...library.byId().values()]
-        : snapshotCitedRefs();
-      const outcome = await exportEssayToDocx(
-        essay,
-        lastDoc ?? editor.getJSON(),
-        references,
+      const result = await runStudentTitlePageValidatedExport(
+        essay.titlePage,
+        documentLanguage,
+        async () => {
+          const references = essay.settings.includeUncitedReferences
+            ? [...library.byId().values()]
+            : snapshotCitedRefs();
+          return await exportEssayToDocx(
+            essay,
+            lastDoc ?? currentEditor.getJSON(),
+            references,
+          );
+        },
       );
+      if (result.status === "blocked") {
+        titlePageValidationError = localizeTitlePageValidation(
+          result.messageKey,
+        );
+        exportMessage = titlePageValidationError;
+        titleFormOpen = true;
+        return;
+      }
+
+      const outcome = result.outcome;
       if (outcome.status === "saved") {
         exportMessage = m.editor_exported({ path: outcome.path });
       } else if (outcome.status === "error") {
@@ -515,6 +555,8 @@
       variant: "student",
     };
     essayTitle = titlePage.title;
+    titlePageValidationError = "";
+    exportMessage = "";
     titleFormOpen = false;
     scheduleSave();
   }
@@ -981,6 +1023,7 @@
   <TitlePageForm
     titlePage={essay.titlePage}
     settings={essay.settings}
+    validationMessage={titlePageValidationError}
     onSave={handleSaveTitlePage}
     onClose={() => (titleFormOpen = false)}
   />

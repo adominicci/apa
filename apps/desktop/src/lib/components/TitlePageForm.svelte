@@ -12,11 +12,18 @@
   interface Props {
     titlePage: TitlePage;
     settings: EssaySettings;
+    validationMessage?: string;
     onSave: (titlePage: TitlePage, settings: EssaySettings) => void;
     onClose: () => void;
   }
 
-  let { titlePage, settings, onSave, onClose }: Props = $props();
+  let {
+    titlePage,
+    settings,
+    validationMessage = "",
+    onSave,
+    onClose,
+  }: Props = $props();
 
   // Editing works on local copies; nothing touches the essay until Guardar.
   let title = $state(untrack(() => titlePage.title));
@@ -127,6 +134,9 @@
   </label>
 
   <p class="hint">{m.titlepage_hint()}</p>
+  {#if validationMessage}
+    <p class="hint" role="alert">{validationMessage}</p>
+  {/if}
 
   {#snippet footer()}
     <button class="btn btn-ghost" onclick={onClose}>{m.common_close()}</button>
