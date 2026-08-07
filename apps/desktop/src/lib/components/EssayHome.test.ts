@@ -49,6 +49,23 @@ afterEach(() => {
 });
 
 describe("essay launch context", () => {
+  it("shows the packaged first-release version", async () => {
+    const component = mount(EssayHome, {
+      target: document.body,
+      props: {
+        onCreate: vi.fn(),
+        onOpen: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    expect(document.querySelector(".foot")?.textContent).toBe(
+      "v0.1.0 · APA 7ª ed.",
+    );
+    await unmount(component);
+  });
+
   it("emits create intent synchronously before persistence begins", async () => {
     stores.create.mockResolvedValue({ id: "new-paper" });
     const onCreate = vi.fn();

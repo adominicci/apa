@@ -773,7 +773,7 @@
             onOpenForm={() => (titleFormOpen = true)}
           />
           <Editor
-            initialDoc={essay.content}
+            initialDoc={lastDoc}
             {newlyCreated}
             {onLaunchConsumed}
             {documentLanguage}
