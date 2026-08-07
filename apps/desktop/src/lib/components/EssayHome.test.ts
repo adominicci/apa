@@ -49,7 +49,7 @@ afterEach(() => {
 });
 
 describe("essay launch context", () => {
-  it("shows the packaged first-release version", async () => {
+  it("shows the packaged app version", async () => {
     const component = mount(EssayHome, {
       target: document.body,
       props: {
@@ -61,7 +61,7 @@ describe("essay launch context", () => {
     flushSync();
 
     expect(document.querySelector(".foot")?.textContent).toBe(
-      "v0.1.0 · APA 7ª ed.",
+      "v0.1.1 · APA 7ª ed.",
     );
     await unmount(component);
   });

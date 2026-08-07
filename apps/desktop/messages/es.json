@@ -263,7 +263,7 @@
   "side_global_refs": "Referencias globales",
   "side_templates": "Plantillas APA",
   "side_settings": "Ajustes",
-  "side_version": "v0.1.0 · APA 7ª ed.",
+  "side_version": "v0.1.1 · APA 7ª ed.",
   "update_ready": "La versión {version} está lista",
   "update_action": "Actualizar y reiniciar",
   "update_downloading": "Descargando… {percent}%",
