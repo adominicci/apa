@@ -310,6 +310,13 @@ export function sampleEssayInput(
                                 text: "Matiz anidado",
                               }],
                             },
+                            {
+                              type: "paragraph",
+                              content: [{
+                                type: "text",
+                                text: "Continuación del matiz",
+                              }],
+                            },
                           ],
                         },
                       ],

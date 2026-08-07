@@ -2,7 +2,12 @@ import { Paragraph, Tab, Table, TabStopType, TextRun } from "docx";
 import { getTerms } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
 import { type DocContext, inlineText, inlineToTextRuns } from "./runs.ts";
-import { listTextIndent, LOWER_ALPHA_REF, ORDERED_LIST_REF } from "./styles.ts";
+import {
+  BULLET_LIST_REF,
+  listTextIndent,
+  LOWER_ALPHA_REF,
+  ORDERED_LIST_REF,
+} from "./styles.ts";
 import { apaFigureBlocks, apaTableBlocks } from "./blocks.ts";
 import { mathTreeToOmml, toDocxMath } from "./math.ts";
 
@@ -87,7 +92,7 @@ export function visitBlocks(
         } else if (child.type === "paragraph") {
           const markerProps = isOrdered
             ? { numbering: { reference, level: depth, instance } }
-            : { bullet: { level: depth } };
+            : { numbering: { reference: BULLET_LIST_REF, level: depth } };
           emit(
             "Normal",
             inlineToTextRuns(

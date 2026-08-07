@@ -108,6 +108,7 @@ export function buildStyles(font: FontChoice) {
 
 export const ORDERED_LIST_REF = "tesina-ordered";
 export const LOWER_ALPHA_REF = "tesina-lower-alpha";
+export const BULLET_LIST_REF = "tesina-bullet";
 
 /**
  * Ordered-list marker cascade by nesting depth: number → letter → roman,
@@ -142,6 +143,20 @@ function numberingLevels(startOffset: number) {
   }));
 }
 
+function bulletLevels() {
+  return Array.from({ length: 9 }, (_, level) => ({
+    level,
+    format: LevelFormat.BULLET,
+    text: "•",
+    alignment: AlignmentType.START,
+    style: {
+      paragraph: {
+        indent: { left: listTextIndent(level), hanging: 360 },
+      },
+    },
+  }));
+}
+
 export function buildNumbering() {
   return {
     config: [
@@ -152,6 +167,10 @@ export function buildNumbering() {
       {
         reference: LOWER_ALPHA_REF,
         levels: numberingLevels(1),
+      },
+      {
+        reference: BULLET_LIST_REF,
+        levels: bulletLevels(),
       },
     ],
   };
