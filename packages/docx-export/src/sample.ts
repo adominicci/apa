@@ -265,6 +265,39 @@ export function sampleEssayInput(
                       content: [{ type: "text", text: "Primer criterio" }],
                     },
                     {
+                      type: "paragraph",
+                      content: [{
+                        type: "text",
+                        text: "Continuación del primer criterio",
+                      }],
+                    },
+                    {
+                      type: "apaTable",
+                      content: [
+                        {
+                          type: "tableTitle",
+                          content: [{
+                            type: "text",
+                            text: "Tabla dentro de la lista",
+                          }],
+                        },
+                        {
+                          type: "table",
+                          content: [{
+                            type: "tableRow",
+                            content: [{
+                              type: "tableHeader",
+                              content: [{
+                                type: "paragraph",
+                                content: [{ type: "text", text: "Dato" }],
+                              }],
+                            }],
+                          }],
+                        },
+                        { type: "tableNote" },
+                      ],
+                    },
+                    {
                       type: "bulletList",
                       content: [
                         {
@@ -293,6 +326,13 @@ export function sampleEssayInput(
                   ],
                 },
               ],
+            },
+            {
+              type: "paragraph",
+              content: [{
+                type: "text",
+                text: "Párrafo posterior a la lista",
+              }],
             },
             {
               type: "apaEquation",

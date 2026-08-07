@@ -121,6 +121,10 @@ const FORMAT_CYCLE = [
   LevelFormat.LOWER_ROMAN,
 ] as const;
 
+export function listTextIndent(depth: number): number {
+  return ONE_INCH + depth * HALF_INCH;
+}
+
 /** Nine indent levels so nested lists (sink/liftListItem) render correctly. */
 function numberingLevels(startOffset: number) {
   return Array.from({ length: 9 }, (_, level) => ({
@@ -132,7 +136,7 @@ function numberingLevels(startOffset: number) {
     alignment: AlignmentType.START,
     style: {
       paragraph: {
-        indent: { left: ONE_INCH + level * HALF_INCH, hanging: 360 },
+        indent: { left: listTextIndent(level), hanging: 360 },
       },
     },
   }));

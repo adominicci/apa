@@ -2,7 +2,7 @@ import { Paragraph, Tab, Table, TabStopType, TextRun } from "docx";
 import { getTerms } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
 import { type DocContext, inlineText, inlineToTextRuns } from "./runs.ts";
-import { LOWER_ALPHA_REF, ORDERED_LIST_REF } from "./styles.ts";
+import { listTextIndent, LOWER_ALPHA_REF, ORDERED_LIST_REF } from "./styles.ts";
 import { apaFigureBlocks, apaTableBlocks } from "./blocks.ts";
 import { mathTreeToOmml, toDocxMath } from "./math.ts";
 
@@ -80,10 +80,14 @@ export function visitBlocks(
       instance = state.orderedListInstance;
     }
     for (const item of listBlock.content ?? []) {
+      let markerEmitted = false;
       for (const child of item.content ?? []) {
         if (child.type === "bulletList" || child.type === "orderedList") {
           visitList(child, depth + 1, isOrdered ? reference : inheritedRef);
-        } else {
+        } else if (child.type === "paragraph") {
+          const markerProps = isOrdered
+            ? { numbering: { reference, level: depth, instance } }
+            : { bullet: { level: depth } };
           emit(
             "Normal",
             inlineToTextRuns(
@@ -91,10 +95,17 @@ export function visitBlocks(
               state.ctx,
               state.citationCounter,
             ),
-            isOrdered
-              ? { numbering: { reference, level: depth, instance } }
-              : { bullet: { level: depth } },
+            markerEmitted
+              ? { indent: { left: listTextIndent(depth) } }
+              : markerProps,
           );
+          markerEmitted = true;
+        } else {
+          const specialBlocks = visitBlocks([child], state);
+          if (specialBlocks.length > 0) {
+            emittedFirst = true;
+            out.push(...specialBlocks);
+          }
         }
       }
     }

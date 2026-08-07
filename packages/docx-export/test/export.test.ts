@@ -9,6 +9,14 @@ let stylesXml = "";
 let numberingXml = "";
 let headerXml = "";
 
+function paragraphContaining(text: string): string {
+  const paragraphs = documentXml.match(/<w:p(?:>| [^>]*>)[\s\S]*?<\/w:p>/g) ??
+    [];
+  const paragraph = paragraphs.find((candidate) => candidate.includes(text));
+  if (!paragraph) throw new Error(`Paragraph not found: ${text}`);
+  return paragraph;
+}
+
 beforeAll(async () => {
   const bytes = await exportDocx(sampleInput());
   const files = unzipSync(bytes);
@@ -270,6 +278,24 @@ describe("exportDocx (student, es)", () => {
     expect(numberingXml).toMatch(/w:numFmt w:val="lowerLetter"/);
     // The nested bullet sits one level deeper than its parent item.
     expect(documentXml).toMatch(/w:ilvl w:val="1"/);
+  });
+
+  it("keeps list continuation and special blocks inside one logical item", () => {
+    const marker = paragraphContaining("Primer criterio");
+    const continuation = paragraphContaining(
+      "Continuación del primer criterio",
+    );
+    const nested = paragraphContaining("Matiz anidado");
+    const tableCaption = paragraphContaining("Tabla 2");
+    const afterList = paragraphContaining("Párrafo posterior a la lista");
+
+    expect(marker).toContain("<w:numPr>");
+    expect(continuation).not.toContain("<w:numPr>");
+    expect(continuation).toContain('w:left="1440"');
+    expect(nested).toContain('w:ilvl w:val="1"');
+    expect(tableCaption).not.toContain("<w:numPr>");
+    expect(afterList).toContain('w:pStyle w:val="BodyText"');
+    expect(afterList).not.toContain("<w:numPr>");
   });
 
   it("cascades ordered-list markers by depth (decimal → letter → roman)", () => {
