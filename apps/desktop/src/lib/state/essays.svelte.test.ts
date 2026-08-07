@@ -49,6 +49,33 @@ beforeEach(() => {
 });
 
 describe("student-release persistence boundary", () => {
+  it.each([
+    ["legacy", 1],
+    ["future", 3],
+    ["missing", undefined],
+  ])(
+    "drops a %s schema version through the direct load path",
+    async (_, version) => {
+      const stored = professionalEssay() as unknown as {
+        id: string;
+        schemaVersion?: number;
+      };
+      if (version === undefined) {
+        delete stored.schemaVersion;
+      } else {
+        stored.schemaVersion = version;
+      }
+      const path = `essays/${stored.id}.json`;
+      persistence.files.set(path, stored);
+
+      expect(await essays.load(stored.id)).toBeNull();
+      expect(
+        (persistence.files.get(path) as { schemaVersion?: number })
+          .schemaVersion,
+      ).toBe(version);
+    },
+  );
+
   it("loads a professional file in student mode without deleting dormant metadata", async () => {
     const stored = professionalEssay();
     persistence.files.set(`essays/${stored.id}.json`, stored);

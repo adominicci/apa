@@ -76,7 +76,9 @@ class EssaysStore {
 
   async load(id: string): Promise<Essay | null> {
     const essay = await readJson<Essay>(essayPath(id));
-    return essay ? normalizeForStudentRelease(essay) : null;
+    return essay?.schemaVersion === 2
+      ? normalizeForStudentRelease(essay)
+      : null;
   }
 
   async persist(essay: Essay): Promise<void> {
