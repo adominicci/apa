@@ -49,12 +49,13 @@ afterEach(() => {
 });
 
 describe("essay launch context", () => {
-  it("marks a paper created from home as newly created", async () => {
+  it("emits create intent synchronously before persistence begins", async () => {
     stores.create.mockResolvedValue({ id: "new-paper" });
+    const onCreate = vi.fn();
     const onOpen = vi.fn();
     const component = mount(EssayHome, {
       target: document.body,
-      props: { onOpen, onOpenLibrary: vi.fn() },
+      props: { onCreate, onOpen, onOpenLibrary: vi.fn() },
     });
     flushSync();
 
@@ -64,9 +65,9 @@ describe("essay launch context", () => {
     expect(createButton).not.toBeNull();
     createButton!.click();
 
-    await vi.waitFor(() => {
-      expect(onOpen).toHaveBeenCalledWith("new-paper", true);
-    });
+    expect(onCreate).toHaveBeenCalledWith("es");
+    expect(stores.create).not.toHaveBeenCalled();
+    expect(onOpen).not.toHaveBeenCalled();
     await unmount(component);
   });
 
@@ -75,7 +76,7 @@ describe("essay launch context", () => {
     const onOpen = vi.fn();
     const component = mount(EssayHome, {
       target: document.body,
-      props: { onOpen, onOpenLibrary: vi.fn() },
+      props: { onCreate: vi.fn(), onOpen, onOpenLibrary: vi.fn() },
     });
     flushSync();
 
@@ -85,7 +86,7 @@ describe("essay launch context", () => {
     expect(existingCard).not.toBeNull();
     existingCard!.click();
 
-    expect(onOpen).toHaveBeenCalledWith("existing-paper", false);
+    expect(onOpen).toHaveBeenCalledWith("existing-paper");
     await unmount(component);
   });
 });

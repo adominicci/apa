@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import type { Attachment } from "svelte/attachments";
   import type { Editor } from "@tiptap/core";
   import type { DocLocale } from "@tesina/engine";
@@ -15,6 +16,7 @@
     referenceEnv: ReferenceDecorationEnv;
     onUpdate?: (docJson: unknown, words: number) => void;
     onReady?: (editor: Editor) => void;
+    onLaunchConsumed?: () => void;
     onEditEquation?: (pos: number, latex: string) => void;
   }
 
@@ -26,21 +28,26 @@
     referenceEnv,
     onUpdate,
     onReady,
+    onLaunchConsumed,
     onEditEquation,
   }: Props = $props();
 
   const mountEditor: Attachment<HTMLDivElement> = (element) => {
-    const editor = createTesinaEditor({
-      element,
-      content: initialDoc,
-      newlyCreated,
-      citationEnv,
-      referenceEnv,
-      onUpdate,
-      onEditEquation,
+    const editor = untrack(() => {
+      const instance = createTesinaEditor({
+        element,
+        content: initialDoc,
+        newlyCreated,
+        citationEnv,
+        referenceEnv,
+        onUpdate,
+        onEditEquation,
+      });
+      onReady?.(instance);
+      if (newlyCreated) onLaunchConsumed?.();
+      return instance;
     });
-    onReady?.(editor);
-    return () => editor.destroy();
+    return () => untrack(() => editor.destroy());
   };
 </script>
 

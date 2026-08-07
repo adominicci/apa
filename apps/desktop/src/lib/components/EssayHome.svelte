@@ -7,11 +7,12 @@
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
-    onOpen: (id: string, newlyCreated: boolean) => void;
+    onCreate: (language: DocLocale) => void;
+    onOpen: (id: string) => void;
     onOpenLibrary: () => void;
   }
 
-  let { onOpen, onOpenLibrary }: Props = $props();
+  let { onCreate, onOpen, onOpenLibrary }: Props = $props();
 
   type View = "all" | "recent" | "drafts" | "templates";
   type Chip = "all" | "es" | "en" | "unfinished";
@@ -37,10 +38,9 @@
     return list;
   });
 
-  async function createEssay(language: DocLocale) {
+  function createEssay(language: DocLocale) {
     creating = false;
-    const essay = await essays.create(language);
-    onOpen(essay.id, true);
+    onCreate(language);
   }
 
   function startRename(summary: EssaySummary) {
@@ -230,10 +230,10 @@
                   role="button"
                   tabindex="0"
                   onclick={() => {
-                    if (renamingId !== summary.id) onOpen(summary.id, false);
+                    if (renamingId !== summary.id) onOpen(summary.id);
                   }}
                   onkeydown={(e) => {
-                    if (e.key === "Enter") onOpen(summary.id, false);
+                    if (e.key === "Enter") onOpen(summary.id);
                   }}
                 >
                   <div class="essay-thumb">

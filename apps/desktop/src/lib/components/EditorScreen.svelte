@@ -71,11 +71,18 @@
   interface Props {
     essay: Essay;
     newlyCreated: boolean;
+    onLaunchConsumed: () => void;
     onBack: () => void;
     onOpenLibrary: () => void;
   }
 
-  let { essay, newlyCreated, onBack, onOpenLibrary }: Props = $props();
+  let {
+    essay,
+    newlyCreated,
+    onLaunchConsumed,
+    onBack,
+    onOpenLibrary,
+  }: Props = $props();
 
   // Remounted per essay via {#key essay.id}; initial captures are deliberate.
   let documentLanguage = $state<DocLocale>(
@@ -768,6 +775,7 @@
           <Editor
             initialDoc={essay.content}
             {newlyCreated}
+            {onLaunchConsumed}
             {documentLanguage}
             {citationEnv}
             {referenceEnv}
