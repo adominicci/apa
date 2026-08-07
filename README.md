@@ -82,6 +82,9 @@ repository. The published macOS DMG is created by the release workflow.
 
 Tesina is available under the [MIT License](LICENSE).
 
+Tesina bundles the Inter interface font under the
+[SIL Open Font License 1.1](apps/desktop/src-tauri/resources/Inter-OFL-1.1.txt).
+
 Tesina is an independent project. It is not affiliated with, endorsed by, or
 sponsored by the American Psychological Association. “APA” identifies the
 formatting style the app is designed to help apply.

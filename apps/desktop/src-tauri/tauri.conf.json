@@ -36,6 +36,9 @@
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
+    "resources": {
+      "resources/Inter-OFL-1.1.txt": "Inter-OFL-1.1.txt"
+    },
     "targets": ["app", "dmg", "msi", "nsis", "appimage", "deb"],
     "macOS": {
       "signingIdentity": "-"

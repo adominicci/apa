@@ -1,10 +1,22 @@
 import { describe, expect, it } from "vitest";
+import type { FontChoice } from "$lib/model/essay";
+import { APA_FONTS } from "$lib/model/fonts";
 
 declare const Deno: {
   readTextFileSync(path: URL): string;
 };
 
 const css = Deno.readTextFileSync(new URL("./apa.css", import.meta.url));
+
+const approvedFontSizes: Array<[FontChoice, number]> = [
+  ["times-new-roman-12", 12],
+  ["georgia-11", 11],
+  ["computer-modern-10", 10],
+  ["aptos-12", 12],
+  ["calibri-11", 11],
+  ["arial-11", 11],
+  ["lucida-sans-unicode-10", 10],
+];
 
 describe("APA editor indentation", () => {
   it("scopes indentation exceptions to their special blocks", () => {
@@ -31,6 +43,18 @@ describe("APA editor body title", () => {
       /\.apa-editor \.tiptap \.sec-body::before\s*\{[^}]*content:\s*var\(--body-title\);[^}]*text-align:\s*center;[^}]*font-weight:\s*bold;/s,
     );
   });
+});
+
+describe("APA editor heading font size", () => {
+  it.each(approvedFontSizes)(
+    "keeps %s headings at the selected %dpt document size",
+    (font, sizePt) => {
+      expect(APA_FONTS[font].sizePt).toBe(sizePt);
+      expect(css).toMatch(
+        /\.apa-editor \.tiptap h1,[\s\S]*?\.apa-editor \.tiptap h5\s*\{[^}]*font-size:\s*var\(--doc-font-size,\s*12pt\);/s,
+      );
+    },
+  );
 });
 
 describe("APA editor table headers", () => {

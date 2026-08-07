@@ -93,7 +93,7 @@
 .apa-editor .tiptap h3,
 .apa-editor .tiptap h4,
 .apa-editor .tiptap h5 {
-  font-size: 12pt;
+  font-size: var(--doc-font-size, 12pt);
   font-weight: bold;
   margin: 0;
 }
