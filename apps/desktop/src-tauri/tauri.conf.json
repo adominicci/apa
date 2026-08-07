@@ -37,6 +37,9 @@
     "active": true,
     "createUpdaterArtifacts": true,
     "targets": ["app", "dmg", "msi", "nsis", "appimage", "deb"],
+    "macOS": {
+      "signingIdentity": "-"
+    },
     "category": "Productivity",
     "copyright": "© 2026 Andres Dominicci and Tesina contributors — MIT License",
     "shortDescription": "Ensayos académicos con formato APA 7 automático / APA 7 academic writing, formatted for you",
