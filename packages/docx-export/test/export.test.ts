@@ -9,6 +9,63 @@ let stylesXml = "";
 let numberingXml = "";
 let headerXml = "";
 
+function paragraphContaining(text: string): string {
+  const paragraphs = documentXml.match(/<w:p(?:>| [^>]*>)[\s\S]*?<\/w:p>/g) ??
+    [];
+  const paragraph = paragraphs.find((candidate) => candidate.includes(text));
+  if (!paragraph) throw new Error(`Paragraph not found: ${text}`);
+  return paragraph;
+}
+
+function numberingDefinitionContaining(format: string): string {
+  const definitions = numberingXml.match(
+    /<w:abstractNum(?:>| [^>]*>)[\s\S]*?<\/w:abstractNum>/g,
+  ) ?? [];
+  const definition = definitions.find((candidate) =>
+    candidate.includes(`w:numFmt w:val="${format}"`)
+  );
+  if (!definition) throw new Error(`Numbering definition not found: ${format}`);
+  return definition;
+}
+
+function numberingLevel(definition: string, level: number): string {
+  const levels = definition.match(/<w:lvl(?:>| [^>]*>)[\s\S]*?<\/w:lvl>/g) ??
+    [];
+  const levelXml = levels.find((candidate) =>
+    candidate.includes(`w:ilvl="${level}"`)
+  );
+  if (!levelXml) throw new Error(`Numbering level not found: ${level}`);
+  return levelXml;
+}
+
+function numberingDefinitionForParagraph(paragraph: string): string {
+  const numId = paragraph.match(/<w:numId w:val="([^"]+)"/)?.[1];
+  if (!numId) throw new Error("Paragraph numbering ID not found");
+  const instances = numberingXml.match(
+    /<w:num w:numId="[^"]+">[\s\S]*?<\/w:num>/g,
+  ) ?? [];
+  const instance = instances.find((candidate) =>
+    candidate.includes(`w:numId="${numId}"`)
+  );
+  if (!instance) throw new Error(`Numbering instance not found: ${numId}`);
+  const abstractNumId = instance.match(
+    /<w:abstractNumId w:val="([^"]+)"/,
+  )?.[1];
+  if (!abstractNumId) {
+    throw new Error(`Abstract numbering ID not found: ${numId}`);
+  }
+  const definitions = numberingXml.match(
+    /<w:abstractNum(?:>| [^>]*>)[\s\S]*?<\/w:abstractNum>/g,
+  ) ?? [];
+  const definition = definitions.find((candidate) =>
+    candidate.includes(`w:abstractNumId="${abstractNumId}"`)
+  );
+  if (!definition) {
+    throw new Error(`Numbering definition not found: ${abstractNumId}`);
+  }
+  return definition;
+}
+
 beforeAll(async () => {
   const bytes = await exportDocx(sampleInput());
   const files = unzipSync(bytes);
@@ -270,6 +327,46 @@ describe("exportDocx (student, es)", () => {
     expect(numberingXml).toMatch(/w:numFmt w:val="lowerLetter"/);
     // The nested bullet sits one level deeper than its parent item.
     expect(documentXml).toMatch(/w:ilvl w:val="1"/);
+  });
+
+  it("keeps list continuation and special blocks inside one logical item", () => {
+    const marker = paragraphContaining("Primer criterio");
+    const continuation = paragraphContaining(
+      "Continuación del primer criterio",
+    );
+    const nested = paragraphContaining("Matiz anidado");
+    const tableCaption = paragraphContaining("Tabla 2");
+    const afterList = paragraphContaining("Párrafo posterior a la lista");
+    const bulletMarker = paragraphContaining("Matiz anidado");
+    const bulletContinuation = paragraphContaining("Continuación del matiz");
+    const bulletNumbering = numberingDefinitionContaining("bullet");
+    const markerBulletNumbering = numberingDefinitionForParagraph(bulletMarker);
+    const topLevelBullet = numberingLevel(markerBulletNumbering, 0);
+    const nestedBullet = numberingLevel(markerBulletNumbering, 1);
+    const thirdLevelBullet = numberingLevel(markerBulletNumbering, 2);
+
+    expect(marker).toContain("<w:numPr>");
+    expect(continuation).not.toContain("<w:numPr>");
+    expect(continuation).toContain('w:left="1440"');
+    expect(nested).toContain('w:ilvl w:val="1"');
+    expect(tableCaption).not.toContain("<w:numPr>");
+    expect(afterList).toContain('w:pStyle w:val="BodyText"');
+    expect(afterList).not.toContain("<w:numPr>");
+    expect(bulletMarker).toContain("<w:numPr>");
+    expect(bulletMarker).toContain('w:ilvl w:val="1"');
+    expect(bulletContinuation).not.toContain("<w:numPr>");
+    expect(bulletContinuation).toContain('w:left="2160"');
+    expect(bulletNumbering).toContain('w:left="1440"');
+    expect(bulletNumbering).toContain('w:left="2160"');
+    expect(bulletNumbering).toContain('w:lvlText w:val="●"');
+    expect(bulletNumbering).toContain('w:lvlText w:val="○"');
+    expect(bulletNumbering).toContain('w:lvlText w:val="■"');
+    expect(markerBulletNumbering).toContain('w:numFmt w:val="bullet"');
+    expect(topLevelBullet).toContain('w:left="1440"');
+    expect(nestedBullet).toContain('w:left="2160"');
+    expect(topLevelBullet).toContain('w:lvlText w:val="●"');
+    expect(nestedBullet).toContain('w:lvlText w:val="○"');
+    expect(thirdLevelBullet).toContain('w:lvlText w:val="■"');
   });
 
   it("cascades ordered-list markers by depth (decimal → letter → roman)", () => {

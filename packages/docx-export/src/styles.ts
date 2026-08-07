@@ -108,6 +108,7 @@ export function buildStyles(font: FontChoice) {
 
 export const ORDERED_LIST_REF = "tesina-ordered";
 export const LOWER_ALPHA_REF = "tesina-lower-alpha";
+export const BULLET_LIST_REF = "tesina-bullet";
 
 /**
  * Ordered-list marker cascade by nesting depth: number → letter → roman,
@@ -121,6 +122,10 @@ const FORMAT_CYCLE = [
   LevelFormat.LOWER_ROMAN,
 ] as const;
 
+export function listTextIndent(depth: number): number {
+  return ONE_INCH + depth * HALF_INCH;
+}
+
 /** Nine indent levels so nested lists (sink/liftListItem) render correctly. */
 function numberingLevels(startOffset: number) {
   return Array.from({ length: 9 }, (_, level) => ({
@@ -132,7 +137,21 @@ function numberingLevels(startOffset: number) {
     alignment: AlignmentType.START,
     style: {
       paragraph: {
-        indent: { left: ONE_INCH + level * HALF_INCH, hanging: 360 },
+        indent: { left: listTextIndent(level), hanging: 360 },
+      },
+    },
+  }));
+}
+
+function bulletLevels() {
+  return Array.from({ length: 9 }, (_, level) => ({
+    level,
+    format: LevelFormat.BULLET,
+    text: ["●", "○", "■"][level % 3],
+    alignment: AlignmentType.START,
+    style: {
+      paragraph: {
+        indent: { left: listTextIndent(level), hanging: 360 },
       },
     },
   }));
@@ -148,6 +167,10 @@ export function buildNumbering() {
       {
         reference: LOWER_ALPHA_REF,
         levels: numberingLevels(1),
+      },
+      {
+        reference: BULLET_LIST_REF,
+        levels: bulletLevels(),
       },
     ],
   };

@@ -98,6 +98,39 @@ function listEssay() {
                     content: [{ type: "text", text: "Primer criterio" }],
                   },
                   {
+                    type: "paragraph",
+                    content: [{
+                      type: "text",
+                      text: "Continuación del primer criterio",
+                    }],
+                  },
+                  {
+                    type: "apaTable",
+                    content: [
+                      {
+                        type: "tableTitle",
+                        content: [{
+                          type: "text",
+                          text: "Tabla dentro de la lista",
+                        }],
+                      },
+                      {
+                        type: "table",
+                        content: [{
+                          type: "tableRow",
+                          content: [{
+                            type: "tableHeader",
+                            content: [{
+                              type: "paragraph",
+                              content: [{ type: "text", text: "Dato" }],
+                            }],
+                          }],
+                        }],
+                      },
+                      { type: "tableNote" },
+                    ],
+                  },
+                  {
                     type: "bulletList",
                     content: [
                       {
@@ -114,6 +147,10 @@ function listEssay() {
                 ],
               },
             ],
+          },
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "Párrafo posterior a la lista" }],
           },
         ],
       },
@@ -354,10 +391,17 @@ describe("renderEssayHtml", () => {
     const essay = listEssay();
     const html = renderEssayHtml(essay, essay.content, []);
     expect(html).toContain('<ol type="a">');
-    expect(html).toContain("Primer criterio");
+    expect(html).toContain(
+      '<ol type="a"><li><p>Primer criterio</p>' +
+        "<p>Continuación del primer criterio</p>",
+    );
+    expect(html).toContain('<figure class="apa-table">');
     // The nested bullet list stays inside its parent <li>.
     expect(html).toMatch(
-      /<li>Primer criterio<ul><li>Matiz anidado<\/li><\/ul>/,
+      /<\/figure><ul><li><p>Matiz anidado<\/p><\/li><\/ul><\/li>/,
+    );
+    expect(html).toContain(
+      "</ol><p>Párrafo posterior a la lista</p>",
     );
   });
 
@@ -405,8 +449,8 @@ describe("renderEssayHtml", () => {
     };
     const html = renderEssayHtml(essay, essay.content, []);
     // Top level numbered, nested level lettered.
-    expect(html).toContain('<ol type="1"><li>Paso uno');
-    expect(html).toContain('<ol type="a"><li>Subpaso');
+    expect(html).toContain('<ol type="1"><li><p>Paso uno</p>');
+    expect(html).toContain('<ol type="a"><li><p>Subpaso</p>');
   });
 
   it("emits the running-head setter only for professional essays", () => {
@@ -446,6 +490,7 @@ describe("renderEssayCss", () => {
     // Each nested level adds only half an inch (as apa.css and styles.ts do),
     // instead of inheriting a full inch per level and over-indenting.
     expect(css).toContain("li ul, li ol { padding-left: 0.5in; }");
+    expect(css).toContain("li > p { margin: 0; text-indent: 0; }");
   });
 
   it("applies the chosen APA font family and point size", () => {
