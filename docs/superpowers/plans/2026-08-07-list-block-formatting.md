@@ -232,6 +232,9 @@ git commit -m "fix: preserve list blocks in preview"
 
 - Produces: `listTextIndent(depth: number): number` returning
   `ONE_INCH + depth * HALF_INCH` in twips.
+- Produces: `BULLET_LIST_REF = "tesina-bullet"` with nine custom bullet
+  levels using the same text positions and 360-twip hanging geometry as the
+  ordered-list definitions.
 - Consumes: `visitBlocks([child], state)` for non-paragraph special blocks and
   the existing shared counters in `VisitState`.
 - Preserves: ordered-list numbering reference/instance, bullet depth, citation
@@ -296,6 +299,17 @@ function paragraphContaining(text: string): string {
   if (!paragraph) throw new Error(`Paragraph not found: ${text}`);
   return paragraph;
 }
+
+function numberingDefinitionContaining(format: string): string {
+  const definitions = numberingXml.match(
+    /<w:abstractNum(?:>| [^>]*>)[\s\S]*?<\/w:abstractNum>/g,
+  ) ?? [];
+  const definition = definitions.find((candidate) =>
+    candidate.includes(`w:numFmt w:val="${format}"`)
+  );
+  if (!definition) throw new Error(`Numbering definition not found: ${format}`);
+  return definition;
+}
 ```
 
 Add a focused test after the existing nested-list test:
@@ -316,6 +330,22 @@ it("keeps list continuation and special blocks inside one logical item", () => {
   expect(afterList).toContain('w:pStyle w:val="BodyText"');
   expect(afterList).not.toContain("<w:numPr>");
 });
+```
+
+Extend the nested bullet in the sample with a second paragraph named
+`Continuación del matiz`. The same focused test must also assert:
+
+```ts
+const bulletMarker = paragraphContaining("Matiz anidado");
+const bulletContinuation = paragraphContaining("Continuación del matiz");
+const bulletNumbering = numberingDefinitionContaining("bullet");
+
+expect(bulletMarker).toContain("<w:numPr>");
+expect(bulletMarker).toContain('w:ilvl w:val="1"');
+expect(bulletContinuation).not.toContain("<w:numPr>");
+expect(bulletContinuation).toContain('w:left="2160"');
+expect(bulletNumbering).toContain('w:left="1440"');
+expect(bulletNumbering).toContain('w:left="2160"');
 ```
 
 - [ ] **Step 3: Run the exporter test and verify RED**
@@ -342,10 +372,16 @@ export function listTextIndent(depth: number): number {
 Change `numberingLevels` to use `left: listTextIndent(level)` while preserving
 the existing `hanging: 360` marker geometry.
 
+Add `BULLET_LIST_REF = "tesina-bullet"` and a nine-level bullet configuration
+to `buildNumbering()`. Each level uses `LevelFormat.BULLET`, the bullet glyph
+`•`, `left: listTextIndent(level)`, and `hanging: 360`. This replaces the
+`docx` library's built-in bullet geometry, which starts 0.5 inch shallower than
+Tesina's ordered lists.
+
 - [ ] **Step 5: Separate marker, continuation, nested-list, and special-block output**
 
-Import `listTextIndent` into `pm-visitor.ts`. Within each list item, track
-`markerEmitted = false` and handle children in this order:
+Import `BULLET_LIST_REF` and `listTextIndent` into `pm-visitor.ts`. Within each
+list item, track `markerEmitted = false` and handle children in this order:
 
 ```ts
 if (child.type === "bulletList" || child.type === "orderedList") {
@@ -353,7 +389,7 @@ if (child.type === "bulletList" || child.type === "orderedList") {
 } else if (child.type === "paragraph") {
   const markerProps = isOrdered
     ? { numbering: { reference, level: depth, instance } }
-    : { bullet: { level: depth } };
+    : { numbering: { reference: BULLET_LIST_REF, level: depth } };
   emit(
     "Normal",
     inlineToTextRuns(child.content ?? [], state.ctx, state.citationCounter),
@@ -384,8 +420,9 @@ Run:
 ```
 
 Expected: every exporter test passes; the continuation paragraph aligns at
-1440 twips without a marker, `Tabla 2` is present without a marker, and the
-post-list paragraph uses `BodyText`.
+1440 twips without a marker, the nested bullet continuation aligns at 2160
+twips without a marker, `Tabla 2` is present without a marker, and the post-list
+paragraph uses `BodyText`.
 
 - [ ] **Step 7: Format, inspect, and commit the DOCX change**
 
