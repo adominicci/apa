@@ -18,7 +18,8 @@
 - Use exact already-locked MIT OR Apache-2.0 `windows-sys 0.61.2` only.
 - Use the built-in US-International `00020409` dead-key path only. Require trusted `Dead`, an exact one-character NFC `é` authored delta, one trusted Ctrl+Z, and exact prior JSON/selection restoration; keep WebView2 composition-event metrics diagnostic.
 - Do not install a language pack or custom IME, forge `IMM`/`WM_IME` messages, or add a synthetic-input fallback.
-- Do not push, change app versions, or modify production editor integration.
+- Push only when explicitly authorized for an exact-SHA draft-CI experiment or
+  closeout; do not change app versions or production editor integration.
 
 ---
 
@@ -94,7 +95,7 @@
 - [x] **Step 1: Record RED.** Focused Vitest reports seven failures for absent dead-key/undo stages and the old WebView2 composition requirement; Rust compilation reports missing `DriverAction::DeadKey` and `DriverAction::Undo`.
 - [x] **Step 2: Implement minimal GREEN.** Capture trusted `Dead`, exact `é` delta, trusted Ctrl+Z, and exact JSON/selection restoration; keep composition metrics diagnostic on Windows. Accept only an empty initial clipboard, and invoke the tested cleanup plan from production cleanup.
 - [x] **Step 3: Run focused GREEN.** Require browser reducer/protocol/source contracts, a pure ProseMirror history regression for the one-position move/dead-key/undo sequence, the source contract for real Win32 ArrowRight and Ctrl+Z, and pure Rust protocol/cleanup tests to pass.
-- [ ] **Step 4: Run the draft-PR Windows experiment.** Require automated WebView2 25/25, native drag, OS clipboard Copy/Paste, trusted `Dead`, exact `é` delta, trusted Ctrl+Z, exact JSON/selection restoration, and clean teardown before checking OpenSpec 3.7.
+- [x] **Step 4: Run the draft-PR Windows experiment.** Require automated WebView2 25/25, native drag, OS clipboard Copy/Paste, trusted `Dead`, exact `é` delta, trusted Ctrl+Z, exact JSON/selection restoration, and clean teardown before checking OpenSpec 3.7.
 
 ---
 
@@ -102,18 +103,18 @@
 
 **Files:** Review only the files above. Stage no generated `dist`, profile, Cargo target, `.svelte-kit`, or `graphify-out` output.
 
-**Interfaces:** Produces a clean local commit suitable for a draft-PR Windows experiment.
+**Interfaces:** Produces a verified checkpoint and exact-SHA native-CI closeout.
 
-- [ ] **Step 1: Run focused/native gates.** Run `deno task check`, focused pagination/workflow Vitest, and `runNativeProof.ts`; require Svelte 0/0, focused green, and macOS WKWebView 25/25.
+- [x] **Step 1: Run focused/native gates.** Run `deno task check`, focused pagination/workflow Vitest, and `runNativeProof.ts`; require Svelte 0/0, focused green, and macOS WKWebView 25/25.
   - Focused and Svelte gates are green. The fresh local WKWebView rerun is blocked because the current Mac GUI session is locked; the supplied current macOS CI job and earlier local 25/25 result remain recorded in the Task 3 report.
 - [x] **Step 2: Run full gates.** Run `deno task test`, `deno fmt --check`, `deno lint`, `openspec validate add-live-pagination-and-release-notes --strict`, and `git diff --check`; require every command to exit 0.
 - [x] **Step 3: Inspect containment.** Inspect `git status --short`, full/cached diffs, Cargo manifest/lock delta, and tracked generated files. Require the lock delta to add only the already-present `windows-sys 0.61.2` edge.
-- [x] **Step 4: Append the report.** Record RED/GREEN output, license/lock audit, trusted-event/protocol/lifecycle proof, exact 3.8 evidence, and the pending outcome-based Windows 3.7 rerun.
-- [x] **Step 5: Commit.** Stage only approved files, run `git diff --cached --check`, then commit the verified outcome-based native-input contract with an English message. Do not push.
+- [x] **Step 4: Append the report.** Record RED/GREEN output, license/lock audit, trusted-event/protocol/lifecycle proof, and the exact native evidence that closes OpenSpec 3.7 and 3.8.
+- [x] **Step 5: Commit.** Stage only approved files, run `git diff --cached --check`, then commit the verified outcome-based native-input contract with an English message. Push only for the explicitly authorized exact-SHA experiment or closeout.
 
 ## Self-Review
 
-- Spec coverage: 3.7 remains open until Windows CI observes native drag, OS clipboard Copy/Paste, the trusted dead-key `é` outcome, and exact one-step undo restoration; 3.8 closes only from the supplied fully green native CI evidence.
+- Spec coverage: exact-SHA run `31283906186` observes native drag, OS clipboard Copy/Paste, the trusted dead-key `é` outcome, exact one-step undo restoration, automated WebView2 25/25, and a green WKWebView job; OpenSpec 3.7 and 3.8 are complete.
 - Placeholder scan: there is no synthetic fallback or deferred behavior hidden behind a success claim.
 - Type consistency: browser messages and native states share the same eight-stage order, including the renderer-acknowledged `dead-keydown` barrier before E.
 - Data safety: every implementation edit is proof/test/workflow/docs-only; production editor JSON, history, schema, and integration are untouched.
