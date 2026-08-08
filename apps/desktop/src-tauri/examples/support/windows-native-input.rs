@@ -24,6 +24,7 @@ pub(crate) enum DriverAction {
     Paste,
     MoveCaret,
     DeadKey,
+    ComposeCharacter,
     Undo,
     Complete,
 }
@@ -35,7 +36,8 @@ enum DriverStage {
     AwaitingCopy,
     AwaitingPaste,
     AwaitingCaret,
-    AwaitingDeadKey,
+    AwaitingDeadKeyRelease,
+    AwaitingDeadKeyOutcome,
     AwaitingUndo,
     Complete,
 }
@@ -170,10 +172,23 @@ impl DriverProtocol {
                     );
                 }
                 self.selection_position = Some(after);
-                self.stage = DriverStage::AwaitingDeadKey;
+                self.stage = DriverStage::AwaitingDeadKeyRelease;
                 Ok(DriverAction::DeadKey)
             }
-            (DriverStage::AwaitingDeadKey, "dead-key") => {
+            (DriverStage::AwaitingDeadKeyRelease, "dead-keyup") => {
+                let document_size = document_position(value, "documentSize")?;
+                let insertion_pos = document_position(value, "insertionPos")?;
+                if self.document_size != Some(document_size)
+                    || self.selection_position != Some(insertion_pos)
+                {
+                    return Err(
+                        "released dead key changed the document or acknowledged caret".into(),
+                    );
+                }
+                self.stage = DriverStage::AwaitingDeadKeyOutcome;
+                Ok(DriverAction::ComposeCharacter)
+            }
+            (DriverStage::AwaitingDeadKeyOutcome, "dead-key") => {
                 if nonempty_text(value, "data")? != "é" {
                     return Err("dead-key data must be the audited NFC character".into());
                 }
@@ -517,12 +532,16 @@ mod platform {
                 }
                 DriverAction::MoveCaret => {
                     self.require_focus()?;
+                    self.activate_composition_layout()?;
                     self.send_right_arrow()?;
                 }
                 DriverAction::DeadKey => {
                     self.require_focus()?;
-                    self.activate_composition_layout()?;
-                    self.send_dead_key_sequence()?;
+                    self.send_dead_key_press()?;
+                }
+                DriverAction::ComposeCharacter => {
+                    self.require_focus()?;
+                    self.send_composition_character()?;
                 }
                 DriverAction::Undo => {
                     self.require_focus()?;
@@ -723,21 +742,19 @@ mod platform {
         fn send_right_arrow(&mut self) -> Result<(), String> {
             // Move one real authored position past the just-pasted range. The
             // page acknowledges the resulting ProseMirror selection before
-            // this driver sends the dead-key pair, which also isolates that
-            // authored edit from the paste in history without a guessed delay.
+            // this driver sends the dead-key input. This both isolates that
+            // authored edit from the paste in history and proves one benign
+            // key was processed after the keyboard-layout change without a
+            // guessed delay.
             self.send_key_sequence(&[(VK_RIGHT, false), (VK_RIGHT, true)], "caret advance")
         }
 
-        fn send_dead_key_sequence(&mut self) -> Result<(), String> {
-            self.send_key_sequence(
-                &[
-                    (VK_OEM_7, false),
-                    (VK_OEM_7, true),
-                    (VK_E, false),
-                    (VK_E, true),
-                ],
-                "dead-key composition",
-            )
+        fn send_dead_key_press(&mut self) -> Result<(), String> {
+            self.send_key_sequence(&[(VK_OEM_7, false), (VK_OEM_7, true)], "dead-key press")
+        }
+
+        fn send_composition_character(&mut self) -> Result<(), String> {
+            self.send_key_sequence(&[(VK_E, false), (VK_E, true)], "composition character")
         }
     }
 
@@ -1130,6 +1147,17 @@ mod tests {
             protocol
                 .advance(&json!({
                     "version": 1,
+                    "stage": "dead-keyup",
+                    "documentSize": 518,
+                    "insertionPos": 318
+                }))
+                .unwrap(),
+            DriverAction::ComposeCharacter
+        );
+        assert_eq!(
+            protocol
+                .advance(&json!({
+                    "version": 1,
                     "stage": "dead-key",
                     "data": "é",
                     "beforeSize": 518,
@@ -1246,6 +1274,43 @@ mod tests {
                 }))
                 .unwrap(),
             DriverAction::DeadKey
+        );
+        assert!(protocol
+            .advance(&json!({
+                "version": 1,
+                "stage": "dead-key",
+                "data": "é",
+                "beforeSize": 518,
+                "afterSize": 519,
+                "insertionPos": 318
+            }))
+            .is_err());
+        for invalid in [
+            json!({
+                "version": 1,
+                "stage": "dead-keyup",
+                "documentSize": 519,
+                "insertionPos": 318
+            }),
+            json!({
+                "version": 1,
+                "stage": "dead-keyup",
+                "documentSize": 518,
+                "insertionPos": 317
+            }),
+        ] {
+            assert!(protocol.advance(&invalid).is_err());
+        }
+        assert_eq!(
+            protocol
+                .advance(&json!({
+                    "version": 1,
+                    "stage": "dead-keyup",
+                    "documentSize": 518,
+                    "insertionPos": 318
+                }))
+                .unwrap(),
+            DriverAction::ComposeCharacter
         );
         assert!(protocol
             .advance(&json!({

@@ -38,6 +38,7 @@ describe("visible native manual-proof contract", () => {
     expect(source).toContain('addEventListener("compositionend"');
     expect(source).toContain('addEventListener("copy"');
     expect(source).toContain('addEventListener("paste"');
+    expect(source).toContain('addEventListener("keyup"');
     expect(source).toContain('addEventListener("mousedown"');
     expect(source).toContain('addEventListener("mouseup"');
     expect(source).toContain('event.key === "Dead"');
@@ -63,6 +64,7 @@ describe("visible native manual-proof contract", () => {
     expect(source).toContain("selectionRestored");
     expect(source).toContain('stage: "dead-key"');
     expect(source).toContain('stage: "caret"');
+    expect(source).toContain('stage: "dead-keyup"');
     expect(source).toContain('stage: "undo"');
     const compositionEndHandler = source.slice(
       source.indexOf('addEventListener("compositionend"'),
@@ -86,6 +88,7 @@ describe("visible native manual-proof contract", () => {
     expect(nativeInputDriver).toContain("LoadKeyboardLayoutW");
     expect(nativeInputDriver).toContain("00020409");
     expect(nativeInputDriver).toContain("DriverAction::MoveCaret =>");
+    expect(nativeInputDriver).toContain("DriverAction::ComposeCharacter =>");
     expect(nativeInputDriver).toContain("DriverAction::Undo =>");
     expect(nativeInputDriver).toContain(
       'self.send_control_chord(VK_Z, "undo")',
@@ -95,24 +98,37 @@ describe("visible native manual-proof contract", () => {
       nativeInputDriver.indexOf("DriverAction::DeadKey =>"),
     );
     expect(moveCaretBranch.indexOf("self.require_focus()?")).toBeLessThan(
+      moveCaretBranch.indexOf("self.activate_composition_layout()?"),
+    );
+    expect(
+      moveCaretBranch.indexOf("self.activate_composition_layout()?"),
+    ).toBeLessThan(
       moveCaretBranch.indexOf("self.send_right_arrow()?"),
     );
     const deadKeyBranch = nativeInputDriver.slice(
       nativeInputDriver.indexOf("DriverAction::DeadKey =>"),
-      nativeInputDriver.indexOf("DriverAction::Undo =>"),
+      nativeInputDriver.indexOf("DriverAction::ComposeCharacter =>"),
     );
     expect(deadKeyBranch.indexOf("self.require_focus()?")).toBeLessThan(
-      deadKeyBranch.indexOf("self.activate_composition_layout()?"),
+      deadKeyBranch.indexOf("self.send_dead_key_press()?"),
     );
+    expect(deadKeyBranch).not.toContain("activate_composition_layout");
     expect(nativeInputDriver).toMatch(
       /fn send_right_arrow[\s\S]*\(VK_RIGHT, false\)[\s\S]*\(VK_RIGHT, true\)/,
     );
-    const deadKeySequence = nativeInputDriver.slice(
-      nativeInputDriver.indexOf("fn send_dead_key_sequence"),
+    const deadKeyPress = nativeInputDriver.slice(
+      nativeInputDriver.indexOf("fn send_dead_key_press"),
+      nativeInputDriver.indexOf("fn send_composition_character"),
+    );
+    expect(deadKeyPress).toContain("(VK_OEM_7, false)");
+    expect(deadKeyPress).not.toContain("VK_E");
+    const compositionCharacter = nativeInputDriver.slice(
+      nativeInputDriver.indexOf("fn send_composition_character"),
       nativeInputDriver.indexOf("fn perform_cleanup_action"),
     );
-    expect(deadKeySequence).toContain("(VK_OEM_7, false)");
-    expect(deadKeySequence).not.toContain("VK_RIGHT");
+    expect(compositionCharacter).toContain("(VK_E, false)");
+    expect(compositionCharacter).not.toContain("VK_OEM_7");
+    expect(compositionCharacter).not.toContain("VK_RIGHT");
     expect(`${nativeHost}\n${nativeInputDriver}`).not.toMatch(
       /execute_script|dispatchEvent/,
     );
@@ -138,7 +154,7 @@ describe("visible native manual-proof contract", () => {
     );
     const layoutMethod = nativeInputDriver.slice(
       nativeInputDriver.indexOf("fn activate_composition_layout"),
-      nativeInputDriver.indexOf("fn send_dead_key_sequence"),
+      nativeInputDriver.indexOf("fn send_dead_key_press"),
     );
     expect(
       layoutMethod.indexOf("self.cleanup_state.layout = Some"),

@@ -57,6 +57,12 @@ export type NativeManualInputMessage =
   }
   | {
     version: 1;
+    stage: "dead-keyup";
+    documentSize: number;
+    insertionPos: number;
+  }
+  | {
+    version: 1;
     stage: "dead-key";
     data: "é";
     beforeSize: number;
@@ -253,6 +259,27 @@ export function parseNativeManualInputMessage(
         documentSize,
         beforePos,
         afterPos,
+      };
+    }
+    case "dead-keyup": {
+      const documentSize = documentPosition(
+        message["documentSize"],
+        "documentSize",
+      );
+      const insertionPos = documentPosition(
+        message["insertionPos"],
+        "insertionPos",
+      );
+      if (insertionPos > documentSize) {
+        throw new Error(
+          "dead-key insertion must be inside the authored document",
+        );
+      }
+      return {
+        version: 1,
+        stage: "dead-keyup",
+        documentSize,
+        insertionPos,
       };
     }
     case "dead-key": {

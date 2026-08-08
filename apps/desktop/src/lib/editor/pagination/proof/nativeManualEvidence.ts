@@ -17,6 +17,7 @@ export interface NativeManualEvidence {
   caretBeforePos: number | null;
   caretAfterPos: number | null;
   deadKeys: number;
+  deadKeyReleases: number;
   deadKeyBeforeSize: number | null;
   deadKeyAfterSize: number | null;
   deadKeyInsertionPos: number | null;
@@ -64,6 +65,12 @@ export type NativeManualEvidenceEvent =
     key: string;
     isComposing: boolean;
     ctrlKey: boolean;
+  }
+  | {
+    kind: "key-up";
+    isTrusted: boolean;
+    key: string;
+    code: string;
   }
   | {
     kind: "caret-outcome";
@@ -126,6 +133,7 @@ export function createNativeManualEvidence(): NativeManualEvidence {
     caretBeforePos: null,
     caretAfterPos: null,
     deadKeys: 0,
+    deadKeyReleases: 0,
     deadKeyBeforeSize: null,
     deadKeyAfterSize: null,
     deadKeyInsertionPos: null,
@@ -211,6 +219,15 @@ export function recordNativeManualEvidence(
           (event.ctrlKey && event.key.toLowerCase() === "z" ? 1 : 0),
         composingKeys: evidence.composingKeys + (event.isComposing ? 1 : 0),
       };
+    case "key-up":
+      return {
+        ...evidence,
+        deadKeyReleases: evidence.deadKeyReleases +
+          (event.key === "Dead" && event.code === "Quote" &&
+              evidence.deadKeys > evidence.deadKeyReleases
+            ? 1
+            : 0),
+      };
     case "caret-outcome":
       if (
         evidence.pastes === 0 || evidence.pasteAfterSize === null ||
@@ -232,6 +249,7 @@ export function recordNativeManualEvidence(
     case "dead-key-outcome":
       if (
         evidence.pastes === 0 || evidence.deadKeys === 0 ||
+        evidence.deadKeyReleases === 0 ||
         evidence.caretDocumentSize !== event.beforeSize ||
         evidence.caretAfterPos !== event.insertionPos ||
         event.data !== "é" || !validSize(event.beforeSize) ||
@@ -314,6 +332,7 @@ export function nativeManualChecks(
     evidence.compositionAfterSize !== null &&
     evidence.compositionAfterSize > evidence.compositionBeforeSize;
   const windowsComposedInput = evidence.deadKeys > 0 &&
+    evidence.deadKeyReleases > 0 &&
     evidence.caretDocumentSize === evidence.pasteAfterSize &&
     evidence.caretBeforePos === evidence.pasteSelectionPos &&
     evidence.caretAfterPos === (evidence.caretBeforePos ?? -2) + 1 &&

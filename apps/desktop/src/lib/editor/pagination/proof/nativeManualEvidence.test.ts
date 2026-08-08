@@ -37,6 +37,7 @@ describe("native manual evidence reducer", () => {
         isComposing: false,
         ctrlKey: false,
       },
+      { kind: "key-up", key: "Dead", code: "Quote" },
       { kind: "composition-start", beforeSize: 108 },
       { kind: "composition-update" },
       { kind: "key-down", key: "e", isComposing: true, ctrlKey: false },
@@ -104,6 +105,12 @@ describe("native manual evidence reducer", () => {
         ctrlKey: false,
       },
       {
+        kind: "key-up",
+        isTrusted: true,
+        key: "Dead",
+        code: "Quote",
+      },
+      {
         kind: "dead-key-outcome",
         data: "é",
         beforeSize: 108,
@@ -150,6 +157,7 @@ describe("native manual evidence reducer", () => {
       deadKeyAfterSize: 109,
       deadKeyInsertionPos: 73,
       deadKeys: 1,
+      deadKeyReleases: 1,
       undoKeys: 1,
       undoDocumentSize: 108,
       undoDocumentRestored: true,
@@ -224,6 +232,26 @@ describe("native manual evidence reducer", () => {
       key: "Dead",
       isComposing: false,
       ctrlKey: false,
+    });
+    state = recordNativeManualEvidence(state, {
+      kind: "key-up",
+      isTrusted: true,
+      key: "'",
+      code: "Quote",
+    });
+    state = recordNativeManualEvidence(state, {
+      kind: "dead-key-outcome",
+      data: "é",
+      beforeSize: 108,
+      afterSize: 109,
+      insertionPos: 73,
+    });
+    expect(state.deadKeyData).toBe("");
+    state = recordNativeManualEvidence(state, {
+      kind: "key-up",
+      isTrusted: true,
+      key: "Dead",
+      code: "Quote",
     });
     state = recordNativeManualEvidence(state, {
       kind: "dead-key-outcome",
@@ -412,6 +440,12 @@ describe("native manual evidence reducer", () => {
         key: "Dead",
         isComposing: false,
         ctrlKey: false,
+      },
+      {
+        kind: "key-up",
+        isTrusted: true,
+        key: "Dead",
+        code: "Quote",
       },
       {
         kind: "dead-key-outcome",

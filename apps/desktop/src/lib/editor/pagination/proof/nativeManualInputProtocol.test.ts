@@ -195,6 +195,28 @@ describe("native manual-input protocol", () => {
     ).toThrow();
   });
 
+  it("acknowledges the released dead key before the authored character", () => {
+    expect(parseNativeManualInputMessage({
+      version: 1,
+      stage: "dead-keyup",
+      documentSize: 518,
+      insertionPos: 318,
+    })).toEqual({
+      version: 1,
+      stage: "dead-keyup",
+      documentSize: 518,
+      insertionPos: 318,
+    });
+    expect(() =>
+      parseNativeManualInputMessage({
+        version: 1,
+        stage: "dead-keyup",
+        documentSize: 518,
+        insertionPos: 519,
+      })
+    ).toThrow();
+  });
+
   it("requires explicit document and selection identity after one native undo", () => {
     expect(parseNativeManualInputMessage({
       version: 1,
