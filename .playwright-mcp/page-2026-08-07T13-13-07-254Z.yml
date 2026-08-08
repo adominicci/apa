@@ -1,75 +1,75 @@
 - generic [ref=e78]:
-  - banner [ref=e79]:
-    - button "Volver a la biblioteca" [ref=e81] [cursor=pointer]
-    - generic [ref=e84]:
-      - generic [ref=e85]: T
-      - generic [ref=e86]: Ensayo sin título
-    - generic [ref=e87]:
-      - button "Estructura" [ref=e88] [cursor=pointer]
-      - button "Referencias" [ref=e91] [cursor=pointer]
-      - button "Vista previa" [ref=e94] [cursor=pointer]
-      - button "Tema" [ref=e98] [cursor=pointer]: ◐
-  - generic [ref=e99]:
-    - complementary [ref=e100]:
-      - generic [ref=e101]:
-        - heading "Estructura" [level=4] [ref=e102]
-        - button "Añadir sección" [ref=e104] [cursor=pointer]
-      - button "— Portada 1 p." [ref=e107] [cursor=pointer]:
-        - generic [ref=e108]: —
-        - text: Portada
-        - generic [ref=e109]: 1 p.
-      - button "R Referencias 0" [ref=e110] [cursor=pointer]:
-        - generic [ref=e111]: R
-        - text: Referencias
-        - generic [ref=e112]: "0"
-      - generic [ref=e114]:
-        - button "Progreso · meta 2500" [ref=e115] [cursor=pointer]
-        - generic [ref=e116]: 0%
-    - main [ref=e118]:
-      - generic [ref=e119]:
-        - article [ref=e121]:
-          - button "Editar la portada en el formulario" [ref=e122] [cursor=pointer]
-          - textbox "Título del trabajo" [ref=e125]: Ensayo sin título
-          - button "Editar la portada en el formulario" [ref=e126] [cursor=pointer]: Autor(es) — uno por línea
-          - button "Editar la portada en el formulario" [ref=e127] [cursor=pointer]: Afiliación — una por línea
-          - textbox "Curso" [ref=e128]
-          - textbox "Profesor(a)" [ref=e129]
-          - textbox [ref=e130]
-        - article [ref=e132]:
-          - textbox [ref=e134]:
-            - generic [ref=e135]:
-              - text: Ensayo sin título
-              - paragraph [ref=e136]
-            - region "Referencias" [ref=e137]:
-              - heading "Referencias" [level=1] [ref=e138]
-              - paragraph [ref=e139]: Tus referencias aparecerán aquí a medida que cites.
-    - complementary [ref=e140]:
-      - generic [ref=e141]:
-        - heading "Referencias" [level=4] [ref=e142]
-        - generic [ref=e143]:
-          - button "Gestionar" [ref=e144] [cursor=pointer]
-          - button "Añadir" [ref=e145] [cursor=pointer]
-      - textbox "Buscar en la biblioteca…" [ref=e152]
-  - generic [ref=e153]:
-    - button "Insertar cita" [ref=e155] [cursor=pointer]
-    - button "Referencia" [ref=e159] [cursor=pointer]: Crear una referencia en cualquier formato APA e insertar la cita
-    - button "Encabezados" [ref=e164] [cursor=pointer]
-    - button "Listas" [ref=e170] [cursor=pointer]
-    - button "Tabla" [ref=e179] [cursor=pointer]
-    - button "Figura" [ref=e185] [cursor=pointer]
-    - button "Ecuación" [ref=e190] [cursor=pointer]
-    - 'button "Fuente: Times New Roman" [ref=e194] [cursor=pointer]': Fuente
-    - button "Enfoque" [ref=e200] [cursor=pointer]
-    - button "Exportar" [ref=e204] [cursor=pointer]
-    - button "Posición de la barra" [ref=e209] [cursor=pointer]
-  - contentinfo [ref=e212]:
-    - generic [ref=e213]: 0 palabras
-    - generic [ref=e214]: ·
-    - generic [ref=e215]: 1 pág.
-    - generic [ref=e216]: ·
-    - generic [ref=e217]: 0 referencias
-    - generic [ref=e218]: ·
-    - button "Idioma del documento — clic para cambiar entre español e inglés" [ref=e219] [cursor=pointer]: ES
-    - generic [ref=e220]: ·
-    - generic [ref=e221]: APA 7
-    - generic [ref=e222]: guardado
+    - banner [ref=e79]:
+        - button "Volver a la biblioteca" [ref=e81] [cursor=pointer]
+        - generic [ref=e84]:
+            - generic [ref=e85]: T
+            - generic [ref=e86]: Ensayo sin título
+        - generic [ref=e87]:
+            - button "Estructura" [ref=e88] [cursor=pointer]
+            - button "Referencias" [ref=e91] [cursor=pointer]
+            - button "Vista previa" [ref=e94] [cursor=pointer]
+            - button "Tema" [ref=e98] [cursor=pointer]: ◐
+    - generic [ref=e99]:
+        - complementary [ref=e100]:
+            - generic [ref=e101]:
+                - heading "Estructura" [level=4] [ref=e102]
+                - button "Añadir sección" [ref=e104] [cursor=pointer]
+            - button "— Portada 1 p." [ref=e107] [cursor=pointer]:
+                - generic [ref=e108]: —
+                - text: Portada
+                - generic [ref=e109]: 1 p.
+            - button "R Referencias 0" [ref=e110] [cursor=pointer]:
+                - generic [ref=e111]: R
+                - text: Referencias
+                - generic [ref=e112]: "0"
+            - generic [ref=e114]:
+                - button "Progreso · meta 2500" [ref=e115] [cursor=pointer]
+                - generic [ref=e116]: 0%
+        - main [ref=e118]:
+            - generic [ref=e119]:
+                - article [ref=e121]:
+                    - button "Editar la portada en el formulario" [ref=e122] [cursor=pointer]
+                    - textbox "Título del trabajo" [ref=e125]: Ensayo sin título
+                    - button "Editar la portada en el formulario" [ref=e126] [cursor=pointer]: Autor(es) — uno por línea
+                    - button "Editar la portada en el formulario" [ref=e127] [cursor=pointer]: Afiliación — una por línea
+                    - textbox "Curso" [ref=e128]
+                    - textbox "Profesor(a)" [ref=e129]
+                    - textbox [ref=e130]
+                - article [ref=e132]:
+                    - textbox [ref=e134]:
+                        - generic [ref=e135]:
+                            - text: Ensayo sin título
+                            - paragraph [ref=e136]
+                        - region "Referencias" [ref=e137]:
+                            - heading "Referencias" [level=1] [ref=e138]
+                            - paragraph [ref=e139]: Tus referencias aparecerán aquí a medida que cites.
+        - complementary [ref=e140]:
+            - generic [ref=e141]:
+                - heading "Referencias" [level=4] [ref=e142]
+                - generic [ref=e143]:
+                    - button "Gestionar" [ref=e144] [cursor=pointer]
+                    - button "Añadir" [ref=e145] [cursor=pointer]
+            - textbox "Buscar en la biblioteca…" [ref=e152]
+    - generic [ref=e153]:
+        - button "Insertar cita" [ref=e155] [cursor=pointer]
+        - button "Referencia" [ref=e159] [cursor=pointer]: Crear una referencia en cualquier formato APA e insertar la cita
+        - button "Encabezados" [ref=e164] [cursor=pointer]
+        - button "Listas" [ref=e170] [cursor=pointer]
+        - button "Tabla" [ref=e179] [cursor=pointer]
+        - button "Figura" [ref=e185] [cursor=pointer]
+        - button "Ecuación" [ref=e190] [cursor=pointer]
+        - 'button "Fuente: Times New Roman" [ref=e194] [cursor=pointer]': Fuente
+        - button "Enfoque" [ref=e200] [cursor=pointer]
+        - button "Exportar" [ref=e204] [cursor=pointer]
+        - button "Posición de la barra" [ref=e209] [cursor=pointer]
+    - contentinfo [ref=e212]:
+        - generic [ref=e213]: 0 palabras
+        - generic [ref=e214]: ·
+        - generic [ref=e215]: 1 pág.
+        - generic [ref=e216]: ·
+        - generic [ref=e217]: 0 referencias
+        - generic [ref=e218]: ·
+        - button "Idioma del documento — clic para cambiar entre español e inglés" [ref=e219] [cursor=pointer]: ES
+        - generic [ref=e220]: ·
+        - generic [ref=e221]: APA 7
+        - generic [ref=e222]: guardado

@@ -1,117 +1,117 @@
 - generic [ref=e2]:
-  - generic [ref=e465]:
-    - banner [ref=e466]:
-      - button "Back to the library" [ref=e468] [cursor=pointer]
-      - generic [ref=e471]:
-        - generic [ref=e472]: T
-        - generic [ref=e473]: Untitled essay
-      - generic [ref=e474]:
-        - button "Structure" [ref=e475] [cursor=pointer]
-        - button "References" [ref=e478] [cursor=pointer]
-        - button "Preview" [ref=e481] [cursor=pointer]
-        - button "Theme" [ref=e485] [cursor=pointer]: ◐
-    - generic [ref=e486]:
-      - complementary [ref=e487]:
-        - generic [ref=e488]:
-          - heading "Structure" [level=4] [ref=e489]
-          - button "Add section" [ref=e491] [cursor=pointer]
-        - button "— Title page 1 p." [ref=e494] [cursor=pointer]:
-          - generic [ref=e495]: —
-          - text: Title page
-          - generic [ref=e496]: 1 p.
-        - button "R References 0" [ref=e497] [cursor=pointer]:
-          - generic [ref=e498]: R
-          - text: References
-          - generic [ref=e499]: "0"
-        - generic [ref=e501]:
-          - button "Progress · goal 2,500" [ref=e502] [cursor=pointer]
-          - generic [ref=e503]: 0%
-      - main [ref=e505]:
-        - generic [ref=e506]:
-          - article [ref=e508]:
-            - button "Edit the title page in the form" [ref=e509] [cursor=pointer]
-            - textbox "Paper title" [ref=e512]: Untitled essay
-            - button "Edit the title page in the form" [ref=e513] [cursor=pointer]: Author(s) — one per line
-            - button "Edit the title page in the form" [ref=e514] [cursor=pointer]: Affiliation — one per line
-            - textbox "Course" [ref=e515]
-            - textbox "Instructor" [ref=e516]
-            - textbox [ref=e517]
-          - article [ref=e519]:
-            - textbox [ref=e521]:
-              - generic [ref=e522]:
-                - text: Untitled essay
-                - paragraph [ref=e523]
-              - region "References" [ref=e524]:
-                - heading "References" [level=1] [ref=e525]
-                - paragraph [ref=e526]: Your references will appear here as you cite.
-      - complementary [ref=e527]:
-        - generic [ref=e528]:
-          - heading "References" [level=4] [ref=e529]
-          - generic [ref=e530]:
-            - button "Manage" [ref=e531] [cursor=pointer]
-            - button "Add" [ref=e532] [cursor=pointer]
-        - textbox "Search the library…" [ref=e539]
-    - generic [ref=e540]:
-      - button "Insert citation" [ref=e542] [cursor=pointer]
-      - button "Reference" [ref=e546] [cursor=pointer]: Create a reference in any APA format and insert the citation
-      - button "Headings" [ref=e551] [cursor=pointer]
-      - button "Lists" [ref=e557] [cursor=pointer]
-      - button "Table" [ref=e566] [cursor=pointer]
-      - button "Figure" [ref=e572] [cursor=pointer]
-      - button "Equation" [ref=e577] [cursor=pointer]
-      - 'button "Font: Times New Roman" [ref=e581] [cursor=pointer]': Font
-      - button "Focus" [ref=e587] [cursor=pointer]
-      - button "Export" [ref=e591] [cursor=pointer]
-      - button "Toolbar position" [ref=e596] [cursor=pointer]
-    - contentinfo [ref=e599]:
-      - generic [ref=e600]: 0 words
-      - generic [ref=e601]: ·
-      - generic [ref=e602]: 1 pg.
-      - generic [ref=e603]: ·
-      - generic [ref=e604]: 0 references
-      - generic [ref=e605]: ·
-      - button "Document language — click to switch between Spanish and English" [ref=e606] [cursor=pointer]: EN
-      - generic [ref=e607]: ·
-      - generic [ref=e608]: APA 7
-      - generic [ref=e609]: saved
-  - dialog "Title page" [active] [ref=e611]:
-    - banner [ref=e612]:
-      - heading "Title page" [level=3] [ref=e614]
-      - button "Close" [ref=e615] [cursor=pointer]
-    - generic [ref=e618]:
-      - generic [ref=e619]:
-        - generic [ref=e620]: Font (APA-approved)
-        - combobox "Font (APA-approved)" [ref=e621]:
-          - option "Times New Roman, 12 pt" [selected]
-          - option "Georgia, 11 pt"
-          - option "Computer Modern, 10 pt"
-          - option "Aptos, 12 pt"
-          - option "Calibri, 11 pt"
-          - option "Arial, 11 pt"
-          - option "Lucida Sans Unicode, 10 pt"
-      - generic [ref=e622]:
-        - generic [ref=e623]: Essay title
-        - textbox "Essay title" [ref=e624]: Untitled essay
-      - generic [ref=e625]:
-        - generic [ref=e626]: Authors — one per line
-        - textbox "Authors — one per line" [ref=e627]:
-          - /placeholder: Ana Ruiz
-      - generic [ref=e628]:
-        - generic [ref=e629]: Affiliations — one per line
-        - textbox "Affiliations — one per line" [ref=e630]:
-          - /placeholder: Department of Education, Valley University
-      - generic [ref=e631]:
-        - generic [ref=e632]:
-          - generic [ref=e633]: Course
-          - textbox "Course" [ref=e634]:
-            - /placeholder: EDU 301
-        - generic [ref=e635]:
-          - generic [ref=e636]: Instructor
-          - textbox "Instructor" [ref=e637]
-      - generic [ref=e638]:
-        - generic [ref=e639]: Due date
-        - textbox "Due date" [ref=e640]
-      - paragraph [ref=e641]: Enter one author per line. Use one affiliation for every author, or enter one affiliation per author in the same line order.
-    - contentinfo [ref=e642]:
-      - button "Close" [ref=e643] [cursor=pointer]
-      - button "Save title page" [ref=e644] [cursor=pointer]
+    - generic [ref=e465]:
+        - banner [ref=e466]:
+            - button "Back to the library" [ref=e468] [cursor=pointer]
+            - generic [ref=e471]:
+                - generic [ref=e472]: T
+                - generic [ref=e473]: Untitled essay
+            - generic [ref=e474]:
+                - button "Structure" [ref=e475] [cursor=pointer]
+                - button "References" [ref=e478] [cursor=pointer]
+                - button "Preview" [ref=e481] [cursor=pointer]
+                - button "Theme" [ref=e485] [cursor=pointer]: ◐
+        - generic [ref=e486]:
+            - complementary [ref=e487]:
+                - generic [ref=e488]:
+                    - heading "Structure" [level=4] [ref=e489]
+                    - button "Add section" [ref=e491] [cursor=pointer]
+                - button "— Title page 1 p." [ref=e494] [cursor=pointer]:
+                    - generic [ref=e495]: —
+                    - text: Title page
+                    - generic [ref=e496]: 1 p.
+                - button "R References 0" [ref=e497] [cursor=pointer]:
+                    - generic [ref=e498]: R
+                    - text: References
+                    - generic [ref=e499]: "0"
+                - generic [ref=e501]:
+                    - button "Progress · goal 2,500" [ref=e502] [cursor=pointer]
+                    - generic [ref=e503]: 0%
+            - main [ref=e505]:
+                - generic [ref=e506]:
+                    - article [ref=e508]:
+                        - button "Edit the title page in the form" [ref=e509] [cursor=pointer]
+                        - textbox "Paper title" [ref=e512]: Untitled essay
+                        - button "Edit the title page in the form" [ref=e513] [cursor=pointer]: Author(s) — one per line
+                        - button "Edit the title page in the form" [ref=e514] [cursor=pointer]: Affiliation — one per line
+                        - textbox "Course" [ref=e515]
+                        - textbox "Instructor" [ref=e516]
+                        - textbox [ref=e517]
+                    - article [ref=e519]:
+                        - textbox [ref=e521]:
+                            - generic [ref=e522]:
+                                - text: Untitled essay
+                                - paragraph [ref=e523]
+                            - region "References" [ref=e524]:
+                                - heading "References" [level=1] [ref=e525]
+                                - paragraph [ref=e526]: Your references will appear here as you cite.
+            - complementary [ref=e527]:
+                - generic [ref=e528]:
+                    - heading "References" [level=4] [ref=e529]
+                    - generic [ref=e530]:
+                        - button "Manage" [ref=e531] [cursor=pointer]
+                        - button "Add" [ref=e532] [cursor=pointer]
+                - textbox "Search the library…" [ref=e539]
+        - generic [ref=e540]:
+            - button "Insert citation" [ref=e542] [cursor=pointer]
+            - button "Reference" [ref=e546] [cursor=pointer]: Create a reference in any APA format and insert the citation
+            - button "Headings" [ref=e551] [cursor=pointer]
+            - button "Lists" [ref=e557] [cursor=pointer]
+            - button "Table" [ref=e566] [cursor=pointer]
+            - button "Figure" [ref=e572] [cursor=pointer]
+            - button "Equation" [ref=e577] [cursor=pointer]
+            - 'button "Font: Times New Roman" [ref=e581] [cursor=pointer]': Font
+            - button "Focus" [ref=e587] [cursor=pointer]
+            - button "Export" [ref=e591] [cursor=pointer]
+            - button "Toolbar position" [ref=e596] [cursor=pointer]
+        - contentinfo [ref=e599]:
+            - generic [ref=e600]: 0 words
+            - generic [ref=e601]: ·
+            - generic [ref=e602]: 1 pg.
+            - generic [ref=e603]: ·
+            - generic [ref=e604]: 0 references
+            - generic [ref=e605]: ·
+            - button "Document language — click to switch between Spanish and English" [ref=e606] [cursor=pointer]: EN
+            - generic [ref=e607]: ·
+            - generic [ref=e608]: APA 7
+            - generic [ref=e609]: saved
+    - dialog "Title page" [active] [ref=e611]:
+        - banner [ref=e612]:
+            - heading "Title page" [level=3] [ref=e614]
+            - button "Close" [ref=e615] [cursor=pointer]
+        - generic [ref=e618]:
+            - generic [ref=e619]:
+                - generic [ref=e620]: Font (APA-approved)
+                - combobox "Font (APA-approved)" [ref=e621]:
+                    - option "Times New Roman, 12 pt" [selected]
+                    - option "Georgia, 11 pt"
+                    - option "Computer Modern, 10 pt"
+                    - option "Aptos, 12 pt"
+                    - option "Calibri, 11 pt"
+                    - option "Arial, 11 pt"
+                    - option "Lucida Sans Unicode, 10 pt"
+            - generic [ref=e622]:
+                - generic [ref=e623]: Essay title
+                - textbox "Essay title" [ref=e624]: Untitled essay
+            - generic [ref=e625]:
+                - generic [ref=e626]: Authors — one per line
+                - textbox "Authors — one per line" [ref=e627]:
+                    - /placeholder: Ana Ruiz
+            - generic [ref=e628]:
+                - generic [ref=e629]: Affiliations — one per line
+                - textbox "Affiliations — one per line" [ref=e630]:
+                    - /placeholder: Department of Education, Valley University
+            - generic [ref=e631]:
+                - generic [ref=e632]:
+                    - generic [ref=e633]: Course
+                    - textbox "Course" [ref=e634]:
+                        - /placeholder: EDU 301
+                - generic [ref=e635]:
+                    - generic [ref=e636]: Instructor
+                    - textbox "Instructor" [ref=e637]
+            - generic [ref=e638]:
+                - generic [ref=e639]: Due date
+                - textbox "Due date" [ref=e640]
+            - paragraph [ref=e641]: Enter one author per line. Use one affiliation for every author, or enter one affiliation per author in the same line order.
+        - contentinfo [ref=e642]:
+            - button "Close" [ref=e643] [cursor=pointer]
+            - button "Save title page" [ref=e644] [cursor=pointer]

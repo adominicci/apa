@@ -1,60 +1,60 @@
 - generic [ref=e378]:
-  - banner [ref=e379]:
-    - generic [ref=e380]:
-      - generic [ref=e381]: T
-      - text: Tesina
-    - button "Theme" [ref=e383] [cursor=pointer]: ◐
-  - generic [ref=e384]:
-    - complementary [ref=e385]:
-      - generic [ref=e386]:
-        - generic [ref=e387]: T
-        - generic [ref=e388]: Tesina
-      - generic [ref=e389]: Library
-      - button "All essays 1" [ref=e390] [cursor=pointer]:
-        - text: All essays
-        - generic [ref=e393]: "1"
-      - button "Recent" [ref=e394] [cursor=pointer]
-      - button "Drafts" [ref=e398] [cursor=pointer]
-      - generic [ref=e401]: Resources
-      - button "Global references" [ref=e402] [cursor=pointer]
-      - button "APA templates" [ref=e405] [cursor=pointer]
-      - button "Settings" [ref=e412] [cursor=pointer]
-      - generic [ref=e416]: v1.0 · APA 7th ed.
-    - generic [ref=e417]:
-      - generic [ref=e418]:
-        - generic [ref=e419]:
-          - heading "Your essays" [level=1] [ref=e420]
-          - paragraph [ref=e421]: Write and export in APA 7 format, without fighting the margins.
-        - generic [ref=e422]:
-          - textbox "Search essays…" [ref=e427]
-          - group "Interface language" [ref=e428]:
-            - button "ES" [ref=e429] [cursor=pointer]
-            - button "EN" [ref=e430] [cursor=pointer]
-          - generic [ref=e431]:
-            - button "New essay" [active] [ref=e432] [cursor=pointer]
-            - menu [ref=e462]:
-              - menuitem "En español" [ref=e463] [cursor=pointer]
-              - menuitem "In English" [ref=e464] [cursor=pointer]
-      - generic [ref=e435]:
-        - generic [ref=e436]:
-          - button "All" [ref=e437] [cursor=pointer]
-          - button "Spanish" [ref=e438] [cursor=pointer]
-          - button "English" [ref=e439] [cursor=pointer]
-          - button "Unfinished" [ref=e440] [cursor=pointer]
-          - generic [ref=e441]: 1 essay
-        - generic [ref=e442]:
-          - button "Blank document Ensayo sin título ES Aug 7, 2026, 9:12 AM 0 words Rename Duplicate Delete" [ref=e443] [cursor=pointer]:
-            - paragraph [ref=e445]: Blank document
-            - generic [ref=e446]:
-              - heading "Ensayo sin título" [level=3] [ref=e447]
-              - generic [ref=e448]: ES
-            - generic [ref=e449]:
-              - generic [ref=e450]: Aug 7, 2026, 9:12 AM
-              - generic [ref=e451]: 0 words
-            - generic [ref=e452]:
-              - button "Rename" [ref=e453]
-              - button "Duplicate" [ref=e454]
-              - button "Delete" [ref=e455]
-          - button "New essay Start from an APA title page" [ref=e456] [cursor=pointer]:
-            - generic [ref=e460]: New essay
-            - generic [ref=e461]: Start from an APA title page
+    - banner [ref=e379]:
+        - generic [ref=e380]:
+            - generic [ref=e381]: T
+            - text: Tesina
+        - button "Theme" [ref=e383] [cursor=pointer]: ◐
+    - generic [ref=e384]:
+        - complementary [ref=e385]:
+            - generic [ref=e386]:
+                - generic [ref=e387]: T
+                - generic [ref=e388]: Tesina
+            - generic [ref=e389]: Library
+            - button "All essays 1" [ref=e390] [cursor=pointer]:
+                - text: All essays
+                - generic [ref=e393]: "1"
+            - button "Recent" [ref=e394] [cursor=pointer]
+            - button "Drafts" [ref=e398] [cursor=pointer]
+            - generic [ref=e401]: Resources
+            - button "Global references" [ref=e402] [cursor=pointer]
+            - button "APA templates" [ref=e405] [cursor=pointer]
+            - button "Settings" [ref=e412] [cursor=pointer]
+            - generic [ref=e416]: v1.0 · APA 7th ed.
+        - generic [ref=e417]:
+            - generic [ref=e418]:
+                - generic [ref=e419]:
+                    - heading "Your essays" [level=1] [ref=e420]
+                    - paragraph [ref=e421]: Write and export in APA 7 format, without fighting the margins.
+                - generic [ref=e422]:
+                    - textbox "Search essays…" [ref=e427]
+                    - group "Interface language" [ref=e428]:
+                        - button "ES" [ref=e429] [cursor=pointer]
+                        - button "EN" [ref=e430] [cursor=pointer]
+                    - generic [ref=e431]:
+                        - button "New essay" [active] [ref=e432] [cursor=pointer]
+                        - menu [ref=e462]:
+                            - menuitem "En español" [ref=e463] [cursor=pointer]
+                            - menuitem "In English" [ref=e464] [cursor=pointer]
+            - generic [ref=e435]:
+                - generic [ref=e436]:
+                    - button "All" [ref=e437] [cursor=pointer]
+                    - button "Spanish" [ref=e438] [cursor=pointer]
+                    - button "English" [ref=e439] [cursor=pointer]
+                    - button "Unfinished" [ref=e440] [cursor=pointer]
+                    - generic [ref=e441]: 1 essay
+                - generic [ref=e442]:
+                    - button "Blank document Ensayo sin título ES Aug 7, 2026, 9:12 AM 0 words Rename Duplicate Delete" [ref=e443] [cursor=pointer]:
+                        - paragraph [ref=e445]: Blank document
+                        - generic [ref=e446]:
+                            - heading "Ensayo sin título" [level=3] [ref=e447]
+                            - generic [ref=e448]: ES
+                        - generic [ref=e449]:
+                            - generic [ref=e450]: Aug 7, 2026, 9:12 AM
+                            - generic [ref=e451]: 0 words
+                        - generic [ref=e452]:
+                            - button "Rename" [ref=e453]
+                            - button "Duplicate" [ref=e454]
+                            - button "Delete" [ref=e455]
+                    - button "New essay Start from an APA title page" [ref=e456] [cursor=pointer]:
+                        - generic [ref=e460]: New essay
+                        - generic [ref=e461]: Start from an APA title page
