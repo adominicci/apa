@@ -5,6 +5,29 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-08-08
+
+### Added
+
+- Export your complete library — every essay, reference, collection, and
+  figure — as one portable `.tesina` file you can copy, move, or keep
+  anywhere. Tesina verifies the saved file by reopening it before reporting
+  success.
+- Import a `.tesina` file with a clear preview first: new content is added,
+  identical content is skipped, and anything that differs is kept as a
+  separate imported copy. Importing never replaces or deletes your current
+  work, and an interrupted import is finished or undone safely the next time
+  Tesina starts.
+- Optional daily backups to one folder you choose — including folders synced
+  by Google Drive, iCloud Drive, OneDrive, or Dropbox — set up through a
+  five-step guided wizard in your language. Tesina keeps the seven newest
+  backups from this computer, never touches anyone else's files, and shows
+  you the last successful backup at a glance.
+- Restore from a backup by merging it into your current library, so newer
+  work is never rolled back or replaced.
+- Backup files are complete and not password-protected; the wizard explains
+  this clearly before anything is written.
+
 ## [0.1.2] - 2026-08-08
 
 ### Changed
@@ -57,7 +80,8 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/apa/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/adominicci/apa/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/adominicci/apa/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/adominicci/apa/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/adominicci/apa/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/adominicci/apa/releases/tag/v0.1.0

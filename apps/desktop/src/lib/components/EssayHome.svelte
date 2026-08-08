@@ -2,8 +2,12 @@
   import type { DocLocale } from "@tesina/engine";
   import type { EssaySummary } from "$lib/model/essay";
   import { essays } from "$lib/state/essays.svelte";
+  import { library } from "$lib/state/library.svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import Modal from "$lib/components/Modal.svelte";
+  import BackupStatusCard from "$lib/components/BackupStatusCard.svelte";
+  import BackupSettings from "$lib/components/BackupSettings.svelte";
+  import BackupSetupWizard from "$lib/components/BackupSetupWizard.svelte";
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
@@ -25,6 +29,21 @@
   let renamingId = $state<string | null>(null);
   let renameValue = $state("");
   let confirmingDelete = $state<string | null>(null);
+
+  // ── Backup surfaces (tasks 10.1–10.5) ───────────────────────────
+  let backupWizardOpen = $state(false);
+  let backupSettingsOpen = $state(false);
+  /** Re-keys the backup surfaces so they reload native status. */
+  let backupNonce = $state(0);
+
+  function backupConfigured() {
+    backupWizardOpen = false;
+    backupNonce += 1;
+  }
+
+  function refreshAfterRestore() {
+    void Promise.all([library.reload(), essays.loadIndex()]);
+  }
 
   const filtered = $derived.by(() => {
     let list = essays.summaries;
@@ -207,6 +226,13 @@
           </div>
         </header>
 
+        {#key backupNonce}
+          <BackupStatusCard
+            onSetup={() => (backupWizardOpen = true)}
+            onOpenSettings={() => (backupSettingsOpen = true)}
+          />
+        {/key}
+
         <div class="lib">
           <div class="lib-filters">
             <button class="chip" class:active={chip === "all"} onclick={() => (chip = "all")}>{m.chip_all()}</button>
@@ -324,7 +350,37 @@
         <button class:active={uiLocale.theme === "system"} onclick={() => uiLocale.setTheme("system")}>{m.theme_system()}</button>
       </div>
     </div>
+    <div class="field">
+      <span>{m.bk_settings_entry()}</span>
+      <div class="seg">
+        <button
+          onclick={() => {
+            settingsOpen = false;
+            backupSettingsOpen = true;
+          }}
+        >
+          {m.bk_open_settings()}
+        </button>
+      </div>
+    </div>
   </Modal>
+{/if}
+
+{#if backupSettingsOpen}
+  {#key backupNonce}
+    <BackupSettings
+      onRunWizard={() => (backupWizardOpen = true)}
+      onRestored={refreshAfterRestore}
+      onClose={() => (backupSettingsOpen = false)}
+    />
+  {/key}
+{/if}
+
+{#if backupWizardOpen}
+  <BackupSetupWizard
+    onConfigured={backupConfigured}
+    onClose={() => (backupWizardOpen = false)}
+  />
 {/if}
 
 <style>

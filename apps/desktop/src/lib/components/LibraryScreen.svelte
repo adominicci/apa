@@ -11,6 +11,13 @@
   import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
   import Modal from "$lib/components/Modal.svelte";
   import BibImportModal from "$lib/components/BibImportModal.svelte";
+  import LibraryImportModal from "$lib/components/LibraryImportModal.svelte";
+  import { describeArchiveError } from "$lib/components/archiveErrorMessage.ts";
+  import {
+    applyImportWithRuntime,
+    exportLibraryToChosenFile,
+    pickAndPreviewImport,
+  } from "$lib/persist/portableRuntime";
   import { m } from "$lib/paraglide/messages";
 
   /** Largest .bib we'll read into memory (huge for a bibliography). */
@@ -127,6 +134,34 @@
       console.error("No se pudo leer el archivo .bib:", err);
       bibError = m.bib_read_error();
     }
+  }
+
+  // ── Complete library export / Merge import ──────────────────────
+  let exportConfirmOpen = $state(false);
+  let exportWorking = $state(false);
+  let exportNotice = $state<string | null>(null);
+  let importOpen = $state(false);
+
+  async function runLibraryExport(): Promise<void> {
+    exportConfirmOpen = false;
+    exportWorking = true;
+    exportNotice = null;
+    try {
+      const result = await exportLibraryToChosenFile("Tesina Library.tesina");
+      // A cancelled save dialog reports nothing and writes nothing.
+      exportNotice = result === null ? null : m.lib_export_success();
+    } catch (error) {
+      console.error("No se pudo exportar la biblioteca:", error);
+      exportNotice = m.lib_export_error({
+        reason: describeArchiveError(error),
+      });
+    } finally {
+      exportWorking = false;
+    }
+  }
+
+  async function refreshAfterImport(): Promise<void> {
+    await Promise.all([library.reload(), essays.loadIndex()]);
   }
 
   // ── Safe delete (scan essays first) ─────────────────────────────
@@ -337,6 +372,19 @@
           ><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" /></svg>
           {m.libm_import_bibtex()}
         </button>
+        <button
+          class="btn btn-secondary"
+          disabled={exportWorking}
+          onclick={() => (exportConfirmOpen = true)}
+        >
+          {exportWorking ? m.lib_export_working() : m.lib_export_button()}
+        </button>
+        <button
+          class="btn btn-secondary"
+          onclick={() => (importOpen = true)}
+        >
+          {m.lib_import_button()}
+        </button>
         <input
           bind:this={bibInput}
           type="file"
@@ -356,6 +404,11 @@
       </div>
       {#if bibError}
         <p class="bib-error" role="alert">{bibError}</p>
+      {/if}
+      {#if exportNotice}
+        <p class="bib-error" role="status" aria-live="polite">
+          {exportNotice}
+        </p>
       {/if}
       <div class="list-count">{countLabel}</div>
 
@@ -471,6 +524,40 @@
     {bibText}
     onDone={() => (bibText = null)}
     onClose={() => (bibText = null)}
+  />
+{/if}
+
+{#if exportConfirmOpen}
+  <Modal
+    title={m.lib_export_confirm_title()}
+    onClose={() => (exportConfirmOpen = false)}
+  >
+    <div class="export-scope">
+      <p>{m.lib_export_scope()}</p>
+      <p>{m.lib_export_privacy_note()}</p>
+    </div>
+    {#snippet footer()}
+      <button
+        class="btn btn-secondary"
+        onclick={() => (exportConfirmOpen = false)}
+      >
+        {m.imp_cancel()}
+      </button>
+      <button class="btn btn-primary" onclick={runLibraryExport}>
+        {m.lib_export_confirm()}
+      </button>
+    {/snippet}
+  </Modal>
+{/if}
+
+{#if importOpen}
+  <LibraryImportModal
+    loadPreview={pickAndPreviewImport}
+    apply={applyImportWithRuntime}
+    onDone={() => {
+      void refreshAfterImport();
+    }}
+    onClose={() => (importOpen = false)}
   />
 {/if}
 
@@ -825,6 +912,13 @@
     padding: 6px 20px 0;
     color: var(--warn-strong);
     font-size: 13px;
+  }
+
+  .export-scope {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-inline-size: 30rem;
   }
 
   .list-count {

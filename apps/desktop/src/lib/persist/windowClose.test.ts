@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createCloseRequestHandler } from "./windowClose";
+import { createCloseRequestHandler } from "./windowClose.ts";
 
 interface Deferred<T> {
   promise: Promise<T>;

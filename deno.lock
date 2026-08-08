@@ -1897,6 +1897,7 @@
             "npm:@tiptap/extension-table@^3.6.5",
             "npm:@tiptap/pm@^3.6.5",
             "npm:@tiptap/starter-kit@^3.6.5",
+            "npm:fflate@~0.8.2",
             "npm:jsdom@26",
             "npm:pagedjs@~0.4.3",
             "npm:svelte-check@4",

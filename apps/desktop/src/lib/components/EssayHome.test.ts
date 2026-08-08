@@ -61,7 +61,7 @@ describe("essay launch context", () => {
     flushSync();
 
     expect(document.querySelector(".foot")?.textContent).toBe(
-      "v0.1.2 · APA 7ª ed.",
+      "v0.1.3 · APA 7ª ed.",
     );
     await unmount(component);
   });
