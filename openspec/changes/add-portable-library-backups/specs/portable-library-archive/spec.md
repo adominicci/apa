@@ -52,8 +52,10 @@ file.
 
 ### Requirement: Stable snapshot before archive creation
 
-Tesina SHALL finish every pending essay and shared-library persistence operation
-before reading the source files used to create an export or backup archive.
+Tesina SHALL capture every archive from one immutable persisted revision. It
+MUST finish pending essay and shared-library persistence, prevent or detect
+subsequent persisted mutations through the last source read, and retry or abort
+rather than combine content from different revisions.
 
 #### Scenario: Export while autosave is pending
 
@@ -68,11 +70,21 @@ before reading the source files used to create an export or backup archive.
 - **THEN** Tesina reports the save failure and does not produce an archive from
   stale mixed-revision data
 
+#### Scenario: Content changes during snapshot capture
+
+- **WHEN** an essay, reference, collection, or reachable asset changes after
+  pending saves flush but before the final archive source byte is captured
+- **THEN** Tesina excludes that later change from a clearly defined captured
+  revision or retries the entire capture, and never returns a mixed revision
+
 ### Requirement: Strict archive validation
 
 Tesina SHALL validate the container, manifest, allowed paths, declared and
 expanded sizes, checksums, JSON shapes, supported schema versions, and required
-asset relationships before declaring an archive valid.
+asset relationships before declaring an archive valid. Every identifier used to
+derive a local path MUST be a canonical supported identifier and MUST agree with
+the corresponding archive entry name. Validation MUST also bound structured
+JSON complexity and decoded image cost.
 
 #### Scenario: Detect corrupted content
 
@@ -98,11 +110,27 @@ asset relationships before declaring an archive valid.
   manifest or payload
 - **THEN** validation rejects the archive as incomplete
 
+#### Scenario: Reject an unsafe payload identifier
+
+- **WHEN** an essay, reference, collection, asset, or operation identifier
+  contains traversal, separators, an overlong value, a reserved name, or does
+  not match its archive entry
+- **THEN** validation rejects the archive before planning or deriving any local
+  filesystem path
+
+#### Scenario: Reject excessive structured or decoded content
+
+- **WHEN** JSON nesting, object/node/string counts, image dimensions, frame
+  count, or cumulative decoded pixels exceeds a supported safety limit
+- **THEN** validation stops before recursive traversal or image rendering can
+  exhaust application memory
+
 ### Requirement: Safe destination write
 
 Tesina SHALL create and validate an archive in temporary storage before making
 it visible at the user-selected destination, and SHALL preserve any previously
-valid destination file until the replacement can be recovered safely.
+valid destination file until the replacement can be recovered safely. An
+interrupted replacement MUST be detectable and recoverable on the next access.
 
 #### Scenario: Successful manual export
 
@@ -121,12 +149,20 @@ valid destination file until the replacement can be recovered safely.
 - **THEN** Tesina reports failure, does not report export success, and preserves
   any previously valid destination file
 
+#### Scenario: App exits during destination replacement
+
+- **WHEN** Tesina restarts after interruption at any replacement boundary
+- **THEN** it deterministically restores the previous valid destination or
+  completes installation of the newly validated archive without deleting both
+
 ### Requirement: Provider-neutral and unencrypted version-one archive
 
 Version-one `.tesina` archives SHALL be usable through ordinary filesystem
 copying without a Tesina account or provider API and SHALL be unencrypted.
 Before manual export or backup setup, Tesina MUST clearly explain that the file
-contains the user's complete library and is not password-protected.
+contains the user's complete library and is not password-protected. Manifest
+checksums provide corruption detection only and MUST NOT be presented as proof
+of archive origin, authenticity, or confidentiality.
 
 #### Scenario: Export without an account
 

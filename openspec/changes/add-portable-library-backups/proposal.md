@@ -18,8 +18,9 @@ SQLite migration.
   interrupted import cannot silently corrupt the library.
 - Add an optional bilingual setup wizard for daily backups to a user-selected
   Google Drive, iCloud Drive, OneDrive, Dropbox, or ordinary folder.
-- Add manual backup, restore, status, retry, folder-change, and open-folder
-  actions, with seven-version retention restricted to Tesina-owned backups.
+- Add Back up now, Merge-based restore, status, retry, pause/re-enable,
+  folder-change, and open-folder actions, with seven-version retention
+  restricted to backups proven to belong to this Tesina installation.
 - Preserve the existing JSON-plus-assets working storage. Device preferences,
   deleted-essay backups, password encryption, provider APIs, accounts, live
   multi-device sync, and SQLite are outside this change.
@@ -44,12 +45,14 @@ None.
 
 - Adds pure TypeScript archive, validation, import-planning, remapping, and
   retention modules under the desktop application library.
-- Adds narrow Tauri filesystem/dialog adapters for selected external locations,
-  temporary output, rollback archives, and import journals.
+- Adds a narrow native Tauri backup-directory adapter that persists exactly one
+  configured folder authorization while leaving ordinary import/export dialog
+  grants temporary; also adds recoverable temporary output, rollback archives,
+  and import journals.
 - Adds Svelte wizard, Merge preview, home status card, and Settings controls;
   all user-facing text requires English and Spanish Paraglide messages.
-- Extends persistence coordination so export and backup operate on flushed,
-  stable essay and reference-library snapshots.
+- Extends persistence coordination with an exclusive snapshot lease so export
+  and backup operate on one immutable essay/reference/asset revision.
 - May add a ZIP dependency only if the existing dependency set cannot provide
   safe browser/Tauri byte generation and extraction; any dependency must comply
   with the repository license policy.

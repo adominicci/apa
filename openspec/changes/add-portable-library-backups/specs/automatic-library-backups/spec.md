@@ -14,8 +14,8 @@ editing essays.
 #### Scenario: User has not configured backup
 
 - **WHEN** the user opens the home screen without backup configured
-- **THEN** Tesina may show the optional setup card and all writing features
-  remain available
+- **THEN** Tesina shows the optional setup card until the user dismisses it and
+  all writing features remain available
 
 #### Scenario: User dismisses the home card
 
@@ -45,7 +45,8 @@ selection, privacy review, test backup, and success into understandable steps.
 
 Tesina SHALL remember access to the user-selected backup folder across app
 restarts without granting or requesting broad access to unrelated filesystem
-locations.
+locations. Manual import/export selections and previously configured backup
+folders MUST remain temporary or be revoked once they are no longer active.
 
 #### Scenario: Restart after successful setup
 
@@ -57,7 +58,15 @@ locations.
 
 - **WHEN** the user chooses Change folder and completes a new test backup
 - **THEN** subsequent backups use the new authorized folder and no longer write
-  to the old folder
+  to or retain authority for the old folder, while existing files in that old
+  folder remain untouched and are disclosed to the user
+
+#### Scenario: Transient dialog locations remain unauthorized
+
+- **WHEN** the app restarts after the user selected manual import/export files
+  or replaced a configured backup folder
+- **THEN** only the active backup directory remains authorized without asking
+  again
 
 ### Requirement: Validated test before enabling backup
 
@@ -71,6 +80,13 @@ manifest successfully.
   passes validation
 - **THEN** Tesina enables automatic backup and records the successful location
   and time
+
+#### Scenario: User consents to the real test write
+
+- **WHEN** the user reaches Test backup
+- **THEN** Tesina shows the exact destination, explains that the complete
+  unencrypted library will be written now, and requires an affirmative action
+  before writing
 
 #### Scenario: Test backup fails
 
@@ -109,24 +125,45 @@ have a Back up now action.
 - **THEN** Tesina attempts a fresh validated backup regardless of today's
   automatic-backup count and reports its result
 
+#### Scenario: Content changes while a backup is being written
+
+- **WHEN** a backup validates but content changed after its immutable snapshot
+  was captured
+- **THEN** Tesina records only that archived snapshot's digest and schedules a
+  later eligibility check for the newer content
+
 ### Requirement: Observable backup state
 
 After setup, Tesina SHALL show the selected location, last successful backup
-time, current health, and actions to Back up now, Restore, Open backup folder,
-Change folder, and Retry when applicable. A started write MUST NOT be reported
-as successful.
+time, next expected backup condition or time, current health, and actions to
+Back up now, Restore by merging, Open backup folder, Change folder, Turn off,
+and Retry when applicable. A started write MUST NOT be reported as successful.
 
 #### Scenario: Backup succeeds
 
-- **WHEN** the archive is durably written and passes validation
+- **WHEN** the archive is closed, locally visible, reopened, and passes
+  validation
 - **THEN** Tesina updates Last backup to that completion time and shows a
-  healthy state
+  healthy local-backup state while clearly stating that any provider upload
+  remains provider-owned and unverified by Tesina
 
 #### Scenario: Backup is still running
 
 - **WHEN** archive creation or validation has not finished
 - **THEN** the UI shows an in-progress state and preserves the previous last
   successful time
+
+#### Scenario: User turns backup off
+
+- **WHEN** the user confirms Turn off
+- **THEN** Tesina stops future scheduled writes, revokes the configured-folder
+  authorization, and explains that existing backup files remain untouched
+
+#### Scenario: User re-enables backup
+
+- **WHEN** the user chooses to set up backup again
+- **THEN** Tesina requires a newly authorized folder and successful test backup
+  before scheduling resumes
 
 ### Requirement: Backup failure never blocks writing
 
@@ -148,17 +185,32 @@ non-blocking warning and retry path while local editing and autosave continue.
 
 ### Requirement: Safe seven-version retention
 
-After a successful backup, Tesina SHALL retain the seven newest valid daily
-archives it created in the dedicated backup folder. It SHALL prune only files
-that match Tesina's backup naming contract and contain a valid Tesina manifest,
-and SHALL never delete directories, temporary unknown files, manual exports, or
-unrelated files.
+After a successful scheduled or Back up now operation, Tesina SHALL retain the
+seven newest valid recovery archives proven to belong to this installation's
+backup set. Ownership MUST be established by a durable successful-write record
+and matching archive identity and bytes, not inferred from filename alone.
+Tesina SHALL never delete directories, temporary unknown files, manual exports,
+archives from another device or installation, or unrelated files. Test backup
+counts as the first retained recovery archive; manual Export library does not.
 
-#### Scenario: Eighth valid daily backup succeeds
+#### Scenario: Eighth owned recovery backup succeeds
 
-- **WHEN** eight valid Tesina-owned daily backups exist after a new success
-- **THEN** Tesina removes only the oldest recognized valid daily backup and
+- **WHEN** eight valid ledger-owned recovery backups exist after a new success
+- **THEN** Tesina removes only the oldest recognized owned backup and
   retains the newest seven
+
+#### Scenario: Shared folder contains another installation's backup
+
+- **WHEN** a valid archive matches the filename grammar but is not present in
+  this installation's successful-write record with matching identity and hash
+- **THEN** Tesina leaves it untouched
+
+#### Scenario: Ownership record is missing or disagrees
+
+- **WHEN** retention cannot prove that a candidate's current bytes are the file
+  this installation created
+- **THEN** Tesina retains the candidate and reports no destructive success for
+  that file
 
 #### Scenario: Backup folder contains unrelated files
 
@@ -176,7 +228,8 @@ unrelated files.
 
 Tesina SHALL interact only with the authorized filesystem folder. It SHALL NOT
 require provider-specific authentication, provider APIs, a Tesina account, or a
-network connection to create the local backup file.
+network connection to create the local backup file. Tesina MUST distinguish
+successful local validation from remote provider synchronization.
 
 #### Scenario: Ordinary local folder selected
 

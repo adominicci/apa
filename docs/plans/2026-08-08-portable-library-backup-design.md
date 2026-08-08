@@ -32,9 +32,13 @@ cloud-folder backup later.
 - Run at most one automatic backup per day and only when content changed since
   the last successful backup. Also provide "Back up now."
 - Retain the seven newest valid daily backups inside a dedicated
-  `Tesina Backups` folder. Never delete unrelated files.
+  `Tesina Backups` folder. Prove ownership with an installation backup-set ID
+  and successful-write ledger; never infer ownership from filename or delete
+  another device's or unrelated files.
 - Offer backup setup through an optional home-screen card and Settings. It must
   never block writing.
+- Let users turn automatic backup off and re-enable it. Revoking a folder stops
+  future access but never deletes existing archives.
 
 ## Archive architecture
 
@@ -53,18 +57,22 @@ creation time, content counts, and a checksum for every included file. It also
 reserves optional encryption metadata without enabling encryption in version
 one. Deleted-essay backups and device preferences are not included.
 
-Before export, Tesina flushes all pending essay and reference-library saves. It
-then reads a stable snapshot, builds the archive in temporary storage, validates
-the completed archive against its manifest, and only then writes the selected
-destination. A failed export must not modify live data or leave a file that
-appears complete.
+Before export, Tesina takes an exclusive snapshot lease, flushes pending essay
+and reference-library saves, and stages one immutable revision of every required
+JSON file and reachable asset. A concurrent mutation is queued or forces a full
+retry; mixed revisions are forbidden. Tesina builds from staging, validates the
+completed archive against its manifest, and only then writes the selected
+destination through a restart-recoverable replacement. A failed export must not
+modify live data or leave a file that appears complete.
 
 Import reverses that path. Tesina opens the archive in temporary storage,
 validates its format, rejects unsafe paths and unsupported versions, verifies
 every checksum, parses every JSON document, and confirms that every referenced
 asset exists. It must enforce declared and uncompressed resource limits so a
 malformed archive cannot exhaust the device. Validation completes before any
-live data changes.
+live data changes. Validation also bounds JSON complexity, canonicalizes every
+identifier used for a local path, and limits decoded image dimensions/frames.
+Checksums detect corruption but do not authenticate the file's author.
 
 ## Merge planning and identity
 
@@ -102,7 +110,9 @@ If Tesina closes or crashes during import, the next launch detects the unfinishe
 journal and safely finishes the remaining operations or restores the rollback
 archive. Tesina marks the import complete only after a final consistency check
 passes for every essay, reference, collection, citation, and asset. The rollback
-archive remains available as a recent recovery point.
+archive remains available as a recent recovery point under a bounded retention
+policy. If neither resume nor rollback is safe, Tesina fails closed into a
+recovery-required screen and never guesses which files to delete.
 
 ## Backup wizard
 
@@ -116,9 +126,13 @@ Settings. Every screen follows the current interface language.
 3. **Review privacy.** Show what is included and explain that version-one
    archives are not password-protected.
 4. **Test backup.** Create a real archive inside `Tesina Backups`, validate it,
-   and verify that Tesina can reopen it.
+   and verify that Tesina can reopen it. Before writing, show the exact location,
+   explain that the complete unencrypted library is being copied now, and ask
+   for explicit confirmation.
 5. **Success.** Show the location, last successful backup, next expected backup,
-   and actions for "Back up now" and "Open backup folder."
+   and actions for "Back up now," "Restore by merging," "Open backup folder,"
+   and "Turn off." State that Tesina validated the local file but cannot confirm
+   whether a provider uploaded it.
 
 After setup, Tesina writes at most one automatic backup per day and only if the
 content revision changed. A missed backup retries the next time Tesina runs.
@@ -128,8 +142,9 @@ If the folder is offline, moved, or no longer permitted, editing continues. A
 non-blocking home-screen warning offers "Try again" and "Choose another folder."
 Tesina never reports success until the archive is written and validated.
 
-Restore opens the same Merge preview used by manual import. It never silently
-replaces the local library.
+Restore opens the same Merge preview used by manual import and explicitly
+explains that it preserves newer work and may create imported copies. It never
+silently replaces or rolls back the local library.
 
 ## Components
 
@@ -152,7 +167,8 @@ This narrow adapter owns:
 - native file and folder dialogs;
 - reading and writing selected locations;
 - temporary files and atomic replacement;
-- remembering the authorized backup folder;
+- a purpose-specific Rust adapter that remembers exactly one authorized backup
+  folder while manual import/export selections remain temporary;
 - opening the backup folder;
 - import-journal and rollback-archive management.
 
@@ -176,7 +192,10 @@ Pure and integration tests must cover:
 - asset deduplication;
 - interrupted import, journal recovery, and rollback;
 - unavailable, moved, or unauthorized backup folders;
-- daily scheduling and seven-version retention boundaries.
+- daily scheduling and seven-version retention boundaries;
+- cross-device shared-folder retention ownership;
+- canonical-ID/path containment and structured/image resource limits;
+- folder authorization after restart plus denial of old/transient paths.
 
 Golden fixtures prove deterministic archives. Component tests cover every wizard
 step, preview decision, success state, and error message. Native end-to-end tests

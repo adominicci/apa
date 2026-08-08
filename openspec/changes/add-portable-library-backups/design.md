@@ -25,17 +25,20 @@ The important current ownership points are:
   registration and safe native close.
 
 Current writes are intentionally limited to app data except for paths granted by
-native dialogs. Scheduled backups need that selected external-folder scope after
-restart. Tauri's official persisted-scope plugin is designed to save and restore
-runtime filesystem scopes and must be registered after the filesystem plugin.
-The design therefore adds that official plugin rather than broadening the static
-capability to all home or cloud-provider directories.
+native dialogs. Scheduled backups need one selected external folder after
+restart. Tauri's persisted-scope plugin cannot provide that boundary: it saves
+the entire runtime filesystem scope, including ordinary import/export dialog
+paths and old folder selections. This design therefore uses a purpose-specific
+native backup-directory adapter and does not install global persisted-scope or
+broaden the static capability to home/cloud-provider directories.
 
 The desktop app does not directly depend on a ZIP library. `fflate` 0.8.x is
-already locked through `packages/docx-export`, is MIT-licensed, and is suitable
-for browser/Tauri byte APIs. Add it as a direct desktop dependency; do not
-import it transitively through the DOCX package. Extraction must use bounded
-streaming logic rather than unbounded `unzipSync` on untrusted archives.
+already locked through `packages/docx-export` and is MIT-licensed, but its public
+streaming API does not expose every central-directory attribute this validator
+needs. The implementation begins with a bounded-parser feasibility spike and
+then adds the selected ZIP dependency directly; it must never import a
+transitive implementation through the DOCX package or use unbounded `unzipSync`
+on untrusted archives.
 
 ## Goals / Non-Goals
 
@@ -80,6 +83,9 @@ interface LibraryArchiveManifestV1 {
   createdAt: string;
   appVersion: string;
   encryption: null;
+  backup?: {
+    backupSetId: string;
+  };
   counts: {
     essays: number;
     references: number;
@@ -97,7 +103,10 @@ interface LibraryArchiveManifestV1 {
 
 Use UTF-8 JSON with stable key ordering and no platform path separators.
 `manifest.json` describes every other entry and is not self-checksummed. Use Web
-Crypto SHA-256. Normalize archive paths before duplicate/path-safety checks.
+Crypto SHA-256. Checksums are internal consistency/corruption checks, not proof
+of origin or authenticity. Normalize archive paths before duplicate/path-safety
+checks. `backup` is absent for manual exports and present only when the archive
+belongs to a configured installation backup set.
 
 Figure nodes are normalized to `assets/...` paths in archive essay JSON. Import
 rewrites them to collision-free `essays/assets/...` app-data paths. Only assets
@@ -106,12 +115,22 @@ reachable by a valid essay are exported.
 Alternative rejected: copy the app-data directory verbatim. It would leak device
 settings/backups, preserve orphan data, and prevent strict versioning.
 
-### 2. Create an immutable disk snapshot after the persistence barrier
+### 2. Create an immutable staged snapshot under an exclusive lease
 
-Add a snapshot reader that calls `persistence.flushPending()` and then reads the
-persisted essay files, library file, and reachable assets. Archive creation
-never mixes live Svelte state with disk state. It validates every source essay
-as schema version 2 and the library as schema version 1 before packaging.
+Extend persistence coordination with an exclusive snapshot/maintenance lease
+shared by manual export, backup, rollback capture, import apply, and retention.
+Under the lease, flush pending writes, record the persistence generation, and
+copy the persisted essay files, library file, and reachable assets into a
+UUID-named app-data staging directory. Queue later persistence writes until the
+copy completes, or detect a generation change and discard/retry the entire
+capture. Release the lease only after the staged snapshot is immutable. Package
+only from staging, never from a second pass over live app-data files.
+
+The snapshot validates every source essay as schema version 2 and the library as
+schema version 1 before packaging. Invalid source content fails the complete
+export; it is never silently skipped. `LibraryArchiveService` returns the
+content digest of the exact staged snapshot whose archive validated so a later
+live edit can never be recorded as already backed up.
 
 The archive builder accepts injected `now`, `appVersion`, UUID, and digest
 dependencies for deterministic fixtures. Production adapters supply real values.
@@ -126,7 +145,8 @@ Create these pure modules under `apps/desktop/src/lib/portable/`:
 
 - `types.ts`: manifest, validated archive, snapshot, plan, and result contracts.
 - `canonicalJson.ts`: stable JSON bytes and semantic hashes.
-- `archive.ts`: bounded ZIP build/read orchestration over injected byte inputs.
+- `archive.ts`: deterministic ZIP build/read orchestration over injected byte
+  inputs after bounded native intake.
 - `validate.ts`: manifest/path/size/checksum/schema/relationship validation.
 - `snapshot.ts`: pure assembly checks over already-read data.
 - `remap.ts`: ProseMirror figure and citation ID/path walkers.
@@ -138,9 +158,12 @@ Create these pure modules under `apps/desktop/src/lib/portable/`:
 Create Tauri-aware adapters under `apps/desktop/src/lib/persist/`:
 
 - `librarySnapshot.ts`: flush barrier plus app-data file enumeration/reads.
-- `portableFiles.ts`: native open/save/folder dialogs, temporary archive writes,
-  recoverable destination replacement, and selected-folder I/O.
-- `importJournal.ts`: staged transaction, durable journal, rollback archive,
+- `portableFiles.ts`: native open/save dialogs, compressed-size preflight,
+  temporary archive writes, and recoverable destination replacement.
+- Rust backup-directory commands: configure/test exactly one selected folder,
+  restore only that authorization at startup, list/read/write/reveal retained
+  backups, revoke old/disabled authorization, and reject arbitrary paths.
+- `importJournal.ts`: staged transaction, restart-recoverable journal, rollback archive,
   idempotent apply, resume, and rollback.
 
 Pure modules MUST NOT import runes, Svelte, Tauri, or app-data paths.
@@ -151,16 +174,29 @@ would make malformed-input and crash-recovery behavior hard to test.
 ### 4. Bound all untrusted archive work
 
 Define constants in `portable/limits.ts` for maximum archive bytes, entry count,
-single expanded entry, total expanded bytes, and compression ratio. Pick
-concrete values during the first implementation task from realistic
-large-library fixtures and document why they exceed expected use while bounding
-memory.
+single expanded entry, total expanded bytes, compression ratio, JSON nesting,
+object/array/node/string counts, content-entity counts, figure counts, image
+dimensions/frames, and cumulative decoded pixels. Pick concrete values during
+the first implementation task from realistic large-library fixtures and
+document why they exceed expected use while bounding memory.
 
-Read the native file's size before loading it. During streaming extraction,
-reject unknown entries, encrypted entries, duplicate normalized paths, absolute
-paths, backslashes, NULs, dot segments, symlinks or non-regular entries, and any
-counter crossing a limit. Parse JSON only after the byte/checksum checks pass.
-Never write extracted untrusted paths directly to disk.
+Read the native file's size before loading it. `fflate` alone cannot expose all
+central-directory attributes required to recognize encrypted, symlink, and
+non-regular entries, so implementation MUST first select and test either a
+bounded central-directory parser plus streaming inflater or a native ZIP crate
+that exposes those fields. This feasibility spike precedes dependency lock-in.
+During streaming extraction, reject unknown entries, encrypted entries,
+duplicate normalized paths, absolute paths, backslashes, NULs, dot segments,
+symlinks/non-regular entries, unsupported compression, and any observed counter
+crossing a limit. Declared sizes are preflight hints; observed emitted bytes are
+authoritative. Parse bounded JSON only after byte/checksum checks pass. Verify
+image signatures, media types, dimensions, and frame/pixel limits before use.
+Never write extracted paths or paths derived from unvalidated payload IDs.
+
+All essay, reference, collection, asset, transaction, and operation IDs are
+canonical lowercase UUIDs with bounded lengths. `essays/<uuid>.json` must match
+payload `essay.id`. Typed native path constructors perform a final canonical
+containment check beneath the expected root and reject symlinks/reparse points.
 
 Alternative rejected: `unzipSync` followed by validation. A compression bomb
 could allocate excessive memory before validation runs.
@@ -176,7 +212,8 @@ For a same-ID essay comparison, canonicalize these semantic fields:
 Extend `Essay` additively with optional `importedAt?: string` and
 `sourceEssayId?: string`; keep `schemaVersion: 2`. A conflicting imported essay
 gets a new UUID, the original ID in `sourceEssayId`, the current import time,
-and a Paraglide-localized title suffix.
+and an imported-copy title suffix localized using the imported essay's document
+language. Explanatory preview text continues to follow the current UI language.
 
 Reference equality uses canonical full reference content including ID.
 Collection equality uses ID, name, and a sorted unique member-ID list. For
@@ -185,8 +222,10 @@ imported citation attrs, reference snapshots, and collection member IDs. Never
 rewrite a pre-existing local essay.
 
 Asset equality requires both SHA-256 equality and byte equality. Build a local
-checksum index once per import. Reuse exact bytes; otherwise allocate a new UUID
-path with the validated image extension.
+checksum index once per import, resolve the checksum-to-local-path plan, and
+normalize imported figure paths to those planned targets before semantic essay
+comparison. Reuse exact bytes; otherwise allocate a new UUID path with the
+validated image extension.
 
 Alternative rejected: newest-timestamp-wins. Timestamps do not prove which paper
 or reference content the user intends to preserve.
@@ -199,7 +238,8 @@ The planner emits stable operations from an injected transaction ID:
 2. stage new/remapped essay JSON;
 3. write a validated rollback `.tesina` archive under
    `$APPDATA/backups/imports/`;
-4. persist the journal before the first live write;
+4. persist two independently validated journal/operation-manifest copies before
+   the first live write;
 5. move new assets to unused final paths;
 6. move new essays to unused final paths;
 7. atomically replace only `library.json` with the merged library;
@@ -208,9 +248,24 @@ The planner emits stable operations from an injected transaction ID:
 
 No existing essay or asset path is overwritten. Consequently, a partial apply
 can be retried idempotently; rollback restores `library.json` and removes only
-new paths listed in the journal. On app startup, recovery runs before the essay
-index/library becomes interactive. Resume when the journal and staged hashes are
-valid; otherwise restore from the rollback archive.
+new paths whose current hash, length, type, and pre-write absence match the
+journal. Mismatched paths are preserved and force manual recovery. On app
+startup, recovery runs before the essay index/library becomes interactive.
+Resume when a journal copy and staged hashes are valid; otherwise restore the
+validated rollback and remove only additions proven by expected bytes. If
+neither resume nor rollback is safe, fail closed into a localized recovery UI,
+preserve evidence, and never guess which paths to delete.
+
+The supported interruption contract covers normal close, updater restart, and
+process crash after a journal/marker was closed and reopened successfully. It
+does not promise survival of sudden power loss unless native file and parent
+directory synchronization is added and separately verified on each platform.
+
+Keep every rollback for an unfinished transaction. For completed transactions,
+retain a small documented count/age window and delete only validated rollback
+archives recorded by the transaction ledger. The import confirmation discloses
+that this app-data recovery copy is complete and unencrypted. Apply restrictive
+local file permissions where supported.
 
 Alternative rejected: rename the entire app-data directory. Settings, updater
 state, and unrelated backups share that root, and cross-platform directory
@@ -223,27 +278,54 @@ a snapshot, build/validate bytes, write a manual export, create an app-data
 rollback, and write a selected-folder backup. Manual export and automatic backup
 must not implement separate packaging rules.
 
-For a selected destination, write a UUID-named sibling temporary file, validate
-the bytes by reopening it, and then perform a recoverable replacement. If a
-previous file exists, preserve it under a temporary previous name until the new
-file is in place; recover the previous file on failure. Clean only temp files
-whose names were generated for the active operation.
+For a selected destination, write a UUID-named sibling temporary file, close and
+validate it by reopening, and prefer a direct same-filesystem replacement rename
+that leaves the previous destination untouched on failure. If platform behavior
+requires a multi-rename fallback, persist a sibling replacement record with
+destination/temp/previous paths and hashes before the first rename, recover it
+on the next folder access, and retain the prior file until the new destination
+reopens and validates. Clean only operation-owned temp files.
 
-### 8. Persist the selected filesystem scope, not a broad path grant
+The user-facing guarantee is “closed, locally visible, reopened, and validated.”
+Do not call it power-loss durable unless native file and containing-directory
+sync semantics are implemented and accepted separately on macOS and Windows.
 
-Add `tauri-plugin-persisted-scope = "2"` after `tauri-plugin-fs` in Rust plugin
-initialization, following the official ordering requirement. The folder picker
-adds the chosen path to runtime fs scope; persisted-scope restores it on later
-launches. Update capability permissions only with the plugin's generated minimal
-permission plus the fs commands needed inside the chosen runtime scope. Do not
-add `$HOME/**/*`, cloud-provider-specific static paths, or network permissions.
+### 8. Persist exactly one selected backup directory through native commands
 
-Store backup configuration additively in `settings.json` schema version 1:
+Do not install `tauri-plugin-persisted-scope`: it serializes the entire fs scope
+and would persist transient manual import/export selections. Add a Rust-owned
+backup-directory adapter with purpose-specific commands. Setup receives a path
+only from the native recursive folder picker, canonicalizes it, rejects
+symlinks/reparse points, creates/tests `Tesina Backups`, and stores the active
+path only after a real archive succeeds. After restart, Rust loads that one path
+from validated app-data settings and authorizes only the operations exposed by
+the adapter. Ordinary file-dialog grants remain session-only.
+
+Backup commands do not accept arbitrary caller paths after setup. Changing
+folders atomically tests and activates the new path, then revokes the old
+runtime authorization; disabling backup revokes the active authorization.
+Before every operation, re-resolve the directory identity and ensure every
+candidate remains beneath the approved canonical root. Do not add `$HOME/**/*`,
+cloud-provider-specific static paths, or new network permissions.
+
+Implement the commands in `apps/desktop/src-tauri/src/backup_directory.rs` and
+register them in `lib.rs`. Rust exclusively owns an atomic
+`$APPDATA/backup-directory.json` authorization record so the Svelte settings
+writer never races a native writer:
+
+```ts
+interface BackupDirectoryConfigV1 {
+  schemaVersion: 1;
+  canonicalFolderPath: string;
+  backupSetId: string;
+  enabled: boolean;
+}
+```
+
+Store only UI/status state additively in `settings.json` schema version 1:
 
 ```ts
 interface BackupSettings {
-  folderPath: string;
-  enabled: boolean;
   configuredAt: string;
   lastAttemptAt?: string;
   lastSuccessAt?: string;
@@ -253,8 +335,12 @@ interface BackupSettings {
 }
 ```
 
-Do not export `BackupSettings`. A new folder becomes active only after its real
-test archive validates. Changing folders leaves the old folder untouched.
+Neither native authorization nor `BackupSettings` is exported. The UI obtains
+enabled/location state through the native adapter rather than treating its
+status cache as authority. A new random `backupSetId` identifies files this
+installation may later prune. A new folder becomes active only after its real
+test archive validates. Changing or disabling folders leaves old archive bytes
+untouched and tells the user they must manage those files manually.
 
 The current UI settings writer is fire-and-forget. Before storing backup state
 there, give `UiSettingsStore` the same serialized revision/flush discipline used
@@ -282,19 +368,30 @@ loads and when the persistence coordinator reports a content mutation; debounce
 the expensive digest/archive work until the app is idle. `Back up now` bypasses
 the daily limit but not persistence flush or single-flight protection.
 
-Update last-success fields only after write, reopen, and validation. A failed
-attempt records an error code and remains eligible on the next launch.
+Update last-success fields only after write, reopen, and validation. Record only
+the digest returned by the exact archived snapshot. If content changed during
+the external write, schedule another eligibility check. A failed attempt records
+an error code and remains eligible on the next launch.
 
 Alternative rejected: archive after every autosave. Complete archives with
 figures would create unnecessary disk and provider-sync churn.
 
-### 10. Retain only recognized Tesina daily backups
+### 10. Retain only ledger-proven backups from this installation
 
 Use a dedicated `<selected folder>/Tesina Backups/` directory and names such as
-`Tesina Library - 2026-08-08T19-42-00Z.tesina`. Classify a file as prunable only
-when its name matches the exact automatic-backup grammar and its manifest is a
-valid `tesina-library` archive. After a new validated success, sort recognized
-daily backups by manifest creation time and prune beyond seven oldest-first.
+`Tesina Library - 2026-08-08T19-42-00Z.tesina`. Maintain an atomic Rust-owned
+`$APPDATA/backup-ledger.json` containing exact filename, archive hash, creation
+time, and `backupSetId`. Classify a file as prunable only when its name matches the
+grammar, its manifest is valid, its backup-set identity matches, the ledger
+records it, and its current bytes/hash still match immediately before deletion.
+If the ledger is missing or disagrees, retain everything. This prevents one
+device from pruning another device's valid archive in a shared synced folder.
+
+The wizard Test backup is the first retained recovery archive. `Back up now`
+uses the same retained-backup class and counts toward the newest seven. Manual
+Export library files have no `backup` manifest field and are never pruned.
+After a new validated success, sort owned recovery archives by manifest creation
+time and prune beyond seven oldest-first.
 
 Manual exports, rollback archives, directories, unknown files, invalid archives,
 and temp files are never retention targets. A prune failure is a warning and
@@ -313,10 +410,19 @@ Create:
 - `components/LibraryImportModal.svelte`: validation, Merge preview, confirm,
   progress, recovery, and result states shared by Import and Restore.
 
-Do not overload the existing DOCX Export action. Add separate Library backup and
-Import library entry points. Route every label and message through Paraglide in
-both message files. Use UI locale for the wizard/chrome; essay content remains
-document-locale-owned.
+Do not overload the existing DOCX Export action. Add persistent, separate Export
+library and Import library entry points. Settings includes Turn off/Re-enable
+and explains that old files remain. Label restore as “Restore by merging” (or
+localized equivalent) and explain that it never replaces/rolls back newer work.
+Wizard Test requires affirmative consent after showing the exact destination
+and complete-unencrypted-library disclosure. Success/status says Tesina verified
+the local file only, displays the next expected backup condition, and points to
+the provider for remote-sync status.
+
+Route every label and message through Paraglide in both message files. Use UI
+locale for the wizard/chrome; persisted imported-copy suffixes use each essay's
+document language. Modals trap and restore focus, progress/status changes use
+live announcements, and healthy/warning states never rely on color alone.
 
 Every changed `.svelte` file must pass the Svelte MCP autofixer before commit.
 
@@ -325,10 +431,13 @@ Every changed `.svelte` file must pass the Svelte MCP autofixer before commit.
 In the root layout/app initialization sequence, register the shared library with
 the persistence coordinator as today, then run import recovery before exposing
 loaded essays/library to the home screen. Start backup eligibility only after
-recovery and normal data loads finish. Native close and updater restart continue
-to call the same persistence barrier; an active import/export/backup operation
-must register a flush/finalization barrier or prevent unsafe close until its
-recoverable state is durable.
+recovery and normal data loads finish. Native close and updater restart use a
+distinct `OperationCoordinator`, not a flusher registered recursively with
+persistence. Snapshot flush completes before acquiring an operation token.
+Close/relaunch waits for safe points: export/backup cancels and cleans its
+temporary output, while import advances to a persisted recoverable journal
+state. Force-kill, crash, and OS shutdown remain covered independently by
+startup recovery rather than a close promise.
 
 ## Risks / Trade-offs
 
@@ -337,9 +446,15 @@ recoverable state is durable.
 - **[Cloud File Provider reports a path writable before remote upload]** →
   Tesina guarantees only validated local-folder completion and describes
   provider sync as provider-owned; it never claims remote upload success.
-- **[External scope is lost after update or OS permission change]** → Use
-  persisted-scope, recheck folder access before each run, and offer Retry or
-  Choose another folder without blocking local work.
+- **[External scope is lost after update or OS permission change]** → Restore
+  only the configured directory through the native adapter, recheck canonical
+  access before each run, and offer Retry or Choose another folder without
+  blocking local work.
+- **[Two devices share one backup folder]** → Installation backup-set identity
+  plus an exact successful-write ledger prevents cross-device pruning.
+- **[Provider operation blocks or has not uploaded]** → Run external I/O away
+  from the UI-critical path, define timeout/unavailable/conflict errors, and
+  claim only local validation; verify iCloud plus one third-party File Provider.
 - **[Import crashes between additive files and library update]** → Durable
   pre-write journal, unused final paths, stable operation IDs, validated
   rollback, and startup recovery make retry/removal deterministic.
@@ -357,8 +472,9 @@ recoverable state is durable.
 ## Migration Plan
 
 1. Add pure types, validators, builders, fixtures, and tests without wiring UI.
-2. Add Tauri persisted-scope/plugin and filesystem adapters; prove a selected
-   folder remains authorized after packaged-app restart on macOS and Windows.
+2. Add the targeted native backup-directory adapter; prove only the active
+   selected folder remains usable after packaged-app restart on macOS and
+   Windows while old and transient dialog paths remain denied.
 3. Add import planner/journal/recovery with a startup gate and fault-injection
    tests.
 4. Wire manual Export library and Import library, then complete a real packaged
@@ -373,11 +489,16 @@ recoverable state is durable.
 8. After merge to `main`, tag the exact commit, verify updater artifacts and
    signatures, and publish the release through the existing workflow.
 
-Rollback before release is removal of the new UI/plugin/modules because no
+Rollback before release is removal of the new UI/native commands/modules because no
 existing data schema is rewritten. After release, disabling the backup UI does
 not affect local essays; `.tesina` files remain user-owned. If import must be
 disabled, startup recovery remains until every existing journal is completed or
 rolled back.
+
+After publication, rollback is a forward patch release: disable new entry
+points while retaining archive readability and startup recovery for existing
+journals. Never delete user-owned `.tesina` files. The release runbook records
+the compatible journal/archive versions and exact recovery-only behavior.
 
 ## Open Questions
 

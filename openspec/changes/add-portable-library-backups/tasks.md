@@ -11,13 +11,19 @@
 - [ ] 1.3 Build representative fixtures for an empty library, a large text
       library, and a figure-heavy library; use their measured sizes to choose
       and document maximum archive bytes, entry count, single expanded entry,
-      total expanded bytes, and compression ratio in
+      total expanded bytes, compression ratio, JSON depth/node/string/entity
+      counts, image dimensions/frames, and cumulative decoded pixels in
       `apps/desktop/src/lib/portable/limits.ts`.
 - [ ] 1.4 Add failing tests proving the chosen limits reject oversized declared
       and observed input while accepting the representative supported fixtures.
-- [ ] 1.5 Add `fflate` as a direct MIT-licensed dependency of
-      `apps/desktop/package.json`, regenerate `deno.lock`, and verify no package
-      imports it transitively through `@tesina/docx-export`.
+- [ ] 1.5 Run a failing feasibility spike against data-descriptor ZIP, ZIP64,
+      encrypted-bit, Unix-symlink-mode, unsupported-compression, and missing-size
+      fixtures; select a bounded central-directory parser plus inflater or a
+      native ZIP crate that exposes every required field before dependency
+      lock-in. Do not assume `fflate` alone can reject non-regular entries.
+- [ ] 1.6 Add the selected direct dependencies, regenerate Deno/Cargo lock data,
+      and record exact resolved versions and SPDX licenses for the full new
+      transitive dependency delta; every license must satisfy `AGENTS.md`.
 
 ## 2. Pure archive contract and deterministic bytes
 
@@ -35,8 +41,10 @@
       reachable assets enter `manifest.json`, `essays/`, `library.json`, and
       `assets/`.
 - [ ] 2.5 Add failing round-trip and golden tests proving deterministic archive
-      output when injected metadata is fixed and proving device settings,
-      deleted backups, and orphan assets are absent.
+      output across separate processes when injected metadata and ZIP entry
+      order, UTF-8 flags, compression settings, OS attributes, and modification
+      times are fixed; prove device settings, deleted backups, and orphan assets
+      are absent.
 - [ ] 2.6 Implement ZIP creation in `portable/archive.ts` and make every
       produced archive reopen through the validator before its bytes can be
       returned as a successful result.
@@ -49,37 +57,51 @@
       checksum and length mismatches, missing manifest, duplicate manifest, and
       unsupported versions.
 - [ ] 3.2 Implement bounded streaming ZIP intake in `portable/archive.ts`; check
-      native file size before load and enforce declared and observed counters
-      before allocating or parsing expanded payloads. Do not use unbounded
-      `unzipSync` on imported files.
+      native file size in `persist/portableFiles.ts` before load and enforce
+      declared preflight plus authoritative observed counters before parsing
+      expanded payloads. Do not use unbounded `unzipSync` on imported files.
 - [ ] 3.3 Add failing JSON-shape tests for invalid manifest fields, essay schema
       versions other than 2, malformed shared-library schema, invalid reference
-      and collection arrays, unsupported figure extensions, and missing
-      referenced assets.
+      and collection arrays, non-canonical/overlong IDs, filename/payload ID
+      mismatches, JSON complexity limits, image signature/media-type mismatch,
+      image dimension/frame/pixel limits, unsupported figure extensions, and
+      missing referenced assets.
 - [ ] 3.4 Implement `portable/validate.ts` with discriminated localized error
       codes and relationship validation; never write an archive entry path
       directly to disk.
 - [ ] 3.5 Add mutation tests that corrupt each golden archive entry one at a
       time and prove validation fails before import planning.
+- [ ] 3.6 Add typed local-path constructors and native canonical-containment
+      checks; test separators, traversal, Unicode lookalikes, reserved names,
+      symlinks/reparse points, and every attacker-controlled identifier before
+      any app-data path is derived.
 
 ## 4. Stable app-data snapshot and recoverable archive writes
 
 - [ ] 4.1 Add tests that hold pending essay and library writes open, start a
       snapshot, and prove snapshot reading waits for
-      `persistence.flushPending()` and aborts if the barrier rejects.
-- [ ] 4.2 Implement `persist/librarySnapshot.ts` to enumerate persisted essays,
-      read `library.json`, collect reachable figure bytes, reject invalid source
-      data, and return the pure snapshot contract after the barrier.
+      `persistence.flushPending()` and aborts if the barrier rejects; then race
+      essay/library/asset mutations and concurrent export, backup, rollback,
+      import, and retention work at every enumeration/read boundary and prove no
+      mixed revision is returned.
+- [ ] 4.2 Extend persistence coordination with an exclusive snapshot/maintenance
+      lease and generation tracking. Implement `persist/librarySnapshot.ts` to
+      flush, stage every valid essay, `library.json`, and reachable asset under a
+      UUID app-data snapshot, retry/abort on mutation, reject rather than skip
+      invalid source data, and release only after staging is immutable.
 - [ ] 4.3 Add tests for cancelled save dialogs, failed destination writes,
       existing destination preservation, temporary-file cleanup, and validation
       of the written file before success.
 - [ ] 4.4 Implement `persist/portableFiles.ts` with native `.tesina` open/save
       and folder dialogs, UUID-named sibling temporary files, reopen validation,
-      and recoverable replacement that preserves the previous destination until
-      the new file is safely installed.
+      direct same-filesystem replacement where safe, and a journaled fallback
+      that preserves the previous destination until the new file reopens and
+      validates. Add startup/next-access recovery and termination tests at every
+      rename and cleanup boundary.
 - [ ] 4.5 Create one injected `LibraryArchiveService` used by manual export,
-      rollback creation, test backup, scheduled backup, and manual backup;
-      prohibit duplicate packaging implementations.
+      rollback creation, test backup, scheduled backup, and Back up now;
+      return the digest of the exact archived snapshot and prohibit duplicate
+      packaging implementations.
 - [ ] 4.6 Add a packaged-app smoke harness that exports a real current library,
       reopens it, and checks manifest counts, citations, references,
       collections, and figure bytes.
@@ -103,17 +125,24 @@
       identical/conflicting references, identical/conflicting collections,
       same-byte assets, and path-colliding different-byte assets.
 - [ ] 5.6 Implement `portable/importPlan.ts` with injected transaction/UUID/time
-      dependencies, stable operation IDs, localized imported-copy labels
-      supplied by the caller, and explicit preview/result counts.
+      dependencies, stable operation IDs, imported-copy labels selected from
+      each essay's document language, and explicit preview/result counts. Keep
+      preview/chrome explanations on the current UI language axis.
 - [ ] 5.7 Add final pure consistency checks proving every planned citation,
       snapshot reference, collection membership, and figure path resolves after
       the plan is applied to an in-memory fixture.
+- [ ] 5.8 Resolve the asset checksum-to-local-path plan before semantic essay
+      comparison; add a self-import fixture with an identical illustrated essay
+      and prove it is skipped rather than copied because archive-normalized and
+      local figure paths differ.
 
 ## 6. Journaled import, rollback, and startup recovery
 
 - [ ] 6.1 Define and test a versioned import-journal schema containing
       transaction ID, archive hash, rollback path/hash, staged/final operations,
-      per-operation completion, and terminal status.
+      expected final hash/length/type, proof that additive targets did not exist,
+      per-operation completion, terminal status, and a redundant checksummed
+      operation manifest or independently validated journal copy.
 - [ ] 6.2 Add fault-injection tests for failure before the journal, after each
       asset/essay move, before and after `library.json` replacement, during
       final consistency validation, and during staging cleanup.
@@ -126,21 +155,31 @@
       skips completed stable operation IDs without producing duplicate essays,
       references, collections, or assets.
 - [ ] 6.5 Implement rollback that restores the previous library and removes only
-      new final paths listed by the journal; never delete an unlisted or
-      pre-existing path.
+      new final paths whose current bytes match the journaled expected output;
+      preserve/quarantine mismatches and enter manual recovery rather than
+      deleting an unlisted, changed, or pre-existing path.
 - [ ] 6.6 Add startup recovery before normal essay/library interactivity: resume
       a valid transaction, otherwise restore the validated rollback, surface a
       localized recovery result, and start backup eligibility only afterward.
-- [ ] 6.7 Register import/export/backup finalization with the app persistence
-      barrier so close and updater restart wait until an operation is either
-      complete or durably journaled and recoverable.
+      Add missing/corrupted journal, stage, and rollback combinations proving an
+      unrecoverable case fails closed with Retry, privacy-safe diagnostic export,
+      and quit guidance while preserving evidence.
+- [ ] 6.7 Add a distinct `OperationCoordinator`: persistence flush precedes its
+      token; close/updater restart await safe points; export/backup cancels and
+      cleans temporary output; import reaches a persisted recoverable journal
+      state. Test every phase without recursive flush deadlock.
+- [ ] 6.8 Define rollback retention by count/age and transaction status, apply
+      restrictive app-data permissions where supported, disclose the complete
+      unencrypted recovery copy, and prove cleanup never removes an unfinished
+      transaction's rollback.
 
 ## 7. Manual library export and Merge user interface
 
 - [ ] 7.1 Add English and Spanish Paraglide messages for complete-library
       export, the unencrypted privacy notice, validation/progress/errors, Merge
-      categories, imported-copy suffixes, recovery, cancellation, and results;
-      do not hardcode user-facing strings.
+      categories, document-language imported-copy suffixes, restore-by-merging
+      consequences, rollback-copy privacy, recovery, cancellation, and results;
+      do not hardcode user-facing strings or mix UI/document locale axes.
 - [ ] 7.2 Add a separate Export library action and confirmation flow that
       flushes persistence, explains archive scope/privacy, opens the native save
       dialog, and reports success only after destination reopen validation;
@@ -151,24 +190,35 @@
 - [ ] 7.4 Add component tests for new/identical/conflicting preview counts,
       reference/collection/asset consequences, cancel-with-no-writes, disabled
       apply during validation, error focus/announcements, and successful
-      home/library refresh.
+      home/library refresh. Cover UI language changes while open, UI language
+      differing from imported document language, modal focus trap/restoration,
+      live progress announcements, and safe/non-cancellable apply messaging.
 - [ ] 7.5 Wire Import library and Restore entry points to the same modal,
       validator, planner, journal, and result contracts.
 - [ ] 7.6 Run the Svelte MCP autofixer on every new or changed `.svelte` file
       and resolve all valid findings before committing this slice.
 
-## 8. Persisted selected-folder authorization and settings durability
+## 8. Narrow selected-folder authorization and settings durability
 
-- [ ] 8.1 Add the official Tauri persisted-scope plugin to Cargo dependencies
-      and initialize it immediately after `tauri-plugin-fs`; update generated
-      lock data and the minimum capability permissions without adding broad
-      `$HOME`, provider, or network scopes.
-- [ ] 8.2 Add native integration proof that a folder selected through the dialog
-      can be written, the packaged app can restart, and the same folder remains
-      authorized on macOS and Windows.
+- [ ] 8.1 Add a Rust backup-directory adapter with purpose-specific
+      configure/test/write/list/read/reveal/revoke commands. Do not install
+      global persisted-scope and do not accept arbitrary caller paths after
+      configuration. Use a recursive native folder selection only during setup,
+      canonicalize it, reject symlinks/reparse points, and add no broad `$HOME`,
+      provider, or network scope. Implement
+      `apps/desktop/src-tauri/src/backup_directory.rs`, register commands in
+      `lib.rs`, and make Rust exclusively own an atomic versioned
+      `$APPDATA/backup-directory.json` authorization record.
+- [ ] 8.2 Add native negative and restart proof on macOS and Windows: the active
+      folder supports child creation/reopen/replace/list/removal after process
+      restart, while its parent/sibling, an old backup folder, and manual
+      import/export selections are denied. Record the exact capability diff.
 - [ ] 8.3 Extend schema-version-1 `settings.json` additively with validated
-      `BackupSettings`; prove older settings load with backup disabled and
-      backup configuration is excluded from `.tesina` archives.
+      backup UI/status fields and keep authoritative path/enabled/backup-set
+      state in the native record. Add a Rust-owned atomic
+      `$APPDATA/backup-ledger.json` keyed by the native `backupSetId`; prove
+      older settings load with backup disabled and every configuration/ledger
+      file is excluded from `.tesina` archives.
 - [ ] 8.4 Refactor `UiSettingsStore` writes into serialized requested/persisted
       revisions with `flushPending()`, failure retry, and
       persistence-coordinator registration so close/restart cannot lose or
@@ -176,7 +226,8 @@
 - [ ] 8.5 Add tests for initial configuration, test-before-enable, rapid status
       updates, failed write retry, folder change only after a successful new
       test, and preservation of the previous configuration when the new folder
-      test fails.
+      test fails. Prove successful change/disable revokes old authority while
+      leaving existing archives untouched and explaining that outcome.
 
 ## 9. Backup eligibility, retention, and failure behavior
 
@@ -190,43 +241,61 @@
 - [ ] 9.3 Create `state/backup.svelte.ts` with injected archive/files/clock
       dependencies, a debounced eligibility check, one active run,
       local-calendar-day gating, manual override, and last-success fields
-      updated only after validated completion.
+      updated only with the digest returned from the validated archived
+      snapshot.
 - [ ] 9.4 Add scheduler tests for first changed session, no changes, a second
       change after today's success, failed attempt and next-launch retry,
       timezone day boundary, concurrent manual/automatic requests, and Back up
-      now bypassing only the daily limit.
+      now bypassing only the daily limit. Race a mutation during archive write
+      and prove the later content remains eligible.
 - [ ] 9.5 Implement `portable/retention.ts` and tests for the exact automatic
-      filename grammar, valid-manifest classification, creation-time ordering,
-      seven retained files, unrelated/invalid/manual/temp entries untouched, and
-      prune failure as a warning rather than backup failure.
+      filename grammar, matching backup-set identity and successful-write
+      ledger, immediate pre-delete hash recheck, creation-time ordering, Test
+      backup and Back up now counting toward seven, manual Export library and
+      other-device/invalid/temp entries untouched, missing-ledger retain-all,
+      and prune failure as a warning rather than backup failure.
 - [ ] 9.6 Wire selected-folder offline, moved, full, and unauthorized failures
       to stable error codes and non-blocking Retry/Choose another folder
       behavior while local autosave and editing remain functional.
+- [ ] 9.7 Run selected-folder operations off the UI-critical path with bounded
+      unavailable/timeout/permission/full/conflict outcomes; test provider hang,
+      placeholder hydration, folder replacement, and concurrent rename without
+      claiming remote upload success.
 
 ## 10. Five-step wizard, home status, and Settings controls
 
 - [ ] 10.1 Create `BackupSetupWizard.svelte` with separate Why, Choose location,
       Review privacy, Test backup, and Success steps; name Google Drive, iCloud
       Drive, OneDrive, Dropbox, and ordinary folders without claiming provider
-      integration or remote-upload verification.
+      integration or remote-upload verification. Before Test writes, show the
+      exact destination, state that the complete unencrypted library is being
+      copied now, and require affirmative consent.
 - [ ] 10.2 Add wizard tests for keyboard/focus flow, English and Spanish text,
       cancellation at every step, folder-picker cancellation, test failure and
-      retry, success details, and no configuration before validated test
-      completion.
+      cleanup/retry/change-destination, success details, local-versus-provider
+      status disclosure, and no configuration before validated test completion.
 - [ ] 10.3 Create `BackupStatusCard.svelte` for the optional/dismissible home
-      card and configured healthy, running, warning, and retry states without
-      blocking essay actions.
+      card shown deterministically until dismissal and configured healthy,
+      running, warning, retention-warning, and retry states without blocking
+      essay actions; display next expected backup as dependent on Tesina running,
+      idle eligibility, and changed content.
 - [ ] 10.4 Create `BackupSettings.svelte` with location, last successful time,
-      Back up now, Restore, Open backup folder, Change folder, Retry, and
-      setup-card preference controls.
+      next expected backup, Back up now, Restore by merging, Open backup folder,
+      Change folder, Turn off/Re-enable, Retry, and setup-card preference
+      controls. Disclose that folder change/disable leaves old archive files.
 - [ ] 10.5 Add component tests proving a started backup preserves the previous
       success time, a validated completion updates it, a failed backup remains
-      eligible, and Restore opens the shared Merge preview.
+      eligible, Turn off revokes access without deleting files, and Restore by
+      merging explains its consequences before opening the shared Merge preview.
 - [ ] 10.6 Integrate the backup coordinator at app lifetime after import
       recovery and normal data load; cleanly unsubscribe/finalize on layout
       destruction.
 - [ ] 10.7 Run the Svelte MCP autofixer on every new or changed `.svelte` file
       and resolve all valid findings before committing this slice.
+- [ ] 10.8 Add accessibility tests for modal semantics, focus trap/restoration,
+      keyboard-only wizard/status actions, live announcements for every long
+      operation and recovery state, semantic progress/status, and non-color-only
+      healthy/warning indicators in both UI languages.
 
 ## 11. End-to-end recovery and cross-platform acceptance
 
@@ -245,12 +314,23 @@
       test backups, verify only seven recognized backups remain, and restore
       through Merge; record paths and screenshots without exposing essay
       content.
-- [ ] 11.5 Repeat the native filesystem-scope, archive round-trip, retention,
-      and restore acceptance on a packaged Windows app or CI runner; do not mark
-      the task complete from unit tests alone.
+- [ ] 11.5 Repeat native folder selection, child access, process restart without
+      reprompt, negative old/transient-path checks, archive round-trip,
+      retention, and restore on a packaged Windows app or native E2E job that
+      actually launches the packaged app. Compilation, installer creation, and
+      unit tests cannot satisfy this task; evidence must target the exact feature
+      SHA before merge.
 - [ ] 11.6 Verify Google Drive, iCloud Drive, OneDrive, and Dropbox wording is
       provider-neutral: Tesina proves the local selected-folder file only and
       never claims remote synchronization succeeded.
+- [ ] 11.7 Manually exercise iCloud Drive and one third-party macOS File Provider
+      with offline placeholder, rehydration, concurrent provider activity,
+      rename conflict, timeout, and restart cases; record privacy-redacted
+      outcomes without treating provider upload as a Tesina assertion.
+- [ ] 11.8 Store durable privacy-redacted native evidence tied to the exact
+      commit and package digest: OS/app version, scenario/result, archive
+      hash/counts, restart proof, and screenshot/log attachment IDs—never essay
+      content, usernames, or private folder names.
 
 ## 12. Required verification, version, and publication
 
@@ -259,32 +339,46 @@
       `deno task test`, `deno fmt`, and `deno lint`; require 0 Svelte
       errors/warnings and preserve unrelated snapshot/worktree changes.
 - [ ] 12.2 Run `openspec validate add-portable-library-backups --strict` and
-      `git diff --check`; confirm every requirement scenario has direct
-      automated or explicitly recorded packaged-native evidence.
+      `git diff --check`; maintain a requirement-evidence matrix mapping every
+      scenario to a named automated test, durable packaged-native evidence ID,
+      or explicit deferred/not-applicable justification.
 - [ ] 12.3 Bump the next patch version consistently in
       `apps/desktop/package.json`, `apps/desktop/src-tauri/tauri.conf.json`,
       `apps/desktop/src-tauri/Cargo.toml`, the Tesina package entry in
       `Cargo.lock`, both message files, README current-version statements, and
-      any release verification fixtures.
+      exact release-verifier/tests. Add failing release-contract tests first and
+      extend automation so every listed surface is enforced.
 - [ ] 12.4 Move completed `CHANGELOG.md` items from Unreleased into a dated
-      version section with plain-English English/Spanish-visible release notes
-      that explain portable library files, optional daily backups, the
+      version section, advance its comparison links, and add plain-language
+      English changelog notes describing behavior visible in both UI languages:
+      portable library files, optional daily backups, the
       seven-version history, unencrypted privacy, and safe Merge restore without
       internal jargon.
 - [ ] 12.5 Re-run the full gates after version/release-note changes, inspect the
-      final diff for scope and licensing, and commit each verified slice in
-      English.
+      final diff and lockfile-derived dependency/license report, validate the
+      capability schema and negative permission evidence, and commit each
+      verified slice in English. Update PR CI to enforce root `deno fmt --check`
+      and `deno lint`, not only package paths.
 - [ ] 12.6 Follow repository PR policy: synchronize protected branches without
       closing them, target `dev` when it exists, request `@greptile review` on
       the PR commit comment, address only validated feedback, and merge only
       with required checks green.
 - [ ] 12.7 After the change reaches `main`, synchronize local protected
       branches, tag the exact main commit with the matching `v` version, let the
-      release workflow create the draft, verify updater
-      manifest/signature/archive/DMG or Windows artifacts, and publish the
-      release so users receive the feature.
+      release workflow create the draft, verify the current macOS shipping
+      contract—DMG, updater archive, `.sig`, `latest.json`, signature validity,
+      matching version/notes/URLs—and publish the release so users receive the
+      feature. Track Windows runtime/installer proof as a separate gate unless
+      supported Windows publication is explicitly added.
 - [ ] 12.8 Record final handoff evidence: change/commit/PR/version/tag, test
-      counts, Svelte autofixer result, macOS and Windows native paths,
-      persisted-scope restart proof, archive checksum/round-trip proof, release
-      workflow run, public updater availability, and exact `main...origin/main`
-      and `dev...origin/dev` parity.
+      counts, slice-level RED/GREEN/REFACTOR proof, Svelte autofixer result,
+      durable macOS/Windows native evidence IDs, narrow-folder restart/negative
+      proof, archive checksum/round-trip proof, release workflow run, public
+      updater availability, clean worktree/feature disposition, exact local
+      `main` equals `origin/main`, tag and published target equal that SHA, and
+      `dev` parity only when that branch exists (otherwise record its absence).
+- [ ] 12.9 Add an operational rollback runbook: stop before draft publication on
+      verification failure; after publication ship a higher patch version that
+      disables entry points while retaining archive readability and startup
+      recovery; preserve user `.tesina` files and unfinished journals; record
+      supported journal/archive versions and prove old settings still load.

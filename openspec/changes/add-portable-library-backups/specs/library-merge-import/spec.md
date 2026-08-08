@@ -64,8 +64,8 @@ semantically identical.
 - **WHEN** a local and imported essay share an ID but differ in document,
   title-page, settings, or cited-reference snapshot content
 - **THEN** Tesina preserves the local essay and imports the other with a new ID,
-  localized imported-copy title suffix, original creation date, source essay ID,
-  and import timestamp
+  imported-copy title suffix in that essay's document language, original
+  creation date, source essay ID, and import timestamp
 
 ### Requirement: Consistent reference and collection remapping
 
@@ -116,7 +116,10 @@ paths SHALL resolve to the chosen local assets after planning.
 ### Requirement: Validated rollback before merge
 
 Before applying a Merge plan, Tesina SHALL create and validate a complete local
-rollback archive representing the pre-import content library.
+rollback archive representing the pre-import content library. Tesina SHALL tell
+the user that this local recovery copy is unencrypted, retain every rollback
+needed by an unfinished transaction, and apply a bounded retention policy only
+to completed transactions.
 
 #### Scenario: Rollback creation fails
 
@@ -132,10 +135,11 @@ rollback archive representing the pre-import content library.
 
 ### Requirement: Idempotent journaled apply and startup recovery
 
-Tesina SHALL record a durable import journal with stable transaction and
-operation IDs before applying changes. Each operation SHALL be safe to retry. On
-startup, Tesina SHALL detect an unfinished transaction and either resume a valid
-plan or restore the validated rollback when safe resume is impossible.
+Tesina SHALL persist and reopen-validate an import journal with stable
+transaction and operation IDs before applying changes. Each operation SHALL be
+safe to retry after normal close, updater restart, or process crash. On startup,
+Tesina SHALL detect an unfinished transaction and either resume a valid plan or
+restore the validated rollback when safe resume is impossible.
 
 #### Scenario: App closes during import
 
@@ -149,6 +153,21 @@ plan or restore the validated rollback when safe resume is impossible.
   data
 - **THEN** Tesina restores the validated rollback archive and reports the
   recovery result
+
+#### Scenario: Resume and rollback are both unavailable
+
+- **WHEN** staged data cannot be resumed and the journal or rollback archive is
+  missing, corrupted, inconsistent, or inaccessible
+- **THEN** Tesina fails closed before library interactivity, preserves all
+  evidence without guessed deletion, and presents a localized recovery-required
+  state with Retry, safe diagnostic export, and quit guidance
+
+#### Scenario: Rollback sees unexpected final bytes
+
+- **WHEN** a final path recorded as import-created no longer matches the
+  journaled expected hash and length
+- **THEN** Tesina does not delete that path automatically and enters the safe
+  recovery-required state
 
 ### Requirement: Final consistency gate
 
@@ -177,3 +196,10 @@ preview, identity mapping, and lossless Merge behavior as ordinary import.
 - **WHEN** the user selects Restore for a valid older `.tesina` backup
 - **THEN** Tesina opens a Merge preview and preserves newer local work rather
   than replacing the current library
+
+#### Scenario: User reviews restore consequences
+
+- **WHEN** the restore confirmation is shown
+- **THEN** Tesina explains in the current UI language that Restore merges rather
+  than rolls back or replaces, and that older conflicts can appear as imported
+  copies

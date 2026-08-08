@@ -434,8 +434,9 @@
         <div>
           <strong>The archive is the foundation, not a temporary
             workaround.</strong>
-          <span>Manual transfer and cloud sync both move the same essays,
-            references, images, settings, and format version.</span>
+          <span>Manual transfer and cloud-folder backup both move the same
+            essays, references, images, document settings, and format version.
+            Device preferences stay local.</span>
         </div>
       </aside>
 
@@ -536,10 +537,11 @@
           </div>
           <div class="stage-result">
             <span class="result-label">Added value</span>
-            <strong>Off-device disaster recovery</strong>
+            <strong>A local recovery file ready for provider sync</strong>
             <p>
-              A stolen or failed computer no longer takes the entire library
-              with it.
+              Tesina validates the file in the chosen folder. Google Drive,
+              iCloud Drive, OneDrive, or Dropbox reports whether it finished
+              uploading off the device.
             </p>
           </div>
         </div>
@@ -587,8 +589,9 @@
             <span class="icon">01</span>
             <h3>Current local data</h3>
             <p>
-              Essay JSON, shared references, imported figures, and app settings
-              remain Tesina’s working source of truth.
+              Essay JSON, shared references, imported figures, and document
+              settings remain Tesina’s working source of truth. Device
+              preferences are not part of the portable library.
             </p>
           </article>
           <div class="arrow" aria-hidden="true">→</div>
@@ -672,8 +675,8 @@
           </article>
           <article class="guardrail">
             <strong>Never silently overwrite</strong>
-            <span>Duplicates and conflicts receive clear choices and retain
-              recoverable copies.</span>
+            <span>Version one uses a clear Merge preview: identical content is
+              skipped and conflicts retain recoverable imported copies.</span>
           </article>
           <article class="guardrail">
             <strong>Cloud stays optional</strong>
@@ -684,9 +687,10 @@
       </section>
 
       <footer>
-        <strong>Recommended first milestone:</strong> full-library export/import
-        with manifest validation, asset inclusion, merge preview, and automatic
-        pre-import backup. Cloud backup comes after that round trip is proven.
+        <strong>Delivery sequence inside this change:</strong> first prove the
+        full-library export/import round trip with manifest validation, asset
+        inclusion, Merge preview, and pre-import rollback; then enable optional
+        folder backup using that same proven archive service.
       </footer>
     </main>
 
