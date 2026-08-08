@@ -53,30 +53,30 @@
 
 ## 3. Bounded untrusted archive validation
 
-- [ ] 3.1 Add adversarial tests for malformed ZIP bytes, encrypted entries,
+- [x] 3.1 Add adversarial tests for malformed ZIP bytes, encrypted entries,
       absolute paths, parent/dot traversal, backslashes, NULs, duplicate
       normalized paths, unknown top-level paths, entries violating the exact
       allowed-path grammar (uppercase, non-ASCII, multi-dot, or overlong
       extensions), symlinks/non-regular entries, checksum and length
       mismatches, missing manifest, duplicate manifest, and unsupported
       versions.
-- [ ] 3.2 Implement bounded streaming ZIP intake in `portable/archive.ts` with a
+- [x] 3.2 Implement bounded streaming ZIP intake in `portable/archive.ts` with a
       declared-size preflight at the pure intake boundary plus authoritative
       observed counters before parsing expanded payloads; when
       `persist/portableFiles.ts` is created in task 4.4, wire the native
       file-size check there. Do not use unbounded `unzipSync` on imported
       files.
-- [ ] 3.3 Add failing JSON-shape tests for invalid manifest fields, essay schema
+- [x] 3.3 Add failing JSON-shape tests for invalid manifest fields, essay schema
       versions other than 2, malformed shared-library schema, invalid reference
       and collection arrays, non-canonical/overlong IDs, filename/payload ID
       mismatches, JSON complexity limits, image signature/media-type mismatch,
       image dimension/frame/pixel limits, unsupported figure extensions,
       missing referenced assets, and citations, reference snapshots, or
       collection members that reference identifiers absent from the archive.
-- [ ] 3.4 Implement `portable/validate.ts` with discriminated localized error
+- [x] 3.4 Implement `portable/validate.ts` with discriminated localized error
       codes and relationship validation; never write an archive entry path
       directly to disk.
-- [ ] 3.5 Add mutation tests that corrupt each golden archive entry one at a
+- [x] 3.5 Add mutation tests that corrupt each golden archive entry one at a
       time and prove validation fails before import planning.
 - [ ] 3.6 Add typed local-path constructors and native canonical-containment
       checks; test separators, traversal, Unicode lookalikes, reserved names,
