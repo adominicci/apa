@@ -9,6 +9,10 @@ const svelteConfigSource = await Deno.readTextFile(
 const desktopPackage = JSON.parse(
   await Deno.readTextFile(`${root}apps/desktop/package.json`),
 ) as { devDependencies: Record<string, string> };
+const configDependencies = [
+  "@sveltejs/adapter-static",
+  "@sveltejs/vite-plugin-svelte",
+] as const;
 
 async function loadConfigOutsideWorkspace(): Promise<{
   code: number;
@@ -18,26 +22,9 @@ async function loadConfigOutsideWorkspace(): Promise<{
     prefix: "tesina-svelte-config-resolution-",
   });
   const configPath = `${directory}/svelte.config.js`;
-  const adapterPath = `${directory}/adapter.js`;
-  const importMapPath = `${directory}/import-map.json`;
 
   try {
     await Deno.writeTextFile(configPath, svelteConfigSource);
-    await Deno.writeTextFile(
-      adapterPath,
-      `export default function adapter() {
-  return { name: "test-adapter", adapt() {} };
-}
-`,
-    );
-    await Deno.writeTextFile(
-      importMapPath,
-      JSON.stringify({
-        imports: {
-          "@sveltejs/adapter-static": pathToFileURL(adapterPath).href,
-        },
-      }),
-    );
 
     const configUrl = pathToFileURL(configPath).href;
     const probe = `const config = (await import(${
@@ -54,8 +41,6 @@ if (!config?.preprocess || !config?.kit?.adapter) {
         `${root}deno.json`,
         "--lock",
         `${root}deno.lock`,
-        "--import-map",
-        importMapPath,
         probe,
       ],
       cwd: directory,
@@ -73,16 +58,17 @@ if (!config?.preprocess || !config?.kit?.adapter) {
 }
 
 describe("Svelte config dependency resolution", () => {
-  it("keeps the explicit npm import aligned with the declared dependency", () => {
-    const declaredVersion =
-      desktopPackage.devDependencies["@sveltejs/vite-plugin-svelte"];
+  it("keeps explicit npm imports aligned with both declared dependencies", () => {
+    for (const dependency of configDependencies) {
+      const declaredVersion = desktopPackage.devDependencies[dependency];
 
-    expect(svelteConfigSource).toContain(
-      `npm:@sveltejs/vite-plugin-svelte@${declaredVersion}`,
-    );
+      expect(svelteConfigSource).toContain(
+        `npm:${dependency}@${declaredVersion}`,
+      );
+    }
   });
 
-  it("loads without relying on workspace bare-import lookup", async () => {
+  it("loads both real dependencies without workspace or import-map lookup", async () => {
     const result = await loadConfigOutsideWorkspace();
 
     expect(result.stderr).toBe("");
