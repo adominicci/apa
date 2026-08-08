@@ -36,7 +36,7 @@ enum DriverStage {
     AwaitingCopy,
     AwaitingPaste,
     AwaitingCaret,
-    AwaitingDeadKeyRelease,
+    AwaitingDeadKeyAcknowledgement,
     AwaitingDeadKeyOutcome,
     AwaitingUndo,
     Complete,
@@ -172,17 +172,17 @@ impl DriverProtocol {
                     );
                 }
                 self.selection_position = Some(after);
-                self.stage = DriverStage::AwaitingDeadKeyRelease;
+                self.stage = DriverStage::AwaitingDeadKeyAcknowledgement;
                 Ok(DriverAction::DeadKey)
             }
-            (DriverStage::AwaitingDeadKeyRelease, "dead-keyup") => {
+            (DriverStage::AwaitingDeadKeyAcknowledgement, "dead-keydown") => {
                 let document_size = document_position(value, "documentSize")?;
                 let insertion_pos = document_position(value, "insertionPos")?;
                 if self.document_size != Some(document_size)
                     || self.selection_position != Some(insertion_pos)
                 {
                     return Err(
-                        "released dead key changed the document or acknowledged caret".into(),
+                        "trusted dead key changed the document or acknowledged caret".into(),
                     );
                 }
                 self.stage = DriverStage::AwaitingDeadKeyOutcome;
@@ -1211,7 +1211,7 @@ mod tests {
             protocol
                 .advance(&json!({
                     "version": 1,
-                    "stage": "dead-keyup",
+                    "stage": "dead-keydown",
                     "documentSize": 518,
                     "insertionPos": 318
                 }))
@@ -1352,13 +1352,13 @@ mod tests {
         for invalid in [
             json!({
                 "version": 1,
-                "stage": "dead-keyup",
+                "stage": "dead-keydown",
                 "documentSize": 519,
                 "insertionPos": 318
             }),
             json!({
                 "version": 1,
-                "stage": "dead-keyup",
+                "stage": "dead-keydown",
                 "documentSize": 518,
                 "insertionPos": 317
             }),
@@ -1369,7 +1369,7 @@ mod tests {
             protocol
                 .advance(&json!({
                     "version": 1,
-                    "stage": "dead-keyup",
+                    "stage": "dead-keydown",
                     "documentSize": 518,
                     "insertionPos": 318
                 }))

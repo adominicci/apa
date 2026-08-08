@@ -38,7 +38,7 @@ describe("visible native manual-proof contract", () => {
     expect(source).toContain('addEventListener("compositionend"');
     expect(source).toContain('addEventListener("copy"');
     expect(source).toContain('addEventListener("paste"');
-    expect(source).toContain('addEventListener("keyup"');
+    expect(source).not.toContain('addEventListener("keyup"');
     expect(source).toContain('addEventListener("mousedown"');
     expect(source).toContain('addEventListener("mouseup"');
     expect(source).toContain('event.key === "Dead"');
@@ -64,15 +64,17 @@ describe("visible native manual-proof contract", () => {
     expect(source).toContain("selectionRestored");
     expect(source).toContain('stage: "dead-key"');
     expect(source).toContain('stage: "caret"');
-    expect(source).toContain('stage: "dead-keyup"');
+    expect(source).toContain('stage: "dead-keydown"');
     expect(source).toContain('stage: "undo"');
-    expect(source).toContain("deadKeyReleaseKey");
-    const deadKeyUpHandler = source.slice(
-      source.indexOf('addEventListener("keyup"'),
+    expect(source).toContain("deadKeyAckStage: deadKeyAcknowledgementPosted");
+    const deadKeyDownHandler = source.slice(
+      source.indexOf('addEventListener("keydown"'),
       source.indexOf('addEventListener("compositionstart"'),
     );
-    expect(deadKeyUpHandler).toContain('event.code !== "Quote"');
-    expect(deadKeyUpHandler).not.toContain('event.key !== "Dead"');
+    expect(deadKeyDownHandler).toContain('event.key === "Dead"');
+    expect(deadKeyDownHandler).toContain('event.code === "Quote"');
+    expect(deadKeyDownHandler).toContain('stage: "dead-keydown"');
+    expect(deadKeyDownHandler).not.toContain('addEventListener("keyup"');
     const compositionEndHandler = source.slice(
       source.indexOf('addEventListener("compositionend"'),
       source.indexOf('addEventListener("copy"'),

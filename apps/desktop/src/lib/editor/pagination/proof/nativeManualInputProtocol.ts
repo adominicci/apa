@@ -57,7 +57,7 @@ export type NativeManualInputMessage =
   }
   | {
     version: 1;
-    stage: "dead-keyup";
+    stage: "dead-keydown";
     documentSize: number;
     insertionPos: number;
   }
@@ -261,7 +261,7 @@ export function parseNativeManualInputMessage(
         afterPos,
       };
     }
-    case "dead-keyup": {
+    case "dead-keydown": {
       const documentSize = documentPosition(
         message["documentSize"],
         "documentSize",
@@ -277,7 +277,7 @@ export function parseNativeManualInputMessage(
       }
       return {
         version: 1,
-        stage: "dead-keyup",
+        stage: "dead-keydown",
         documentSize,
         insertionPos,
       };

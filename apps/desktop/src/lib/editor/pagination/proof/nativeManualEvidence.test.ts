@@ -37,7 +37,6 @@ describe("native manual evidence reducer", () => {
         isComposing: false,
         ctrlKey: false,
       },
-      { kind: "key-up", key: "Dead", code: "Quote" },
       { kind: "composition-start", beforeSize: 108 },
       { kind: "composition-update" },
       { kind: "key-down", key: "e", isComposing: true, ctrlKey: false },
@@ -101,14 +100,9 @@ describe("native manual evidence reducer", () => {
         kind: "key-down",
         isTrusted: true,
         key: "Dead",
+        code: "Quote",
         isComposing: false,
         ctrlKey: false,
-      },
-      {
-        kind: "key-up",
-        isTrusted: true,
-        key: "Dead",
-        code: "Quote",
       },
       {
         kind: "dead-key-outcome",
@@ -157,8 +151,6 @@ describe("native manual evidence reducer", () => {
       deadKeyAfterSize: 109,
       deadKeyInsertionPos: 73,
       deadKeys: 1,
-      deadKeyReleases: 1,
-      deadKeyReleaseKey: "Dead",
       undoKeys: 1,
       undoDocumentSize: 108,
       undoDocumentRestored: true,
@@ -168,7 +160,7 @@ describe("native manual evidence reducer", () => {
     });
   });
 
-  it("rejects derived outcomes unless trusted Dead and Ctrl+Z keys precede them", () => {
+  it("accepts the exact derived character after trusted Dead without requiring a keyup", () => {
     let state = createNativeManualEvidence();
     for (
       const event of [
@@ -231,14 +223,9 @@ describe("native manual evidence reducer", () => {
       kind: "key-down",
       isTrusted: true,
       key: "Dead",
+      code: "KeyA",
       isComposing: false,
       ctrlKey: false,
-    });
-    state = recordNativeManualEvidence(state, {
-      kind: "key-up",
-      isTrusted: true,
-      key: "'",
-      code: "KeyA",
     });
     state = recordNativeManualEvidence(state, {
       kind: "dead-key-outcome",
@@ -249,10 +236,12 @@ describe("native manual evidence reducer", () => {
     });
     expect(state.deadKeyData).toBe("");
     state = recordNativeManualEvidence(state, {
-      kind: "key-up",
+      kind: "key-down",
       isTrusted: true,
-      key: "'",
+      key: "Dead",
       code: "Quote",
+      isComposing: false,
+      ctrlKey: false,
     });
     state = recordNativeManualEvidence(state, {
       kind: "dead-key-outcome",
@@ -269,7 +258,6 @@ describe("native manual evidence reducer", () => {
     });
 
     expect(state.deadKeyData).toBe("é");
-    expect(state.deadKeyReleaseKey).toBe("'");
     expect(state.undoDocumentSize).toBeNull();
     expect(nativeManualChecks(state, "windows-driven").ime).toBe(false);
   });
@@ -305,6 +293,7 @@ describe("native manual evidence reducer", () => {
           kind: "key-down",
           isTrusted: true,
           key: "Dead",
+          code: "Quote",
           isComposing: false,
           ctrlKey: false,
         },
@@ -440,14 +429,9 @@ describe("native manual evidence reducer", () => {
         kind: "key-down",
         isTrusted: true,
         key: "Dead",
+        code: "Quote",
         isComposing: false,
         ctrlKey: false,
-      },
-      {
-        kind: "key-up",
-        isTrusted: true,
-        key: "Dead",
-        code: "Quote",
       },
       {
         kind: "dead-key-outcome",

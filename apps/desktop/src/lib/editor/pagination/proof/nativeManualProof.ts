@@ -52,7 +52,7 @@ let deadKeyBaseline:
     insertionPos: number;
   }
   | undefined;
-let deadKeyReleasePosted = false;
+let deadKeyAcknowledgementPosted = false;
 let deadKeyOutcomePosted = false;
 
 function requireElement<T extends Element>(selector: string): T {
@@ -146,13 +146,18 @@ document.addEventListener("keydown", (event) => {
     kind: "key-down",
     isTrusted: event.isTrusted,
     key: event.key,
+    code: event.code,
     isComposing: event.isComposing,
     ctrlKey: event.ctrlKey,
   });
   if (
     evidenceMode === "windows-driven" && event.isTrusted &&
-    event.key === "Dead" && editor
+    event.key === "Dead" && event.code === "Quote" && editor
   ) {
+    if (deadKeyAcknowledgementPosted) {
+      finish(false, "Duplicate trusted Dead keydown was received");
+      return;
+    }
     if (!nativeManualChecks(evidence, evidenceMode).paste) {
       finish(
         false,
@@ -165,7 +170,10 @@ document.addEventListener("keydown", (event) => {
       return;
     }
     const selection = editor.state.selection;
-    if (!selection.empty || selection.from !== evidence.caretAfterPos) {
+    if (
+      !editor.isFocused || !selection.empty ||
+      selection.from !== evidence.caretAfterPos
+    ) {
       finish(
         false,
         "Dead-key input started without the acknowledged ProseMirror caret",
@@ -179,46 +187,16 @@ document.addEventListener("keydown", (event) => {
       selectionTo: selection.to,
       insertionPos: selection.from,
     };
-  }
-  updateStatus();
-}, true);
-document.addEventListener("keyup", (event) => {
-  evidence = recordNativeManualEvidence(evidence, {
-    kind: "key-up",
-    isTrusted: event.isTrusted,
-    key: event.key,
-    code: event.code,
-  });
-  if (
-    evidenceMode !== "windows-driven" || !event.isTrusted ||
-    event.code !== "Quote" || !editor ||
-    !deadKeyBaseline ||
-    deadKeyReleasePosted || finished
-  ) {
+    deadKeyAcknowledgementPosted = true;
     updateStatus();
-    return;
+    postNativeInput({
+      version: NATIVE_INPUT_PROTOCOL_VERSION,
+      stage: "dead-keydown",
+      documentSize: deadKeyBaseline.documentSize,
+      insertionPos: deadKeyBaseline.insertionPos,
+    });
   }
-  const selection = editor.state.selection;
-  const baselineUnchanged = editor.isFocused && selection.empty &&
-    selection.from === deadKeyBaseline.selectionFrom &&
-    selection.to === deadKeyBaseline.selectionTo &&
-    editor.state.doc.content.size === deadKeyBaseline.documentSize &&
-    JSON.stringify(editor.getJSON()) === deadKeyBaseline.json;
-  if (!baselineUnchanged || evidence.deadKeyReleases === 0) {
-    finish(
-      false,
-      "Released dead key changed the document or acknowledged selection",
-    );
-    return;
-  }
-  deadKeyReleasePosted = true;
   updateStatus();
-  postNativeInput({
-    version: NATIVE_INPUT_PROTOCOL_VERSION,
-    stage: "dead-keyup",
-    documentSize: deadKeyBaseline.documentSize,
-    insertionPos: deadKeyBaseline.insertionPos,
-  });
 }, true);
 document.addEventListener("compositionstart", (event) => {
   evidence = recordNativeManualEvidence(evidence, {
@@ -478,8 +456,7 @@ function finish(passed: boolean, error?: string): void {
       compositionUpdates: evidence.compositionUpdates,
       compositionEnds: evidence.compositionEnds,
       deadKeys: evidence.deadKeys,
-      deadKeyReleases: evidence.deadKeyReleases,
-      deadKeyReleaseKey: evidence.deadKeyReleaseKey,
+      deadKeyAckStage: deadKeyAcknowledgementPosted ? "trusted-keydown" : "",
       rightKeys: evidence.rightKeys,
       pasteSelectionPos: evidence.pasteSelectionPos,
       caretBeforePos: evidence.caretBeforePos,

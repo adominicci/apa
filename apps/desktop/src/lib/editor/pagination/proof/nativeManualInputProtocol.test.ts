@@ -195,22 +195,22 @@ describe("native manual-input protocol", () => {
     ).toThrow();
   });
 
-  it("acknowledges the released dead key before the authored character", () => {
+  it("acknowledges the trusted dead-key keydown before the authored character", () => {
     expect(parseNativeManualInputMessage({
       version: 1,
-      stage: "dead-keyup",
+      stage: "dead-keydown",
       documentSize: 518,
       insertionPos: 318,
     })).toEqual({
       version: 1,
-      stage: "dead-keyup",
+      stage: "dead-keydown",
       documentSize: 518,
       insertionPos: 318,
     });
     expect(() =>
       parseNativeManualInputMessage({
         version: 1,
-        stage: "dead-keyup",
+        stage: "dead-keydown",
         documentSize: 518,
         insertionPos: 519,
       })
