@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import type { DocLocale } from "@tesina/engine";
   import type { Essay } from "$lib/model/essay";
   import EssayHome from "$lib/components/EssayHome.svelte";
@@ -84,6 +84,12 @@
     }
   }
 
+  let stopBackup: (() => void) | null = null;
+  onDestroy(() => {
+    stopBackup?.();
+    stopBackup = null;
+  });
+
   onMount(async () => {
     try {
       await runRecoveryPhase();
@@ -97,7 +103,21 @@
       uiLocale.load(),
     ]);
     booted = true;
-    // group 10 wires backup.start() here, after recovery and data loads.
+    // Backup coordinator (task 10.6): starts only after recovery and the
+    // normal data loads, listens to persistence activity, and evaluates
+    // once for content that changed while Tesina was closed.
+    if ("__TAURI_INTERNALS__" in window) {
+      try {
+        const { backupStore } = await import("$lib/persist/backupRuntime");
+        const store = backupStore();
+        store.start();
+        store.scheduleEligibilityCheck();
+        stopBackup = () => store.stop();
+      } catch (err) {
+        // Backup machinery failing must never block writing.
+        console.error("No se pudo iniciar el coordinador de respaldo:", err);
+      }
+    }
     // Non-blocking: never delay first paint on the network check.
     void updater.check();
   });

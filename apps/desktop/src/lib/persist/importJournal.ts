@@ -22,7 +22,7 @@
 
 import { canonicalJsonBytes } from "$lib/portable/canonicalJson";
 import { sha256Hex } from "$lib/portable/archive";
-import type { ImportOperation, ImportPlan } from "$lib/portable/importPlan";
+import type { ImportPlan } from "$lib/portable/importPlan";
 
 export class ImportJournalError extends Error {
   readonly code: string;

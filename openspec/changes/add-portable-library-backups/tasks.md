@@ -281,47 +281,47 @@
       other-device/invalid/temp entries untouched, missing-ledger retain-all,
       prune failure as a warning rather than backup failure, and a persistent
       accumulation warning when owned archives grow well beyond seven.
-- [ ] 9.6 Wire selected-folder offline, moved, full, and unauthorized failures
+- [x] 9.6 Wire selected-folder offline, moved, full, and unauthorized failures
       to stable error codes and non-blocking Retry/Choose another folder
       behavior while local autosave and editing remain functional.
-- [ ] 9.7 Run selected-folder operations off the UI-critical path with bounded
+- [x] 9.7 Run selected-folder operations off the UI-critical path with bounded
       unavailable/timeout/permission/full/conflict outcomes; test provider hang,
       placeholder hydration, folder replacement, and concurrent rename without
       claiming remote upload success.
 
 ## 10. Five-step wizard, home status, and Settings controls
 
-- [ ] 10.1 Create `BackupSetupWizard.svelte` with separate Why, Choose location,
+- [x] 10.1 Create `BackupSetupWizard.svelte` with separate Why, Choose location,
       Review privacy, Test backup, and Success steps; name Google Drive, iCloud
       Drive, OneDrive, Dropbox, and ordinary folders without claiming provider
       integration or remote-upload verification. Before Test writes, show the
       exact destination, state that the complete unencrypted library is being
       copied now, and require affirmative consent.
-- [ ] 10.2 Add wizard tests for keyboard/focus flow, English and Spanish text,
+- [x] 10.2 Add wizard tests for keyboard/focus flow, English and Spanish text,
       cancellation at every step, folder-picker cancellation, test failure and
       cleanup/retry/change-destination, success details, local-versus-provider
       status disclosure, and no configuration before validated test completion.
-- [ ] 10.3 Create `BackupStatusCard.svelte` for the optional/dismissible home
+- [x] 10.3 Create `BackupStatusCard.svelte` for the optional/dismissible home
       card shown deterministically until dismissal and configured healthy,
       running, warning, retention-warning, and retry states without blocking
       essay actions; display next expected backup as dependent on Tesina running,
       idle eligibility, and changed content.
-- [ ] 10.4 Create `BackupSettings.svelte` with location, last successful time,
+- [x] 10.4 Create `BackupSettings.svelte` with location, last successful time,
       next expected backup, Back up now, Restore by merging, Open backup folder,
       Change folder, Turn off/Re-enable, Retry, and setup-card preference
       controls. Disclose that folder change/disable leaves old archive files
       and that re-enabling requires authorizing a folder and passing a new test
       backup.
-- [ ] 10.5 Add component tests proving a started backup preserves the previous
+- [x] 10.5 Add component tests proving a started backup preserves the previous
       success time, a validated completion updates it, a failed backup remains
       eligible, Turn off revokes access without deleting files, and Restore by
       merging explains its consequences before opening the shared Merge preview.
-- [ ] 10.6 Integrate the backup coordinator at app lifetime after import
+- [x] 10.6 Integrate the backup coordinator at app lifetime after import
       recovery and normal data load; cleanly unsubscribe/finalize on layout
       destruction.
-- [ ] 10.7 Run the Svelte MCP autofixer on every new or changed `.svelte` file
+- [x] 10.7 Run the Svelte MCP autofixer on every new or changed `.svelte` file
       and resolve all valid findings before committing this slice.
-- [ ] 10.8 Add accessibility tests for modal semantics, focus trap/restoration,
+- [x] 10.8 Add accessibility tests for modal semantics, focus trap/restoration,
       keyboard-only wizard/status actions, live announcements for every long
       operation and recovery state, semantic progress/status, and non-color-only
       healthy/warning indicators in both UI languages.
