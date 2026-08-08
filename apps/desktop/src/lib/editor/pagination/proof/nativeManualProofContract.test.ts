@@ -66,6 +66,13 @@ describe("visible native manual-proof contract", () => {
     expect(source).toContain('stage: "caret"');
     expect(source).toContain('stage: "dead-keyup"');
     expect(source).toContain('stage: "undo"');
+    expect(source).toContain("deadKeyReleaseKey");
+    const deadKeyUpHandler = source.slice(
+      source.indexOf('addEventListener("keyup"'),
+      source.indexOf('addEventListener("compositionstart"'),
+    );
+    expect(deadKeyUpHandler).toContain('event.code !== "Quote"');
+    expect(deadKeyUpHandler).not.toContain('event.key !== "Dead"');
     const compositionEndHandler = source.slice(
       source.indexOf('addEventListener("compositionend"'),
       source.indexOf('addEventListener("copy"'),
@@ -86,6 +93,7 @@ describe("visible native manual-proof contract", () => {
     expect(nativeInputDriver).toContain("GetClipboardData");
     expect(nativeInputDriver).toContain("CloseClipboard");
     expect(nativeInputDriver).toContain("LoadKeyboardLayoutW");
+    expect(nativeInputDriver).toContain("ToUnicodeEx");
     expect(nativeInputDriver).toContain("00020409");
     expect(nativeInputDriver).toContain("DriverAction::MoveCaret =>");
     expect(nativeInputDriver).toContain("DriverAction::ComposeCharacter =>");
@@ -120,6 +128,9 @@ describe("visible native manual-proof contract", () => {
       nativeInputDriver.indexOf("fn send_dead_key_press"),
       nativeInputDriver.indexOf("fn send_composition_character"),
     );
+    expect(deadKeyPress.indexOf("dead_key_pending = true")).toBeLessThan(
+      deadKeyPress.indexOf("self.send_key_sequence"),
+    );
     expect(deadKeyPress).toContain("(VK_OEM_7, false)");
     expect(deadKeyPress).not.toContain("VK_E");
     const compositionCharacter = nativeInputDriver.slice(
@@ -129,6 +140,13 @@ describe("visible native manual-proof contract", () => {
     expect(compositionCharacter).toContain("(VK_E, false)");
     expect(compositionCharacter).not.toContain("VK_OEM_7");
     expect(compositionCharacter).not.toContain("VK_RIGHT");
+    const undoBranch = nativeInputDriver.slice(
+      nativeInputDriver.indexOf("DriverAction::Undo =>"),
+      nativeInputDriver.indexOf("DriverAction::Complete =>"),
+    );
+    expect(undoBranch.indexOf("dead_key_pending = false")).toBeLessThan(
+      undoBranch.indexOf("self.send_control_chord"),
+    );
     expect(`${nativeHost}\n${nativeInputDriver}`).not.toMatch(
       /execute_script|dispatchEvent/,
     );
@@ -149,6 +167,16 @@ describe("visible native manual-proof contract", () => {
     );
     expect(nativeInputDriver).toContain("CleanupAction::RestoreCursor =>");
     expect(nativeInputDriver).toContain("CleanupAction::RestoreClipboard =>");
+    expect(nativeInputDriver).toContain("CleanupAction::ClearDeadKeyState =>");
+    expect(nativeInputDriver).toContain("clear_dead_key_state(layout.target)");
+    const deadKeyCleanup = nativeInputDriver.slice(
+      nativeInputDriver.indexOf("fn clear_dead_key_state"),
+      nativeInputDriver.indexOf("fn virtual_desktop"),
+    );
+    expect(deadKeyCleanup).toContain("MAPVK_VK_TO_VSC");
+    expect(deadKeyCleanup).toContain("VK_SPACE as u32");
+    expect(deadKeyCleanup).toContain("count == 1");
+    expect(deadKeyCleanup).toMatch(/translated\.len\(\) as i32,\s+0,\s+layout/);
     expect(nativeInputDriver).toContain(
       "restore_clipboard_snapshot(hwnd, clipboard)",
     );

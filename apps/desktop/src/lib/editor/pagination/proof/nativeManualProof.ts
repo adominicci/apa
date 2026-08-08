@@ -191,7 +191,7 @@ document.addEventListener("keyup", (event) => {
   });
   if (
     evidenceMode !== "windows-driven" || !event.isTrusted ||
-    event.key !== "Dead" || event.code !== "Quote" || !editor ||
+    event.code !== "Quote" || !editor ||
     !deadKeyBaseline ||
     deadKeyReleasePosted || finished
   ) {
@@ -479,6 +479,7 @@ function finish(passed: boolean, error?: string): void {
       compositionEnds: evidence.compositionEnds,
       deadKeys: evidence.deadKeys,
       deadKeyReleases: evidence.deadKeyReleases,
+      deadKeyReleaseKey: evidence.deadKeyReleaseKey,
       rightKeys: evidence.rightKeys,
       pasteSelectionPos: evidence.pasteSelectionPos,
       caretBeforePos: evidence.caretBeforePos,

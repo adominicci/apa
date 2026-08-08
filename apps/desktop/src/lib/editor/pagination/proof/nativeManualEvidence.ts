@@ -18,6 +18,7 @@ export interface NativeManualEvidence {
   caretAfterPos: number | null;
   deadKeys: number;
   deadKeyReleases: number;
+  deadKeyReleaseKey: string;
   deadKeyBeforeSize: number | null;
   deadKeyAfterSize: number | null;
   deadKeyInsertionPos: number | null;
@@ -134,6 +135,7 @@ export function createNativeManualEvidence(): NativeManualEvidence {
     caretAfterPos: null,
     deadKeys: 0,
     deadKeyReleases: 0,
+    deadKeyReleaseKey: "",
     deadKeyBeforeSize: null,
     deadKeyAfterSize: null,
     deadKeyInsertionPos: null,
@@ -220,13 +222,14 @@ export function recordNativeManualEvidence(
         composingKeys: evidence.composingKeys + (event.isComposing ? 1 : 0),
       };
     case "key-up":
+      if (
+        event.code !== "Quote" ||
+        evidence.deadKeys <= evidence.deadKeyReleases
+      ) return evidence;
       return {
         ...evidence,
-        deadKeyReleases: evidence.deadKeyReleases +
-          (event.key === "Dead" && event.code === "Quote" &&
-              evidence.deadKeys > evidence.deadKeyReleases
-            ? 1
-            : 0),
+        deadKeyReleases: evidence.deadKeyReleases + 1,
+        deadKeyReleaseKey: event.key,
       };
     case "caret-outcome":
       if (

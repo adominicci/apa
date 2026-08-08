@@ -328,6 +328,7 @@ pub(crate) fn pending_key_releases(events: &[(u16, bool)], accepted: u32) -> Vec
 pub(crate) enum CleanupAction {
     MouseUp,
     KeyUp(u16),
+    ClearDeadKeyState,
     RestoreKeyboardLayout,
     RestoreCursor,
     RestoreClipboard,
@@ -337,6 +338,7 @@ pub(crate) enum CleanupAction {
 pub(crate) struct CleanupState<L, C, B> {
     mouse_down: bool,
     pending_key_releases: Vec<u16>,
+    dead_key_pending: bool,
     layout: Option<L>,
     cursor: Option<C>,
     clipboard: Option<B>,
@@ -347,6 +349,7 @@ impl<L, C, B> Default for CleanupState<L, C, B> {
         Self {
             mouse_down: false,
             pending_key_releases: Vec::new(),
+            dead_key_pending: false,
             layout: None,
             cursor: None,
             clipboard: None,
@@ -366,6 +369,7 @@ impl<L, C, B> CleanupState<L, C, B> {
                 self.pending_key_releases
                     .retain(|pending_key| *pending_key != key);
             }
+            CleanupAction::ClearDeadKeyState => self.dead_key_pending = false,
             CleanupAction::RestoreKeyboardLayout => self.layout = None,
             CleanupAction::RestoreCursor => self.cursor = None,
             CleanupAction::RestoreClipboard => self.clipboard = None,
@@ -385,6 +389,9 @@ pub(crate) fn cleanup_actions<L, C, B>(state: &CleanupState<L, C, B>) -> Vec<Cle
             .copied()
             .map(CleanupAction::KeyUp),
     );
+    if state.dead_key_pending {
+        actions.push(CleanupAction::ClearDeadKeyState);
+    }
     if state.layout.is_some() {
         actions.push(CleanupAction::RestoreKeyboardLayout);
     }
@@ -403,6 +410,9 @@ pub(crate) fn execute_cleanup<L, C, B>(
 ) -> Vec<String> {
     let mut errors = Vec::new();
     for action in cleanup_actions(state) {
+        if action == CleanupAction::RestoreKeyboardLayout && state.dead_key_pending {
+            continue;
+        }
         match perform(action, state) {
             Ok(()) => state.mark_succeeded(action),
             Err(error) => errors.push(error),
@@ -439,12 +449,13 @@ mod platform {
         UI::{
             Input::KeyboardAndMouse::{
                 ActivateKeyboardLayout, GetAsyncKeyState, GetKeyboardLayout, LoadKeyboardLayoutW,
-                MapVirtualKeyExW, SendInput, HKL, INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE,
-                KEYBDINPUT, KEYEVENTF_KEYUP, KLF_ACTIVATE, KLF_SETFORPROCESS, MAPVK_VK_TO_CHAR,
-                MOUSEEVENTF_ABSOLUTE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MOVE,
-                MOUSEEVENTF_MOVE_NOCOALESCE, MOUSEEVENTF_VIRTUALDESK, MOUSEINPUT, VK_C, VK_CONTROL,
-                VK_E, VK_LBUTTON, VK_LCONTROL, VK_LWIN, VK_MENU, VK_OEM_7, VK_RCONTROL, VK_RIGHT,
-                VK_RWIN, VK_SHIFT, VK_V, VK_Z,
+                MapVirtualKeyExW, SendInput, ToUnicodeEx, HKL, INPUT, INPUT_0, INPUT_KEYBOARD,
+                INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_KEYUP, KLF_ACTIVATE, KLF_SETFORPROCESS,
+                MAPVK_VK_TO_CHAR, MAPVK_VK_TO_VSC, MOUSEEVENTF_ABSOLUTE, MOUSEEVENTF_LEFTDOWN,
+                MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MOVE, MOUSEEVENTF_MOVE_NOCOALESCE,
+                MOUSEEVENTF_VIRTUALDESK, MOUSEINPUT, VK_C, VK_CONTROL, VK_E, VK_LBUTTON,
+                VK_LCONTROL, VK_LWIN, VK_MENU, VK_OEM_7, VK_RCONTROL, VK_RIGHT, VK_RWIN, VK_SHIFT,
+                VK_SPACE, VK_V, VK_Z,
             },
             WindowsAndMessaging::{
                 GetClientRect, GetCursorPos, GetForegroundWindow, GetGUIThreadInfo,
@@ -472,7 +483,15 @@ mod platform {
         Empty,
     }
 
-    type NativeCleanupState = CleanupState<(HKL, HWND, u32), POINT, ClipboardSnapshot>;
+    #[derive(Clone, Copy)]
+    struct KeyboardLayoutSnapshot {
+        original: HKL,
+        target: HKL,
+        focus: HWND,
+        thread_id: u32,
+    }
+
+    type NativeCleanupState = CleanupState<KeyboardLayoutSnapshot, POINT, ClipboardSnapshot>;
 
     pub(crate) struct WindowsNativeInputDriver {
         hwnd: HWND,
@@ -544,6 +563,7 @@ mod platform {
                     self.send_composition_character()?;
                 }
                 DriverAction::Undo => {
+                    self.cleanup_state.dead_key_pending = false;
                     self.require_focus()?;
                     self.send_control_chord(VK_Z, "undo")?;
                 }
@@ -725,12 +745,21 @@ mod platform {
             if original.is_null() {
                 return Err("focused WebView2 keyboard layout is unavailable".into());
             }
-            self.cleanup_state.layout = Some((original, focus, focus_thread));
+            self.cleanup_state.layout = Some(KeyboardLayoutSnapshot {
+                original,
+                target: original,
+                focus,
+                thread_id: focus_thread,
+            });
             let target =
                 unsafe { LoadKeyboardLayoutW(US_INTERNATIONAL_KLID.as_ptr(), KLF_ACTIVATE) };
             if target.is_null() {
                 return Err("United States-International layout 00020409 is unavailable".into());
             }
+            let snapshot = self.cleanup_state.layout.as_mut().ok_or_else(|| {
+                "keyboard layout snapshot disappeared during activation".to_string()
+            })?;
+            snapshot.target = target;
             let dead_key = unsafe { MapVirtualKeyExW(VK_OEM_7 as u32, MAPVK_VK_TO_CHAR, target) };
             if dead_key & 0x8000_0000 == 0 {
                 return Err("VK_OEM_7 is not a dead key under layout 00020409".into());
@@ -750,6 +779,7 @@ mod platform {
         }
 
         fn send_dead_key_press(&mut self) -> Result<(), String> {
+            self.cleanup_state.dead_key_pending = true;
             self.send_key_sequence(&[(VK_OEM_7, false), (VK_OEM_7, true)], "dead-key press")
         }
 
@@ -768,12 +798,19 @@ mod platform {
                 send_inputs(&[mouse_input(0, 0, MOUSEEVENTF_LEFTUP)], "mouse release")
             }
             CleanupAction::KeyUp(key) => send_inputs(&[key_input(key, true)], "key release"),
+            CleanupAction::ClearDeadKeyState => {
+                let layout = state
+                    .layout
+                    .as_ref()
+                    .ok_or_else(|| "keyboard-layout cleanup state is unavailable".to_string())?;
+                clear_dead_key_state(layout.target)
+            }
             CleanupAction::RestoreKeyboardLayout => {
-                let (layout, focus, thread_id) =
-                    state.layout.as_ref().copied().ok_or_else(|| {
-                        "keyboard-layout cleanup state is unavailable".to_string()
-                    })?;
-                restore_keyboard_layout(layout, focus, thread_id)
+                let layout = state
+                    .layout
+                    .as_ref()
+                    .ok_or_else(|| "keyboard-layout cleanup state is unavailable".to_string())?;
+                restore_keyboard_layout(layout.original, layout.focus, layout.thread_id)
             }
             CleanupAction::RestoreCursor => {
                 let cursor = state
@@ -898,6 +935,33 @@ mod platform {
     fn restore_keyboard_layout(layout: HKL, focus: HWND, thread_id: u32) -> Result<(), String> {
         request_keyboard_layout(layout, focus, thread_id)
             .map_err(|error| format!("keyboard-layout restoration failed: {error}"))
+    }
+
+    fn clear_dead_key_state(layout: HKL) -> Result<(), String> {
+        let scan_code = unsafe { MapVirtualKeyExW(VK_SPACE as u32, MAPVK_VK_TO_VSC, layout) };
+        if scan_code == 0 {
+            return Err("MapVirtualKeyExW failed while clearing dead-key state".into());
+        }
+        let keyboard_state = [0u8; 256];
+        let mut translated = [0u16; 2];
+        let count = unsafe {
+            ToUnicodeEx(
+                VK_SPACE as u32,
+                scan_code,
+                keyboard_state.as_ptr(),
+                translated.as_mut_ptr(),
+                translated.len() as i32,
+                0,
+                layout,
+            )
+        };
+        if count == 1 {
+            Ok(())
+        } else {
+            Err(format!(
+                "ToUnicodeEx returned {count} while clearing dead-key state"
+            ))
+        }
     }
 
     fn virtual_desktop() -> Result<(i32, i32, i32, i32), String> {
@@ -1413,6 +1477,7 @@ mod tests {
         let mut state = CleanupState {
             mouse_down: true,
             pending_key_releases: vec![0x11, 0x43],
+            dead_key_pending: false,
             layout: Some("layout"),
             cursor: Some("cursor"),
             clipboard: Some("clipboard"),
@@ -1456,6 +1521,58 @@ mod tests {
         assert_eq!(
             retried,
             vec![CleanupAction::KeyUp(0x43), CleanupAction::RestoreCursor]
+        );
+        assert!(state.is_clean());
+    }
+
+    #[test]
+    fn clears_pending_dead_key_before_layout_restore_and_retries_failed_clear() {
+        let mut state = CleanupState {
+            mouse_down: false,
+            pending_key_releases: Vec::new(),
+            dead_key_pending: true,
+            layout: Some("layout"),
+            cursor: Some("cursor"),
+            clipboard: Some("clipboard"),
+        };
+        let mut observed = Vec::new();
+        let errors = execute_cleanup(&mut state, |action, _| {
+            observed.push(action);
+            match action {
+                CleanupAction::ClearDeadKeyState => Err("dead-key state remained pending".into()),
+                _ => Ok(()),
+            }
+        });
+
+        assert_eq!(
+            observed,
+            vec![
+                CleanupAction::ClearDeadKeyState,
+                CleanupAction::RestoreCursor,
+                CleanupAction::RestoreClipboard,
+            ]
+        );
+        assert_eq!(errors, vec!["dead-key state remained pending"]);
+        assert_eq!(
+            cleanup_actions(&state),
+            vec![
+                CleanupAction::ClearDeadKeyState,
+                CleanupAction::RestoreKeyboardLayout,
+            ]
+        );
+
+        let mut retried = Vec::new();
+        assert!(execute_cleanup(&mut state, |action, _| {
+            retried.push(action);
+            Ok(())
+        })
+        .is_empty());
+        assert_eq!(
+            retried,
+            vec![
+                CleanupAction::ClearDeadKeyState,
+                CleanupAction::RestoreKeyboardLayout,
+            ]
         );
         assert!(state.is_clean());
     }
