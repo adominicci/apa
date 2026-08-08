@@ -10,12 +10,12 @@
 
 ## Task 2: Canonical page geometry and pure pagination planner
 
-- [ ] 2.1 Create failing tests for `apps/desktop/src/lib/editor/pagination/geometry.ts` that require Letter geometry of 816 by 1056 CSS pixels, 96-pixel margins, a 624-pixel text width, an 864-pixel printable height, and a visual-only page gap.
-- [ ] 2.2 Create `geometry.ts` and `types.ts` with the exact constants and typed contracts for measured fragments, break candidates, section kinds, page starts, table-row starts, invalidation reasons, stable plans, and page-count callbacks.
-- [ ] 2.3 Create failing pure tests for `plan.ts` covering exact-fit content, overflow to a second page, backward reflow after deletion, forced section starts, two-line widow/orphan behavior, heading keep-with-next, list continuation, atomic blocks, table-row boundaries, reference-page counts, and total-page accounting.
-- [ ] 2.4 Implement the minimal deterministic planner in `plan.ts`, keeping automatic page positions derived and guaranteeing that every planning pass makes forward progress.
-- [ ] 2.5 Add adversarial planner tests for zero-height fragments, fractional pixels, an element taller than the printable area, a table row taller than a page, empty sections, stale epochs, and repeated identical input; require a bounded overflow result rather than retry loops.
-- [ ] 2.6 Run the focused planner tests, then commit the geometry/types/planner checkpoint with an English commit message.
+- [x] 2.1 Create failing tests for `apps/desktop/src/lib/editor/pagination/geometry.ts` that require Letter geometry of 816 by 1056 CSS pixels, 96-pixel margins, a 624-pixel text width, an 864-pixel printable height, and a visual-only page gap.
+- [x] 2.2 Create `geometry.ts` and `types.ts` with the exact constants and typed contracts for measured fragments, break candidates, section kinds, page starts, table-row starts, invalidation reasons, stable plans, and page-count callbacks.
+- [x] 2.3 Create failing pure tests for `plan.ts` covering exact-fit content, overflow to a second page, backward reflow after deletion, forced section starts, two-line widow/orphan behavior, heading keep-with-next, list continuation, atomic blocks, table-row boundaries, reference-page counts, and total-page accounting.
+- [x] 2.4 Implement the minimal deterministic planner in `plan.ts`, keeping automatic page positions derived and guaranteeing that every planning pass makes forward progress.
+- [x] 2.5 Add adversarial planner tests for zero-height fragments, fractional pixels, an element taller than the printable area, a table row taller than a page, empty sections, stale epochs, and repeated identical input; require a bounded overflow result rather than retry loops.
+- [x] 2.6 Run the focused planner tests, then commit the geometry/types/planner checkpoint with an English commit message.
 
 ## Task 3: DOM measurement and ProseMirror decoration engine
 
