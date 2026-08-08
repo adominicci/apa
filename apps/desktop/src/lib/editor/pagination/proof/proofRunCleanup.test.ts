@@ -64,4 +64,17 @@ describe("native proof cleanup", () => {
       code: "ENOENT",
     });
   });
+
+  it("preserves an undefined preview rejection beside removal failures", async () => {
+    const result = await cleanupProofRun(
+      ["\0profile"],
+      { close: async () => await Promise.reject(undefined) },
+    ).catch((error: unknown) => error);
+
+    expect(result).toBeInstanceOf(AggregateError);
+    const errors = (result as AggregateError).errors;
+    expect(errors).toHaveLength(2);
+    expect(errors[0]).toBeInstanceOf(Error);
+    expect(errors[1]).toBeInstanceOf(Error);
+  });
 });

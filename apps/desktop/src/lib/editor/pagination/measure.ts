@@ -405,6 +405,26 @@ function blockFragment(
   };
 }
 
+/** Named atomic wrappers whose complete visual box moves as one fragment. */
+export function createNamedAtomicFragment(
+  node: PMNode,
+  pos: number,
+  section: SectionKind,
+  height: number,
+): MeasuredFragment | null {
+  if (node.type.name !== "figure" && node.type.name !== "apaEquation") {
+    return null;
+  }
+  return blockFragment(
+    `${node.type.name}:${pos}`,
+    pos,
+    node,
+    section,
+    "atomic",
+    height,
+  );
+}
+
 function repeatedTableHeader(
   parent: PMNode | null,
   rowElement: HTMLElement,
@@ -611,15 +631,14 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
         return true;
       }
 
-      if (node.type.name === "figure" || node.type.name === "equationBlock") {
-        sectionFragments.push(blockFragment(
-          `${node.type.name}:${pos}`,
-          pos,
-          node,
-          section,
-          "atomic",
-          heightWithoutGaps(element),
-        ));
+      const namedAtomicFragment = createNamedAtomicFragment(
+        node,
+        pos,
+        section,
+        heightWithoutGaps(element),
+      );
+      if (namedAtomicFragment) {
+        sectionFragments.push(namedAtomicFragment);
         return false;
       }
 

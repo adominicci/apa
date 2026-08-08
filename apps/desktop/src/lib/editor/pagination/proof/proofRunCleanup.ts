@@ -4,14 +4,22 @@ export interface PreviewServerCloser {
   close(): Promise<void>;
 }
 
+function normalizedFailure(reason: unknown, message: string): Error {
+  return reason instanceof Error
+    ? reason
+    : new Error(message, { cause: reason });
+}
+
 export async function cleanupProofRun(
   directories: readonly string[],
   previewServer?: PreviewServerCloser,
 ): Promise<void> {
+  let previewFailed = false;
   let previewError: unknown;
   try {
     await previewServer?.close();
   } catch (error) {
+    previewFailed = true;
     previewError = error;
   }
 
@@ -21,11 +29,22 @@ export async function cleanupProofRun(
     ),
   );
   const cleanupErrors = cleanupResults.flatMap((result) =>
-    result.status === "rejected" ? [result.reason] : []
+    result.status === "rejected"
+      ? [
+        normalizedFailure(
+          result.reason,
+          "Native proof directory removal failed",
+        ),
+      ]
+      : []
   );
 
   const errors = [
-    ...(previewError === undefined ? [] : [previewError]),
+    ...(previewFailed
+      ? [
+        normalizedFailure(previewError, "Native proof preview shutdown failed"),
+      ]
+      : []),
     ...cleanupErrors,
   ];
   if (errors.length === 1) throw errors[0];

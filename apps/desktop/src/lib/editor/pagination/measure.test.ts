@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { EditorView } from "@tiptap/pm/view";
 import type { PaginationReason } from "./types.ts";
 import {
+  createNamedAtomicFragment,
   createPaginationMeasurer,
   type PaginationLayoutAdapter,
 } from "./measure.ts";
@@ -60,6 +61,28 @@ function adapterWithReadiness(
 }
 
 describe("pagination DOM measurement lifecycle", () => {
+  it("recognizes the real apaEquation node name as a named atomic fragment", () => {
+    const fragment = createNamedAtomicFragment(
+      {
+        type: { name: "apaEquation" },
+        nodeSize: 1,
+      } as unknown as Parameters<typeof createNamedAtomicFragment>[0],
+      17,
+      "body",
+      64,
+    );
+
+    expect(fragment).toEqual({
+      id: "apaEquation:17",
+      from: 17,
+      to: 18,
+      section: "body",
+      kind: "atomic",
+      height: 64,
+      breakBefore: { kind: "block", pos: 17, section: "body" },
+    });
+  });
+
   it("discards an epoch superseded while fonts or images are becoming ready", async () => {
     const ready = deferred();
     const adapter = adapterWithReadiness(ready.promise);

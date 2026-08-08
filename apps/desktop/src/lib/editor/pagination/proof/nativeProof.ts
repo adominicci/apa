@@ -7,7 +7,6 @@ import {
   createPaginationMeasurer,
   type PaginationMeasurer,
 } from "../measure.ts";
-import type { MeasuredFragment, RepeatedTableHeader } from "../types.ts";
 import { createLongDocumentFixtures } from "./longDocumentFixture.ts";
 import {
   createDisposablePaginationProofPlugin,
@@ -19,6 +18,7 @@ import {
   createNativeProofBridge,
   type NativeProofBridgeScope,
 } from "./nativeBridge.ts";
+import { samePlannerFragmentInputs } from "./plannerInputEquality.ts";
 import { startProofPageWatchdog } from "./proofPageWatchdog.ts";
 import "./nativeProof.css";
 
@@ -93,43 +93,6 @@ function positionsOf(doc: PMNode, type: string): number[] {
     return true;
   });
   return result;
-}
-
-function sameRepeatedHeader(
-  left: RepeatedTableHeader | undefined,
-  right: RepeatedTableHeader | undefined,
-): boolean {
-  if (!left || !right) return left === right;
-  return Math.abs(left.height - right.height) < 0.5 &&
-    left.cells.length === right.cells.length &&
-    left.cells.every((cell, index) => {
-      const other = right.cells[index];
-      return cell.text === other?.text && cell.colSpan === other.colSpan;
-    });
-}
-
-function sameTableFragmentMetrics(
-  left: readonly MeasuredFragment[],
-  right: readonly MeasuredFragment[],
-): boolean {
-  return left.length === right.length && left.every((fragment, index) => {
-    const other = right[index];
-    if (!other) return false;
-    const sameTable = !fragment.table || !other.table
-      ? fragment.table === other.table
-      : fragment.table.tableId === other.table.tableId &&
-        fragment.table.columnCount === other.table.columnCount &&
-        sameRepeatedHeader(
-          fragment.table.repeatedHeader,
-          other.table.repeatedHeader,
-        );
-    return fragment.id === other.id && fragment.from === other.from &&
-      fragment.to === other.to && fragment.section === other.section &&
-      fragment.kind === other.kind &&
-      Math.abs(fragment.height - other.height) < 0.5 &&
-      fragment.breakBefore.kind === other.breakBefore.kind &&
-      fragment.breakBefore.pos === other.breakBefore.pos && sameTable;
-  });
 }
 
 function textHasMarkBetween(
@@ -412,12 +375,23 @@ async function runProof(): Promise<ProofResult> {
     const adjacentAtomicVisualAdvance = adjacentFigureRect.bottom +
       Number.parseFloat(adjacentFigureStyle.marginBottom) -
       (equationRect.top - Number.parseFloat(equationStyle.marginTop));
-    const adjacentAtomicMeasuredAdvance = initialMeasurement.fragments.filter(
+    const equationFragment = initialMeasurement.fragments.find((fragment) =>
+      fragment.id === `apaEquation:${equationPos}` &&
+      fragment.from === equationPos &&
+      fragment.to === equationPos + equationNode.nodeSize &&
+      fragment.kind === "atomic"
+    );
+    const adjacentFigureFragment = initialMeasurement.fragments.find(
       (fragment) =>
-        fragment.from >= equationPos &&
-        fragment.to <= adjacentFigurePos + adjacentFigureNode.nodeSize,
-    ).reduce((total, fragment) => total + fragment.height, 0);
-    const adjacentAtomicMarginsMeasuredOnce =
+        fragment.id === `figure:${adjacentFigurePos}` &&
+        fragment.from === adjacentFigurePos &&
+        fragment.to === adjacentFigurePos + adjacentFigureNode.nodeSize &&
+        fragment.kind === "atomic",
+    );
+    const adjacentAtomicMeasuredAdvance = (equationFragment?.height ?? 0) +
+      (adjacentFigureFragment?.height ?? 0);
+    const adjacentAtomicMarginsMeasuredOnce = equationFragment !== undefined &&
+      adjacentFigureFragment !== undefined &&
       equationPos + equationNode.nodeSize === adjacentFigurePos &&
       equationElement.nextElementSibling === adjacentFigureElement &&
       Math.abs(
@@ -728,7 +702,7 @@ async function runProof(): Promise<ProofResult> {
         fragment.from >= firstTablePos &&
         fragment.to <= firstTablePos + firstTableNode.nodeSize,
     );
-    const tableGapMeasurementsNormalized = sameTableFragmentMetrics(
+    const tableGapMeasurementsNormalized = samePlannerFragmentInputs(
       firstTableFragments,
       tableGapFragments,
     );
