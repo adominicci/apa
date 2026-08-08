@@ -98,30 +98,68 @@ describe("native manual-input protocol", () => {
     ).toThrow();
   });
 
-  it("accepts only the audited composed character with document growth", () => {
+  it("accepts only the audited dead-key character with its exact insertion position", () => {
     expect(parseNativeManualInputMessage({
       version: 1,
-      stage: "composition",
+      stage: "dead-key",
       data: "é",
       beforeSize: 518,
       afterSize: 519,
-    })).toMatchObject({ stage: "composition", data: "é" });
+      insertionPos: 317,
+    })).toMatchObject({ stage: "dead-key", data: "é", insertionPos: 317 });
     expect(() =>
       parseNativeManualInputMessage({
         version: 1,
-        stage: "composition",
+        stage: "dead-key",
         data: "e",
         beforeSize: 518,
         afterSize: 519,
+        insertionPos: 317,
       })
     ).toThrow();
     expect(() =>
       parseNativeManualInputMessage({
         version: 1,
-        stage: "composition",
+        stage: "dead-key",
         data: "é",
         beforeSize: 518,
         afterSize: 518,
+        insertionPos: 317,
+      })
+    ).toThrow();
+    expect(() =>
+      parseNativeManualInputMessage({
+        version: 1,
+        stage: "dead-key",
+        data: "é",
+        beforeSize: 518,
+        afterSize: 519,
+        insertionPos: 519,
+      })
+    ).toThrow();
+  });
+
+  it("requires explicit document and selection identity after one native undo", () => {
+    expect(parseNativeManualInputMessage({
+      version: 1,
+      stage: "undo",
+      documentSize: 518,
+      documentRestored: true,
+      selectionRestored: true,
+    })).toEqual({
+      version: 1,
+      stage: "undo",
+      documentSize: 518,
+      documentRestored: true,
+      selectionRestored: true,
+    });
+    expect(() =>
+      parseNativeManualInputMessage({
+        version: 1,
+        stage: "undo",
+        documentSize: 518,
+        documentRestored: "yes",
+        selectionRestored: true,
       })
     ).toThrow();
   });

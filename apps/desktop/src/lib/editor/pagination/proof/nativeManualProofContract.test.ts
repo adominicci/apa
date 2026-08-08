@@ -33,13 +33,31 @@ const cargoManifest = await readFile(
 );
 
 describe("visible native manual-proof contract", () => {
-  it("records real composition, clipboard, and mouse-drag event paths", () => {
+  it("records native composition diagnostics plus trusted outcome, undo, clipboard, and drag paths", () => {
     expect(source).toContain('addEventListener("compositionstart"');
     expect(source).toContain('addEventListener("compositionend"');
     expect(source).toContain('addEventListener("copy"');
     expect(source).toContain('addEventListener("paste"');
     expect(source).toContain('addEventListener("mousedown"');
     expect(source).toContain('addEventListener("mouseup"');
+    expect(source).toContain('event.key === "Dead"');
+    expect(source).toContain("event.ctrlKey");
+    expect(source).toContain('kind: "dead-key-outcome"');
+    expect(source).toContain('kind: "undo-outcome"');
+    expect(source).toContain("JSON.stringify(editor.getJSON())");
+    expect(source).toContain(
+      'editor.on("transaction", inspectDrivenTransaction)',
+    );
+    expect(source).toContain('insertedText === "é"');
+    expect(source).toContain("selectionRestored");
+    expect(source).toContain('stage: "dead-key"');
+    expect(source).toContain('stage: "undo"');
+    const compositionEndHandler = source.slice(
+      source.indexOf('addEventListener("compositionend"'),
+      source.indexOf('addEventListener("copy"'),
+    );
+    expect(compositionEndHandler).not.toContain("postNativeInput");
+    expect(compositionEndHandler).not.toContain("finish(");
     expect(source).toContain("event.isTrusted");
     expect(source).toContain("postNativeInput");
     expect(source).not.toMatch(
@@ -55,34 +73,46 @@ describe("visible native manual-proof contract", () => {
     expect(nativeInputDriver).toContain("CloseClipboard");
     expect(nativeInputDriver).toContain("LoadKeyboardLayoutW");
     expect(nativeInputDriver).toContain("00020409");
+    expect(nativeInputDriver).toContain("DriverAction::Undo =>");
+    expect(nativeInputDriver).toContain(
+      'self.send_control_chord(VK_Z, "undo")',
+    );
+    expect(nativeInputDriver).toMatch(
+      /fn send_dead_key_sequence[\s\S]*\(VK_RIGHT, false\)[\s\S]*\(VK_OEM_7, false\)/,
+    );
     expect(`${nativeHost}\n${nativeInputDriver}`).not.toMatch(
       /execute_script|dispatchEvent/,
     );
     expect(cargoManifest).toContain('windows-sys = { version = "=0.61.2"');
   });
 
-  it("snapshots and restores native clipboard and cursor state fail closed", () => {
+  it("wires the shared fail-closed cleanup executor into the native driver", () => {
     expect(nativeInputDriver).toContain("snapshot_clipboard");
     expect(nativeInputDriver).toContain("restore_clipboard_snapshot");
     expect(nativeInputDriver).not.toContain(
       "read_clipboard_text(self.hwnd).ok()",
     );
     expect(nativeInputDriver).toContain(
-      'errors.push("SetCursorPos failed during native input cleanup".into())',
+      "execute_cleanup(&mut self.cleanup_state",
     );
-    expect(nativeInputDriver).toMatch(
-      /restore_clipboard_snapshot[\s\S]*errors\.push\(error\)/,
+    expect(nativeInputDriver).toContain(
+      "perform_cleanup_action(hwnd, action, state)",
+    );
+    expect(nativeInputDriver).toContain("CleanupAction::RestoreCursor =>");
+    expect(nativeInputDriver).toContain("CleanupAction::RestoreClipboard =>");
+    expect(nativeInputDriver).toContain(
+      "restore_clipboard_snapshot(hwnd, clipboard)",
     );
     const layoutMethod = nativeInputDriver.slice(
       nativeInputDriver.indexOf("fn activate_composition_layout"),
       nativeInputDriver.indexOf("fn send_dead_key_sequence"),
     );
-    expect(layoutMethod.indexOf("self.original_layout = Some")).toBeGreaterThan(
-      -1,
-    );
-    expect(layoutMethod.indexOf("self.original_layout = Some")).toBeLessThan(
-      layoutMethod.indexOf("LoadKeyboardLayoutW"),
-    );
+    expect(
+      layoutMethod.indexOf("self.cleanup_state.layout = Some"),
+    ).toBeGreaterThan(-1);
+    expect(
+      layoutMethod.indexOf("self.cleanup_state.layout = Some"),
+    ).toBeLessThan(layoutMethod.indexOf("LoadKeyboardLayoutW"));
   });
 
   it("uses the same direct platform host and bounded cleanup lifecycle", () => {

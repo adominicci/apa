@@ -42,6 +42,16 @@ let evidence = createNativeManualEvidence();
 let editor: Editor | undefined;
 let gapPos = -1;
 let finished = false;
+let deadKeyBaseline:
+  | {
+    json: string;
+    documentSize: number;
+    selectionFrom: number;
+    selectionTo: number;
+    insertionPos: number;
+  }
+  | undefined;
+let deadKeyOutcomePosted = false;
 
 function requireElement<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -135,7 +145,32 @@ document.addEventListener("keydown", (event) => {
     isTrusted: event.isTrusted,
     key: event.key,
     isComposing: event.isComposing,
+    ctrlKey: event.ctrlKey,
   });
+  if (
+    evidenceMode === "windows-driven" && event.isTrusted &&
+    event.key === "Dead" && editor
+  ) {
+    if (!nativeManualChecks(evidence, evidenceMode).paste) {
+      finish(
+        false,
+        "Dead-key input started before exact native paste evidence",
+      );
+      return;
+    }
+    const selection = editor.state.selection;
+    if (!selection.empty) {
+      finish(false, "Dead-key input started with a non-collapsed selection");
+      return;
+    }
+    deadKeyBaseline = {
+      json: JSON.stringify(editor.getJSON()),
+      documentSize: editor.state.doc.content.size,
+      selectionFrom: selection.from,
+      selectionTo: selection.to,
+      insertionPos: selection.from,
+    };
+  }
   updateStatus();
 }, true);
 document.addEventListener("compositionstart", (event) => {
@@ -157,7 +192,6 @@ document.addEventListener("compositionend", (event) => {
   if (!event.isTrusted) return;
   const data = event.data;
   requestAnimationFrame(() => {
-    const prior = evidence;
     evidence = recordNativeManualEvidence(evidence, {
       kind: "composition-end",
       isTrusted: event.isTrusted,
@@ -165,24 +199,6 @@ document.addEventListener("compositionend", (event) => {
       afterSize: editor?.state.doc.content.size ?? -1,
     });
     updateStatus();
-    if (
-      evidence !== prior && evidence.compositionAfterSize !== null &&
-      evidence.compositionBeforeSize !== null
-    ) {
-      postNativeInput({
-        version: NATIVE_INPUT_PROTOCOL_VERSION,
-        stage: "composition",
-        data: evidence.compositionData,
-        beforeSize: evidence.compositionBeforeSize,
-        afterSize: evidence.compositionAfterSize,
-      });
-      if (
-        evidenceMode === "windows-driven" &&
-        Object.values(nativeManualChecks(evidence, evidenceMode)).every(Boolean)
-      ) {
-        finish(true);
-      }
-    }
   });
 }, true);
 document.addEventListener("copy", (event) => {
@@ -243,6 +259,91 @@ document.addEventListener("mousedown", (event) => {
 }, true);
 document.addEventListener("mouseup", inspectMouseSelection, true);
 
+function inspectDrivenTransaction(): void {
+  if (
+    evidenceMode !== "windows-driven" || !editor || !deadKeyBaseline || finished
+  ) return;
+  const documentSize = editor.state.doc.content.size;
+  if (!deadKeyOutcomePosted) {
+    if (documentSize === deadKeyBaseline.documentSize) return;
+    if (documentSize !== deadKeyBaseline.documentSize + 1) {
+      finish(false, "Dead-key input changed more than one authored character");
+      return;
+    }
+    const insertionPos = deadKeyBaseline.insertionPos;
+    const insertedText = editor.state.doc.textBetween(
+      insertionPos,
+      insertionPos + 1,
+      "\n",
+      "\n",
+    );
+    const documentWithoutInsertion = editor.state.tr.delete(
+      insertionPos,
+      insertionPos + 1,
+    ).doc;
+    const selection = editor.state.selection;
+    const exactDelta = insertedText === "é" &&
+      JSON.stringify(documentWithoutInsertion.toJSON()) ===
+        deadKeyBaseline.json &&
+      selection.empty && selection.from === insertionPos + 1;
+    if (!exactDelta) {
+      finish(
+        false,
+        "Dead-key input did not produce the exact authored é delta",
+      );
+      return;
+    }
+    evidence = recordNativeManualEvidence(evidence, {
+      kind: "dead-key-outcome",
+      data: insertedText,
+      beforeSize: deadKeyBaseline.documentSize,
+      afterSize: documentSize,
+      insertionPos,
+    });
+    deadKeyOutcomePosted = true;
+    updateStatus();
+    postNativeInput({
+      version: NATIVE_INPUT_PROTOCOL_VERSION,
+      stage: "dead-key",
+      data: insertedText,
+      beforeSize: deadKeyBaseline.documentSize,
+      afterSize: documentSize,
+      insertionPos,
+    });
+    return;
+  }
+  if (evidence.undoKeys === 0) return;
+  const selection = editor.state.selection;
+  const documentRestored = JSON.stringify(editor.getJSON()) ===
+    deadKeyBaseline.json;
+  const selectionRestored = selection.from === deadKeyBaseline.selectionFrom &&
+    selection.to === deadKeyBaseline.selectionTo;
+  evidence = recordNativeManualEvidence(evidence, {
+    kind: "undo-outcome",
+    documentSize,
+    documentRestored,
+    selectionRestored,
+  });
+  updateStatus();
+  postNativeInput({
+    version: NATIVE_INPUT_PROTOCOL_VERSION,
+    stage: "undo",
+    documentSize,
+    documentRestored,
+    selectionRestored,
+  });
+  if (
+    Object.values(nativeManualChecks(evidence, evidenceMode)).every(Boolean)
+  ) {
+    finish(true);
+  } else {
+    finish(
+      false,
+      "Native undo did not restore exact document and selection identity",
+    );
+  }
+}
+
 const watchdog = startProofPageWatchdog(
   evidenceMode === "windows-driven" ? 40_000 : 240_000,
   () => {
@@ -260,7 +361,7 @@ function finish(passed: boolean, error?: string): void {
     passed: resultPassed,
     engine: navigator.userAgent,
     checks: {
-      nativeImeComposition: checks.ime,
+      nativeComposedCharacterInput: checks.ime,
       nativeClipboard: checks.copy && checks.paste,
       nativeMouseDragAcrossGap: checks.drag,
     },
@@ -269,6 +370,14 @@ function finish(passed: boolean, error?: string): void {
       compositionUpdates: evidence.compositionUpdates,
       compositionEnds: evidence.compositionEnds,
       deadKeys: evidence.deadKeys,
+      deadKeyBeforeSize: evidence.deadKeyBeforeSize,
+      deadKeyAfterSize: evidence.deadKeyAfterSize,
+      deadKeyInsertionPos: evidence.deadKeyInsertionPos,
+      deadKeyData: evidence.deadKeyData,
+      undoKeys: evidence.undoKeys,
+      undoDocumentSize: evidence.undoDocumentSize,
+      undoDocumentRestored: evidence.undoDocumentRestored,
+      undoSelectionRestored: evidence.undoSelectionRestored,
       composingKeys: evidence.composingKeys,
       compositionData: evidence.compositionData,
       copies: evidence.copies,
@@ -310,6 +419,7 @@ async function prepare(): Promise<void> {
     },
   });
   editor.registerPlugin(createDisposablePaginationProofPlugin());
+  editor.on("transaction", inspectDrivenTransaction);
   const paragraphPos = positionOfParagraph(
     editor.state.doc,
     "Invented paragraph 1",
@@ -350,7 +460,7 @@ async function prepare(): Promise<void> {
     await nextFrame();
     editor.view.focus();
     instructions.textContent = evidenceMode === "windows-driven"
-      ? "The Win32 native-input driver is verifying drag, clipboard, and dead-key composition paths."
+      ? "The Win32 native-input driver is verifying drag, clipboard, exact dead-key input, and one-step undo."
       : "Drag across the gray page gap, copy and paste, then enter a composed character (for example Option-E then E).";
     document.body.dataset["manualReady"] = "true";
     updateStatus();

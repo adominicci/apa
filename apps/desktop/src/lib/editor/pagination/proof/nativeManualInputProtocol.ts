@@ -49,10 +49,18 @@ export type NativeManualInputMessage =
   }
   | {
     version: 1;
-    stage: "composition";
+    stage: "dead-key";
     data: "é";
     beforeSize: number;
     afterSize: number;
+    insertionPos: number;
+  }
+  | {
+    version: 1;
+    stage: "undo";
+    documentSize: number;
+    documentRestored: boolean;
+    selectionRestored: boolean;
   };
 
 function record(value: unknown, label: string): Record<string, unknown> {
@@ -86,6 +94,13 @@ function documentPosition(value: unknown, label: string): number {
 function nonemptyText(value: unknown, label: string): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new Error(`${label} must be nonempty`);
+  }
+  return value;
+}
+
+function booleanValue(value: unknown, label: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new Error(`${label} must be boolean`);
   }
   return value;
 }
@@ -204,23 +219,52 @@ export function parseNativeManualInputMessage(
         afterSize,
       };
     }
-    case "composition": {
+    case "dead-key": {
       if (message["data"] !== "é") {
-        throw new Error("composition data must be the audited NFC character");
+        throw new Error("dead-key data must be the audited NFC character");
       }
       const beforeSize = documentPosition(message["beforeSize"], "beforeSize");
       const afterSize = documentPosition(message["afterSize"], "afterSize");
+      const insertionPos = documentPosition(
+        message["insertionPos"],
+        "insertionPos",
+      );
       if (afterSize - beforeSize !== 1) {
-        throw new Error("composition must add exactly one authored character");
+        throw new Error(
+          "dead-key input must add exactly one authored character",
+        );
+      }
+      if (insertionPos > beforeSize) {
+        throw new Error(
+          "dead-key insertion must be inside the authored document",
+        );
       }
       return {
         version: 1,
-        stage: "composition",
+        stage: "dead-key",
         data: "é",
         beforeSize,
         afterSize,
+        insertionPos,
       };
     }
+    case "undo":
+      return {
+        version: 1,
+        stage: "undo",
+        documentSize: documentPosition(
+          message["documentSize"],
+          "documentSize",
+        ),
+        documentRestored: booleanValue(
+          message["documentRestored"],
+          "documentRestored",
+        ),
+        selectionRestored: booleanValue(
+          message["selectionRestored"],
+          "selectionRestored",
+        ),
+      };
     default:
       throw new Error("unknown native input message stage");
   }

@@ -22,7 +22,8 @@ pub(crate) enum DriverAction {
     Drag(ReadyGeometry),
     Copy,
     Paste,
-    Compose,
+    DeadKey,
+    Undo,
     Complete,
 }
 
@@ -32,7 +33,8 @@ enum DriverStage {
     AwaitingDrag,
     AwaitingCopy,
     AwaitingPaste,
-    AwaitingComposition,
+    AwaitingDeadKey,
+    AwaitingUndo,
     Complete,
 }
 
@@ -143,17 +145,34 @@ impl DriverProtocol {
                     return Err("paste did not add the exact clipboard text".into());
                 }
                 self.document_size = Some(after);
-                self.stage = DriverStage::AwaitingComposition;
-                Ok(DriverAction::Compose)
+                self.stage = DriverStage::AwaitingDeadKey;
+                Ok(DriverAction::DeadKey)
             }
-            (DriverStage::AwaitingComposition, "composition") => {
+            (DriverStage::AwaitingDeadKey, "dead-key") => {
                 if nonempty_text(value, "data")? != "é" {
-                    return Err("composition data must be the audited NFC character".into());
+                    return Err("dead-key data must be the audited NFC character".into());
                 }
                 let before = document_position(value, "beforeSize")?;
                 let after = document_position(value, "afterSize")?;
-                if self.document_size != Some(before) || after != before + 1 {
-                    return Err("composition did not add exactly one authored character".into());
+                let insertion_pos = document_position(value, "insertionPos")?;
+                if self.document_size != Some(before)
+                    || after != before + 1
+                    || insertion_pos > before
+                {
+                    return Err("dead-key input did not add exactly one authored character".into());
+                }
+                self.stage = DriverStage::AwaitingUndo;
+                Ok(DriverAction::Undo)
+            }
+            (DriverStage::AwaitingUndo, "undo") => {
+                let document_size = document_position(value, "documentSize")?;
+                if self.document_size != Some(document_size)
+                    || value.get("documentRestored").and_then(Value::as_bool) != Some(true)
+                    || value.get("selectionRestored").and_then(Value::as_bool) != Some(true)
+                {
+                    return Err(
+                        "native undo did not restore exact document and selection identity".into(),
+                    );
                 }
                 self.stage = DriverStage::Complete;
                 Ok(DriverAction::Complete)
@@ -238,19 +257,17 @@ pub(crate) fn require_complete_input(
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum ClipboardSnapshotKind {
     Empty,
-    UnicodeText,
 }
 
 pub(crate) fn classify_clipboard_snapshot(
     format_count: i32,
-    unicode_text_available: bool,
 ) -> Result<ClipboardSnapshotKind, String> {
-    match (format_count, unicode_text_available) {
-        (0, _) => Ok(ClipboardSnapshotKind::Empty),
-        (count, true) if count > 0 => Ok(ClipboardSnapshotKind::UnicodeText),
-        (count, false) if count > 0 => {
-            Err("Win32 clipboard contains non-text formats and cannot be restored exactly".into())
-        }
+    match format_count {
+        0 => Ok(ClipboardSnapshotKind::Empty),
+        count if count > 0 => Err(
+            "Win32 clipboard must be empty before native input proof so every format can be restored exactly"
+                .into(),
+        ),
         _ => Err("CountClipboardFormats returned an invalid result".into()),
     }
 }
@@ -270,52 +287,108 @@ pub(crate) fn pending_key_releases(events: &[(u16, bool)], accepted: u32) -> Vec
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum CleanupAction {
     MouseUp,
-    ControlUp,
+    KeyUp(u16),
     RestoreKeyboardLayout,
+    RestoreCursor,
+    RestoreClipboard,
 }
 
-pub(crate) fn cleanup_actions(
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct CleanupState<L, C, B> {
     mouse_down: bool,
-    control_down: bool,
-    layout_changed: bool,
-) -> Vec<CleanupAction> {
+    pending_key_releases: Vec<u16>,
+    layout: Option<L>,
+    cursor: Option<C>,
+    clipboard: Option<B>,
+}
+
+impl<L, C, B> Default for CleanupState<L, C, B> {
+    fn default() -> Self {
+        Self {
+            mouse_down: false,
+            pending_key_releases: Vec::new(),
+            layout: None,
+            cursor: None,
+            clipboard: None,
+        }
+    }
+}
+
+impl<L, C, B> CleanupState<L, C, B> {
+    pub(crate) fn is_clean(&self) -> bool {
+        cleanup_actions(self).is_empty()
+    }
+
+    fn mark_succeeded(&mut self, action: CleanupAction) {
+        match action {
+            CleanupAction::MouseUp => self.mouse_down = false,
+            CleanupAction::KeyUp(key) => {
+                self.pending_key_releases
+                    .retain(|pending_key| *pending_key != key);
+            }
+            CleanupAction::RestoreKeyboardLayout => self.layout = None,
+            CleanupAction::RestoreCursor => self.cursor = None,
+            CleanupAction::RestoreClipboard => self.clipboard = None,
+        }
+    }
+}
+
+pub(crate) fn cleanup_actions<L, C, B>(state: &CleanupState<L, C, B>) -> Vec<CleanupAction> {
     let mut actions = Vec::new();
-    if mouse_down {
+    if state.mouse_down {
         actions.push(CleanupAction::MouseUp);
     }
-    if control_down {
-        actions.push(CleanupAction::ControlUp);
-    }
-    if layout_changed {
+    actions.extend(
+        state
+            .pending_key_releases
+            .iter()
+            .copied()
+            .map(CleanupAction::KeyUp),
+    );
+    if state.layout.is_some() {
         actions.push(CleanupAction::RestoreKeyboardLayout);
     }
+    if state.cursor.is_some() {
+        actions.push(CleanupAction::RestoreCursor);
+    }
+    if state.clipboard.is_some() {
+        actions.push(CleanupAction::RestoreClipboard);
+    }
     actions
+}
+
+pub(crate) fn execute_cleanup<L, C, B>(
+    state: &mut CleanupState<L, C, B>,
+    mut perform: impl FnMut(CleanupAction, &CleanupState<L, C, B>) -> Result<(), String>,
+) -> Vec<String> {
+    let mut errors = Vec::new();
+    for action in cleanup_actions(state) {
+        match perform(action, state) {
+            Ok(()) => state.mark_succeeded(action),
+            Err(error) => errors.push(error),
+        }
+    }
+    errors
 }
 
 #[cfg(target_os = "windows")]
 mod platform {
     use super::{
-        classify_clipboard_snapshot, normalize_absolute_coordinate, pending_key_releases,
-        require_complete_input, ClipboardSnapshotKind, DriverAction, DriverProtocol, InputPoint,
-        ReadyGeometry,
+        classify_clipboard_snapshot, execute_cleanup, normalize_absolute_coordinate,
+        pending_key_releases, require_complete_input, CleanupAction, CleanupState,
+        ClipboardSnapshotKind, DriverAction, DriverProtocol, InputPoint, ReadyGeometry,
     };
     use serde_json::Value;
-    use std::{
-        ffi::c_void,
-        mem::{self, size_of},
-        ptr,
-    };
+    use std::{ffi::c_void, mem::size_of, ptr};
     use windows_sys::Win32::{
-        Foundation::{GetLastError, GlobalFree, SetLastError, ERROR_SUCCESS, HWND, POINT},
+        Foundation::{GetLastError, SetLastError, ERROR_SUCCESS, HWND, POINT},
         Graphics::Gdi::ClientToScreen,
         System::{
             DataExchange::{
                 CloseClipboard, CountClipboardFormats, EmptyClipboard, GetClipboardData,
-                IsClipboardFormatAvailable, OpenClipboard, SetClipboardData,
+                OpenClipboard,
             },
-            Memory::{
-                GlobalAlloc, GlobalLock, GlobalSize, GlobalUnlock, GMEM_MOVEABLE, GMEM_ZEROINIT,
-            },
+            Memory::{GlobalLock, GlobalSize, GlobalUnlock},
             Ole::CF_UNICODETEXT,
             StationsAndDesktops::{
                 CloseDesktop, GetProcessWindowStation, GetThreadDesktop, GetUserObjectInformationW,
@@ -331,7 +404,7 @@ mod platform {
                 MOUSEEVENTF_ABSOLUTE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MOVE,
                 MOUSEEVENTF_MOVE_NOCOALESCE, MOUSEEVENTF_VIRTUALDESK, MOUSEINPUT, VK_C, VK_CONTROL,
                 VK_E, VK_LBUTTON, VK_LCONTROL, VK_LWIN, VK_MENU, VK_OEM_7, VK_RCONTROL, VK_RIGHT,
-                VK_RWIN, VK_SHIFT, VK_V,
+                VK_RWIN, VK_SHIFT, VK_V, VK_Z,
             },
             WindowsAndMessaging::{
                 GetClientRect, GetCursorPos, GetForegroundWindow, GetGUIThreadInfo,
@@ -357,18 +430,15 @@ mod platform {
 
     enum ClipboardSnapshot {
         Empty,
-        UnicodeText(String),
     }
+
+    type NativeCleanupState = CleanupState<(HKL, HWND, u32), POINT, ClipboardSnapshot>;
 
     pub(crate) struct WindowsNativeInputDriver {
         hwnd: HWND,
         device_scale: f64,
         protocol: DriverProtocol,
-        original_cursor: Option<POINT>,
-        original_clipboard: Option<ClipboardSnapshot>,
-        original_layout: Option<(HKL, HWND, u32)>,
-        mouse_down: bool,
-        pending_key_releases: Vec<u16>,
+        cleanup_state: NativeCleanupState,
         cleaned: bool,
     }
 
@@ -381,11 +451,7 @@ mod platform {
                 hwnd,
                 device_scale,
                 protocol: DriverProtocol::new(),
-                original_cursor: None,
-                original_clipboard: None,
-                original_layout: None,
-                mouse_down: false,
-                pending_key_releases: Vec::new(),
+                cleanup_state: CleanupState::default(),
                 cleaned: false,
             })
         }
@@ -401,7 +467,8 @@ mod platform {
             match self.protocol.advance(payload)? {
                 DriverAction::Drag(geometry) => {
                     self.preflight()?;
-                    self.original_clipboard = Some(snapshot_clipboard(self.hwnd)?);
+                    let clipboard = snapshot_clipboard(self.hwnd)?;
+                    self.cleanup_state.clipboard = Some(clipboard);
                     self.send_drag(&geometry)?;
                 }
                 DriverAction::Copy => {
@@ -423,10 +490,14 @@ mod platform {
                     }
                     self.send_paste()?;
                 }
-                DriverAction::Compose => {
+                DriverAction::DeadKey => {
                     self.require_focus()?;
                     self.activate_composition_layout()?;
                     self.send_dead_key_sequence()?;
+                }
+                DriverAction::Undo => {
+                    self.require_focus()?;
+                    self.send_control_chord(VK_Z, "undo")?;
                 }
                 DriverAction::Complete => self.cleanup()?,
             }
@@ -437,44 +508,11 @@ mod platform {
             if self.cleaned {
                 return Ok(());
             }
-            let mut errors = Vec::new();
-            if self.mouse_down {
-                if let Err(error) =
-                    send_inputs(&[mouse_input(0, 0, MOUSEEVENTF_LEFTUP)], "mouse release")
-                {
-                    errors.push(error);
-                } else {
-                    self.mouse_down = false;
-                }
-            }
-            for key in mem::take(&mut self.pending_key_releases) {
-                if let Err(error) = send_inputs(&[key_input(key, true)], "key release") {
-                    errors.push(error);
-                    self.pending_key_releases.push(key);
-                }
-            }
-            if let Some((layout, focus, thread_id)) = self.original_layout {
-                if let Err(error) = restore_keyboard_layout(layout, focus, thread_id) {
-                    errors.push(error);
-                } else {
-                    self.original_layout = None;
-                }
-            }
-            if let Some(cursor) = self.original_cursor {
-                if unsafe { SetCursorPos(cursor.x, cursor.y) } == 0 {
-                    errors.push("SetCursorPos failed during native input cleanup".into());
-                } else {
-                    self.original_cursor = None;
-                }
-            }
-            if let Some(clipboard) = self.original_clipboard.as_ref() {
-                if let Err(error) = restore_clipboard_snapshot(self.hwnd, clipboard) {
-                    errors.push(error);
-                } else {
-                    self.original_clipboard = None;
-                }
-            }
-            self.cleaned = errors.is_empty();
+            let hwnd = self.hwnd;
+            let errors = execute_cleanup(&mut self.cleanup_state, |action, state| {
+                perform_cleanup_action(hwnd, action, state)
+            });
+            self.cleaned = errors.is_empty() && self.cleanup_state.is_clean();
             if errors.is_empty() {
                 Ok(())
             } else {
@@ -490,7 +528,7 @@ mod platform {
             if unsafe { GetCursorPos(&mut cursor) } == 0 {
                 return Err("GetCursorPos failed during native input preflight".into());
             }
-            self.original_cursor = Some(cursor);
+            self.cleanup_state.cursor = Some(cursor);
             Ok(())
         }
 
@@ -576,7 +614,7 @@ mod platform {
                     size_of::<INPUT>() as i32,
                 )
             };
-            self.mouse_down = actual >= 2 && actual < inputs.len() as u32;
+            self.cleanup_state.mouse_down = actual >= 2 && actual < inputs.len() as u32;
             require_complete_input(inputs.len() as u32, actual, "mouse drag")
         }
 
@@ -615,7 +653,7 @@ mod platform {
                     size_of::<INPUT>() as i32,
                 )
             };
-            self.pending_key_releases = pending_key_releases(events, actual);
+            self.cleanup_state.pending_key_releases = pending_key_releases(events, actual);
             require_complete_input(inputs.len() as u32, actual, label)
         }
 
@@ -639,7 +677,7 @@ mod platform {
             if original.is_null() {
                 return Err("focused WebView2 keyboard layout is unavailable".into());
             }
-            self.original_layout = Some((original, focus, focus_thread));
+            self.cleanup_state.layout = Some((original, focus, focus_thread));
             let target =
                 unsafe { LoadKeyboardLayoutW(US_INTERNATIONAL_KLID.as_ptr(), KLF_ACTIVATE) };
             if target.is_null() {
@@ -654,8 +692,14 @@ mod platform {
         }
 
         fn send_dead_key_sequence(&mut self) -> Result<(), String> {
+            // Move one real authored position past the just-pasted range. This
+            // makes the composed edit non-adjacent in ProseMirror history, so
+            // the following real Ctrl+Z must restore only this edit without a
+            // guessed delay or a synthetic closeHistory transaction.
             self.send_key_sequence(
                 &[
+                    (VK_RIGHT, false),
+                    (VK_RIGHT, true),
                     (VK_OEM_7, false),
                     (VK_OEM_7, true),
                     (VK_E, false),
@@ -663,6 +707,45 @@ mod platform {
                 ],
                 "dead-key composition",
             )
+        }
+    }
+
+    fn perform_cleanup_action(
+        hwnd: HWND,
+        action: CleanupAction,
+        state: &NativeCleanupState,
+    ) -> Result<(), String> {
+        match action {
+            CleanupAction::MouseUp => {
+                send_inputs(&[mouse_input(0, 0, MOUSEEVENTF_LEFTUP)], "mouse release")
+            }
+            CleanupAction::KeyUp(key) => send_inputs(&[key_input(key, true)], "key release"),
+            CleanupAction::RestoreKeyboardLayout => {
+                let (layout, focus, thread_id) =
+                    state.layout.as_ref().copied().ok_or_else(|| {
+                        "keyboard-layout cleanup state is unavailable".to_string()
+                    })?;
+                restore_keyboard_layout(layout, focus, thread_id)
+            }
+            CleanupAction::RestoreCursor => {
+                let cursor = state
+                    .cursor
+                    .as_ref()
+                    .copied()
+                    .ok_or_else(|| "cursor cleanup state is unavailable".to_string())?;
+                if unsafe { SetCursorPos(cursor.x, cursor.y) } == 0 {
+                    Err("SetCursorPos failed during native input cleanup".into())
+                } else {
+                    Ok(())
+                }
+            }
+            CleanupAction::RestoreClipboard => {
+                let clipboard = state
+                    .clipboard
+                    .as_ref()
+                    .ok_or_else(|| "clipboard cleanup state is unavailable".to_string())?;
+                restore_clipboard_snapshot(hwnd, clipboard)
+            }
         }
     }
 
@@ -863,14 +946,8 @@ mod platform {
                         "CountClipboardFormats failed with Win32 error {count_error}"
                     ));
                 }
-                match classify_clipboard_snapshot(
-                    format_count,
-                    IsClipboardFormatAvailable(CF_UNICODETEXT as u32) != 0,
-                )? {
+                match classify_clipboard_snapshot(format_count)? {
                     ClipboardSnapshotKind::Empty => Ok(ClipboardSnapshot::Empty),
-                    ClipboardSnapshotKind::UnicodeText => {
-                        read_open_clipboard_text().map(ClipboardSnapshot::UnicodeText)
-                    }
                 }
             })();
             close_clipboard_result(result)
@@ -910,7 +987,6 @@ mod platform {
     fn restore_clipboard_snapshot(hwnd: HWND, snapshot: &ClipboardSnapshot) -> Result<(), String> {
         match snapshot {
             ClipboardSnapshot::Empty => clear_clipboard(hwnd),
-            ClipboardSnapshot::UnicodeText(text) => write_clipboard_text(hwnd, text),
         }
     }
 
@@ -924,43 +1000,6 @@ mod platform {
             } else {
                 Ok(())
             };
-            close_clipboard_result(result)
-        }
-    }
-
-    fn write_clipboard_text(hwnd: HWND, value: &str) -> Result<(), String> {
-        let units: Vec<u16> = value.encode_utf16().chain(std::iter::once(0)).collect();
-        unsafe {
-            let allocation = GlobalAlloc(
-                GMEM_MOVEABLE | GMEM_ZEROINIT,
-                units.len() * size_of::<u16>(),
-            );
-            if allocation.is_null() {
-                return Err("GlobalAlloc failed while restoring the clipboard".into());
-            }
-            let pointer = GlobalLock(allocation) as *mut u16;
-            if pointer.is_null() {
-                let _ = GlobalFree(allocation);
-                return Err("GlobalLock failed while restoring the clipboard".into());
-            }
-            ptr::copy_nonoverlapping(units.as_ptr(), pointer, units.len());
-            let _ = GlobalUnlock(allocation);
-            if OpenClipboard(hwnd) == 0 {
-                let _ = GlobalFree(allocation);
-                return Err("OpenClipboard failed while restoring the clipboard".into());
-            }
-            let mut transferred = false;
-            let result = if EmptyClipboard() == 0 {
-                Err("EmptyClipboard failed while restoring the clipboard".to_string())
-            } else if SetClipboardData(CF_UNICODETEXT as u32, allocation).is_null() {
-                Err("SetClipboardData failed while restoring the clipboard".to_string())
-            } else {
-                transferred = true;
-                Ok(())
-            };
-            if !transferred {
-                let _ = GlobalFree(allocation);
-            }
             close_clipboard_result(result)
         }
     }
@@ -982,9 +1021,9 @@ pub(crate) use platform::WindowsNativeInputDriver;
 #[cfg(test)]
 mod tests {
     use super::{
-        classify_clipboard_snapshot, cleanup_actions, normalize_absolute_coordinate,
-        pending_key_releases, require_complete_input, CleanupAction, ClipboardSnapshotKind,
-        DriverAction, DriverProtocol,
+        classify_clipboard_snapshot, cleanup_actions, execute_cleanup,
+        normalize_absolute_coordinate, pending_key_releases, require_complete_input, CleanupAction,
+        CleanupState, ClipboardSnapshotKind, DriverAction, DriverProtocol,
     };
     use serde_json::json;
 
@@ -1041,21 +1080,99 @@ mod tests {
                     "afterSize": 518
                 }))
                 .unwrap(),
-            DriverAction::Compose
+            DriverAction::DeadKey
         );
         assert_eq!(
             protocol
                 .advance(&json!({
                     "version": 1,
-                    "stage": "composition",
+                    "stage": "dead-key",
                     "data": "é",
                     "beforeSize": 518,
-                    "afterSize": 519
+                    "afterSize": 519,
+                    "insertionPos": 317
+                }))
+                .unwrap(),
+            DriverAction::Undo
+        );
+        assert_eq!(
+            protocol
+                .advance(&json!({
+                    "version": 1,
+                    "stage": "undo",
+                    "documentSize": 518,
+                    "documentRestored": true,
+                    "selectionRestored": true
                 }))
                 .unwrap(),
             DriverAction::Complete
         );
         assert!(protocol.is_complete());
+    }
+
+    #[test]
+    fn rejects_wrong_dead_key_delta_and_inexact_undo_identity() {
+        let mut protocol = DriverProtocol::new();
+        protocol.advance(&ready()).unwrap();
+        protocol
+            .advance(&json!({
+                "version": 1,
+                "stage": "drag",
+                "selectionFrom": 42,
+                "selectionTo": 75,
+                "gapPosition": 60,
+                "selectedText": "invented selection"
+            }))
+            .unwrap();
+        protocol
+            .advance(&json!({
+                "version": 1,
+                "stage": "copy",
+                "selectedText": "invented selection",
+                "documentSize": 500
+            }))
+            .unwrap();
+        protocol
+            .advance(&json!({
+                "version": 1,
+                "stage": "paste",
+                "pastedText": "invented selection",
+                "beforeSize": 500,
+                "afterSize": 518
+            }))
+            .unwrap();
+        assert!(protocol
+            .advance(&json!({
+                "version": 1,
+                "stage": "dead-key",
+                "data": "e",
+                "beforeSize": 518,
+                "afterSize": 520,
+                "insertionPos": 317
+            }))
+            .is_err());
+        assert_eq!(
+            protocol
+                .advance(&json!({
+                    "version": 1,
+                    "stage": "dead-key",
+                    "data": "é",
+                    "beforeSize": 518,
+                    "afterSize": 519,
+                    "insertionPos": 317
+                }))
+                .unwrap(),
+            DriverAction::Undo
+        );
+        assert!(protocol
+            .advance(&json!({
+                "version": 1,
+                "stage": "undo",
+                "documentSize": 518,
+                "documentRestored": true,
+                "selectionRestored": false
+            }))
+            .is_err());
     }
 
     #[test]
@@ -1111,34 +1228,74 @@ mod tests {
     }
 
     #[test]
-    fn cleanup_releases_pressed_input_before_restoring_native_state() {
+    fn cleanup_executor_orders_every_native_restore_and_retains_only_failures() {
+        let mut state = CleanupState {
+            mouse_down: true,
+            pending_key_releases: vec![0x11, 0x43],
+            layout: Some("layout"),
+            cursor: Some("cursor"),
+            clipboard: Some("clipboard"),
+        };
+        let mut observed = Vec::new();
+        let errors = execute_cleanup(&mut state, |action, _| {
+            observed.push(action);
+            match action {
+                CleanupAction::KeyUp(0x43) => Err("C key remained pressed".into()),
+                CleanupAction::RestoreCursor => Err("cursor restore failed".into()),
+                _ => Ok(()),
+            }
+        });
+
         assert_eq!(
-            cleanup_actions(true, true, true),
+            observed,
             vec![
                 CleanupAction::MouseUp,
-                CleanupAction::ControlUp,
+                CleanupAction::KeyUp(0x11),
+                CleanupAction::KeyUp(0x43),
                 CleanupAction::RestoreKeyboardLayout,
+                CleanupAction::RestoreCursor,
+                CleanupAction::RestoreClipboard,
             ]
         );
         assert_eq!(
-            cleanup_actions(false, false, true),
-            vec![CleanupAction::RestoreKeyboardLayout]
+            errors,
+            vec!["C key remained pressed", "cursor restore failed"]
         );
+        assert_eq!(
+            cleanup_actions(&state),
+            vec![CleanupAction::KeyUp(0x43), CleanupAction::RestoreCursor]
+        );
+
+        let mut retried = Vec::new();
+        assert!(execute_cleanup(&mut state, |action, _| {
+            retried.push(action);
+            Ok(())
+        })
+        .is_empty());
+        assert_eq!(
+            retried,
+            vec![CleanupAction::KeyUp(0x43), CleanupAction::RestoreCursor]
+        );
+        assert!(state.is_clean());
     }
 
     #[test]
-    fn distinguishes_empty_text_and_unsnapshotable_clipboard_states() {
+    fn accepts_only_an_exactly_restorable_empty_clipboard() {
         assert_eq!(
-            classify_clipboard_snapshot(0, false).unwrap(),
+            classify_clipboard_snapshot(0).unwrap(),
             ClipboardSnapshotKind::Empty
         );
         assert_eq!(
-            classify_clipboard_snapshot(2, true).unwrap(),
-            ClipboardSnapshotKind::UnicodeText
+            classify_clipboard_snapshot(1).unwrap_err(),
+            "Win32 clipboard must be empty before native input proof so every format can be restored exactly"
         );
         assert_eq!(
-            classify_clipboard_snapshot(1, false).unwrap_err(),
-            "Win32 clipboard contains non-text formats and cannot be restored exactly"
+            classify_clipboard_snapshot(2).unwrap_err(),
+            "Win32 clipboard must be empty before native input proof so every format can be restored exactly"
+        );
+        assert_eq!(
+            classify_clipboard_snapshot(-1).unwrap_err(),
+            "CountClipboardFormats returned an invalid result"
         );
     }
 

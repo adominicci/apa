@@ -11,6 +11,14 @@ export interface NativeManualEvidence {
   pasteBeforeSize: number | null;
   pasteAfterSize: number | null;
   deadKeys: number;
+  deadKeyBeforeSize: number | null;
+  deadKeyAfterSize: number | null;
+  deadKeyInsertionPos: number | null;
+  deadKeyData: string;
+  undoKeys: number;
+  undoDocumentSize: number | null;
+  undoDocumentRestored: boolean;
+  undoSelectionRestored: boolean;
   composingKeys: number;
   compositionStarts: number;
   compositionUpdates: number;
@@ -48,6 +56,20 @@ export type NativeManualEvidenceEvent =
     isTrusted: boolean;
     key: string;
     isComposing: boolean;
+    ctrlKey: boolean;
+  }
+  | {
+    kind: "dead-key-outcome";
+    data: string;
+    beforeSize: number;
+    afterSize: number;
+    insertionPos: number;
+  }
+  | {
+    kind: "undo-outcome";
+    documentSize: number;
+    documentRestored: boolean;
+    selectionRestored: boolean;
   }
   | {
     kind: "composition-start";
@@ -85,6 +107,14 @@ export function createNativeManualEvidence(): NativeManualEvidence {
     pasteBeforeSize: null,
     pasteAfterSize: null,
     deadKeys: 0,
+    deadKeyBeforeSize: null,
+    deadKeyAfterSize: null,
+    deadKeyInsertionPos: null,
+    deadKeyData: "",
+    undoKeys: 0,
+    undoDocumentSize: null,
+    undoDocumentRestored: false,
+    undoSelectionRestored: false,
     composingKeys: 0,
     compositionStarts: 0,
     compositionUpdates: 0,
@@ -103,7 +133,7 @@ export function recordNativeManualEvidence(
   evidence: NativeManualEvidence,
   event: NativeManualEvidenceEvent,
 ): NativeManualEvidence {
-  if (!event.isTrusted) return evidence;
+  if ("isTrusted" in event && !event.isTrusted) return evidence;
   switch (event.kind) {
     case "mouse-down":
       return { ...evidence, mouseDown: true };
@@ -151,7 +181,37 @@ export function recordNativeManualEvidence(
       return {
         ...evidence,
         deadKeys: evidence.deadKeys + (event.key === "Dead" ? 1 : 0),
+        undoKeys: evidence.undoKeys +
+          (event.ctrlKey && event.key.toLowerCase() === "z" ? 1 : 0),
         composingKeys: evidence.composingKeys + (event.isComposing ? 1 : 0),
+      };
+    case "dead-key-outcome":
+      if (
+        evidence.pastes === 0 || evidence.deadKeys === 0 ||
+        evidence.pasteAfterSize !== event.beforeSize ||
+        event.data !== "é" || !validSize(event.beforeSize) ||
+        !validSize(event.afterSize) ||
+        event.afterSize - event.beforeSize !== 1 ||
+        !validSize(event.insertionPos) || event.insertionPos > event.beforeSize
+      ) return evidence;
+      return {
+        ...evidence,
+        deadKeyBeforeSize: event.beforeSize,
+        deadKeyAfterSize: event.afterSize,
+        deadKeyInsertionPos: event.insertionPos,
+        deadKeyData: event.data,
+      };
+    case "undo-outcome":
+      if (
+        evidence.undoKeys === 0 || evidence.deadKeyBeforeSize === null ||
+        !validSize(event.documentSize) ||
+        event.documentSize !== evidence.deadKeyBeforeSize
+      ) return evidence;
+      return {
+        ...evidence,
+        undoDocumentSize: event.documentSize,
+        undoDocumentRestored: event.documentRestored,
+        undoSelectionRestored: event.selectionRestored,
       };
     case "composition-start":
       if (!validSize(event.beforeSize)) return evidence;
@@ -208,12 +268,14 @@ export function nativeManualChecks(
     evidence.compositionBeforeSize !== null &&
     evidence.compositionAfterSize !== null &&
     evidence.compositionAfterSize > evidence.compositionBeforeSize;
-  const ime = mode === "human"
-    ? humanIme
-    : humanIme && evidence.compositionUpdates > 0 &&
-      evidence.deadKeys > 0 && evidence.composingKeys > 0 &&
-      evidence.compositionData === "é" &&
-      evidence.compositionAfterSize! - evidence.compositionBeforeSize! === 1;
+  const windowsComposedInput = evidence.deadKeys > 0 &&
+    evidence.deadKeyData === "é" &&
+    evidence.deadKeyBeforeSize !== null &&
+    evidence.deadKeyAfterSize === evidence.deadKeyBeforeSize + 1 &&
+    evidence.deadKeyInsertionPos !== null && evidence.undoKeys > 0 &&
+    evidence.undoDocumentSize === evidence.deadKeyBeforeSize &&
+    evidence.undoDocumentRestored && evidence.undoSelectionRestored;
+  const ime = mode === "human" ? humanIme : windowsComposedInput;
   return {
     ime,
     copy,
