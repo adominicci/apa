@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tesina native input evidence</title>
+  </head>
+  <body>
+    <main id="proof-shell" aria-label="Native input evidence">
+      <div id="proof-editor" class="apa-editor" data-doclang="en">
+        <div id="proof-mount" class="page-stack"></div>
+      </div>
+    </main>
+    <aside id="manual-panel">
+      <h1>Native input evidence</h1>
+      <p id="manual-instructions">Preparing the real editor…</p>
+      <ul>
+        <li id="manual-ime">IME composition: pending</li>
+        <li id="manual-copy">Clipboard copy: pending</li>
+        <li id="manual-paste">Clipboard paste: pending</li>
+        <li id="manual-drag">Mouse drag across page gap: pending</li>
+      </ul>
+      <button id="manual-finish" type="button" disabled>Finish evidence</button>
+    </aside>
+    <pre id="proof-result" aria-live="polite">running</pre>
+    <script type="module" src="./nativeManualProof.ts"></script>
+  </body>
+</html>
