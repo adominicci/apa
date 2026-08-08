@@ -254,6 +254,31 @@ describe("deterministic bytes (task 2.5)", () => {
   });
 });
 
+describe("highly compressible local content", () => {
+  it("stores bomb-ratio entries so its own output passes the reader", async () => {
+    // Regression (Codex review): a long pasted run of one character deflates
+    // far beyond the reader's ratio cap; the writer must store such entries
+    // uncompressed instead of producing an archive it would itself reject.
+    const fixture = figureHeavyLibraryFixture();
+    const essay = structuredClone(fixture.essays[0]);
+    (essay.content as { content: unknown[] }).content.push({
+      type: "sectionBody",
+      content: [{
+        type: "paragraph",
+        content: [{ type: "text", text: "a".repeat(2_000_000) }],
+      }],
+    });
+    const content = assembleArchiveContent({
+      essays: [essay],
+      library: fixture.library,
+      assets: new Map(Object.entries(fixture.assets)),
+    });
+    const bytes = await buildArchive(content, DEPS);
+    const { files } = await readArchiveStructure(bytes, ARCHIVE_LIMITS);
+    expect(files.has(`essays/${essay.id}.json`)).toBe(true);
+  });
+});
+
 describe("reopen gate (task 2.6)", () => {
   it("readArchiveStructure verifies checksums before returning payloads", async () => {
     const bytes = await buildArchive(figureFixtureContent(), DEPS);

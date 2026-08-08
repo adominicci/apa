@@ -139,6 +139,25 @@ describe("createLibraryArchiveService", () => {
     expect(packaged.contentDigest).toBe(expected);
   });
 
+  it("createRollbackWithinMaintenance never reacquires the lease", async () => {
+    // Regression (Codex review): import staging runs inside one maintenance
+    // lease and creates the rollback from there; the leased variant would
+    // chain behind the running lease and deadlock forever.
+    const harness = makeHarness();
+    const service = createLibraryArchiveService(harness.deps);
+    const result = await harness.deps.runMaintenance(async () => {
+      return await service.createRollbackWithinMaintenance(
+        "00000000-0000-4000-8000-000000000099",
+      );
+    });
+    expect(result.relPath).toBe(
+      "backups/imports/00000000-0000-4000-8000-000000000099.tesina",
+    );
+    expect(
+      harness.appDataFiles.has(result.relPath),
+    ).toBe(true);
+  });
+
   it("serializes packaging operations through the maintenance lease", async () => {
     const harness = makeHarness();
     let active = 0;

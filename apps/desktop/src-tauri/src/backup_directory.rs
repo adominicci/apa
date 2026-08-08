@@ -685,8 +685,25 @@ fn write_json_atomic(
         tmp.sync_all()
             .map_err(|error| BackupError::io("cannot sync record", &error))?;
         drop(tmp);
-        fs::rename(&tmp_path, &final_path)
-            .map_err(|error| BackupError::io("cannot atomically replace record", &error))
+        // Unix rename replaces an existing destination; Windows rename does
+        // not, so retry once after removing the old record. The brief
+        // non-atomic window is safe here: both record readers fail closed
+        // (a missing directory record loads as unconfigured, a missing
+        // ledger means retain-all) and never destroy data.
+        match fs::rename(&tmp_path, &final_path) {
+            Ok(()) => Ok(()),
+            Err(_first) if cfg!(windows) && final_path.exists() => {
+                fs::remove_file(&final_path).map_err(|error| {
+                    BackupError::io("cannot replace existing record", &error)
+                })?;
+                fs::rename(&tmp_path, &final_path).map_err(|error| {
+                    BackupError::io("cannot install replacement record", &error)
+                })
+            }
+            Err(error) => {
+                Err(BackupError::io("cannot atomically replace record", &error))
+            }
+        }
     })();
     if result.is_err() {
         let _ = fs::remove_file(&tmp_path);

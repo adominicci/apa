@@ -18,6 +18,9 @@ const runtime = vi.hoisted(() => {
 vi.mock("$lib/persist/atomic", () => ({
   readJson: runtime.readJson,
   writeJsonAtomic: runtime.writeJsonAtomic,
+  // The store uses the quiet variant so status writes never feed the
+  // backup-eligibility activity signal; the tests observe the same mock.
+  writeJsonAtomicQuiet: runtime.writeJsonAtomic,
 }));
 
 vi.mock("$lib/paraglide/runtime", () => ({

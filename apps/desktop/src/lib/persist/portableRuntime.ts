@@ -79,7 +79,11 @@ function importFlowDeps(service: LibraryArchiveService): ImportFlowDeps {
     runMaintenance: (fn) => persistence.runMaintenance(fn),
     flushPending: () => persistence.flushPending(),
     createRollback: async (transactionId) => {
-      const { relPath, sha256 } = await service.createRollback(transactionId);
+      // Import staging already holds the maintenance lease; the leased
+      // variant would chain behind the running lease and deadlock.
+      const { relPath, sha256 } = await service.createRollbackWithinMaintenance(
+        transactionId,
+      );
       return { relPath, sha256 };
     },
     uuid: () => crypto.randomUUID(),

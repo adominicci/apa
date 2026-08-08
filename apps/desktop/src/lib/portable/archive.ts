@@ -98,7 +98,11 @@ export async function buildArchive(
       { path: "manifest.json", bytes: canonicalJsonBytes(manifest) },
       ...payloads,
     ],
-    { compress: true },
+    {
+      compress: true,
+      maxCompressionRatio: ARCHIVE_LIMITS.maxCompressionRatio,
+      compressionRatioExemptBytes: ARCHIVE_LIMITS.compressionRatioExemptBytes,
+    },
   );
 
   // Reopen gate: no archive leaves the builder without passing the reader.

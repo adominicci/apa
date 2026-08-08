@@ -61,6 +61,16 @@ export interface LibraryArchiveService {
     sha256: string;
     contentDigest: string;
   }>;
+  /**
+   * Same rollback WITHOUT acquiring the maintenance lease — for callers
+   * that already hold it (import staging runs the whole stage+apply inside
+   * one lease; the non-reentrant lease would deadlock otherwise).
+   */
+  createRollbackWithinMaintenance(transactionId: string): Promise<{
+    relPath: string;
+    sha256: string;
+    contentDigest: string;
+  }>;
   /** Backup write with exclusive-create candidates (never overwrites). */
   writeBackup(
     candidatePaths: string[],
@@ -100,6 +110,21 @@ export function createLibraryArchiveService(
     return { bytes, contentDigest, content };
   }
 
+  async function rollbackOnce(transactionId: string): Promise<{
+    relPath: string;
+    sha256: string;
+    contentDigest: string;
+  }> {
+    const packaged = await packageOnce();
+    const relPath = `backups/imports/${transactionId}.tesina`;
+    await deps.writeAppDataFile(relPath, packaged.bytes);
+    return {
+      relPath,
+      sha256: await deps.sha256(packaged.bytes),
+      contentDigest: packaged.contentDigest,
+    };
+  }
+
   return {
     package: (options) => deps.runMaintenance(() => packageOnce(options)),
 
@@ -116,16 +141,10 @@ export function createLibraryArchiveService(
       }),
 
     createRollback: (transactionId) =>
-      deps.runMaintenance(async () => {
-        const packaged = await packageOnce();
-        const relPath = `backups/imports/${transactionId}.tesina`;
-        await deps.writeAppDataFile(relPath, packaged.bytes);
-        return {
-          relPath,
-          sha256: await deps.sha256(packaged.bytes),
-          contentDigest: packaged.contentDigest,
-        };
-      }),
+      deps.runMaintenance(() => rollbackOnce(transactionId)),
+
+    createRollbackWithinMaintenance: (transactionId) =>
+      rollbackOnce(transactionId),
 
     writeBackup: (candidatePaths, backupSetId) =>
       deps.runMaintenance(async () => {

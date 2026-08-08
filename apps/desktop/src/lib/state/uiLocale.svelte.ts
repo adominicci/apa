@@ -1,4 +1,4 @@
-import { readJson, writeJsonAtomic } from "$lib/persist/atomic";
+import { readJson, writeJsonAtomicQuiet } from "$lib/persist/atomic";
 import { overwriteGetLocale } from "$lib/paraglide/runtime";
 import {
   DEFAULT_DOCK,
@@ -128,7 +128,10 @@ export class UiSettingsStore {
     }
     const file = this.#snapshot();
     const write = this.#writeChain.catch(() => undefined).then(async () => {
-      await writeJsonAtomic(SETTINGS_FILE, file);
+      // Quiet write: settings/status caches are not content-library data and
+      // must not feed the backup-eligibility activity signal (a backup-owned
+      // status update would otherwise retrigger its own eligibility check).
+      await writeJsonAtomicQuiet(SETTINGS_FILE, file);
       this.#persistedRevision = Math.max(this.#persistedRevision, revision);
     });
     const attempt = { revision, promise: write };

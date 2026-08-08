@@ -55,6 +55,14 @@ export interface ZipEntryInput {
 export interface ZipBuildOptions {
   /** Deflate entries (level 9) instead of storing them. */
   compress?: boolean;
+  /**
+   * Reader policy the writer must satisfy: an entry whose deflate ratio
+   * would exceed the reader's bomb limit is STORED instead, so legitimate
+   * highly repetitive local content (a long pasted run of one character)
+   * can never make the writer's own output fail its reopen gate.
+   */
+  maxCompressionRatio?: number;
+  compressionRatioExemptBytes?: number;
 }
 
 export interface ZipEntryMeta {
@@ -149,7 +157,12 @@ export function buildZip(
     let payload = entry.bytes;
     if (options.compress) {
       const deflated = deflateSync(entry.bytes, { level: 9 });
-      if (deflated.length < entry.bytes.length) {
+      const ratioCap = options.maxCompressionRatio ?? Infinity;
+      const exempt = options.compressionRatioExemptBytes ?? 0;
+      const ratioOk = deflated.length === 0 ||
+        entry.bytes.length <= exempt ||
+        entry.bytes.length / deflated.length <= ratioCap;
+      if (deflated.length < entry.bytes.length && ratioOk) {
         method = 8;
         payload = deflated;
       }

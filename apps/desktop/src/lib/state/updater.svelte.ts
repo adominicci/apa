@@ -5,6 +5,7 @@ import {
   savePendingReleaseNotes,
 } from "$lib/update/releaseNotes";
 import { persistence } from "$lib/persist/coordinator";
+import { operations } from "$lib/persist/operationCoordinator";
 
 export interface UpdaterUpdate {
   version: string;
@@ -21,7 +22,12 @@ export interface UpdaterDependencies {
 
 const defaultDependencies: UpdaterDependencies = {
   check: tauriCheck,
-  flushPending: () => persistence.flushPending(),
+  // Updater relaunch is a shutdown: flush, then wait for active
+  // export/backup/import operations to reach their safe points (§13).
+  flushPending: async () => {
+    await persistence.flushPending();
+    await operations.awaitSafeShutdown();
+  },
   relaunch,
   storage: () => {
     try {

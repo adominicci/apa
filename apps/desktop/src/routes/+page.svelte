@@ -94,8 +94,16 @@
     try {
       await runRecoveryPhase();
     } catch (err) {
-      // Recovery machinery itself failing must never block writing.
+      // Fail closed: an unexpected recovery failure means unfinished-import
+      // state may exist that was neither resumed nor rolled back, so the
+      // editable library must not load (amended library-merge-import spec).
       console.error("No se pudo ejecutar la recuperación inicial:", err);
+      recoveryRequired = [{
+        kind: "recovery-required",
+        transactionId: "(startup)",
+        reason: err instanceof Error ? err.message : String(err),
+      }];
+      return;
     }
     await Promise.all([
       library.load(),

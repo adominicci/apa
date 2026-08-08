@@ -36,6 +36,19 @@ export async function writeJsonAtomic(
   data: unknown,
 ): Promise<void> {
   persistence.noteDirectWrite();
+  await writeJsonAtomicQuiet(relativePath, data);
+}
+
+/**
+ * Same crash-safe write WITHOUT the persistence-activity note. Only for
+ * files outside the content library (settings/status caches): backup-owned
+ * status writes must never feed the activity signal that schedules backup
+ * eligibility checks, or an unchanged library would re-check forever.
+ */
+export async function writeJsonAtomicQuiet(
+  relativePath: string,
+  data: unknown,
+): Promise<void> {
   const target = await resolveAbsolute(relativePath);
   await ensureDir(await dirname(target));
   const tmp = `${target}.tmp`;
