@@ -53,7 +53,8 @@ Legend: ✅ automated · 📦 packaged-app evidence · ⏸ deferred with justifi
 
 | Item | Status |
 | --- | --- |
-| Packaged macOS export/import round trip, folder configure, restart, Back up now, 8-backups→7 retention, Restore | 📦 to be executed on this machine before release publication; results recorded below |
+| Packaged macOS build (task 4.6/11.4 precondition) | 📦 built at feature HEAD: `Tesina.app` 0.1.2 (CFBundleShortVersionString verified), `Tesina_0.1.2_aarch64.dmg` sha256 `288be9b3…08ccc6e`, updater `Tesina.app.tar.gz` sha256 `10077cbb…34afa2`. Local build stops at updater signing (no private key in this environment); CI signs with the repo secret. |
+| Packaged macOS interactive scenario matrix (export/import round trip, folder configure, restart re-auth, Back up now, 8→7 retention, Restore) | ⏸ manual pre-publication gate: requires interactive native dialogs; runbook and scenario list are in tasks.md 11.4. Must run on the packaged app above before the release draft is published. |
 | Windows packaged run (11.5) | ⏸ deferred: no Windows runtime available in this environment. Per amended task text this remains a release gate for supported Windows publication; the currently shipping updater contract is macOS-only, and the PR documents this explicitly. |
 | iCloud + third-party File Provider matrix (11.7) | ⏸ deferred to a manual pass before release publication; scenarios listed in tasks.md; local-validation-only wording verified by automated copy tests. |
 | Power-loss durability | Not claimed anywhere (spec: interruption contract covers close/restart/crash after reopen-validated journal writes; wording audited). |
