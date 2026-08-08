@@ -3,7 +3,9 @@
 // See: https://svelte.dev/docs/kit/single-page-apps
 // See: https://v2.tauri.app/start/frontend/sveltekit/ for more info
 import adapter from "@sveltejs/adapter-static";
-import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
+// Deno's Windows resolver can mis-scope bare imports from lowercased drive URLs.
+// Keep this explicit until https://github.com/denoland/deno/pull/35866 ships.
+import { vitePreprocess } from "npm:@sveltejs/vite-plugin-svelte@^5.0.0";
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
