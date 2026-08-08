@@ -170,7 +170,7 @@
       new final paths whose current bytes match the journaled expected output;
       preserve/quarantine mismatches and enter manual recovery rather than
       deleting an unlisted, changed, or pre-existing path.
-- [ ] 6.6 Add startup recovery before normal essay/library interactivity: resume
+- [x] 6.6 Add startup recovery before normal essay/library interactivity: resume
       a valid transaction, otherwise restore the validated rollback, surface a
       localized recovery result, and start backup eligibility only afterward.
       Add missing/corrupted journal, stage, and rollback combinations proving an
@@ -195,28 +195,28 @@
 
 ## 7. Manual library export and Merge user interface
 
-- [ ] 7.1 Add English and Spanish Paraglide messages for complete-library
+- [x] 7.1 Add English and Spanish Paraglide messages for complete-library
       export, the unencrypted privacy notice, validation/progress/errors, Merge
       categories, document-language imported-copy suffixes, restore-by-merging
       consequences including that locally deleted content may be re-added,
       rollback-copy privacy, recovery, cancellation, and results;
       do not hardcode user-facing strings or mix UI/document locale axes.
-- [ ] 7.2 Add a separate Export library action and confirmation flow that
+- [x] 7.2 Add a separate Export library action and confirmation flow that
       flushes persistence, explains archive scope/privacy, opens the native save
       dialog, and reports success only after destination reopen validation;
       leave DOCX Export behavior unchanged.
-- [ ] 7.3 Create `LibraryImportModal.svelte` with explicit validating, invalid,
+- [x] 7.3 Create `LibraryImportModal.svelte` with explicit validating, invalid,
       preview, confirming, applying, recovering, success, and failure states;
       version one exposes Merge and Cancel but no replace-library operation.
-- [ ] 7.4 Add component tests for new/identical/conflicting preview counts,
+- [x] 7.4 Add component tests for new/identical/conflicting preview counts,
       reference/collection/asset consequences, cancel-with-no-writes, disabled
       apply during validation, error focus/announcements, and successful
       home/library refresh. Cover UI language changes while open, UI language
       differing from imported document language, modal focus trap/restoration,
       live progress announcements, and safe/non-cancellable apply messaging.
-- [ ] 7.5 Wire Import library and Restore entry points to the same modal,
+- [x] 7.5 Wire Import library and Restore entry points to the same modal,
       validator, planner, journal, and result contracts.
-- [ ] 7.6 Run the Svelte MCP autofixer on every new or changed `.svelte` file
+- [x] 7.6 Run the Svelte MCP autofixer on every new or changed `.svelte` file
       and resolve all valid findings before committing this slice.
 
 ## 8. Narrow selected-folder authorization and settings durability
