@@ -27,25 +27,25 @@
 
 ## 2. Pure archive contract and deterministic bytes
 
-- [ ] 2.1 Add failing tests for manifest version one, stable JSON ordering,
+- [x] 2.1 Add failing tests for manifest version one, stable JSON ordering,
       UTF-8 encoding, SHA-256 file records, content counts, `encryption: null`,
       and forward-version rejection.
-- [ ] 2.2 Implement `portable/types.ts`, `canonicalJson.ts`, and digest helpers
+- [x] 2.2 Implement `portable/types.ts`, `canonicalJson.ts`, and digest helpers
       with injected clock/version/UUID dependencies; keep the modules free of
       Svelte, runes, Tauri, and filesystem paths.
-- [ ] 2.3 Add failing fixtures for complete content scope: multiple essays,
+- [x] 2.3 Add failing fixtures for complete content scope: multiple essays,
       document settings, references, collections, nested citations, figure
       assets, device settings, deleted backups, and an orphan asset.
-- [ ] 2.4 Implement pure snapshot assembly and archive normalization so only
+- [x] 2.4 Implement pure snapshot assembly and archive normalization so only
       valid schema-version-2 essays, schema-version-1 library content, and
       reachable assets enter `manifest.json`, `essays/`, `library.json`, and
       `assets/`.
-- [ ] 2.5 Add failing round-trip and golden tests proving deterministic archive
+- [x] 2.5 Add failing round-trip and golden tests proving deterministic archive
       output across separate processes when injected metadata and ZIP entry
       order, UTF-8 flags, compression settings, OS attributes, and modification
       times are fixed; prove device settings, deleted backups, and orphan assets
       are absent.
-- [ ] 2.6 Implement ZIP creation in `portable/archive.ts` and make every
+- [x] 2.6 Implement ZIP creation in `portable/archive.ts` and make every
       produced archive reopen through the group-2 structural reader (manifest
       parse plus checksum verification) before its bytes can be returned as a
       successful result; task 3.4 upgrades this reopen gate to the full
