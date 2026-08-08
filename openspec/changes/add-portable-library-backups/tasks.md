@@ -1,27 +1,27 @@
 ## 1. Handoff baseline and security limits
 
-- [ ] 1.1 Read `AGENTS.md`, this change's `proposal.md`, all three capability
+- [x] 1.1 Read `AGENTS.md`, this change's `proposal.md`, all three capability
       specs, `design.md`, and
       `docs/plans/2026-08-08-portable-library-backup-design.md`; confirm the
       active change is `add-portable-library-backups` and do not expand the
       deferred scope.
-- [ ] 1.2 Record `git status --short --branch`, current commit, current version,
+- [x] 1.2 Record `git status --short --branch`, current commit, current version,
       and pre-existing worktree changes before editing; preserve unrelated files
       and use independently reviewable English commits.
-- [ ] 1.3 Build representative fixtures for an empty library, a large text
+- [x] 1.3 Build representative fixtures for an empty library, a large text
       library, and a figure-heavy library; use their measured sizes to choose
       and document maximum archive bytes, entry count, single expanded entry,
       total expanded bytes, compression ratio, JSON depth/node/string/entity
       counts, image dimensions/frames, and cumulative decoded pixels in
       `apps/desktop/src/lib/portable/limits.ts`.
-- [ ] 1.4 Add failing tests proving the chosen limits reject oversized declared
+- [x] 1.4 Add failing tests proving the chosen limits reject oversized declared
       and observed input while accepting the representative supported fixtures.
-- [ ] 1.5 Run a failing feasibility spike against data-descriptor ZIP, ZIP64,
+- [x] 1.5 Run a failing feasibility spike against data-descriptor ZIP, ZIP64,
       encrypted-bit, Unix-symlink-mode, unsupported-compression, and missing-size
       fixtures; select a bounded central-directory parser plus inflater or a
       native ZIP crate that exposes every required field before dependency
       lock-in. Do not assume `fflate` alone can reject non-regular entries.
-- [ ] 1.6 Add the selected direct dependencies, regenerate Deno/Cargo lock data,
+- [x] 1.6 Add the selected direct dependencies, regenerate Deno/Cargo lock data,
       and record exact resolved versions and SPDX licenses for the full new
       transitive dependency delta; every license must satisfy `AGENTS.md`.
 
