@@ -8,6 +8,7 @@ import {
   writeTextFile,
 } from "@tauri-apps/plugin-fs";
 import { appDataDir, dirname, join } from "@tauri-apps/api/path";
+import { persistence } from "./coordinator.ts";
 
 /**
  * All Tesina data lives under the OS app-data directory ($APPDATA), the only
@@ -34,6 +35,7 @@ export async function writeJsonAtomic(
   relativePath: string,
   data: unknown,
 ): Promise<void> {
+  persistence.noteDirectWrite();
   const target = await resolveAbsolute(relativePath);
   await ensureDir(await dirname(target));
   const tmp = `${target}.tmp`;
@@ -49,6 +51,7 @@ export async function readJson<T>(relativePath: string): Promise<T | null> {
 }
 
 export async function removeFile(relativePath: string): Promise<void> {
+  persistence.noteDirectWrite();
   const target = await resolveAbsolute(relativePath);
   if (await exists(target)) {
     await remove(target);

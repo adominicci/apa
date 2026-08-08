@@ -20,6 +20,35 @@ export class PersistenceCoordinator {
   #registeredDuringBarrier = new Set<Registration>();
   #activityGeneration = 0;
   #activeFlush: Promise<void> | null = null;
+  #maintenanceChain: Promise<unknown> = Promise.resolve();
+
+  /**
+   * Monotonic counter that moves on every observable persistence activity:
+   * registrations, markDirty, and — via noteDirectWrite() — the write paths
+   * that call the atomic writers without a coordinator registration (essay
+   * create/persist/delete, figure imports). Snapshot capture records it
+   * before reading and retries when it moved (design §2).
+   */
+  get activityGeneration(): number {
+    return this.#activityGeneration;
+  }
+
+  /** Called by the atomic write helpers on every direct app-data write. */
+  noteDirectWrite(): void {
+    this.#activityGeneration += 1;
+  }
+
+  /**
+   * Exclusive snapshot/maintenance lease: export, backup, rollback capture,
+   * import apply, and retention run through here one at a time, FIFO. The
+   * lease does not block ordinary persistence writes — capture detects and
+   * retries on mutation instead (design §2 amended).
+   */
+  runMaintenance<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.#maintenanceChain.catch(() => undefined).then(fn);
+    this.#maintenanceChain = run.catch(() => undefined);
+    return run;
+  }
 
   register(flush: FlushPending): PersistenceRegistration {
     const registration = { flush, dirtyGeneration: 0 };

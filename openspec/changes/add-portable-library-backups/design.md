@@ -132,11 +132,15 @@ settings/backups, preserve orphan data, and prevent strict versioning.
 Extend persistence coordination with an exclusive snapshot/maintenance lease
 shared by manual export, backup, rollback capture, import apply, and retention.
 Under the lease, flush pending writes, record the persistence generation, and
-copy the persisted essay files, library file, and reachable assets into a
-UUID-named app-data staging directory. Queue later persistence writes until the
-copy completes, or detect a generation change and discard/retry the entire
-capture. Release the lease only after the staged snapshot is immutable. Package
-only from staging, never from a second pass over live app-data files.
+stage the persisted essay files, library file, and reachable assets into an
+immutable snapshot buffer (an in-memory staging buffer or a UUID-named
+app-data staging directory — the observable contract is identical: one
+persisted revision, packaged exactly as captured). Queue later persistence
+writes until the copy completes, or detect a generation change and
+discard/retry the entire capture; the direct write paths named in Context bump
+the generation so their mutations are always detected. Release the lease only
+after the staged snapshot is immutable. Package only from staging, never from
+a second pass over live app-data files.
 
 The snapshot validates every source essay as schema version 2 and the library as
 schema version 1 before packaging. Invalid source content fails the complete

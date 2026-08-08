@@ -78,28 +78,28 @@
       directly to disk.
 - [x] 3.5 Add mutation tests that corrupt each golden archive entry one at a
       time and prove validation fails before import planning.
-- [ ] 3.6 Add typed local-path constructors and native canonical-containment
+- [x] 3.6 Add typed local-path constructors and native canonical-containment
       checks; test separators, traversal, Unicode lookalikes, reserved names,
       symlinks/reparse points, and every attacker-controlled identifier before
       any app-data path is derived.
 
 ## 4. Stable app-data snapshot and recoverable archive writes
 
-- [ ] 4.1 Add tests that hold pending essay and library writes open, start a
+- [x] 4.1 Add tests that hold pending essay and library writes open, start a
       snapshot, and prove snapshot reading waits for
       `persistence.flushPending()` and aborts if the barrier rejects; then race
       essay/library/asset mutations and concurrent export, backup, rollback,
       import, and retention work at every enumeration/read boundary and prove no
       mixed revision is returned.
-- [ ] 4.2 Extend persistence coordination with an exclusive snapshot/maintenance
+- [x] 4.2 Extend persistence coordination with an exclusive snapshot/maintenance
       lease and generation tracking. Implement `persist/librarySnapshot.ts` to
       flush, stage every valid essay, `library.json`, and reachable asset under a
       UUID app-data snapshot, retry/abort on mutation, reject rather than skip
       invalid source data, and release only after staging is immutable.
-- [ ] 4.3 Add tests for cancelled save dialogs, failed destination writes,
+- [x] 4.3 Add tests for cancelled save dialogs, failed destination writes,
       existing destination preservation, temporary-file cleanup, and validation
       of the written file before success.
-- [ ] 4.4 Implement `persist/portableFiles.ts` with native `.tesina` open/save
+- [x] 4.4 Implement `persist/portableFiles.ts` with native `.tesina` open/save
       and folder dialogs, UUID-named sibling temporary files, reopen validation,
       direct same-filesystem replacement where safe, exclusive no-replace
       creation for new automatic-backup filenames (a collision selects a new
@@ -107,7 +107,7 @@
       and a journaled fallback that preserves the previous destination until
       the new file reopens and validates. Add startup/next-access recovery and
       termination tests at every rename and cleanup boundary.
-- [ ] 4.5 Create one injected `LibraryArchiveService` used by manual export,
+- [x] 4.5 Create one injected `LibraryArchiveService` used by manual export,
       rollback creation, test backup, scheduled backup, and Back up now;
       return the digest of the exact archived snapshot and prohibit duplicate
       packaging implementations.
