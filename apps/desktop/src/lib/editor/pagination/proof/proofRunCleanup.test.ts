@@ -46,37 +46,65 @@ describe("native proof cleanup", () => {
     expect(waits).toEqual([50, 100]);
   });
 
-  it("stops after the bounded Windows EBUSY retry schedule", async () => {
-    const busyFailures = Array.from(
-      { length: 7 },
-      (_, index) =>
-        Object.assign(new Error(`profile busy attempt ${index + 1}`), {
-          code: "EBUSY",
-        }),
-    );
+  it("retries transient Windows ENOTEMPTY removals with the same bounded schedule", async () => {
+    const notEmpty = Object.assign(new Error("profile teardown in progress"), {
+      code: "ENOTEMPTY",
+    });
     let attempts = 0;
     const waits: number[] = [];
 
-    const result = await cleanupProofRun(["\0profile"], undefined, {
+    await cleanupProofRun(["\0profile"], undefined, {
       platform: "win32",
       removeDirectory: () => {
         attempts += 1;
-        throw busyFailures[attempts - 1];
+        if (attempts < 3) throw notEmpty;
+        return Promise.resolve();
       },
       wait: (delayMs) => {
         waits.push(delayMs);
         return Promise.resolve();
       },
-    }).catch((error: unknown) => error);
+    });
 
-    expect(result).toBe(busyFailures[6]);
-    expect(attempts).toBe(7);
-    expect(waits).toEqual([50, 100, 200, 400, 800, 1600]);
+    expect(attempts).toBe(3);
+    expect(waits).toEqual([50, 100]);
   });
+
+  it.each(["EBUSY", "ENOTEMPTY"])(
+    "stops after the bounded Windows %s retry schedule",
+    async (code) => {
+      const failures = Array.from(
+        { length: 7 },
+        (_, index) =>
+          Object.assign(new Error(`profile ${code} attempt ${index + 1}`), {
+            code,
+          }),
+      );
+      let attempts = 0;
+      const waits: number[] = [];
+
+      const result = await cleanupProofRun(["\0profile"], undefined, {
+        platform: "win32",
+        removeDirectory: () => {
+          attempts += 1;
+          throw failures[attempts - 1];
+        },
+        wait: (delayMs) => {
+          waits.push(delayMs);
+          return Promise.resolve();
+        },
+      }).catch((error: unknown) => error);
+
+      expect(result).toBe(failures[6]);
+      expect(attempts).toBe(7);
+      expect(waits).toEqual([50, 100, 200, 400, 800, 1600]);
+    },
+  );
 
   it.each([
     ["win32", "EACCES"],
     ["darwin", "EBUSY"],
+    ["darwin", "ENOTEMPTY"],
   ])(
     "does not retry %s removal failures with code %s",
     async (platform, code) => {
@@ -132,9 +160,9 @@ describe("native proof cleanup", () => {
     expect(waits).toEqual([50]);
   });
 
-  it("keeps all-directory cleanup and aggregation after an exhausted busy retry", async () => {
-    const busy = Object.assign(new Error("profile never released"), {
-      code: "EBUSY",
+  it("keeps all-directory cleanup and aggregation after an exhausted retry", async () => {
+    const notEmpty = Object.assign(new Error("profile never emptied"), {
+      code: "ENOTEMPTY",
     });
     const denied = Object.assign(new Error("target removal denied"), {
       code: "EACCES",
@@ -148,7 +176,7 @@ describe("native proof cleanup", () => {
         platform: "win32",
         removeDirectory: (directory) => {
           attempts.set(directory, (attempts.get(directory) ?? 0) + 1);
-          if (directory === "\0profile") throw busy;
+          if (directory === "\0profile") throw notEmpty;
           if (directory === "\0target") throw denied;
           return Promise.resolve();
         },
@@ -157,7 +185,7 @@ describe("native proof cleanup", () => {
     ).catch((error: unknown) => error);
 
     expect(result).toBeInstanceOf(AggregateError);
-    expect((result as AggregateError).errors).toEqual([busy, denied]);
+    expect((result as AggregateError).errors).toEqual([notEmpty, denied]);
     expect(attempts).toEqual(
       new Map([
         ["\0profile", 7],

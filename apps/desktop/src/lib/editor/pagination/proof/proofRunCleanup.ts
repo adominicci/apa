@@ -11,7 +11,7 @@ export interface ProofRunCleanupDependencies {
   wait?(delayMs: number): Promise<void>;
 }
 
-const WINDOWS_EBUSY_RETRY_DELAYS_MS = [50, 100, 200, 400, 800, 1600] as const;
+const WINDOWS_REMOVE_RETRY_DELAYS_MS = [50, 100, 200, 400, 800, 1600] as const;
 
 function defaultRemoveDirectory(directory: string): Promise<void> {
   return rm(directory, { recursive: true, force: true });
@@ -28,6 +28,11 @@ function errorCode(error: unknown): string | undefined {
     : undefined;
 }
 
+function isRetryableWindowsRemoval(error: unknown): boolean {
+  const code = errorCode(error);
+  return code === "EBUSY" || code === "ENOTEMPTY";
+}
+
 async function removeDirectoryWithRetry(
   directory: string,
   dependencies: Required<ProofRunCleanupDependencies>,
@@ -38,9 +43,10 @@ async function removeDirectoryWithRetry(
       await dependencies.removeDirectory(directory);
       return;
     } catch (error) {
-      const delayMs = WINDOWS_EBUSY_RETRY_DELAYS_MS[retryIndex];
+      const delayMs = WINDOWS_REMOVE_RETRY_DELAYS_MS[retryIndex];
       if (
-        dependencies.platform !== "win32" || errorCode(error) !== "EBUSY" ||
+        dependencies.platform !== "win32" ||
+        !isRetryableWindowsRemoval(error) ||
         delayMs === undefined
       ) {
         throw error;
