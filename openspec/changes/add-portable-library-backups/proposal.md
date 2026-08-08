@@ -18,7 +18,8 @@ SQLite migration.
   interrupted import cannot silently corrupt the library.
 - Add an optional bilingual setup wizard for daily backups to a user-selected
   Google Drive, iCloud Drive, OneDrive, Dropbox, or ordinary folder.
-- Add Back up now, Merge-based restore, status, retry, pause/re-enable,
+- Add Back up now, Merge-based restore, status, retry, turn off/re-enable
+  (re-enabling requires authorizing a folder and passing a new test backup),
   folder-change, and open-folder actions, with seven-version retention
   restricted to backups proven to belong to this Tesina installation.
 - Preserve the existing JSON-plus-assets working storage. Device preferences,
@@ -49,6 +50,9 @@ None.
   configured folder authorization while leaving ordinary import/export dialog
   grants temporary; also adds recoverable temporary output, rollback archives,
   and import journals.
+- Adds cross-process exclusion (single running instance or an equivalent
+  exclusive lock) so import apply, startup recovery, automatic backup, and
+  retention never run in two Tesina processes at once.
 - Adds Svelte wizard, Merge preview, home status card, and Settings controls;
   all user-facing text requires English and Spanish Paraglide messages.
 - Extends persistence coordination with an exclusive snapshot lease so export

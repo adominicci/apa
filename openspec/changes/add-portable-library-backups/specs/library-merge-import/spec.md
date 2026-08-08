@@ -113,6 +113,50 @@ paths SHALL resolve to the chosen local assets after planning.
 - **THEN** Tesina writes the imported bytes under a new path and rewrites only
   imported essay content to that path
 
+### Requirement: Plan freshness at apply
+
+An apply operation SHALL act only on a Merge plan computed from a flushed,
+lease-stable persisted revision, and Tesina MUST verify at apply time that the
+live library revision still matches the plan-time revision. The merged shared
+library that replaces `library.json` MUST be built from the revision current at
+apply. On a revision mismatch, Tesina MUST replan (re-presenting the preview
+when its counts change) or abort without writing.
+
+#### Scenario: Library changes while the preview is open
+
+- **WHEN** the user edits references, collections, or essays while a Merge
+  preview is open and then confirms apply
+- **THEN** Tesina detects the revision change and replans or aborts instead of
+  overwriting the newer local library state with a merge computed from stale
+  data
+
+#### Scenario: Library is unchanged at apply
+
+- **WHEN** the live library revision at apply equals the plan-time revision
+- **THEN** the confirmed plan applies without an unnecessary replan
+
+### Requirement: Cross-process exclusion
+
+Import apply, startup recovery, automatic backup, and retention SHALL run only
+while this Tesina process holds an exclusive cross-process guard (a single
+enforced application instance or an equivalent exclusive lock). A second
+process MUST NOT treat another live process's journals, staged data, ledger, or
+in-flight files as interrupted state.
+
+#### Scenario: Second app instance launches during import
+
+- **WHEN** a second Tesina instance starts while another instance has an
+  import transaction in progress
+- **THEN** the second instance does not run recovery against, modify, or delete
+  the running instance's journal, staged data, or newly written files
+
+#### Scenario: Exclusive guard cannot be acquired
+
+- **WHEN** the cross-process guard cannot be acquired at startup
+- **THEN** Tesina surfaces the conflict (for example by focusing the existing
+  instance) instead of running recovery, import, backup, or retention
+  concurrently
+
 ### Requirement: Validated rollback before merge
 
 Before applying a Merge plan, Tesina SHALL create and validate a complete local
@@ -201,5 +245,13 @@ preview, identity mapping, and lossless Merge behavior as ordinary import.
 
 - **WHEN** the restore confirmation is shown
 - **THEN** Tesina explains in the current UI language that Restore merges rather
-  than rolls back or replaces, and that older conflicts can appear as imported
-  copies
+  than rolls back or replaces, that older conflicts can appear as imported
+  copies, and that content deleted locally after the backup was created may be
+  re-added
+
+#### Scenario: Restore re-adds locally deleted content
+
+- **WHEN** a restored backup contains an essay, reference, or collection that
+  the user deleted locally after that backup was created
+- **THEN** the Merge preview counts it as new content that will be re-added and
+  the restore explanation covers this consequence before apply

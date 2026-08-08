@@ -46,26 +46,33 @@
       times are fixed; prove device settings, deleted backups, and orphan assets
       are absent.
 - [ ] 2.6 Implement ZIP creation in `portable/archive.ts` and make every
-      produced archive reopen through the validator before its bytes can be
-      returned as a successful result.
+      produced archive reopen through the group-2 structural reader (manifest
+      parse plus checksum verification) before its bytes can be returned as a
+      successful result; task 3.4 upgrades this reopen gate to the full
+      validator.
 
 ## 3. Bounded untrusted archive validation
 
 - [ ] 3.1 Add adversarial tests for malformed ZIP bytes, encrypted entries,
       absolute paths, parent/dot traversal, backslashes, NULs, duplicate
-      normalized paths, unknown top-level paths, symlinks/non-regular entries,
-      checksum and length mismatches, missing manifest, duplicate manifest, and
-      unsupported versions.
-- [ ] 3.2 Implement bounded streaming ZIP intake in `portable/archive.ts`; check
-      native file size in `persist/portableFiles.ts` before load and enforce
-      declared preflight plus authoritative observed counters before parsing
-      expanded payloads. Do not use unbounded `unzipSync` on imported files.
+      normalized paths, unknown top-level paths, entries violating the exact
+      allowed-path grammar (uppercase, non-ASCII, multi-dot, or overlong
+      extensions), symlinks/non-regular entries, checksum and length
+      mismatches, missing manifest, duplicate manifest, and unsupported
+      versions.
+- [ ] 3.2 Implement bounded streaming ZIP intake in `portable/archive.ts` with a
+      declared-size preflight at the pure intake boundary plus authoritative
+      observed counters before parsing expanded payloads; when
+      `persist/portableFiles.ts` is created in task 4.4, wire the native
+      file-size check there. Do not use unbounded `unzipSync` on imported
+      files.
 - [ ] 3.3 Add failing JSON-shape tests for invalid manifest fields, essay schema
       versions other than 2, malformed shared-library schema, invalid reference
       and collection arrays, non-canonical/overlong IDs, filename/payload ID
       mismatches, JSON complexity limits, image signature/media-type mismatch,
-      image dimension/frame/pixel limits, unsupported figure extensions, and
-      missing referenced assets.
+      image dimension/frame/pixel limits, unsupported figure extensions,
+      missing referenced assets, and citations, reference snapshots, or
+      collection members that reference identifiers absent from the archive.
 - [ ] 3.4 Implement `portable/validate.ts` with discriminated localized error
       codes and relationship validation; never write an archive entry path
       directly to disk.
@@ -94,10 +101,12 @@
       of the written file before success.
 - [ ] 4.4 Implement `persist/portableFiles.ts` with native `.tesina` open/save
       and folder dialogs, UUID-named sibling temporary files, reopen validation,
-      direct same-filesystem replacement where safe, and a journaled fallback
-      that preserves the previous destination until the new file reopens and
-      validates. Add startup/next-access recovery and termination tests at every
-      rename and cleanup boundary.
+      direct same-filesystem replacement where safe, exclusive no-replace
+      creation for new automatic-backup filenames (a collision selects a new
+      unused name and never overwrites a file this operation did not create),
+      and a journaled fallback that preserves the previous destination until
+      the new file reopens and validates. Add startup/next-access recovery and
+      termination tests at every rename and cleanup boundary.
 - [ ] 4.5 Create one injected `LibraryArchiveService` used by manual export,
       rollback creation, test backup, scheduled backup, and Back up now;
       return the digest of the exact archived snapshot and prohibit duplicate
@@ -145,12 +154,15 @@
       operation manifest or independently validated journal copy.
 - [ ] 6.2 Add fault-injection tests for failure before the journal, after each
       asset/essay move, before and after `library.json` replacement, during
-      final consistency validation, and during staging cleanup.
+      final consistency validation, and during staging cleanup; include a case
+      where the live library revision changes between preview confirmation and
+      apply and prove the import replans or aborts without writing.
 - [ ] 6.3 Implement `persist/importJournal.ts` to stage under
       `$APPDATA/imports/<transaction>/`, validate a full rollback archive under
       `$APPDATA/backups/imports/`, persist the journal before live writes, and
       apply only additive unused essay/asset paths plus one atomic library
-      replacement.
+      replacement built from the revision current at apply after verifying the
+      live library revision still matches the plan-time revision.
 - [ ] 6.4 Implement idempotent resume that verifies staged/final hashes and
       skips completed stable operation IDs without producing duplicate essays,
       references, collections, or assets.
@@ -172,13 +184,22 @@
       restrictive app-data permissions where supported, disclose the complete
       unencrypted recovery copy, and prove cleanup never removes an unfinished
       transaction's rollback.
+- [ ] 6.9 Add cross-process exclusion: install and configure
+      `tauri-plugin-single-instance` (or an equivalent exclusive app-data lock
+      acquired before recovery) so import apply, startup recovery, automatic
+      backup, and retention run only in the guarded instance; record its SPDX
+      license in the task 1.6 dependency report. Prove a second launch focuses
+      the first instance without running recovery, and that a live journal,
+      staged directory, ledger, or in-flight file is never treated as
+      interrupted state by another process.
 
 ## 7. Manual library export and Merge user interface
 
 - [ ] 7.1 Add English and Spanish Paraglide messages for complete-library
       export, the unencrypted privacy notice, validation/progress/errors, Merge
       categories, document-language imported-copy suffixes, restore-by-merging
-      consequences, rollback-copy privacy, recovery, cancellation, and results;
+      consequences including that locally deleted content may be re-added,
+      rollback-copy privacy, recovery, cancellation, and results;
       do not hardcode user-facing strings or mix UI/document locale axes.
 - [ ] 7.2 Add a separate Export library action and confirmation flow that
       flushes persistence, explains archive scope/privacy, opens the native save
@@ -204,7 +225,9 @@
       configure/test/write/list/read/reveal/revoke commands. Do not install
       global persisted-scope and do not accept arbitrary caller paths after
       configuration. Use a recursive native folder selection only during setup,
-      canonicalize it, reject symlinks/reparse points, and add no broad `$HOME`,
+      canonicalize it, reject symlinks/reparse points and any selection that is
+      or contains the application data directory, create and test the dedicated
+      `Tesina Backups` subfolder before activation, and add no broad `$HOME`,
       provider, or network scope. Implement
       `apps/desktop/src-tauri/src/backup_directory.rs`, register commands in
       `lib.rs`, and make Rust exclusively own an atomic versioned
@@ -214,8 +237,9 @@
       restart, while its parent/sibling, an old backup folder, and manual
       import/export selections are denied. Record the exact capability diff.
 - [ ] 8.3 Extend schema-version-1 `settings.json` additively with validated
-      backup UI/status fields and keep authoritative path/enabled/backup-set
-      state in the native record. Add a Rust-owned atomic
+      backup UI/status fields and keep authoritative path/backup-set state in
+      the native record, whose presence means configured (Turn off deletes the
+      record; there is no pause flag). Add a Rust-owned atomic
       `$APPDATA/backup-ledger.json` keyed by the native `backupSetId`; prove
       older settings load with backup disabled and every configuration/ledger
       file is excluded from `.tesina` archives.
@@ -249,11 +273,14 @@
       now bypassing only the daily limit. Race a mutation during archive write
       and prove the later content remains eligible.
 - [ ] 9.5 Implement `portable/retention.ts` and tests for the exact automatic
-      filename grammar, matching backup-set identity and successful-write
-      ledger, immediate pre-delete hash recheck, creation-time ordering, Test
+      filename grammar (including the installation backup-set component) inside
+      the `Tesina Backups` subfolder, ledger-first classification that never
+      opens or parses a file the ledger does not list, matching backup-set
+      identity, immediate pre-delete hash recheck, creation-time ordering, Test
       backup and Back up now counting toward seven, manual Export library and
       other-device/invalid/temp entries untouched, missing-ledger retain-all,
-      and prune failure as a warning rather than backup failure.
+      prune failure as a warning rather than backup failure, and a persistent
+      accumulation warning when owned archives grow well beyond seven.
 - [ ] 9.6 Wire selected-folder offline, moved, full, and unauthorized failures
       to stable error codes and non-blocking Retry/Choose another folder
       behavior while local autosave and editing remain functional.
@@ -282,7 +309,9 @@
 - [ ] 10.4 Create `BackupSettings.svelte` with location, last successful time,
       next expected backup, Back up now, Restore by merging, Open backup folder,
       Change folder, Turn off/Re-enable, Retry, and setup-card preference
-      controls. Disclose that folder change/disable leaves old archive files.
+      controls. Disclose that folder change/disable leaves old archive files
+      and that re-enabling requires authorizing a folder and passing a new test
+      backup.
 - [ ] 10.5 Add component tests proving a started backup preserves the previous
       success time, a validated completion updates it, a failed backup remains
       eligible, Turn off revokes access without deleting files, and Restore by
@@ -322,7 +351,9 @@
       SHA before merge.
 - [ ] 11.6 Verify Google Drive, iCloud Drive, OneDrive, and Dropbox wording is
       provider-neutral: Tesina proves the local selected-folder file only and
-      never claims remote synchronization succeeded.
+      never claims remote synchronization succeeded. Also audit every surface
+      so checksums are never presented as proof of origin, authenticity, or
+      encryption.
 - [ ] 11.7 Manually exercise iCloud Drive and one third-party macOS File Provider
       with offline placeholder, rehydration, concurrent provider activity,
       rename conflict, timeout, and restart cases; record privacy-redacted

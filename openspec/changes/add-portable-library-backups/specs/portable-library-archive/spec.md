@@ -7,16 +7,27 @@ move, and store independently of any account, provider, or device preference.
 
 ### Requirement: Complete content-library export
 
-Tesina SHALL export one `.tesina` archive containing every valid essay, each
-essay's title-page and document settings, the shared reference library and
-collections, and every figure asset reachable from an exported essay.
+Tesina SHALL export one `.tesina` archive containing every essay, each essay's
+title-page and document settings, the shared reference library and collections,
+and every figure asset reachable from an exported essay. If any source essay
+file, the shared library file, or a reachable asset fails source validation
+during capture, the export MUST fail with an error identifying the offending
+item; invalid content is never silently skipped.
 
 #### Scenario: Export a complete library
 
 - **WHEN** the user exports a library containing multiple essays, cited
   references, collections, and figures
-- **THEN** the archive contains every valid content item and every figure needed
+- **THEN** the archive contains every content item and every figure needed
   to reopen those essays
+
+#### Scenario: Source library contains an invalid item
+
+- **WHEN** an essay file, the shared library file, or a reachable asset fails
+  source validation while an export or backup snapshot is captured
+- **THEN** the operation fails with a localized error that identifies the
+  offending file and offers recovery guidance, and no partial archive is
+  reported as success
 
 #### Scenario: Exclude device-local data
 
@@ -81,10 +92,15 @@ rather than combine content from different revisions.
 
 Tesina SHALL validate the container, manifest, allowed paths, declared and
 expanded sizes, checksums, JSON shapes, supported schema versions, and required
-asset relationships before declaring an archive valid. Every identifier used to
-derive a local path MUST be a canonical supported identifier and MUST agree with
-the corresponding archive entry name. Validation MUST also bound structured
-JSON complexity and decoded image cost.
+asset, citation, and collection-membership relationships before declaring an
+archive valid. Every identifier used to derive a local path MUST be a canonical
+supported identifier and MUST agree with the corresponding archive entry name.
+Allowed entry paths are exactly `manifest.json`, `library.json`,
+`essays/<uuid>.json`, and `assets/<uuid>.<extension>`, where `<uuid>` is a
+canonical lowercase UUID and `<extension>` is one to five lowercase ASCII
+letters or digits; entry names are compared byte-wise after this grammar check
+so no Unicode or filesystem case normalization can alias two entries. Validation
+MUST also bound structured JSON complexity and decoded image cost.
 
 #### Scenario: Detect corrupted content
 
@@ -118,6 +134,13 @@ JSON complexity and decoded image cost.
 - **THEN** validation rejects the archive before planning or deriving any local
   filesystem path
 
+#### Scenario: Reject unresolved content relationships
+
+- **WHEN** an archived essay citation, reference snapshot entry, or collection
+  member references an identifier that resolves to nothing inside the archive
+- **THEN** validation rejects the archive before any Merge preview or apply is
+  offered
+
 #### Scenario: Reject excessive structured or decoded content
 
 - **WHEN** JSON nesting, object/node/string counts, image dimensions, frame
@@ -131,6 +154,10 @@ Tesina SHALL create and validate an archive in temporary storage before making
 it visible at the user-selected destination, and SHALL preserve any previously
 valid destination file until the replacement can be recovered safely. An
 interrupted replacement MUST be detectable and recoverable on the next access.
+When creating a new automatic-backup file, Tesina MUST create the destination
+name exclusively and MUST NOT overwrite any existing file it did not create in
+the same operation; replacement semantics apply only when the user explicitly
+chooses an existing manual-export destination.
 
 #### Scenario: Successful manual export
 
@@ -148,6 +175,13 @@ interrupted replacement MUST be detectable and recoverable on the next access.
 - **WHEN** the destination becomes unavailable or rejects the write
 - **THEN** Tesina reports failure, does not report export success, and preserves
   any previously valid destination file
+
+#### Scenario: Automatic-backup name already exists
+
+- **WHEN** an automatic backup's candidate filename already exists in the
+  destination folder
+- **THEN** Tesina writes its backup under a different unused name and never
+  replaces the existing file
 
 #### Scenario: App exits during destination replacement
 

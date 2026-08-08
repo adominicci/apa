@@ -47,6 +47,15 @@ Tesina SHALL remember access to the user-selected backup folder across app
 restarts without granting or requesting broad access to unrelated filesystem
 locations. Manual import/export selections and previously configured backup
 folders MUST remain temporary or be revoked once they are no longer active.
+Tesina MUST reject a selected folder that is, or is inside, its own application
+data directory.
+
+#### Scenario: App-data folder selected as backup destination
+
+- **WHEN** the user selects Tesina's application data directory or any folder
+  inside it
+- **THEN** setup rejects the selection and explains that a backup must live
+  outside the application's own storage
 
 #### Scenario: Restart after successful setup
 
@@ -99,7 +108,17 @@ manifest successfully.
 Tesina SHALL create at most one automatic backup per local calendar day and only
 when the content-library revision differs from the last successful backup.
 Failure SHALL NOT advance the successful revision or date. The user SHALL also
-have a Back up now action.
+have a Back up now action. Each automatic backup SHALL be written inside the
+dedicated `Tesina Backups` subfolder under an exclusively created filename that
+includes this installation's backup-set identifier and creation timestamp;
+Tesina MUST NOT overwrite an existing file when creating a backup.
+
+#### Scenario: Two installations back up to one synced folder
+
+- **WHEN** another installation's archive already occupies a candidate backup
+  filename in the shared folder
+- **THEN** Tesina writes its backup under a different unused name and never
+  replaces the other installation's file
 
 #### Scenario: First changed session of the day
 
@@ -189,9 +208,13 @@ After a successful scheduled or Back up now operation, Tesina SHALL retain the
 seven newest valid recovery archives proven to belong to this installation's
 backup set. Ownership MUST be established by a durable successful-write record
 and matching archive identity and bytes, not inferred from filename alone.
-Tesina SHALL never delete directories, temporary unknown files, manual exports,
-archives from another device or installation, or unrelated files. Test backup
-counts as the first retained recovery archive; manual Export library does not.
+Retention MUST consult the successful-write record first and MUST NOT open,
+parse, or validate any file that the record does not list; classification order
+is filename grammar, then record lookup, then backup-set identity, then a
+current-bytes hash recheck immediately before deletion. Tesina SHALL never
+delete directories, temporary unknown files, manual exports, archives from
+another device or installation, or unrelated files. Test backup counts as the
+first retained recovery archive; manual Export library does not.
 
 #### Scenario: Eighth owned recovery backup succeeds
 
@@ -218,11 +241,24 @@ counts as the first retained recovery archive; manual Export library does not.
   unrecognized `.tesina` file
 - **THEN** Tesina leaves those entries untouched
 
+#### Scenario: Unowned file is never parsed
+
+- **WHEN** the `Tesina Backups` subfolder contains a `.tesina` file that the
+  successful-write record does not list
+- **THEN** retention leaves it untouched without opening or parsing its contents
+
 #### Scenario: Pruning fails
 
 - **WHEN** an old recognized backup cannot be removed
 - **THEN** the new validated backup remains successful and Tesina reports a
   non-destructive retention warning without deleting another file in its place
+
+#### Scenario: Retention repeatedly cannot prune
+
+- **WHEN** owned retained archives keep accumulating well beyond seven because
+  ownership cannot be proven or pruning keeps failing
+- **THEN** Tesina surfaces a persistent retention warning explaining that old
+  backups are accumulating and how to manage them manually
 
 ### Requirement: Provider-neutral folder operation
 
@@ -248,6 +284,8 @@ successful local validation from remote provider synchronization.
 
 The Restore action SHALL list or select available `.tesina` files and then use
 the validated library Merge capability rather than replacing local content.
+Listing and reading candidate files MUST enforce the same archive safety limits
+as import validation.
 
 #### Scenario: Restore from backup status UI
 
