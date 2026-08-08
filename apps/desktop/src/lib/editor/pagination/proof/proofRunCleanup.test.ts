@@ -16,6 +16,157 @@ afterEach(async () => {
 });
 
 describe("native proof cleanup", () => {
+  it("retries only transient Windows EBUSY removals with a bounded schedule", async () => {
+    const attempts = new Map<string, number>();
+    const waits: number[] = [];
+    const busy = Object.assign(new Error("profile still in use"), {
+      code: "EBUSY",
+    });
+
+    await cleanupProofRun(["\0profile", "\0output"], undefined, {
+      platform: "win32",
+      removeDirectory: (directory) => {
+        const attempt = (attempts.get(directory) ?? 0) + 1;
+        attempts.set(directory, attempt);
+        if (directory === "\0profile" && attempt < 3) throw busy;
+        return Promise.resolve();
+      },
+      wait: (delayMs) => {
+        waits.push(delayMs);
+        return Promise.resolve();
+      },
+    });
+
+    expect(attempts).toEqual(
+      new Map([
+        ["\0profile", 3],
+        ["\0output", 1],
+      ]),
+    );
+    expect(waits).toEqual([50, 100]);
+  });
+
+  it("stops after the bounded Windows EBUSY retry schedule", async () => {
+    const busyFailures = Array.from(
+      { length: 7 },
+      (_, index) =>
+        Object.assign(new Error(`profile busy attempt ${index + 1}`), {
+          code: "EBUSY",
+        }),
+    );
+    let attempts = 0;
+    const waits: number[] = [];
+
+    const result = await cleanupProofRun(["\0profile"], undefined, {
+      platform: "win32",
+      removeDirectory: () => {
+        attempts += 1;
+        throw busyFailures[attempts - 1];
+      },
+      wait: (delayMs) => {
+        waits.push(delayMs);
+        return Promise.resolve();
+      },
+    }).catch((error: unknown) => error);
+
+    expect(result).toBe(busyFailures[6]);
+    expect(attempts).toBe(7);
+    expect(waits).toEqual([50, 100, 200, 400, 800, 1600]);
+  });
+
+  it.each([
+    ["win32", "EACCES"],
+    ["darwin", "EBUSY"],
+  ])(
+    "does not retry %s removal failures with code %s",
+    async (platform, code) => {
+      const failure = Object.assign(new Error(`${code} removal failure`), {
+        code,
+      });
+      let attempts = 0;
+      const waits: number[] = [];
+
+      const result = await cleanupProofRun(["\0profile"], undefined, {
+        platform,
+        removeDirectory: () => {
+          attempts += 1;
+          throw failure;
+        },
+        wait: (delayMs) => {
+          waits.push(delayMs);
+          return Promise.resolve();
+        },
+      }).catch((error: unknown) => error);
+
+      expect(result).toBe(failure);
+      expect(attempts).toBe(1);
+      expect(waits).toEqual([]);
+    },
+  );
+
+  it("stops retrying when a Windows EBUSY becomes a non-transient failure", async () => {
+    const busy = Object.assign(new Error("profile still in use"), {
+      code: "EBUSY",
+    });
+    const denied = Object.assign(new Error("profile removal denied"), {
+      code: "EACCES",
+    });
+    let attempts = 0;
+    const waits: number[] = [];
+
+    const result = await cleanupProofRun(["\0profile"], undefined, {
+      platform: "win32",
+      removeDirectory: () => {
+        attempts += 1;
+        if (attempts === 1) throw busy;
+        throw denied;
+      },
+      wait: (delayMs) => {
+        waits.push(delayMs);
+        return Promise.resolve();
+      },
+    }).catch((error: unknown) => error);
+
+    expect(result).toBe(denied);
+    expect(attempts).toBe(2);
+    expect(waits).toEqual([50]);
+  });
+
+  it("keeps all-directory cleanup and aggregation after an exhausted busy retry", async () => {
+    const busy = Object.assign(new Error("profile never released"), {
+      code: "EBUSY",
+    });
+    const denied = Object.assign(new Error("target removal denied"), {
+      code: "EACCES",
+    });
+    const attempts = new Map<string, number>();
+
+    const result = await cleanupProofRun(
+      ["\0profile", "\0target", "\0output"],
+      undefined,
+      {
+        platform: "win32",
+        removeDirectory: (directory) => {
+          attempts.set(directory, (attempts.get(directory) ?? 0) + 1);
+          if (directory === "\0profile") throw busy;
+          if (directory === "\0target") throw denied;
+          return Promise.resolve();
+        },
+        wait: () => Promise.resolve(),
+      },
+    ).catch((error: unknown) => error);
+
+    expect(result).toBeInstanceOf(AggregateError);
+    expect((result as AggregateError).errors).toEqual([busy, denied]);
+    expect(attempts).toEqual(
+      new Map([
+        ["\0profile", 7],
+        ["\0target", 1],
+        ["\0output", 1],
+      ]),
+    );
+  });
+
   it("removes every generated directory even when preview shutdown rejects", async () => {
     const directories = await Promise.all(
       ["dist", "profile", "diagnostics"].map(async (kind) => {

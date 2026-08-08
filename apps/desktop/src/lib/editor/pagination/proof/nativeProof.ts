@@ -18,6 +18,7 @@ import {
   createNativeProofBridge,
   type NativeProofBridgeScope,
 } from "./nativeBridge.ts";
+import { inlineFlowVisualHeight } from "./nativeProofGeometry.ts";
 import { samePlannerFragmentInputs } from "./plannerInputEquality.ts";
 import { startProofPageWatchdog } from "./proofPageWatchdog.ts";
 import "./nativeProof.css";
@@ -340,18 +341,22 @@ async function runProof(): Promise<ProofResult> {
     );
     const runInHeading = editor.view.nodeDOM(runInHeadingPos) as HTMLElement;
     const runInBody = editor.view.nodeDOM(runInBodyPos) as HTMLElement;
-    const runInLineTops = [
+    const runInRects = [
       ...Array.from(runInHeading.getClientRects()),
       ...Array.from(runInBody.getClientRects()),
-    ].map((rect) => rect.top).sort((left, right) => left - right).filter(
-      (top, index, tops) => index === 0 || Math.abs(top - tops[index - 1]!) > 1,
-    );
+    ];
     const runInLineHeight = Number.parseFloat(
       getComputedStyle(runInBody).lineHeight,
     );
-    // Inline client rects expose glyph ink rather than their line boxes. Count
-    // the distinct native line positions, then apply the native line-height.
-    const runInVisualHeight = runInLineTops.length * runInLineHeight;
+    // Blink exposes the empty block terminator from p::after as a zero-height
+    // client rect. It ends the inline flow but is not another visual line.
+    const runInVisualHeight = inlineFlowVisualHeight(
+      runInRects,
+      runInLineHeight,
+    );
+    const runInPositiveAreaRectCount = runInRects.filter((rect) =>
+      rect.width > 0 && rect.height > 0
+    ).length;
     const measuredRunInHeight = initialMeasurement.fragments.filter(
       (fragment) =>
         fragment.id === `heading:${runInHeadingPos}` ||
@@ -842,9 +847,7 @@ async function runProof(): Promise<ProofResult> {
       tableContinuationHeaderMeasured:
         tableFragments[0]?.table?.repeatedHeader === undefined &&
         repeatedTableHeader !== undefined && repeatedTableHeader.height > 0 &&
-        repeatedTableHeader.cells.map((cell) =>
-            cell.text
-          ).join("|") ===
+        repeatedTableHeader.cells.map((cell) => cell.text).join("|") ===
           "Round|Cards|Envelopes" &&
         repeatedTableHeader.cells.reduce(
             (columns, cell) => columns + cell.colSpan,
@@ -927,6 +930,8 @@ async function runProof(): Promise<ProofResult> {
         adjacentAtomicMeasuredAdvance,
         measuredRunInHeight,
         runInVisualHeight,
+        runInClientRectCount: runInRects.length,
+        runInPositiveAreaRectCount,
         repeatedTableHeaderHeight: repeatedTableHeader?.height ?? 0,
         resourceWaitFrames,
         gapWaitFrames,
