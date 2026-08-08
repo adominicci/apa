@@ -117,30 +117,30 @@
 
 ## 5. Pure Merge planning and identity remapping
 
-- [ ] 5.1 Extend `model/essay.ts` with optional `importedAt` and `sourceEssayId`
+- [x] 5.1 Extend `model/essay.ts` with optional `importedAt` and `sourceEssayId`
       while retaining `schemaVersion: 2`; add load/persist/summarize regressions
       for old essays and imported copies.
-- [ ] 5.2 Add semantic-hash tests proving `updatedAt`, `importedAt`, and
+- [x] 5.2 Add semantic-hash tests proving `updatedAt`, `importedAt`, and
       `sourceEssayId` do not create false essay conflicts while title-page,
       settings, document, creation date, and reference-snapshot changes do.
-- [ ] 5.3 Add failing `portable/remap.ts` tests covering citation IDs and figure
+- [x] 5.3 Add failing `portable/remap.ts` tests covering citation IDs and figure
       paths inside body sections, abstracts, appendices, paragraphs, nested
       lists, tables, and any supported block container, plus
       `referencesSnapshot`.
-- [ ] 5.4 Implement pure citation/reference/collection/asset remappers and prove
+- [x] 5.4 Implement pure citation/reference/collection/asset remappers and prove
       they never mutate a pre-existing local essay object.
-- [ ] 5.5 Add import-plan matrix tests for new essays, same-title/different-ID
+- [x] 5.5 Add import-plan matrix tests for new essays, same-title/different-ID
       essays, semantically identical same-ID essays, conflicting same-ID essays,
       identical/conflicting references, identical/conflicting collections,
       same-byte assets, and path-colliding different-byte assets.
-- [ ] 5.6 Implement `portable/importPlan.ts` with injected transaction/UUID/time
+- [x] 5.6 Implement `portable/importPlan.ts` with injected transaction/UUID/time
       dependencies, stable operation IDs, imported-copy labels selected from
       each essay's document language, and explicit preview/result counts. Keep
       preview/chrome explanations on the current UI language axis.
-- [ ] 5.7 Add final pure consistency checks proving every planned citation,
+- [x] 5.7 Add final pure consistency checks proving every planned citation,
       snapshot reference, collection membership, and figure path resolves after
       the plan is applied to an in-memory fixture.
-- [ ] 5.8 Resolve the asset checksum-to-local-path plan before semantic essay
+- [x] 5.8 Resolve the asset checksum-to-local-path plan before semantic essay
       comparison; add a self-import fixture with an identical illustrated essay
       and prove it is skipped rather than copied because archive-normalized and
       local figure paths differ.

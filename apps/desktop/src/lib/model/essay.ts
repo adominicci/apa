@@ -50,6 +50,18 @@ export interface Essay {
    * if the library entry is deleted (plan §library/essay reconciliation).
    */
   referencesSnapshot: Reference[];
+  /**
+   * ISO time a library import created this essay as an imported copy.
+   * Additive under schema version 2; absent on ordinary essays and excluded
+   * from semantic identity (portable/semantic.ts).
+   */
+  importedAt?: string;
+  /**
+   * Original essay id an imported copy was created from when a same-id
+   * conflict forced a new id. Additive under schema version 2; absent on
+   * ordinary essays and excluded from semantic identity.
+   */
+  sourceEssayId?: string;
 }
 
 export interface EssaySummary {
