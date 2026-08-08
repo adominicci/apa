@@ -47,6 +47,23 @@ describe("native pagination CI contract", () => {
     expect(commands).not.toMatch(/playwright|chromium|browser bundle/i);
   });
 
+  it.each([
+    "pagination-native-macos",
+    "pagination-native-windows",
+  ])("runs Svelte generation and checking before Vitest in %s", (name) => {
+    const steps = workflowSteps({ jobs: { [name]: nativeJob(name) } });
+    const svelteCheckIndex = steps.findIndex((step) =>
+      step.run === "deno task check"
+    );
+    const focusedSuiteIndex = steps.findIndex((step) =>
+      typeof step.run === "string" &&
+      step.run.includes("vitest run apps/desktop/src/lib/editor/pagination")
+    );
+
+    expect(svelteCheckIndex).toBeGreaterThan(-1);
+    expect(focusedSuiteIndex).toBeGreaterThan(svelteCheckIndex);
+  });
+
   it("installs locked Rust for the direct WebView2 host only", () => {
     const macSteps = workflowSteps({
       jobs: { mac: nativeJob("pagination-native-macos") },

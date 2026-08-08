@@ -51,6 +51,9 @@ jobs:
       - name: Install dependencies
         run: deno install
 
+      - name: Svelte check
+        run: deno task check
+
       - name: Focused pagination suite
         run: >-
           deno run -A npm:vitest run
@@ -79,6 +82,9 @@ jobs:
 
       - name: Install dependencies
         run: deno install
+
+      - name: Svelte check
+        run: deno task check
 
       - name: Focused pagination suite
         run: >-
