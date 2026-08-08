@@ -32,7 +32,7 @@
 - Modify: `apps/desktop/src/lib/editor/pagination/proof/nativeManualProof.ts`
 - Modify: `apps/desktop/src/lib/editor/pagination/proof/nativeManualProofContract.test.ts`
 
-**Interfaces:** Produces `NativeManualInputMessage`, `parseNativeManualInputMessage(value)`, and `NativeProofBridge.postNativeInput(value): boolean`. The ordered stages are `ready`, `drag`, `copy`, `paste`, `dead-key`, and `undo`.
+**Interfaces:** Produces `NativeManualInputMessage`, `parseNativeManualInputMessage(value)`, and `NativeProofBridge.postNativeInput(value): boolean`. The ordered stages are `ready`, `drag`, `copy`, `paste`, `caret`, `dead-key`, and `undo`; the caret acknowledgement separates the real ArrowRight from the dead-key pair.
 
 - [x] **Step 1: Write failing tests.** Require Wry-only `native-input` envelopes, strict finite/in-bounds geometry, nonempty selection/clipboard payloads, paste document growth, trusted `Dead`, exact `é`/one-character document growth at the captured selection, trusted Ctrl+Z, and exact prior JSON/selection restoration. Preserve trusted macOS composition evidence and assert the source contains no `dispatchEvent`, `execute_script`, or constructed input event.
 - [x] **Step 2: Record RED.** Run `/Users/andresdominicci/.deno/bin/deno run -A npm:vitest run apps/desktop/src/lib/editor/pagination/proof/nativeBridge.test.ts apps/desktop/src/lib/editor/pagination/proof/nativeManualInputProtocol.test.ts apps/desktop/src/lib/editor/pagination/proof/nativeManualProofContract.test.ts`. Expected: missing protocol/bridge and trusted-only behavior.
@@ -50,7 +50,7 @@
 - Modify: `apps/desktop/src-tauri/Cargo.lock`
 - Modify: `apps/desktop/src/lib/editor/pagination/proof/nativeManualProofContract.test.ts`
 
-**Interfaces:** Consumes the six ordered `native-input` stages and produces driver actions plus final provenance metrics. A result is accepted for Windows manual mode only after the exact dead-key outcome and one-step undo restoration complete.
+**Interfaces:** Consumes the seven ordered `native-input` stages and produces driver actions plus final provenance metrics. A result is accepted for Windows manual mode only after the exact acknowledged caret advance, dead-key outcome, and one-step undo restoration complete.
 
 - [x] **Step 1: Write failing tests.** Require source references to `SendInput`, `OpenClipboard`, `GetClipboardData`, `LoadKeyboardLayoutW`, and `00020409`, plus exact `windows-sys = "=0.61.2"`. Add pure Rust tests for ordered advancement, duplicate/out-of-order rejection, coordinate normalization, partial input writes, stuck-key/button release, and layout restoration.
 - [x] **Step 2: Record RED.** Run focused Vitest, then `cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --example webview2-proof-host --features native-proof-host`. Expected: missing native driver contracts/state.
@@ -115,5 +115,5 @@
 
 - Spec coverage: 3.7 remains open until Windows CI observes native drag, OS clipboard Copy/Paste, the trusted dead-key `é` outcome, and exact one-step undo restoration; 3.8 closes only from the supplied fully green native CI evidence.
 - Placeholder scan: there is no synthetic fallback or deferred behavior hidden behind a success claim.
-- Type consistency: browser messages and native states share the same six-stage order.
+- Type consistency: browser messages and native states share the same seven-stage order.
 - Data safety: every implementation edit is proof/test/workflow/docs-only; production editor JSON, history, schema, and integration are untouched.

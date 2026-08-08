@@ -42,6 +42,7 @@ let evidence = createNativeManualEvidence();
 let editor: Editor | undefined;
 let gapPos = -1;
 let finished = false;
+let pasteDocumentJson: string | undefined;
 let deadKeyBaseline:
   | {
     json: string;
@@ -158,9 +159,16 @@ document.addEventListener("keydown", (event) => {
       );
       return;
     }
+    if (evidence.caretAfterPos === null) {
+      finish(false, "Dead-key input started before exact caret evidence");
+      return;
+    }
     const selection = editor.state.selection;
-    if (!selection.empty) {
-      finish(false, "Dead-key input started with a non-collapsed selection");
+    if (!selection.empty || selection.from !== evidence.caretAfterPos) {
+      finish(
+        false,
+        "Dead-key input started without the acknowledged ProseMirror caret",
+      );
       return;
     }
     deadKeyBaseline = {
@@ -228,6 +236,17 @@ document.addEventListener("paste", (event) => {
   const pastedText = event.clipboardData?.getData("text/plain") ?? "";
   const beforeSize = editor?.state.doc.content.size ?? -1;
   requestAnimationFrame(() => {
+    const selection = editor?.state.selection;
+    if (
+      evidenceMode === "windows-driven" &&
+      (!selection || !selection.empty)
+    ) {
+      finish(false, "Native paste did not leave a collapsed ProseMirror caret");
+      return;
+    }
+    if (evidenceMode === "windows-driven") {
+      pasteDocumentJson = JSON.stringify(editor?.getJSON());
+    }
     const prior = evidence;
     evidence = recordNativeManualEvidence(evidence, {
       kind: "paste",
@@ -235,11 +254,12 @@ document.addEventListener("paste", (event) => {
       pastedText,
       beforeSize,
       afterSize: editor?.state.doc.content.size ?? -1,
+      selectionPos: selection?.from ?? -1,
     });
     updateStatus();
     if (
       evidence !== prior && evidence.pasteBeforeSize !== null &&
-      evidence.pasteAfterSize !== null
+      evidence.pasteAfterSize !== null && evidence.pasteSelectionPos !== null
     ) {
       postNativeInput({
         version: NATIVE_INPUT_PROTOCOL_VERSION,
@@ -247,6 +267,7 @@ document.addEventListener("paste", (event) => {
         pastedText: evidence.pastedText,
         beforeSize: evidence.pasteBeforeSize,
         afterSize: evidence.pasteAfterSize,
+        selectionPos: evidence.pasteSelectionPos,
       });
     }
   });
@@ -258,6 +279,52 @@ document.addEventListener("mousedown", (event) => {
   });
 }, true);
 document.addEventListener("mouseup", inspectMouseSelection, true);
+
+function inspectDrivenCaret(): void {
+  if (
+    evidenceMode !== "windows-driven" || !editor || finished ||
+    evidence.caretAfterPos !== null || evidence.pasteAfterSize === null ||
+    evidence.pasteSelectionPos === null || evidence.pasteRightKeys === null ||
+    evidence.rightKeys <= evidence.pasteRightKeys
+  ) return;
+  const selection = editor.state.selection;
+  const documentSize = editor.state.doc.content.size;
+  const beforePos = evidence.pasteSelectionPos;
+  const afterPos = selection.from;
+  if (
+    !editor.isFocused || documentSize !== evidence.pasteAfterSize ||
+    JSON.stringify(editor.getJSON()) !== pasteDocumentJson ||
+    !selection.empty ||
+    selection.to !== afterPos || afterPos !== beforePos + 1
+  ) {
+    finish(
+      false,
+      `Native ArrowRight did not produce the exact ProseMirror caret advance (size=${documentSize}, selection=${selection.from}-${selection.to}, expected=${
+        beforePos + 1
+      })`,
+    );
+    return;
+  }
+  const prior = evidence;
+  evidence = recordNativeManualEvidence(evidence, {
+    kind: "caret-outcome",
+    documentSize,
+    beforePos,
+    afterPos,
+  });
+  if (evidence === prior) {
+    finish(false, "Native ArrowRight evidence was rejected");
+    return;
+  }
+  updateStatus();
+  postNativeInput({
+    version: NATIVE_INPUT_PROTOCOL_VERSION,
+    stage: "caret",
+    documentSize,
+    beforePos,
+    afterPos,
+  });
+}
 
 function inspectDrivenTransaction(): void {
   if (
@@ -289,7 +356,9 @@ function inspectDrivenTransaction(): void {
     if (!exactDelta) {
       finish(
         false,
-        "Dead-key input did not produce the exact authored é delta",
+        `Dead-key input did not produce the exact authored é delta (pos=${insertionPos}, text=${
+          JSON.stringify(insertedText)
+        }, selection=${selection.from}-${selection.to}, size=${documentSize})`,
       );
       return;
     }
@@ -370,6 +439,11 @@ function finish(passed: boolean, error?: string): void {
       compositionUpdates: evidence.compositionUpdates,
       compositionEnds: evidence.compositionEnds,
       deadKeys: evidence.deadKeys,
+      rightKeys: evidence.rightKeys,
+      pasteSelectionPos: evidence.pasteSelectionPos,
+      caretBeforePos: evidence.caretBeforePos,
+      caretAfterPos: evidence.caretAfterPos,
+      caretDocumentSize: evidence.caretDocumentSize,
       deadKeyBeforeSize: evidence.deadKeyBeforeSize,
       deadKeyAfterSize: evidence.deadKeyAfterSize,
       deadKeyInsertionPos: evidence.deadKeyInsertionPos,
@@ -420,6 +494,7 @@ async function prepare(): Promise<void> {
   });
   editor.registerPlugin(createDisposablePaginationProofPlugin());
   editor.on("transaction", inspectDrivenTransaction);
+  editor.on("selectionUpdate", inspectDrivenCaret);
   const paragraphPos = positionOfParagraph(
     editor.state.doc,
     "Invented paragraph 1",

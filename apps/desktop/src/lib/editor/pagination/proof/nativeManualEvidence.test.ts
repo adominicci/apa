@@ -23,6 +23,13 @@ describe("native manual evidence reducer", () => {
         pastedText: "invented",
         beforeSize: 100,
         afterSize: 108,
+        selectionPos: 72,
+      },
+      {
+        kind: "key-down",
+        key: "ArrowRight",
+        isComposing: false,
+        ctrlKey: false,
       },
       {
         kind: "key-down",
@@ -74,6 +81,20 @@ describe("native manual evidence reducer", () => {
         pastedText: "invented",
         beforeSize: 100,
         afterSize: 108,
+        selectionPos: 72,
+      },
+      {
+        kind: "key-down",
+        isTrusted: true,
+        key: "ArrowRight",
+        isComposing: false,
+        ctrlKey: false,
+      },
+      {
+        kind: "caret-outcome",
+        documentSize: 108,
+        beforePos: 72,
+        afterPos: 73,
       },
       {
         kind: "key-down",
@@ -119,6 +140,11 @@ describe("native manual evidence reducer", () => {
       selectionTo: 30,
       gapPosition: 20,
       pastedText: "invented",
+      pasteSelectionPos: 72,
+      rightKeys: 1,
+      caretDocumentSize: 108,
+      caretBeforePos: 72,
+      caretAfterPos: 73,
       deadKeyData: "é",
       deadKeyBeforeSize: 108,
       deadKeyAfterSize: 109,
@@ -158,11 +184,25 @@ describe("native manual evidence reducer", () => {
           pastedText: "invented",
           beforeSize: 100,
           afterSize: 108,
+          selectionPos: 72,
         },
       ] as const
     ) {
       state = recordNativeManualEvidence(state, event);
     }
+    state = recordNativeManualEvidence(state, {
+      kind: "key-down",
+      isTrusted: true,
+      key: "ArrowRight",
+      isComposing: false,
+      ctrlKey: false,
+    });
+    state = recordNativeManualEvidence(state, {
+      kind: "caret-outcome",
+      documentSize: 108,
+      beforePos: 72,
+      afterPos: 73,
+    });
     state = recordNativeManualEvidence(state, {
       kind: "dead-key-outcome",
       data: "é",
@@ -229,6 +269,7 @@ describe("native manual evidence reducer", () => {
           pastedText: "invented",
           beforeSize: 100,
           afterSize: 108,
+          selectionPos: 72,
         },
         {
           kind: "key-down",
@@ -279,6 +320,7 @@ describe("native manual evidence reducer", () => {
       pastedText: "different",
       beforeSize: 100,
       afterSize: 109,
+      selectionPos: 72,
     });
     state = recordNativeManualEvidence(state, {
       kind: "composition-end",
@@ -337,6 +379,20 @@ describe("native manual evidence reducer", () => {
         pastedText: "invented",
         beforeSize: 100,
         afterSize: 108,
+        selectionPos: 72,
+      },
+      {
+        kind: "key-down",
+        isTrusted: true,
+        key: "ArrowRight",
+        isComposing: false,
+        ctrlKey: false,
+      },
+      {
+        kind: "caret-outcome",
+        documentSize: 108,
+        beforePos: 72,
+        afterPos: 73,
       },
       {
         kind: "composition-start",
@@ -386,6 +442,88 @@ describe("native manual evidence reducer", () => {
     expect(state.compositionData).toBe("diagnostic-only");
   });
 
+  it("accepts a caret outcome only after a later trusted ArrowRight with unchanged document identity", () => {
+    let state = createNativeManualEvidence();
+    for (
+      const event of [
+        { kind: "mouse-down", isTrusted: true },
+        {
+          kind: "mouse-up",
+          isTrusted: true,
+          selectionFrom: 10,
+          selectionTo: 30,
+          gapPosition: 20,
+          selectedText: "invented",
+        },
+        {
+          kind: "copy",
+          isTrusted: true,
+          selectedText: "invented",
+          documentSize: 100,
+        },
+        {
+          kind: "key-down",
+          isTrusted: true,
+          key: "ArrowRight",
+          isComposing: false,
+          ctrlKey: false,
+        },
+        {
+          kind: "paste",
+          isTrusted: true,
+          pastedText: "invented",
+          beforeSize: 100,
+          afterSize: 108,
+          selectionPos: 72,
+        },
+      ] as const
+    ) {
+      state = recordNativeManualEvidence(state, event);
+    }
+
+    const afterStaleArrow = recordNativeManualEvidence(state, {
+      kind: "caret-outcome",
+      documentSize: 108,
+      beforePos: 72,
+      afterPos: 73,
+    });
+    expect(afterStaleArrow).toBe(state);
+
+    state = recordNativeManualEvidence(state, {
+      kind: "key-down",
+      isTrusted: true,
+      key: "ArrowRight",
+      isComposing: false,
+      ctrlKey: false,
+    });
+    for (
+      const invalid of [
+        { documentSize: 109, beforePos: 72, afterPos: 73 },
+        { documentSize: 108, beforePos: 71, afterPos: 72 },
+        { documentSize: 108, beforePos: 72, afterPos: 74 },
+      ]
+    ) {
+      expect(recordNativeManualEvidence(state, {
+        kind: "caret-outcome",
+        ...invalid,
+      })).toBe(state);
+    }
+
+    state = recordNativeManualEvidence(state, {
+      kind: "caret-outcome",
+      documentSize: 108,
+      beforePos: 72,
+      afterPos: 73,
+    });
+    expect(state).toMatchObject({
+      pasteRightKeys: 1,
+      rightKeys: 2,
+      caretDocumentSize: 108,
+      caretBeforePos: 72,
+      caretAfterPos: 73,
+    });
+  });
+
   it("preserves human paste evidence when paste replaces the copied selection", () => {
     let state = createNativeManualEvidence();
     state = recordNativeManualEvidence(state, {
@@ -412,6 +550,7 @@ describe("native manual evidence reducer", () => {
       pastedText: "invented",
       beforeSize: 100,
       afterSize: 100,
+      selectionPos: 72,
     });
 
     expect(nativeManualChecks(state, "human")).toMatchObject({

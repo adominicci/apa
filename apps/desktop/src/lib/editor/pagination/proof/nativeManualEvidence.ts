@@ -10,6 +10,12 @@ export interface NativeManualEvidence {
   pastedText: string;
   pasteBeforeSize: number | null;
   pasteAfterSize: number | null;
+  pasteSelectionPos: number | null;
+  pasteRightKeys: number | null;
+  rightKeys: number;
+  caretDocumentSize: number | null;
+  caretBeforePos: number | null;
+  caretAfterPos: number | null;
   deadKeys: number;
   deadKeyBeforeSize: number | null;
   deadKeyAfterSize: number | null;
@@ -50,6 +56,7 @@ export type NativeManualEvidenceEvent =
     pastedText: string;
     beforeSize: number;
     afterSize: number;
+    selectionPos: number;
   }
   | {
     kind: "key-down";
@@ -57,6 +64,12 @@ export type NativeManualEvidenceEvent =
     key: string;
     isComposing: boolean;
     ctrlKey: boolean;
+  }
+  | {
+    kind: "caret-outcome";
+    documentSize: number;
+    beforePos: number;
+    afterPos: number;
   }
   | {
     kind: "dead-key-outcome";
@@ -106,6 +119,12 @@ export function createNativeManualEvidence(): NativeManualEvidence {
     pastedText: "",
     pasteBeforeSize: null,
     pasteAfterSize: null,
+    pasteSelectionPos: null,
+    pasteRightKeys: null,
+    rightKeys: 0,
+    caretDocumentSize: null,
+    caretBeforePos: null,
+    caretAfterPos: null,
     deadKeys: 0,
     deadKeyBeforeSize: null,
     deadKeyAfterSize: null,
@@ -169,26 +188,52 @@ export function recordNativeManualEvidence(
         copyDocumentSize: event.documentSize,
       };
     case "paste":
-      if (evidence.copies === 0) return evidence;
+      if (
+        evidence.copies === 0 || !validSize(event.selectionPos) ||
+        event.selectionPos > event.afterSize
+      ) return evidence;
       return {
         ...evidence,
         pastes: evidence.pastes + 1,
         pastedText: event.pastedText,
         pasteBeforeSize: event.beforeSize,
         pasteAfterSize: event.afterSize,
+        pasteSelectionPos: event.selectionPos,
+        pasteRightKeys: evidence.rightKeys,
       };
     case "key-down":
       return {
         ...evidence,
         deadKeys: evidence.deadKeys + (event.key === "Dead" ? 1 : 0),
+        rightKeys: evidence.rightKeys +
+          (event.key === "ArrowRight" ? 1 : 0),
         undoKeys: evidence.undoKeys +
           (event.ctrlKey && event.key.toLowerCase() === "z" ? 1 : 0),
         composingKeys: evidence.composingKeys + (event.isComposing ? 1 : 0),
       };
+    case "caret-outcome":
+      if (
+        evidence.pastes === 0 || evidence.pasteAfterSize === null ||
+        evidence.pasteSelectionPos === null ||
+        evidence.pasteRightKeys === null ||
+        evidence.rightKeys <= evidence.pasteRightKeys ||
+        !validSize(event.documentSize) ||
+        event.documentSize !== evidence.pasteAfterSize ||
+        event.beforePos !== evidence.pasteSelectionPos ||
+        event.afterPos !== event.beforePos + 1 ||
+        event.afterPos > event.documentSize
+      ) return evidence;
+      return {
+        ...evidence,
+        caretDocumentSize: event.documentSize,
+        caretBeforePos: event.beforePos,
+        caretAfterPos: event.afterPos,
+      };
     case "dead-key-outcome":
       if (
         evidence.pastes === 0 || evidence.deadKeys === 0 ||
-        evidence.pasteAfterSize !== event.beforeSize ||
+        evidence.caretDocumentSize !== event.beforeSize ||
+        evidence.caretAfterPos !== event.insertionPos ||
         event.data !== "é" || !validSize(event.beforeSize) ||
         !validSize(event.afterSize) ||
         event.afterSize - event.beforeSize !== 1 ||
@@ -269,6 +314,9 @@ export function nativeManualChecks(
     evidence.compositionAfterSize !== null &&
     evidence.compositionAfterSize > evidence.compositionBeforeSize;
   const windowsComposedInput = evidence.deadKeys > 0 &&
+    evidence.caretDocumentSize === evidence.pasteAfterSize &&
+    evidence.caretBeforePos === evidence.pasteSelectionPos &&
+    evidence.caretAfterPos === (evidence.caretBeforePos ?? -2) + 1 &&
     evidence.deadKeyData === "é" &&
     evidence.deadKeyBeforeSize !== null &&
     evidence.deadKeyAfterSize === evidence.deadKeyBeforeSize + 1 &&

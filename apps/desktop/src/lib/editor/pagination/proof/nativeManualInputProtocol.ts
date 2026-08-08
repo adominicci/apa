@@ -46,6 +46,14 @@ export type NativeManualInputMessage =
     pastedText: string;
     beforeSize: number;
     afterSize: number;
+    selectionPos: number;
+  }
+  | {
+    version: 1;
+    stage: "caret";
+    documentSize: number;
+    beforePos: number;
+    afterPos: number;
   }
   | {
     version: 1;
@@ -206,10 +214,17 @@ export function parseNativeManualInputMessage(
       const pastedText = nonemptyText(message["pastedText"], "pastedText");
       const beforeSize = documentPosition(message["beforeSize"], "beforeSize");
       const afterSize = documentPosition(message["afterSize"], "afterSize");
+      const selectionPos = documentPosition(
+        message["selectionPos"],
+        "selectionPos",
+      );
       if (afterSize - beforeSize !== pastedText.length) {
         throw new Error(
           "paste must grow the document by the clipboard text length",
         );
+      }
+      if (selectionPos > afterSize) {
+        throw new Error("paste selection must be inside the authored document");
       }
       return {
         version: 1,
@@ -217,6 +232,27 @@ export function parseNativeManualInputMessage(
         pastedText,
         beforeSize,
         afterSize,
+        selectionPos,
+      };
+    }
+    case "caret": {
+      const documentSize = documentPosition(
+        message["documentSize"],
+        "documentSize",
+      );
+      const beforePos = documentPosition(message["beforePos"], "beforePos");
+      const afterPos = documentPosition(message["afterPos"], "afterPos");
+      if (afterPos !== beforePos + 1 || afterPos > documentSize) {
+        throw new Error(
+          "caret acknowledgement must advance exactly one authored position",
+        );
+      }
+      return {
+        version: 1,
+        stage: "caret",
+        documentSize,
+        beforePos,
+        afterPos,
       };
     }
     case "dead-key": {

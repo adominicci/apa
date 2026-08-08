@@ -22,6 +22,7 @@ pub(crate) enum DriverAction {
     Drag(ReadyGeometry),
     Copy,
     Paste,
+    MoveCaret,
     DeadKey,
     Undo,
     Complete,
@@ -33,6 +34,7 @@ enum DriverStage {
     AwaitingDrag,
     AwaitingCopy,
     AwaitingPaste,
+    AwaitingCaret,
     AwaitingDeadKey,
     AwaitingUndo,
     Complete,
@@ -43,6 +45,7 @@ pub(crate) struct DriverProtocol {
     stage: DriverStage,
     selected_text: Option<String>,
     document_size: Option<u64>,
+    selection_position: Option<u64>,
 }
 
 impl DriverProtocol {
@@ -51,6 +54,7 @@ impl DriverProtocol {
             stage: DriverStage::AwaitingReady,
             selected_text: None,
             document_size: None,
+            selection_position: None,
         }
     }
 
@@ -139,12 +143,33 @@ impl DriverProtocol {
                 }
                 let before = document_position(value, "beforeSize")?;
                 let after = document_position(value, "afterSize")?;
+                let selection_position = document_position(value, "selectionPos")?;
                 if self.document_size != Some(before)
                     || after.saturating_sub(before) != pasted_text.encode_utf16().count() as u64
+                    || selection_position > after
                 {
                     return Err("paste did not add the exact clipboard text".into());
                 }
                 self.document_size = Some(after);
+                self.selection_position = Some(selection_position);
+                self.stage = DriverStage::AwaitingCaret;
+                Ok(DriverAction::MoveCaret)
+            }
+            (DriverStage::AwaitingCaret, "caret") => {
+                let document_size = document_position(value, "documentSize")?;
+                let before = document_position(value, "beforePos")?;
+                let after = document_position(value, "afterPos")?;
+                if self.document_size != Some(document_size)
+                    || self.selection_position != Some(before)
+                    || before.checked_add(1) != Some(after)
+                    || after > document_size
+                {
+                    return Err(
+                        "caret did not advance exactly one position in the unchanged document"
+                            .into(),
+                    );
+                }
+                self.selection_position = Some(after);
                 self.stage = DriverStage::AwaitingDeadKey;
                 Ok(DriverAction::DeadKey)
             }
@@ -156,8 +181,8 @@ impl DriverProtocol {
                 let after = document_position(value, "afterSize")?;
                 let insertion_pos = document_position(value, "insertionPos")?;
                 if self.document_size != Some(before)
-                    || after != before + 1
-                    || insertion_pos > before
+                    || before.checked_add(1) != Some(after)
+                    || self.selection_position != Some(insertion_pos)
                 {
                     return Err("dead-key input did not add exactly one authored character".into());
                 }
@@ -490,6 +515,10 @@ mod platform {
                     }
                     self.send_paste()?;
                 }
+                DriverAction::MoveCaret => {
+                    self.require_focus()?;
+                    self.send_right_arrow()?;
+                }
                 DriverAction::DeadKey => {
                     self.require_focus()?;
                     self.activate_composition_layout()?;
@@ -691,15 +720,17 @@ mod platform {
             Ok(())
         }
 
+        fn send_right_arrow(&mut self) -> Result<(), String> {
+            // Move one real authored position past the just-pasted range. The
+            // page acknowledges the resulting ProseMirror selection before
+            // this driver sends the dead-key pair, which also isolates that
+            // authored edit from the paste in history without a guessed delay.
+            self.send_key_sequence(&[(VK_RIGHT, false), (VK_RIGHT, true)], "caret advance")
+        }
+
         fn send_dead_key_sequence(&mut self) -> Result<(), String> {
-            // Move one real authored position past the just-pasted range. This
-            // makes the composed edit non-adjacent in ProseMirror history, so
-            // the following real Ctrl+Z must restore only this edit without a
-            // guessed delay or a synthetic closeHistory transaction.
             self.send_key_sequence(
                 &[
-                    (VK_RIGHT, false),
-                    (VK_RIGHT, true),
                     (VK_OEM_7, false),
                     (VK_OEM_7, true),
                     (VK_E, false),
@@ -1077,7 +1108,20 @@ mod tests {
                     "stage": "paste",
                     "pastedText": "invented selection",
                     "beforeSize": 500,
-                    "afterSize": 518
+                    "afterSize": 518,
+                    "selectionPos": 317
+                }))
+                .unwrap(),
+            DriverAction::MoveCaret
+        );
+        assert_eq!(
+            protocol
+                .advance(&json!({
+                    "version": 1,
+                    "stage": "caret",
+                    "documentSize": 518,
+                    "beforePos": 317,
+                    "afterPos": 318
                 }))
                 .unwrap(),
             DriverAction::DeadKey
@@ -1090,7 +1134,7 @@ mod tests {
                     "data": "é",
                     "beforeSize": 518,
                     "afterSize": 519,
-                    "insertionPos": 317
+                    "insertionPos": 318
                 }))
                 .unwrap(),
             DriverAction::Undo
@@ -1138,9 +1182,71 @@ mod tests {
                 "stage": "paste",
                 "pastedText": "invented selection",
                 "beforeSize": 500,
-                "afterSize": 518
+                "afterSize": 518,
+                "selectionPos": 317
             }))
             .unwrap();
+        assert!(protocol
+            .advance(&json!({
+                "version": 1,
+                "stage": "dead-key",
+                "data": "é",
+                "beforeSize": 518,
+                "afterSize": 519,
+                "insertionPos": 318
+            }))
+            .is_err());
+        for invalid in [
+            json!({
+                "version": 1,
+                "stage": "caret",
+                "documentSize": 519,
+                "beforePos": 317,
+                "afterPos": 318
+            }),
+            json!({
+                "version": 1,
+                "stage": "caret",
+                "documentSize": 518,
+                "beforePos": 316,
+                "afterPos": 317
+            }),
+            json!({
+                "version": 1,
+                "stage": "caret",
+                "documentSize": 518,
+                "beforePos": 317,
+                "afterPos": 317
+            }),
+            json!({
+                "version": 1,
+                "stage": "caret",
+                "documentSize": 518,
+                "beforePos": 317,
+                "afterPos": 319
+            }),
+            json!({
+                "version": 1,
+                "stage": "caret",
+                "documentSize": 518,
+                "beforePos": 518,
+                "afterPos": 519
+            }),
+        ] {
+            assert!(protocol.advance(&invalid).is_err());
+        }
+        assert_eq!(
+            protocol
+                .advance(&json!({
+                    "version": 1,
+                    "stage": "caret",
+                    "documentSize": 518,
+                    "beforePos": 317,
+                    "afterPos": 318
+                }))
+                .unwrap(),
+            DriverAction::DeadKey
+        );
         assert!(protocol
             .advance(&json!({
                 "version": 1,
@@ -1148,6 +1254,16 @@ mod tests {
                 "data": "e",
                 "beforeSize": 518,
                 "afterSize": 520,
+                "insertionPos": 317
+            }))
+            .is_err());
+        assert!(protocol
+            .advance(&json!({
+                "version": 1,
+                "stage": "dead-key",
+                "data": "é",
+                "beforeSize": 518,
+                "afterSize": 519,
                 "insertionPos": 317
             }))
             .is_err());
@@ -1159,7 +1275,7 @@ mod tests {
                     "data": "é",
                     "beforeSize": 518,
                     "afterSize": 519,
-                    "insertionPos": 317
+                    "insertionPos": 318
                 }))
                 .unwrap(),
             DriverAction::Undo

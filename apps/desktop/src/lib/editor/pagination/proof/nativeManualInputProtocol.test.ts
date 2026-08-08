@@ -86,7 +86,12 @@ describe("native manual-input protocol", () => {
       pastedText: "invented selection",
       beforeSize: 500,
       afterSize: 518,
-    })).toMatchObject({ stage: "paste", afterSize: 518 });
+      selectionPos: 317,
+    })).toMatchObject({
+      stage: "paste",
+      afterSize: 518,
+      selectionPos: 317,
+    });
     expect(() =>
       parseNativeManualInputMessage({
         version: 1,
@@ -94,8 +99,59 @@ describe("native manual-input protocol", () => {
         pastedText: "invented selection",
         beforeSize: 500,
         afterSize: 500,
+        selectionPos: 317,
       })
     ).toThrow();
+    expect(() =>
+      parseNativeManualInputMessage({
+        version: 1,
+        stage: "paste",
+        pastedText: "invented selection",
+        beforeSize: 500,
+        afterSize: 518,
+      })
+    ).toThrow();
+    expect(() =>
+      parseNativeManualInputMessage({
+        version: 1,
+        stage: "paste",
+        pastedText: "invented selection",
+        beforeSize: 500,
+        afterSize: 518,
+        selectionPos: 519,
+      })
+    ).toThrow();
+  });
+
+  it("requires an exact unchanged-document caret acknowledgement", () => {
+    expect(parseNativeManualInputMessage({
+      version: 1,
+      stage: "caret",
+      documentSize: 518,
+      beforePos: 317,
+      afterPos: 318,
+    })).toEqual({
+      version: 1,
+      stage: "caret",
+      documentSize: 518,
+      beforePos: 317,
+      afterPos: 318,
+    });
+    for (
+      const invalid of [
+        { documentSize: 518, beforePos: 317, afterPos: 317 },
+        { documentSize: 518, beforePos: 317, afterPos: 319 },
+        { documentSize: 518, beforePos: 518, afterPos: 519 },
+      ]
+    ) {
+      expect(() =>
+        parseNativeManualInputMessage({
+          version: 1,
+          stage: "caret",
+          ...invalid,
+        })
+      ).toThrow();
+    }
   });
 
   it("accepts only the audited dead-key character with its exact insertion position", () => {

@@ -42,15 +42,27 @@ describe("visible native manual-proof contract", () => {
     expect(source).toContain('addEventListener("mouseup"');
     expect(source).toContain('event.key === "Dead"');
     expect(source).toContain("event.ctrlKey");
+    expect(source).toContain(
+      "evidence.rightKeys <= evidence.pasteRightKeys",
+    );
+    expect(source).toContain("!editor.isFocused");
+    expect(source).toContain(
+      "JSON.stringify(editor.getJSON()) !== pasteDocumentJson",
+    );
+    expect(source).toContain('kind: "caret-outcome"');
     expect(source).toContain('kind: "dead-key-outcome"');
     expect(source).toContain('kind: "undo-outcome"');
     expect(source).toContain("JSON.stringify(editor.getJSON())");
     expect(source).toContain(
       'editor.on("transaction", inspectDrivenTransaction)',
     );
+    expect(source).toContain(
+      'editor.on("selectionUpdate", inspectDrivenCaret)',
+    );
     expect(source).toContain('insertedText === "é"');
     expect(source).toContain("selectionRestored");
     expect(source).toContain('stage: "dead-key"');
+    expect(source).toContain('stage: "caret"');
     expect(source).toContain('stage: "undo"');
     const compositionEndHandler = source.slice(
       source.indexOf('addEventListener("compositionend"'),
@@ -73,13 +85,34 @@ describe("visible native manual-proof contract", () => {
     expect(nativeInputDriver).toContain("CloseClipboard");
     expect(nativeInputDriver).toContain("LoadKeyboardLayoutW");
     expect(nativeInputDriver).toContain("00020409");
+    expect(nativeInputDriver).toContain("DriverAction::MoveCaret =>");
     expect(nativeInputDriver).toContain("DriverAction::Undo =>");
     expect(nativeInputDriver).toContain(
       'self.send_control_chord(VK_Z, "undo")',
     );
-    expect(nativeInputDriver).toMatch(
-      /fn send_dead_key_sequence[\s\S]*\(VK_RIGHT, false\)[\s\S]*\(VK_OEM_7, false\)/,
+    const moveCaretBranch = nativeInputDriver.slice(
+      nativeInputDriver.indexOf("DriverAction::MoveCaret =>"),
+      nativeInputDriver.indexOf("DriverAction::DeadKey =>"),
     );
+    expect(moveCaretBranch.indexOf("self.require_focus()?")).toBeLessThan(
+      moveCaretBranch.indexOf("self.send_right_arrow()?"),
+    );
+    const deadKeyBranch = nativeInputDriver.slice(
+      nativeInputDriver.indexOf("DriverAction::DeadKey =>"),
+      nativeInputDriver.indexOf("DriverAction::Undo =>"),
+    );
+    expect(deadKeyBranch.indexOf("self.require_focus()?")).toBeLessThan(
+      deadKeyBranch.indexOf("self.activate_composition_layout()?"),
+    );
+    expect(nativeInputDriver).toMatch(
+      /fn send_right_arrow[\s\S]*\(VK_RIGHT, false\)[\s\S]*\(VK_RIGHT, true\)/,
+    );
+    const deadKeySequence = nativeInputDriver.slice(
+      nativeInputDriver.indexOf("fn send_dead_key_sequence"),
+      nativeInputDriver.indexOf("fn perform_cleanup_action"),
+    );
+    expect(deadKeySequence).toContain("(VK_OEM_7, false)");
+    expect(deadKeySequence).not.toContain("VK_RIGHT");
     expect(`${nativeHost}\n${nativeInputDriver}`).not.toMatch(
       /execute_script|dispatchEvent/,
     );
