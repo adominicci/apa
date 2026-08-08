@@ -184,7 +184,7 @@
       restrictive app-data permissions where supported, disclose the complete
       unencrypted recovery copy, and prove cleanup never removes an unfinished
       transaction's rollback.
-- [ ] 6.9 Add cross-process exclusion: install and configure
+- [x] 6.9 Add cross-process exclusion: install and configure
       `tauri-plugin-single-instance` (or an equivalent exclusive app-data lock
       acquired before recovery) so import apply, startup recovery, automatic
       backup, and retention run only in the guarded instance; record its SPDX
@@ -221,7 +221,7 @@
 
 ## 8. Narrow selected-folder authorization and settings durability
 
-- [ ] 8.1 Add a Rust backup-directory adapter with purpose-specific
+- [x] 8.1 Add a Rust backup-directory adapter with purpose-specific
       configure/test/write/list/read/reveal/revoke commands. Do not install
       global persisted-scope and do not accept arbitrary caller paths after
       configuration. Use a recursive native folder selection only during setup,
