@@ -255,24 +255,24 @@
 
 ## 9. Backup eligibility, retention, and failure behavior
 
-- [ ] 9.1 Add a lightweight persistence-activity subscription or adjacent
+- [x] 9.1 Add a lightweight persistence-activity subscription or adjacent
       app-lifetime revision signal; test subscribe/unsubscribe, coalescing, and
       no movement of essay data into the coordinator.
-- [ ] 9.2 Implement and test a content digest over sorted essay semantic
+- [x] 9.2 Implement and test a content digest over sorted essay semantic
       digests, shared-library content, and reachable asset hashes; prove
       timestamps, UI settings, backup state, orphan assets, and deleted backups
       do not change it.
-- [ ] 9.3 Create `state/backup.svelte.ts` with injected archive/files/clock
+- [x] 9.3 Create `state/backup.svelte.ts` with injected archive/files/clock
       dependencies, a debounced eligibility check, one active run,
       local-calendar-day gating, manual override, and last-success fields
       updated only with the digest returned from the validated archived
       snapshot.
-- [ ] 9.4 Add scheduler tests for first changed session, no changes, a second
+- [x] 9.4 Add scheduler tests for first changed session, no changes, a second
       change after today's success, failed attempt and next-launch retry,
       timezone day boundary, concurrent manual/automatic requests, and Back up
       now bypassing only the daily limit. Race a mutation during archive write
       and prove the later content remains eligible.
-- [ ] 9.5 Implement `portable/retention.ts` and tests for the exact automatic
+- [x] 9.5 Implement `portable/retention.ts` and tests for the exact automatic
       filename grammar (including the installation backup-set component) inside
       the `Tesina Backups` subfolder, ledger-first classification that never
       opens or parses a file the ledger does not list, matching backup-set

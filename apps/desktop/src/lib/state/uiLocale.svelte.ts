@@ -24,6 +24,8 @@ export interface BackupUiSettings {
   lastSuccessAt?: string;
   lastSuccessContentDigest?: string;
   lastErrorCode?: string;
+  /** Local calendar day (YYYY-MM-DD) of the last AUTOMATIC success. */
+  lastAutoSuccessDay?: string;
   setupCardDismissed?: boolean;
 }
 
@@ -48,6 +50,7 @@ function sanitizeBackup(value: unknown): BackupUiSettings | undefined {
       "lastSuccessAt",
       "lastSuccessContentDigest",
       "lastErrorCode",
+      "lastAutoSuccessDay",
     ] as const
   ) {
     if (typeof raw[key] === "string") out[key] = raw[key] as string;

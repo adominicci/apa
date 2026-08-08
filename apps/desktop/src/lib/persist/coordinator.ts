@@ -36,6 +36,32 @@ export class PersistenceCoordinator {
   /** Called by the atomic write helpers on every direct app-data write. */
   noteDirectWrite(): void {
     this.#activityGeneration += 1;
+    this.#notifyActivity();
+  }
+
+  #activityListeners = new Set<() => void>();
+
+  /**
+   * Lightweight persistence-activity signal (design §9): fires on every
+   * registration, markDirty, and direct write. Carries no essay data — the
+   * backup coordinator uses it only to schedule a debounced digest check,
+   * so persistence ownership never moves into the backup feature.
+   */
+  subscribeActivity(listener: () => void): () => void {
+    this.#activityListeners.add(listener);
+    return () => {
+      this.#activityListeners.delete(listener);
+    };
+  }
+
+  #notifyActivity(): void {
+    for (const listener of this.#activityListeners) {
+      try {
+        listener();
+      } catch {
+        // a listener must never break persistence
+      }
+    }
   }
 
   /**

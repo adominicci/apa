@@ -222,3 +222,39 @@ describe("maintenance lease (coordinator)", () => {
     expect(coordinator.activityGeneration).toBe(before + 1);
   });
 });
+
+describe("activity subscription (task 9.1)", () => {
+  it("notifies subscribers on direct writes and supports unsubscribe", () => {
+    const coordinator = new PersistenceCoordinator();
+    let calls = 0;
+    const unsubscribe = coordinator.subscribeActivity(() => {
+      calls += 1;
+    });
+    coordinator.noteDirectWrite();
+    coordinator.noteDirectWrite();
+    expect(calls).toBe(2);
+    unsubscribe();
+    coordinator.noteDirectWrite();
+    expect(calls).toBe(2);
+  });
+
+  it("carries no payload: listeners only learn that something happened", () => {
+    const coordinator = new PersistenceCoordinator();
+    let received: unknown = "sentinel";
+    coordinator.subscribeActivity(
+      function (this: unknown, ...args: unknown[]) {
+        received = args;
+      } as () => void,
+    );
+    coordinator.noteDirectWrite();
+    expect(received).toEqual([]);
+  });
+
+  it("a throwing listener never breaks persistence", () => {
+    const coordinator = new PersistenceCoordinator();
+    coordinator.subscribeActivity(() => {
+      throw new Error("bad listener");
+    });
+    expect(() => coordinator.noteDirectWrite()).not.toThrow();
+  });
+});
