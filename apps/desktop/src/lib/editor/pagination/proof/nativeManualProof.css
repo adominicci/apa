@@ -1,0 +1,39 @@
+@import "./nativeProof.css";
+
+#manual-panel {
+  position: fixed;
+  z-index: 20;
+  top: 12px;
+  right: 12px;
+  width: 320px;
+  padding: 14px;
+  border: 1px solid #aab4c0;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+  color: #111;
+  font: 14px/1.35 system-ui, sans-serif;
+}
+
+#manual-panel h1 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+#manual-panel ul {
+  margin: 8px 0;
+  padding-left: 22px;
+}
+
+#manual-panel [data-passed="true"] {
+  color: #176b36;
+  font-weight: 700;
+}
+
+#manual-finish {
+  padding: 7px 10px;
+}
+
+#proof-result {
+  display: none;
+}

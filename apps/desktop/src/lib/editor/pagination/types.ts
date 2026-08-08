@@ -36,6 +36,18 @@ export interface LineGroup {
 export interface TableRowBoundary {
   tableId: string;
   columnCount: number;
+  repeatedHeader?: RepeatedTableHeader;
+}
+
+export interface RepeatedTableHeaderCell {
+  text: string;
+  colSpan: number;
+}
+
+/** Measured, presentation-only header used when a table continues. */
+export interface RepeatedTableHeader {
+  height: number;
+  cells: readonly RepeatedTableHeaderCell[];
 }
 
 /**
@@ -65,12 +77,23 @@ export interface PageStart {
   kind: PageStartKind;
 }
 
+/** Derived space from one printable page tail to the next printable top. */
+export interface PaginationGap {
+  fragmentId: string;
+  pageIndex: number;
+  pos: number;
+  section: SectionKind;
+  kind: PageStartKind;
+  height: number;
+}
+
 export interface TableRowStart {
   pageIndex: number;
   pos: number;
   section: SectionKind;
   tableId: string;
   columnCount: number;
+  repeatedHeader?: RepeatedTableHeader;
 }
 
 export type PaginationReason =
@@ -106,6 +129,7 @@ export interface StablePaginationPlan {
   status: "stable";
   epoch: number;
   pageStarts: PageStart[];
+  pageGaps: PaginationGap[];
   tableRowStarts: TableRowStart[];
   overflows: PaginationOverflow[];
   pageCount: PaginationPageCount;

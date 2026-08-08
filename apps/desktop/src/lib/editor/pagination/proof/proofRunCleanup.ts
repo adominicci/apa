@@ -5,12 +5,28 @@ export interface PreviewServerCloser {
 }
 
 export async function cleanupProofRun(
-  outputDir: string,
+  directories: readonly string[],
   previewServer?: PreviewServerCloser,
 ): Promise<void> {
+  let previewError: unknown;
   try {
     await previewServer?.close();
-  } finally {
-    await rm(outputDir, { recursive: true, force: true });
+  } catch (error) {
+    previewError = error;
+  }
+
+  const cleanupResults = await Promise.allSettled(
+    directories.map((directory) =>
+      rm(directory, { recursive: true, force: true })
+    ),
+  );
+  const cleanupErrors = cleanupResults.flatMap((result) =>
+    result.status === "rejected" ? [result.reason] : []
+  );
+
+  if (previewError !== undefined) throw previewError;
+  if (cleanupErrors.length === 1) throw cleanupErrors[0];
+  if (cleanupErrors.length > 1) {
+    throw new AggregateError(cleanupErrors, "Native proof cleanup failed");
   }
 }

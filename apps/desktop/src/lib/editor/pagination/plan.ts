@@ -1,9 +1,14 @@
-import { LETTER_PRINTABLE_HEIGHT } from "./geometry.ts";
+import {
+  LETTER_PAGE_MARGIN,
+  LETTER_PRINTABLE_HEIGHT,
+  visualPageGap,
+} from "./geometry.ts";
 import type {
   BreakCandidate,
   MeasuredFragment,
   PageStart,
   PageStartKind,
+  PaginationGap,
   PaginationInput,
   PaginationOverflow,
   PaginationPlan,
@@ -98,6 +103,7 @@ export function planPagination(input: PaginationInput): PaginationPlan {
   }
 
   const stablePageStarts: PageStart[] = [];
+  const pageGaps: PaginationGap[] = [];
   const tableRowStarts: TableRowStart[] = [];
   const overflows: PaginationOverflow[] = [];
   const fragments = fragmentsFor(input);
@@ -109,12 +115,30 @@ export function planPagination(input: PaginationInput): PaginationPlan {
     kind: PageStartKind,
   ): void {
     const pageIndex = stablePageStarts.length;
+    const repeatedHeader = pageIndex > 0 && kind === "tableRow"
+      ? fragment.table?.repeatedHeader
+      : undefined;
+    const repeatedHeaderHeight = measuredHeight(repeatedHeader?.height ?? 0);
     stablePageStarts.push({
       pageIndex,
       pos: fragment.breakBefore.pos,
       section: fragment.section,
       kind,
     });
+    if (pageIndex > 0) {
+      pageGaps.push({
+        fragmentId: fragment.id,
+        pageIndex,
+        pos: fragment.breakBefore.pos,
+        section: fragment.section,
+        kind,
+        height: Math.max(
+          0,
+          LETTER_PRINTABLE_HEIGHT - usedHeight +
+            2 * LETTER_PAGE_MARGIN + visualPageGap,
+        ) + repeatedHeaderHeight,
+      });
+    }
     if (pageIndex > 0 && kind === "tableRow" && fragment.table) {
       tableRowStarts.push({
         pageIndex,
@@ -122,10 +146,11 @@ export function planPagination(input: PaginationInput): PaginationPlan {
         section: fragment.section,
         tableId: fragment.table.tableId,
         columnCount: fragment.table.columnCount,
+        ...(repeatedHeader ? { repeatedHeader } : {}),
       });
     }
     currentSection = fragment.section;
-    usedHeight = 0;
+    usedHeight = repeatedHeaderHeight;
   }
 
   function ensureSectionStart(fragment: MeasuredFragment): void {
@@ -256,6 +281,7 @@ export function planPagination(input: PaginationInput): PaginationPlan {
     status: "stable",
     epoch: input.epoch,
     pageStarts: stablePageStarts,
+    pageGaps,
     tableRowStarts,
     overflows,
     pageCount: {

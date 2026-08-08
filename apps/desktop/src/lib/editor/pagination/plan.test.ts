@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+import {
+  LETTER_PAGE_MARGIN,
+  LETTER_PRINTABLE_HEIGHT,
+  visualPageGap,
+} from "./geometry.ts";
 import { planPagination } from "./plan.ts";
 import type {
   MeasuredFragment,
@@ -86,6 +91,26 @@ describe("planPagination", () => {
       { pageIndex: 1, pos: 10, section: "body", kind: "line" },
     ]);
     expect(plan.pageCount.authored).toBe(2);
+  });
+
+  it("reports the exact derived gap needed to reach the next printable top", () => {
+    const plan = stablePlan({
+      epoch: 2,
+      fragments: [
+        fragment("first", 1, 600),
+        fragment("overflow", 10, 300),
+      ],
+    });
+
+    expect(plan.pageGaps).toEqual([{
+      fragmentId: "overflow",
+      pageIndex: 1,
+      pos: 10,
+      section: "body",
+      kind: "line",
+      height: LETTER_PRINTABLE_HEIGHT - 600 +
+        2 * LETTER_PAGE_MARGIN + visualPageGap,
+    }]);
   });
 
   it("reflows backward and removes an unnecessary trailing page after deletion", () => {
@@ -473,6 +498,45 @@ describe("planPagination", () => {
     ]);
   });
 
+  it("reserves a visual header when a table continues on a new page", () => {
+    const repeatedHeader = {
+      height: 30,
+      cells: [
+        { text: "Round", colSpan: 1 },
+        { text: "Cards", colSpan: 2 },
+      ],
+    };
+    const plan = stablePlan({
+      epoch: 10,
+      fragments: [
+        fragment("preface", 1, 800),
+        fragment("header-row", 20, 30, {
+          kind: "tableRow",
+          table: { tableId: "results", columnCount: 3 },
+        }),
+        fragment("row-1", 30, 60, {
+          kind: "tableRow",
+          table: {
+            tableId: "results",
+            columnCount: 3,
+            repeatedHeader,
+          },
+        }),
+      ],
+    });
+
+    expect(plan.pageGaps).toEqual([{
+      fragmentId: "row-1",
+      pageIndex: 1,
+      pos: 30,
+      section: "body",
+      kind: "tableRow",
+      height: LETTER_PRINTABLE_HEIGHT - 830 +
+        2 * LETTER_PAGE_MARGIN + visualPageGap + repeatedHeader.height,
+    }]);
+    expect(plan.tableRowStarts[0]).toMatchObject({ repeatedHeader });
+  });
+
   it("adds separately rendered reference pages to the authored page count", () => {
     const plan = stablePlan({
       epoch: 11,
@@ -550,6 +614,26 @@ describe("planPagination", () => {
     expect(plan.overflows).toEqual([
       { fragmentId: "figure", pos: 1, section: "body", kind: "atomic" },
     ]);
+  });
+
+  it("subtracts bounded overflow before spacing the following page", () => {
+    const plan = stablePlan({
+      epoch: 15,
+      fragments: [
+        fragment("figure", 1, 900, { kind: "atomic" }),
+        fragment("following", 20, 40),
+      ],
+    });
+
+    expect(plan.pageGaps).toEqual([{
+      fragmentId: "following",
+      pageIndex: 1,
+      pos: 20,
+      section: "body",
+      kind: "line",
+      height: LETTER_PRINTABLE_HEIGHT - 900 +
+        2 * LETTER_PAGE_MARGIN + visualPageGap,
+    }]);
   });
 
   it("reports one bounded overflow for a table row taller than a page", () => {

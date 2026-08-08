@@ -2,11 +2,17 @@ import AppKit
 import Foundation
 import WebKit
 
+let loopbackHosts: Set<String> = ["127.0.0.1", "localhost", "::1"]
 guard CommandLine.arguments.count == 2,
-      let url = URL(string: CommandLine.arguments[1]) else {
+      let url = URL(string: CommandLine.arguments[1]),
+      let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+      components.scheme?.lowercased() == "http",
+      let host = components.host?.lowercased(),
+      loopbackHosts.contains(host) else {
   FileHandle.standardError.write(Data("usage: WKWebViewProofRunner.swift <url>\n".utf8))
   exit(64)
 }
+let hostDeadline: TimeInterval = url.lastPathComponent == "nativeManualProof.html" ? 300 : 45
 
 final class ProofCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
   private func diagnostic(_ message: String) {
@@ -80,7 +86,7 @@ final class ProofCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageHan
 }
 
 let app = NSApplication.shared
-app.setActivationPolicy(.accessory)
+app.setActivationPolicy(.regular)
 app.finishLaunching()
 
 let coordinator = ProofCoordinator()
@@ -155,19 +161,17 @@ webView.navigationDelegate = coordinator
 
 let window = NSWindow(
   contentRect: NSRect(x: 0, y: 0, width: 1200, height: 900),
-  styleMask: [.borderless],
+  styleMask: [.titled, .closable, .resizable],
   backing: .buffered,
   defer: false
 )
+window.title = "Tesina Native Pagination Proof"
 window.contentView = webView
 window.orderFrontRegardless()
-if url.isFileURL {
-  webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
-} else {
-  webView.load(URLRequest(url: url))
-}
+app.activate(ignoringOtherApps: true)
+webView.load(URLRequest(url: url))
 
-DispatchQueue.main.asyncAfter(deadline: .now() + 45) {
+DispatchQueue.main.asyncAfter(deadline: .now() + hostDeadline) {
   FileHandle.standardError.write(Data("{\"passed\":false,\"error\":\"WKWebView proof timed out\"}\n".utf8))
   exit(124)
 }

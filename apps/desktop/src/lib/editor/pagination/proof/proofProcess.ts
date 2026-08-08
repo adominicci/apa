@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import process from "node:process";
 
 export interface ProcessOutput {
@@ -9,6 +9,10 @@ export interface ProcessOutput {
 
 export interface ProcessOptions {
   timeoutMs: number;
+  /** Test override; production always uses the current host platform. */
+  platform?: typeof process.platform;
+  /** Passed to the proof process and the platform tree terminator. */
+  env?: Record<string, string | undefined>;
 }
 
 export class ProcessTimeoutError extends Error {
@@ -27,9 +31,11 @@ export async function executeBoundedProcess(
   options: ProcessOptions,
 ): Promise<ProcessOutput> {
   return await new Promise((resolveOutput, reject) => {
-    const usesProcessGroup = process.platform !== "win32";
+    const platform = options.platform ?? process.platform;
+    const usesProcessGroup = platform !== "win32";
     const child = spawn(command, args, {
       detached: usesProcessGroup,
+      env: options.env,
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stdout = "";
@@ -53,7 +59,19 @@ export async function executeBoundedProcess(
           if (usesProcessGroup) {
             process.kill(-child.pid, "SIGKILL");
           } else {
-            child.kill("SIGKILL");
+            const termination = spawnSync(
+              "taskkill",
+              ["/pid", String(child.pid), "/t", "/f"],
+              {
+                env: options.env,
+                stdio: "ignore",
+                timeout: 5_000,
+                windowsHide: true,
+              },
+            );
+            if (termination.error || termination.status !== 0) {
+              child.kill("SIGKILL");
+            }
           }
         } catch {
           child.kill("SIGKILL");

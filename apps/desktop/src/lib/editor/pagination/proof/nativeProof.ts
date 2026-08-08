@@ -2,6 +2,11 @@ import type { Editor } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { TextSelection } from "@tiptap/pm/state";
 import { createTesinaEditor } from "../../createEditor.ts";
+import { insertCitation } from "../../citation.ts";
+import {
+  createPaginationMeasurer,
+  type PaginationMeasurer,
+} from "../measure.ts";
 import { createLongDocumentFixtures } from "./longDocumentFixture.ts";
 import {
   createDisposablePaginationProofPlugin,
@@ -9,6 +14,11 @@ import {
   type DisposablePaginationProofPlan,
   setDisposablePaginationProofPlan,
 } from "./disposablePaginationProof.ts";
+import {
+  createNativeProofBridge,
+  type NativeProofBridgeScope,
+} from "./nativeBridge.ts";
+import { startProofPageWatchdog } from "./proofPageWatchdog.ts";
 import "./nativeProof.css";
 
 interface ProofResult {
@@ -19,19 +29,12 @@ interface ProofResult {
   error?: string;
 }
 
-const bridge = globalThis as typeof globalThis & {
-  webkit?: {
-    messageHandlers?: {
-      tesinaProof?: { postMessage(value: ProofResult): void };
-      tesinaDiagnostic?: {
-        postMessage(value: Record<string, unknown>): void;
-      };
-    };
-  };
-};
+const nativeBridge = createNativeProofBridge(
+  globalThis as unknown as NativeProofBridgeScope,
+);
 
 function diagnostic(stage: string, detail: Record<string, unknown> = {}): void {
-  bridge.webkit?.messageHandlers?.tesinaDiagnostic?.postMessage({
+  nativeBridge.postDiagnostic({
     stage,
     ...detail,
   });
@@ -91,6 +94,25 @@ function positionsOf(doc: PMNode, type: string): number[] {
   return result;
 }
 
+function textHasMarkBetween(
+  doc: PMNode,
+  from: number,
+  to: number,
+  markName: string,
+): boolean {
+  let sawText = false;
+  let everyTextHasMark = true;
+  doc.nodesBetween(from, to, (node) => {
+    if (!node.isText) return true;
+    sawText = true;
+    if (!node.marks.some((mark) => mark.type.name === markName)) {
+      everyTextHasMark = false;
+    }
+    return true;
+  });
+  return sawText && everyTextHasMark;
+}
+
 function deriveTrailingFigurePlan(
   doc: PMNode,
   epoch: number,
@@ -102,32 +124,6 @@ function deriveTrailingFigurePlan(
       ? [{ kind: "block", pos: figures[1]!, height: 180 }]
       : [],
   };
-}
-
-function lineStarts(editor: Editor, paragraphPos: number): number[] {
-  const paragraph = editor.view.nodeDOM(paragraphPos);
-  if (!(paragraph instanceof HTMLElement)) {
-    throw new Error("Paragraph DOM was not measurable");
-  }
-  const starts = new Map<number, number>();
-  const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT);
-  for (let text = walker.nextNode(); text; text = walker.nextNode()) {
-    const value = text.nodeValue ?? "";
-    for (let offset = 0; offset < value.length; offset += 1) {
-      const range = document.createRange();
-      range.setStart(text, offset);
-      range.setEnd(text, offset + 1);
-      const rect = range.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) continue;
-      const top = Math.round(rect.top * 10) / 10;
-      const pos = editor.view.posAtDOM(text, offset);
-      const existing = starts.get(top);
-      if (existing === undefined || pos < existing) starts.set(top, pos);
-    }
-  }
-  return [...starts.entries()].sort((a, b) => a[0] - b[0]).map((entry) =>
-    entry[1]
-  );
 }
 
 function closeEnough(left: DOMRect, right: DOMRect): boolean {
@@ -232,6 +228,12 @@ async function runProof(): Promise<ProofResult> {
   diagnostic("fixture-created");
   const mount = requireElement<HTMLElement>("#proof-mount");
   const shell = requireElement<HTMLElement>("#proof-shell");
+  shell.style.setProperty(
+    "--body-title",
+    JSON.stringify(
+      "A Synthetic Archive Study of Community Seed Records, Seasonal Rainfall, Volunteer Checks, Envelope Labels, and Long-Term Planning Across Several Invented Coastal Districts",
+    ),
+  );
   const editor = createTesinaEditor({
     element: mount,
     content: fixture.content,
@@ -251,6 +253,7 @@ async function runProof(): Promise<ProofResult> {
   diagnostic("editor-created");
   editor.registerPlugin(createDisposablePaginationProofPlugin());
   diagnostic("proof-plugin-registered");
+  let paginationMeasurer: PaginationMeasurer | undefined;
 
   try {
     diagnostic("fonts-wait", { status: document.fonts.status });
@@ -269,7 +272,90 @@ async function runProof(): Promise<ProofResult> {
       editor.state.doc,
       "Invented paragraph 1",
     );
-    const starts = lineStarts(editor, paragraphPos);
+    paginationMeasurer = createPaginationMeasurer({
+      view: editor.view,
+      onInvalidate: (reason) =>
+        diagnostic("measurement-invalidated", { reason }),
+    });
+    const initialMeasurement = await paginationMeasurer.read({
+      epoch: 1,
+      signal: new AbortController().signal,
+      latestEpoch: () => 1,
+    });
+    if (initialMeasurement.status !== "measured") {
+      throw new Error("Initial production measurement was stale");
+    }
+    const paragraphLines = initialMeasurement.fragments.filter((fragment) =>
+      fragment.lineGroup?.id === `text:${paragraphPos}`
+    );
+    const tableFragments = initialMeasurement.fragments.filter((fragment) =>
+      fragment.kind === "tableRow"
+    );
+    const repeatedTableHeader = tableFragments[1]?.table?.repeatedHeader;
+    const bodySectionPos = positionsOf(editor.state.doc, "sectionBody")[0]!;
+    const bodySection = editor.view.nodeDOM(bodySectionPos) as HTMLElement;
+    const firstBodyBlock = [...bodySection.children].find((child) =>
+      !child.matches("[data-pagination-gap], [data-pagination-proof-gap]")
+    ) as HTMLElement | undefined;
+    if (!firstBodyBlock) throw new Error("Body section has no authored block");
+    const bodySectionStyle = getComputedStyle(bodySection);
+    const firstBodyBlockStyle = getComputedStyle(firstBodyBlock);
+    const bodyContentTop = bodySection.getBoundingClientRect().top +
+      Number.parseFloat(bodySectionStyle.borderTopWidth) +
+      Number.parseFloat(bodySectionStyle.paddingTop);
+    const generatedHeadingVisualHeight =
+      firstBodyBlock.getBoundingClientRect().top - bodyContentTop -
+      Number.parseFloat(firstBodyBlockStyle.marginTop);
+    const generatedHeadingMeasuredHeight = initialMeasurement.fragments.find(
+      (fragment) =>
+        fragment.id === `section:${bodySectionPos}:generated-heading`,
+    )?.height ?? 0;
+    const generatedHeadingMeasurementMatchesVisualSpan = Math.abs(
+      generatedHeadingMeasuredHeight - generatedHeadingVisualHeight,
+    ) < 0.5;
+    const firstTablePos = positionsOf(editor.state.doc, "apaTable")[0]!;
+    const firstTableNode = editor.state.doc.nodeAt(firstTablePos)!;
+    const firstTable = editor.view.nodeDOM(firstTablePos) as HTMLElement;
+    const firstTableStyle = getComputedStyle(firstTable);
+    const firstTableVisualHeight = firstTable.getBoundingClientRect().height +
+      Number.parseFloat(firstTableStyle.marginTop) +
+      Number.parseFloat(firstTableStyle.marginBottom);
+    const firstTableMeasuredHeight = initialMeasurement.fragments.filter(
+      (fragment) =>
+        fragment.from >= firstTablePos &&
+        fragment.to <= firstTablePos + firstTableNode.nodeSize,
+    ).reduce((total, fragment) => total + fragment.height, 0);
+    const tableWrapperMarginsMeasured = Math.abs(
+      firstTableMeasuredHeight - firstTableVisualHeight,
+    ) < 0.5;
+    const runInHeadingPos = positionsOf(editor.state.doc, "heading")[0]!;
+    const runInBodyPos = positionOfParagraph(
+      editor.state.doc,
+      "Each volunteer checked the oldest packet first",
+    );
+    const runInHeading = editor.view.nodeDOM(runInHeadingPos) as HTMLElement;
+    const runInBody = editor.view.nodeDOM(runInBodyPos) as HTMLElement;
+    const runInLineTops = [
+      ...Array.from(runInHeading.getClientRects()),
+      ...Array.from(runInBody.getClientRects()),
+    ].map((rect) => rect.top).sort((left, right) => left - right).filter(
+      (top, index, tops) => index === 0 || Math.abs(top - tops[index - 1]!) > 1,
+    );
+    const runInLineHeight = Number.parseFloat(
+      getComputedStyle(runInBody).lineHeight,
+    );
+    // Inline client rects expose glyph ink rather than their line boxes. Count
+    // the distinct native line positions, then apply the native line-height.
+    const runInVisualHeight = runInLineTops.length * runInLineHeight;
+    const measuredRunInHeight = initialMeasurement.fragments.filter(
+      (fragment) =>
+        fragment.id === `heading:${runInHeadingPos}` ||
+        fragment.lineGroup?.id === `text:${runInBodyPos}`,
+    ).reduce((total, fragment) => total + fragment.height, 0);
+    const runInMeasurementMatchesVisualSpan = Math.abs(
+      measuredRunInHeight - runInVisualHeight,
+    ) < 0.5;
+    const starts = paragraphLines.map((fragment) => fragment.breakBefore.pos);
     if (starts.length < 4) {
       throw new Error(
         `Expected at least four measured paragraph lines, got ${starts.length}`,
@@ -298,6 +384,24 @@ async function runProof(): Promise<ProofResult> {
       lineGap,
       () => resizeRevision,
     );
+    const normalizedMeasurement = await paginationMeasurer.read({
+      epoch: 2,
+      signal: new AbortController().signal,
+      latestEpoch: () => 2,
+    });
+    if (normalizedMeasurement.status !== "measured") {
+      throw new Error("Normalized production measurement was stale");
+    }
+    const normalizedParagraphLines = normalizedMeasurement.fragments.filter(
+      (fragment) => fragment.lineGroup?.id === `text:${paragraphPos}`,
+    );
+    const existingDecorationsNormalized =
+      normalizedParagraphLines.length === paragraphLines.length &&
+      normalizedParagraphLines.every((fragment, index) => {
+        const before = paragraphLines[index];
+        return before?.from === fragment.from && before.to === fragment.to &&
+          Math.abs(before.height - fragment.height) < 0.5;
+      });
     const firstPlannedGap = hiddenStableLayout.snapshot.gap;
     const lineGapParentTag = lineGap.parentElement?.tagName ?? "none";
     const lineGapInsideParagraph = lineGapParentTag === "P";
@@ -441,6 +545,77 @@ async function runProof(): Promise<ProofResult> {
       selectionAcrossGapProven,
     });
 
+    const beforeFormattingJson = JSON.stringify(editor.getJSON());
+    const formattingAccepted = editor.chain().focus().toggleBold().run();
+    const formattingAppliedAcrossGap = textHasMarkBetween(
+      editor.state.doc,
+      lineGapPos - 6,
+      lineGapPos + 6,
+      "bold",
+    );
+    const formattingUndoAccepted = editor.commands.undo();
+    const formattingUndoRestored = JSON.stringify(editor.getJSON()) ===
+      beforeFormattingJson;
+    const formattingRedoAccepted = editor.commands.redo();
+    const formattingRedoRestored = textHasMarkBetween(
+      editor.state.doc,
+      lineGapPos - 6,
+      lineGapPos + 6,
+      "bold",
+    );
+    const formattingFinalUndoAccepted = editor.commands.undo();
+    const formattingFinalUndoRestored = JSON.stringify(editor.getJSON()) ===
+      beforeFormattingJson;
+
+    const beforeCitationJson = JSON.stringify(editor.getJSON());
+    const citationsBeforeInsert = positionsOf(editor.state.doc, "citation")
+      .length;
+    editor.view.dispatch(
+      editor.state.tr.setSelection(
+        TextSelection.create(editor.state.doc, lineGapPos + 3),
+      ),
+    );
+    insertCitation(editor, {
+      items: [{ refId: "proof-ref-1" }],
+      mode: "parenthetical",
+    });
+    const citationPositionsAfterInsert = positionsOf(
+      editor.state.doc,
+      "citation",
+    );
+    const citationInsertedBeyondGap =
+      citationPositionsAfterInsert.length === citationsBeforeInsert + 1 &&
+      citationPositionsAfterInsert.some((pos) => pos > lineGapPos);
+    const citationUndoAccepted = editor.commands.undo();
+    const citationUndoRestored = JSON.stringify(editor.getJSON()) ===
+      beforeCitationJson;
+
+    const paragraphPositions = positionsOf(editor.state.doc, "paragraph");
+    const scrollParagraphPos = paragraphPositions.at(-1)!;
+    const scrollParagraph = editor.state.doc.nodeAt(scrollParagraphPos);
+    const scrollTargetPos = scrollParagraphPos + Math.max(
+      1,
+      (scrollParagraph?.content.size ?? 1) - 1,
+    );
+    editor.view.dispatch(
+      editor.state.tr.setSelection(
+        TextSelection.create(editor.state.doc, scrollTargetPos),
+      ).scrollIntoView(),
+    );
+    await waitForCondition(
+      "scroll-to-caret to reveal the authored target",
+      () => {
+        const coords = editor.view.coordsAtPos(scrollTargetPos);
+        return editor.state.selection.head === scrollTargetPos &&
+          coords.top >= 0 && coords.bottom <= globalThis.innerHeight;
+      },
+      30,
+    );
+    const scrolledCaretCoords = editor.view.coordsAtPos(scrollTargetPos);
+    const scrollToCaretProven = globalThis.scrollY > 0 &&
+      scrolledCaretCoords.top >= 0 &&
+      scrolledCaretCoords.bottom <= globalThis.innerHeight;
+
     const beforeUndoJson = JSON.stringify(editor.getJSON());
     editor.view.dispatch(editor.state.tr.insertText("Z", lineGapPos + 2));
     setDisposablePaginationProofPlan(editor, {
@@ -578,6 +753,44 @@ async function runProof(): Promise<ProofResult> {
     editor.off("update", replanTrailingFigure);
 
     const checks = {
+      productionDomMapping: initialMeasurement.fragments.some((fragment) =>
+        fragment.id.startsWith("section:") && fragment.kind === "heading" &&
+        fragment.height > 0
+      ) &&
+        paragraphLines.every((fragment) =>
+          fragment.from >= paragraphPos &&
+          fragment.to <= paragraphPos +
+              (editor.state.doc.nodeAt(paragraphPos)?.nodeSize ?? 0)
+        ) &&
+        initialMeasurement.fragments.filter((fragment) =>
+            fragment.kind === "listItem"
+          ).length >= 3 &&
+        initialMeasurement.fragments.filter((fragment) =>
+            fragment.kind === "tableRow"
+          ).length === positionsOf(editor.state.doc, "tableRow").length &&
+        initialMeasurement.fragments.filter((fragment) =>
+            fragment.id.startsWith("figure:") && fragment.kind === "atomic"
+          ).length === positionsOf(editor.state.doc, "figure").length &&
+        initialMeasurement.fragments.filter((fragment) =>
+            fragment.id.startsWith("apaEquation:") &&
+            fragment.kind === "atomic"
+          ).length === positionsOf(editor.state.doc, "apaEquation").length,
+      generatedSectionHeadingMeasured:
+        generatedHeadingMeasurementMatchesVisualSpan,
+      tableWrapperMarginsMeasured,
+      runInHeadingMeasuredOnce: runInMeasurementMatchesVisualSpan,
+      tableContinuationHeaderMeasured:
+        tableFragments[0]?.table?.repeatedHeader === undefined &&
+        repeatedTableHeader !== undefined && repeatedTableHeader.height > 0 &&
+        repeatedTableHeader.cells.map((cell) =>
+            cell.text
+          ).join("|") ===
+          "Round|Cards|Envelopes" &&
+        repeatedTableHeader.cells.reduce(
+            (columns, cell) => columns + cell.colSpan,
+            0,
+          ) === 3,
+      existingDecorationsNormalized,
       authoredDeletionReflow: initialTrailingPlan.gaps.length === 1 &&
         deletionReplanCount === 2 && mappedGapCountAfterDeletion === 1 &&
         postDeleteDerivedGapCount === 0 && trailingGapRemovedAfterDelete &&
@@ -605,6 +818,14 @@ async function runProof(): Promise<ProofResult> {
       caretAcrossGap: beforeCaret.top < firstPlannedGap.top &&
         afterCaret.top >= firstPlannedGap.bottom,
       selectionAcrossGap: selectionAcrossGapProven,
+      formattingAcrossGap: formattingAccepted &&
+        formattingAppliedAcrossGap && formattingUndoAccepted &&
+        formattingUndoRestored && formattingRedoAccepted &&
+        formattingRedoRestored && formattingFinalUndoAccepted &&
+        formattingFinalUndoRestored,
+      citationAcrossGap: citationInsertedBeyondGap && citationUndoAccepted &&
+        citationUndoRestored,
+      scrollToCaret: scrollToCaretProven,
       oneStepUndo: undoAccepted && afterUndoJson === beforeUndoJson,
       validTableRowGap: validTableRowStructure &&
         !!rowBefore && !!rowAfter && rowAfter.top - rowBefore.bottom >= 170,
@@ -624,6 +845,26 @@ async function runProof(): Promise<ProofResult> {
       checks,
       metrics: {
         measuredParagraphLines: starts.length,
+        measuredFragments: initialMeasurement.fragments.length,
+        measuredListLines: initialMeasurement.fragments.filter((fragment) =>
+          fragment.kind === "listItem"
+        ).length,
+        measuredTableRows: initialMeasurement.fragments.filter((fragment) =>
+          fragment.kind === "tableRow"
+        ).length,
+        measuredFigures: initialMeasurement.fragments.filter((fragment) =>
+          fragment.id.startsWith("figure:")
+        ).length,
+        measuredEquations: initialMeasurement.fragments.filter((fragment) =>
+          fragment.id.startsWith("apaEquation:")
+        ).length,
+        generatedHeadingVisualHeight,
+        generatedHeadingMeasuredHeight,
+        firstTableVisualHeight,
+        firstTableMeasuredHeight,
+        measuredRunInHeight,
+        runInVisualHeight,
+        repeatedTableHeaderHeight: repeatedTableHeader?.height ?? 0,
         resourceWaitFrames,
         gapWaitFrames,
         hiddenStableFrames: hiddenStableLayout.frames,
@@ -637,6 +878,9 @@ async function runProof(): Promise<ProofResult> {
         caretStartPosition: caretStartPos ?? -1,
         caretAfterTraversalPosition: caretAfterTraversal ?? -1,
         caretMoveCount,
+        scrollTargetPosition: scrollTargetPos,
+        scrollTargetTop: scrolledCaretCoords.top,
+        scrollY: globalThis.scrollY,
         caretAfterTraversalTop: caretAfterTraversalCoords.top,
         nativeInputAccepted: String(nativeInputAccepted),
         nativeInputEventCount,
@@ -674,15 +918,34 @@ async function runProof(): Promise<ProofResult> {
       ...(passed ? {} : { error: "One or more WKWebView proof checks failed" }),
     };
   } finally {
+    paginationMeasurer?.destroy();
     editor.destroy();
   }
 }
 
 const resultElement = requireElement<HTMLElement>("#proof-result");
+let proofFinished = false;
+const watchdog = startProofPageWatchdog(45_000, () => {
+  finishProof({
+    passed: false,
+    engine: navigator.userAgent,
+    checks: {},
+    metrics: {},
+    error: "Pagination proof page watchdog expired",
+  });
+});
+
+function finishProof(result: ProofResult): void {
+  if (proofFinished) return;
+  proofFinished = true;
+  watchdog.cancel();
+  resultElement.textContent = JSON.stringify(result, null, 2);
+  nativeBridge.postResult(result);
+}
+
 runProof().then((result) => {
   diagnostic("proof-result", { passed: result.passed });
-  resultElement.textContent = JSON.stringify(result, null, 2);
-  bridge.webkit?.messageHandlers?.tesinaProof?.postMessage(result);
+  finishProof(result);
 }).catch((error: unknown) => {
   diagnostic("proof-catch", {
     error: error instanceof Error ? error.message : String(error),
@@ -696,6 +959,5 @@ runProof().then((result) => {
       ? `${error.message}\n${error.stack ?? ""}`
       : String(error),
   };
-  resultElement.textContent = JSON.stringify(result, null, 2);
-  bridge.webkit?.messageHandlers?.tesinaProof?.postMessage(result);
+  finishProof(result);
 });

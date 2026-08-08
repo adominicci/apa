@@ -4240,6 +4240,7 @@ version = "0.1.2"
 dependencies = [
  "serde",
  "serde_json",
+ "tao",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
@@ -4248,6 +4249,8 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-process",
  "tauri-plugin-updater",
+ "url",
+ "wry",
 ]
 
 [[package]]

@@ -6,15 +6,15 @@ interface HarnessSelfTestResult {
   error?: string;
 }
 
-export {};
+import {
+  createNativeProofBridge,
+  type NativeProofBridgeScope,
+} from "./nativeBridge.ts";
+import { startProofPageWatchdog } from "./proofPageWatchdog.ts";
 
-const bridge = globalThis as typeof globalThis & {
-  webkit?: {
-    messageHandlers?: {
-      tesinaProof?: { postMessage(value: HarnessSelfTestResult): void };
-    };
-  };
-};
+const nativeBridge = createNativeProofBridge(
+  globalThis as unknown as NativeProofBridgeScope,
+);
 
 function requireElement(selector: string): HTMLElement {
   const element = document.querySelector<HTMLElement>(selector);
@@ -25,10 +25,23 @@ function requireElement(selector: string): HTMLElement {
 }
 
 const resultElement = requireElement("#proof-result");
+let finished = false;
+const watchdog = startProofPageWatchdog(15_000, () => {
+  finish({
+    passed: false,
+    engine: navigator.userAgent,
+    checks: {},
+    metrics: {},
+    error: "Native harness self-test page watchdog expired",
+  });
+});
 
 function finish(result: HarnessSelfTestResult): void {
+  if (finished) return;
+  finished = true;
+  watchdog.cancel();
   resultElement.textContent = JSON.stringify(result, null, 2);
-  bridge.webkit?.messageHandlers?.tesinaProof?.postMessage(result);
+  nativeBridge.postResult(result);
 }
 
 if (document.visibilityState !== "visible") {

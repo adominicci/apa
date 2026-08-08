@@ -18,6 +18,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
+[features]
+native-proof-host = []
+
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
@@ -28,3 +31,18 @@ tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+[dev-dependencies]
+# Test-only native WebView2 host. These exact versions already back the locked
+# Tauri runtime; keeping them as dev dependencies excludes the host from app
+# bundles while allowing the example to use the same Tao/Wry stack directly.
+# url 2.5.8 is likewise already locked, is MIT OR Apache-2.0, and lets the
+# direct host parse its loopback origin instead of trusting a string prefix.
+tao = "=0.35.3"
+url = "=2.5.8"
+wry = "=0.55.1"
+
+[[example]]
+name = "webview2-proof-host"
+path = "examples/webview2-proof-host.rs"
+required-features = ["native-proof-host"]

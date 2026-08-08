@@ -16,19 +16,28 @@ afterEach(async () => {
 });
 
 describe("native proof cleanup", () => {
-  it("removes generated output even when preview shutdown rejects", async () => {
-    const outputDir = await mkdtemp(
-      resolve(tmpdir(), "tesina-proof-cleanup-test-"),
+  it("removes every generated directory even when preview shutdown rejects", async () => {
+    const directories = await Promise.all(
+      ["dist", "profile", "diagnostics"].map(async (kind) => {
+        const directory = await mkdtemp(
+          resolve(tmpdir(), `tesina-proof-${kind}-cleanup-test-`),
+        );
+        temporaryDirectories.add(directory);
+        await writeFile(resolve(directory, "artifact"), "generated");
+        return directory;
+      }),
     );
-    temporaryDirectories.add(outputDir);
-    await writeFile(resolve(outputDir, "artifact.js"), "generated");
     const closeError = new Error("preview close failed");
 
-    const result = await cleanupProofRun(outputDir, {
+    const result = await cleanupProofRun(directories, {
       close: async () => await Promise.reject(closeError),
     }).catch((error: unknown) => error);
 
     expect(result).toBe(closeError);
-    await expect(stat(outputDir)).rejects.toMatchObject({ code: "ENOENT" });
+    await Promise.all(
+      directories.map(async (directory) => {
+        await expect(stat(directory)).rejects.toMatchObject({ code: "ENOENT" });
+      }),
+    );
   });
 });
