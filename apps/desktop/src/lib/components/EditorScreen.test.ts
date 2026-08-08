@@ -576,6 +576,54 @@ describe("editor preview round trip", () => {
   });
 });
 
+describe("APA export title-page gate", () => {
+  it("shows a live validation error and resumes the export after a fixing save", async () => {
+    const essay = exportableEssay(bodyDoc("Seed"));
+    essay.titlePage.course = "PSYC 232"; // no colon → blocked
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    exportButton().click();
+    await vi.waitFor(() => {
+      expect(document.querySelector(".modal [role='alert']")).not.toBeNull();
+    });
+    expect(runtime.exportEssayToDocx).not.toHaveBeenCalled();
+    expect(document.querySelector(".modal [role='alert']")?.textContent).toBe(
+      m.titlepage_error_missing_course(),
+    );
+
+    const courseInput = document.querySelector<HTMLInputElement>(
+      `input[placeholder="${m.titlepage_course_placeholder()}"]`,
+    );
+    if (!courseInput) throw new Error("Course input not found");
+    courseInput.value = "PSYC 232: Desarrollo humano";
+    courseInput.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+    expect(document.querySelector(".modal [role='alert']")).toBeNull();
+
+    const saveButton = [
+      ...document.querySelectorAll<HTMLButtonElement>(".modal .btn-primary"),
+    ].find((button) => button.textContent === m.titlepage_save());
+    if (!saveButton) throw new Error("Save button not found");
+    saveButton.click();
+    await vi.waitFor(() => {
+      expect(runtime.exportEssayToDocx).toHaveBeenCalledOnce();
+    });
+    expect(document.querySelector(".modal")).toBeNull();
+
+    await unmount(component);
+  });
+});
+
 describe("APA export reference integrity", () => {
   it("preserves a newly cited reference deleted during the autosave debounce", async () => {
     vi.useFakeTimers();

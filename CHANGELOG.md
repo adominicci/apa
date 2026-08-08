@@ -5,6 +5,22 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-08-08
+
+### Changed
+
+- The editor now shows the paper as separate pages — title page, essay, and
+  references — in the same order as the printed document, instead of one
+  continuous sheet with dividers.
+- New papers start with all of their pages visible, including a references
+  page that shows a short note until the first source is added.
+
+### Fixed
+
+- When exporting to Word with an incomplete title page, the title page window
+  now highlights what is missing in red, updates the message while you type,
+  and finishes the export on its own after you save the corrected title page.
+
 ## [0.1.1] - 2026-08-07
 
 ### Fixed

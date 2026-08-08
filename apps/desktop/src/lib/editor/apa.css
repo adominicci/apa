@@ -1,9 +1,11 @@
 /*
- * APA 7 visual styling for the continuous editor. The sheet is always
- * paper-white with near-black serif text regardless of app theme — the
- * document is a document. Exact pagination lives in the preview/export;
- * here the text column matches the printable width (8.5in - 2in margins)
- * so line breaks approximate the final page.
+ * APA 7 visual styling for the editor. Sheets are always paper-white with
+ * near-black serif text regardless of app theme — the document is a document.
+ * Each top-level section (abstract, body, references, appendices) renders as
+ * its own page-sheet so the edit view mirrors the preview's page flow. Exact
+ * pagination still lives in the preview/export; here the text column matches
+ * the printable width (8.5in - 2in margins) so line breaks approximate the
+ * final page.
  */
 .apa-editor {
   /* Block, NOT flex — this is load-bearing. The sheet derives its height from
@@ -20,6 +22,7 @@
   box-sizing: border-box;
 }
 
+/* The cover sheet's single page (CoverSheet.svelte reuses this class). */
 .apa-editor .paper-sheet {
   background: var(--paper);
   color: var(--fg);
@@ -40,47 +43,34 @@
   padding: 1in;
 }
 
-.apa-editor .paper-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.apa-editor .paper-head {
-  display: block;
-  width: 100%;
-  border: none;
-  background: none;
-  cursor: pointer;
-  text-align: center;
-  font: inherit;
-  color: inherit;
-  padding: 0 0 6px;
-}
-
-.apa-editor .paper-head .title-line {
-  margin: 0 0 6px;
-  font-family: var(--serif);
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
-}
-
-.apa-editor .paper-head .byline {
-  margin: 0 0 22px;
-  font-family: var(--serif);
-  color: var(--muted);
-  font-size: 15px;
+/* The editor mounts inside a transparent column; each top-level section
+   paints its own page-sheet below. */
+.apa-editor .page-stack {
+  width: min(100%, 8.5in);
+  margin-inline: auto;
 }
 
 .apa-editor .tiptap {
   font-family: var(--doc-font, var(--serif));
   font-size: var(--doc-font-size, 12pt);
   line-height: 2;
-  flex: 1;
-  min-height: 3in;
   outline: none;
+}
+
+/* One page-sheet per top-level section (abstract, body, references,
+   appendices), so the document flows as discrete pages like the preview.
+   These are plain blocks — NOT flex items — so the aspect-ratio height is
+   honoured on first paint in WKWebView (see the .apa-editor note above). */
+.apa-editor .tiptap > .sec {
+  background: var(--paper);
+  color: var(--fg);
+  width: 100%;
+  aspect-ratio: 8.5 / 11;
+  box-sizing: border-box;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-paper);
+  padding: 1in;
 }
 
 .apa-editor .tiptap p {
@@ -151,10 +141,9 @@
   counter-reset: apa-table apa-figure apa-equation;
 }
 
-.apa-editor .tiptap .sec + .sec {
-  margin-top: 1.5rem;
-  border-top: 1px dashed var(--border);
-  padding-top: 1.5rem;
+/* Gap between page-sheets — matches the sheet-stack gap around the cover. */
+.apa-editor .tiptap > .sec + .sec {
+  margin-top: 28px;
 }
 
 .apa-editor .tiptap .sec::before {

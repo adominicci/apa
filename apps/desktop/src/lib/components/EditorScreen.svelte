@@ -65,9 +65,10 @@
   import { resolveReferencesForExport } from "$lib/export/referenceResolution";
   import {
     createStudentExportSnapshot,
+    firstStudentTitlePageBlockingIssue,
     runStudentTitlePageValidatedExport,
-    type TitlePageValidationMessageKey,
   } from "$lib/model/titlePageValidation";
+  import { localizeTitlePageValidation } from "$lib/components/titlePageValidationMessages";
   import { m } from "$lib/paraglide/messages";
   import {
     persistence,
@@ -228,23 +229,6 @@
   const appendixLabel = $derived(
     getTerms(documentLanguage).headings.appendix,
   );
-
-  function localizeTitlePageValidation(
-    key: TitlePageValidationMessageKey,
-  ): string {
-    const messages: Record<TitlePageValidationMessageKey, () => string> = {
-      titlepage_error_missing_title: m.titlepage_error_missing_title,
-      titlepage_error_missing_authors: m.titlepage_error_missing_authors,
-      titlepage_error_missing_affiliations:
-        m.titlepage_error_missing_affiliations,
-      titlepage_error_missing_course: m.titlepage_error_missing_course,
-      titlepage_error_missing_instructor: m.titlepage_error_missing_instructor,
-      titlepage_error_missing_due_date: m.titlepage_error_missing_due_date,
-      titlepage_error_ambiguous_affiliations:
-        m.titlepage_error_ambiguous_affiliations,
-    };
-    return messages[key]();
-  }
 
   const STATUS_LABELS = {
     guardando: m.editor_status_saving,
@@ -678,6 +662,7 @@
   }
 
   function handleSaveTitlePage(titlePage: TitlePage, settings: EssaySettings) {
+    const wasExportBlocked = titlePageValidationError !== "";
     essay.titlePage = titlePage;
     essay.settings = {
       ...settings,
@@ -689,6 +674,14 @@
     exportMessage = "";
     titleFormOpen = false;
     scheduleSave();
+    // Saving from a blocked export resumes it once the page is export-ready,
+    // so "fix and save" completes the export the user already asked for.
+    if (
+      wasExportBlocked &&
+      !firstStudentTitlePageBlockingIssue(titlePage, documentLanguage)
+    ) {
+      void handleExport();
+    }
   }
 
   /** Applies an inline edit from the student title-page sheet. */
@@ -1530,7 +1523,8 @@
     min-width: 0;
   }
 
-  /* The three stacked page-sheets (cover, body, references). */
+  /* The stacked page-sheets: the cover plus one sheet per document section
+     (body, references, appendices) painted inside the editor. */
   .sheet-stack {
     display: flex;
     flex-direction: column;

@@ -37,6 +37,19 @@ describe("APA editor indentation", () => {
   });
 });
 
+describe("APA editor page-sheets", () => {
+  it("renders each top-level section as its own US Letter page-sheet", () => {
+    expect(css).toMatch(
+      /\.apa-editor \.tiptap > \.sec\s*\{[^}]*background:\s*var\(--paper\);[^}]*aspect-ratio:\s*8\.5 \/ 11;[^}]*padding:\s*1in;/s,
+    );
+    expect(css).toMatch(
+      /\.apa-editor \.tiptap > \.sec \+ \.sec\s*\{[^}]*margin-top:/s,
+    );
+    // Sections are separate pages now — no dashed in-sheet divider.
+    expect(css).not.toMatch(/\.sec \+ \.sec\s*\{[^}]*border-top:/s);
+  });
+});
+
 describe("APA editor body title", () => {
   it("renders the derived body title as centered bold section chrome", () => {
     expect(css).toMatch(
