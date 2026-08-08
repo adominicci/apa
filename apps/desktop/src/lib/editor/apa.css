@@ -206,15 +206,11 @@
   content: "Appendix";
 }
 
-.apa-editor[data-doclang="es"]
-  .tiptap
-  .sec-appendix[data-appendix-letter]::before {
+.apa-editor[data-doclang="es"] .tiptap .sec-appendix[data-appendix-letter]::before {
   content: "Apéndice " attr(data-appendix-letter);
 }
 
-.apa-editor[data-doclang="en"]
-  .tiptap
-  .sec-appendix[data-appendix-letter]::before {
+.apa-editor[data-doclang="en"] .tiptap .sec-appendix[data-appendix-letter]::before {
   content: "Appendix " attr(data-appendix-letter);
 }
 
