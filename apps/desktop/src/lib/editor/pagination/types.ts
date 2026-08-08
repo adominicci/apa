@@ -127,9 +127,16 @@ export interface PaginationEnvironment {
 
 export type PageCountCallback = (pageCount: PaginationPageCount) => void;
 
+/** A top-level section that needs a visible sheet despite having no measured content. */
+export interface EmptySection {
+  section: SectionKind;
+  pos: number;
+}
+
 export interface PaginationInput {
   epoch: number;
   latestEpoch?: number;
   fragments: readonly MeasuredFragment[];
+  emptySections?: readonly EmptySection[];
   referencePageCount?: number;
 }

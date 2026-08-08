@@ -30,6 +30,10 @@ function referencePageCount(value: number | undefined): number {
   return Math.max(0, Math.floor(value ?? 0));
 }
 
+function isLineFragment(fragment: MeasuredFragment): boolean {
+  return fragment.kind === "line" || fragment.kind === "listItem";
+}
+
 function sameLineGroup(
   first: MeasuredFragment,
   next: MeasuredFragment | undefined,
@@ -37,8 +41,44 @@ function sameLineGroup(
   return Boolean(
     first.lineGroup &&
       next?.lineGroup &&
-      first.lineGroup.id === next.lineGroup.id,
+      isLineFragment(first) &&
+      isLineFragment(next) &&
+      first.lineGroup.id === next.lineGroup.id &&
+      first.section === next.section &&
+      first.kind === next.kind &&
+      !first.forcePageStart &&
+      !next.forcePageStart,
   );
+}
+
+function fragmentsFor(input: PaginationInput): MeasuredFragment[] {
+  const entries = [
+    ...input.fragments.map((fragment, index) => ({ fragment, index })),
+    ...(input.emptySections ?? []).map((emptySection, index) => ({
+      fragment: {
+        id:
+          `empty-section:${emptySection.section}:${emptySection.pos}:${index}`,
+        from: emptySection.pos,
+        to: emptySection.pos,
+        section: emptySection.section,
+        kind: "line" as const,
+        height: 0,
+        breakBefore: {
+          kind: "block" as const,
+          pos: emptySection.pos,
+          section: emptySection.section,
+        },
+        forcePageStart: true,
+      },
+      index: input.fragments.length + index,
+    })),
+  ];
+
+  return entries.sort((left, right) => {
+    const position = left.fragment.breakBefore.pos -
+      right.fragment.breakBefore.pos;
+    return position || left.index - right.index;
+  }).map(({ fragment }) => fragment);
 }
 
 /**
@@ -60,6 +100,7 @@ export function planPagination(input: PaginationInput): PaginationPlan {
   const stablePageStarts: PageStart[] = [];
   const tableRowStarts: TableRowStart[] = [];
   const overflows: PaginationOverflow[] = [];
+  const fragments = fragmentsFor(input);
   let usedHeight = 0;
   let currentSection: MeasuredFragment["section"] | undefined;
 
@@ -98,22 +139,22 @@ export function planPagination(input: PaginationInput): PaginationPlan {
   }
 
   let index = 0;
-  while (index < input.fragments.length) {
-    const fragment = input.fragments[index]!;
+  while (index < fragments.length) {
+    const fragment = fragments[index]!;
     ensureSectionStart(fragment);
 
-    if (fragment.lineGroup) {
+    if (isLineFragment(fragment) && fragment.lineGroup) {
       let groupEnd = index + 1;
-      while (sameLineGroup(fragment, input.fragments[groupEnd])) groupEnd += 1;
+      while (sameLineGroup(fragment, fragments[groupEnd])) groupEnd += 1;
 
       while (index < groupEnd) {
-        const groupFragment = input.fragments[index]!;
+        const groupFragment = fragments[index]!;
         const availableHeight = LETTER_PRINTABLE_HEIGHT - usedHeight;
         let fitCount = 0;
         let fittedHeight = 0;
 
         for (let cursor = index; cursor < groupEnd; cursor += 1) {
-          const height = measuredHeight(input.fragments[cursor]!.height);
+          const height = measuredHeight(fragments[cursor]!.height);
           if (fittedHeight + height > availableHeight) break;
           fittedHeight += height;
           fitCount += 1;
@@ -164,12 +205,12 @@ export function planPagination(input: PaginationInput): PaginationPlan {
         }
 
         for (let cursor = 0; cursor < linesToPlace; cursor += 1) {
-          usedHeight += measuredHeight(input.fragments[index + cursor]!.height);
+          usedHeight += measuredHeight(fragments[index + cursor]!.height);
         }
         index += linesToPlace;
 
         if (index < groupEnd) {
-          const nextLine = input.fragments[index]!;
+          const nextLine = fragments[index]!;
           startPage(nextLine, pageStartKind(nextLine.breakBefore));
         }
       }
@@ -178,7 +219,7 @@ export function planPagination(input: PaginationInput): PaginationPlan {
 
     const height = measuredHeight(fragment.height);
     const availableHeight = LETTER_PRINTABLE_HEIGHT - usedHeight;
-    const followingFragment = input.fragments[index + 1];
+    const followingFragment = fragments[index + 1];
     const pairedHeadingHeight = fragment.keepWithNext && followingFragment
       ? height + measuredHeight(followingFragment.height)
       : height;

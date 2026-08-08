@@ -136,6 +136,58 @@ describe("planPagination", () => {
     });
   });
 
+  it("does not let a shared line-group id swallow a forced appendix start", () => {
+    const plan = stablePlan({
+      epoch: 5,
+      fragments: [
+        fragment("body-line", 1, 100, {
+          lineGroup: { id: "shared", index: 0, count: 2 },
+        }),
+        fragment("appendix-line", 20, 100, {
+          section: "appendix",
+          forcePageStart: true,
+          lineGroup: { id: "shared", index: 1, count: 2 },
+        }),
+      ],
+    });
+
+    expect(plan.pageStarts).toEqual([
+      { pageIndex: 0, pos: 1, section: "body", kind: "section" },
+      { pageIndex: 1, pos: 20, section: "appendix", kind: "section" },
+    ]);
+    expect(plan.pageCount.bySection).toEqual({
+      abstract: 0,
+      body: 1,
+      appendix: 1,
+      references: 0,
+    });
+  });
+
+  it("does not join a paragraph line to a list item with the same group id", () => {
+    const plan = stablePlan({
+      epoch: 5,
+      fragments: [
+        fragment("preface", 1, 784),
+        fragment("paragraph-line", 20, 80, {
+          lineGroup: { id: "shared", index: 0, count: 3 },
+        }),
+        fragment("list-line-1", 30, 80, {
+          kind: "listItem",
+          lineGroup: { id: "shared", index: 1, count: 3 },
+        }),
+        fragment("list-line-2", 40, 80, {
+          kind: "listItem",
+          lineGroup: { id: "shared", index: 2, count: 3 },
+        }),
+      ],
+    });
+
+    expect(plan.pageStarts).toEqual([
+      { pageIndex: 0, pos: 1, section: "body", kind: "section" },
+      { pageIndex: 1, pos: 30, section: "body", kind: "line" },
+    ]);
+  });
+
   it("keeps at least two paragraph lines on both sides of a page boundary", () => {
     const plan = stablePlan({
       epoch: 6,
@@ -162,6 +214,166 @@ describe("planPagination", () => {
     expect(plan.pageStarts).toEqual([
       { pageIndex: 0, pos: 1, section: "body", kind: "section" },
       { pageIndex: 1, pos: 40, section: "body", kind: "line" },
+    ]);
+  });
+
+  it("moves a paragraph when only one line fits at the bottom of a page", () => {
+    const plan = stablePlan({
+      epoch: 6,
+      fragments: [
+        fragment("preface", 1, 784),
+        fragment("paragraph-1", 20, 80, {
+          lineGroup: { id: "paragraph", index: 0, count: 3 },
+        }),
+        fragment("paragraph-2", 30, 80, {
+          lineGroup: { id: "paragraph", index: 1, count: 3 },
+        }),
+        fragment("paragraph-3", 40, 80, {
+          lineGroup: { id: "paragraph", index: 2, count: 3 },
+        }),
+      ],
+    });
+
+    expect(plan.pageStarts).toEqual([
+      { pageIndex: 0, pos: 1, section: "body", kind: "section" },
+      { pageIndex: 1, pos: 20, section: "body", kind: "line" },
+    ]);
+  });
+
+  it("moves an earlier line when one line would remain at the top of a page", () => {
+    const plan = stablePlan({
+      epoch: 6,
+      fragments: [
+        fragment("preface", 1, 544),
+        fragment("paragraph-1", 20, 80, {
+          lineGroup: { id: "paragraph", index: 0, count: 5 },
+        }),
+        fragment("paragraph-2", 30, 80, {
+          lineGroup: { id: "paragraph", index: 1, count: 5 },
+        }),
+        fragment("paragraph-3", 40, 80, {
+          lineGroup: { id: "paragraph", index: 2, count: 5 },
+        }),
+        fragment("paragraph-4", 50, 80, {
+          lineGroup: { id: "paragraph", index: 3, count: 5 },
+        }),
+        fragment("paragraph-5", 60, 80, {
+          lineGroup: { id: "paragraph", index: 4, count: 5 },
+        }),
+      ],
+    });
+
+    expect(plan.pageStarts).toEqual([
+      { pageIndex: 0, pos: 1, section: "body", kind: "section" },
+      { pageIndex: 1, pos: 50, section: "body", kind: "line" },
+    ]);
+  });
+
+  it("honors a custom three-line minimum at the bottom of a page", () => {
+    const plan = stablePlan({
+      epoch: 6,
+      fragments: [
+        fragment("preface", 1, 704),
+        fragment("paragraph-1", 20, 80, {
+          lineGroup: {
+            id: "paragraph",
+            index: 0,
+            count: 4,
+            minLinesAtBottom: 3,
+          },
+        }),
+        fragment("paragraph-2", 30, 80, {
+          lineGroup: {
+            id: "paragraph",
+            index: 1,
+            count: 4,
+            minLinesAtBottom: 3,
+          },
+        }),
+        fragment("paragraph-3", 40, 80, {
+          lineGroup: {
+            id: "paragraph",
+            index: 2,
+            count: 4,
+            minLinesAtBottom: 3,
+          },
+        }),
+        fragment("paragraph-4", 50, 80, {
+          lineGroup: {
+            id: "paragraph",
+            index: 3,
+            count: 4,
+            minLinesAtBottom: 3,
+          },
+        }),
+      ],
+    });
+
+    expect(plan.pageStarts).toEqual([
+      { pageIndex: 0, pos: 1, section: "body", kind: "section" },
+      { pageIndex: 1, pos: 20, section: "body", kind: "line" },
+    ]);
+  });
+
+  it("honors a custom three-line minimum at the top of a page", () => {
+    const plan = stablePlan({
+      epoch: 6,
+      fragments: [
+        fragment("preface", 1, 544),
+        fragment("paragraph-1", 20, 80, {
+          lineGroup: {
+            id: "paragraph",
+            index: 0,
+            count: 6,
+            minLinesAtTop: 3,
+          },
+        }),
+        fragment("paragraph-2", 30, 80, {
+          lineGroup: {
+            id: "paragraph",
+            index: 1,
+            count: 6,
+            minLinesAtTop: 3,
+          },
+        }),
+        fragment("paragraph-3", 40, 80, {
+          lineGroup: {
+            id: "paragraph",
+            index: 2,
+            count: 6,
+            minLinesAtTop: 3,
+          },
+        }),
+        fragment("paragraph-4", 50, 80, {
+          lineGroup: {
+            id: "paragraph",
+            index: 3,
+            count: 6,
+            minLinesAtTop: 3,
+          },
+        }),
+        fragment("paragraph-5", 60, 80, {
+          lineGroup: {
+            id: "paragraph",
+            index: 4,
+            count: 6,
+            minLinesAtTop: 3,
+          },
+        }),
+        fragment("paragraph-6", 70, 80, {
+          lineGroup: {
+            id: "paragraph",
+            index: 5,
+            count: 6,
+            minLinesAtTop: 3,
+          },
+        }),
+      ],
+    });
+
+    expect(plan.pageStarts).toEqual([
+      { pageIndex: 0, pos: 1, section: "body", kind: "section" },
+      { pageIndex: 1, pos: 50, section: "body", kind: "line" },
     ]);
   });
 
@@ -366,6 +578,28 @@ describe("planPagination", () => {
       references: 0,
       total: 0,
       bySection: { abstract: 0, body: 0, appendix: 0, references: 0 },
+    });
+  });
+
+  it("materializes explicit empty body and appendix sections as finite pages", () => {
+    const plan = stablePlan({
+      epoch: 17,
+      fragments: [],
+      emptySections: [
+        { section: "body", pos: 1 },
+        { section: "appendix", pos: 20 },
+      ],
+    });
+
+    expect(plan.pageStarts).toEqual([
+      { pageIndex: 0, pos: 1, section: "body", kind: "section" },
+      { pageIndex: 1, pos: 20, section: "appendix", kind: "section" },
+    ]);
+    expect(plan.pageCount).toEqual({
+      authored: 2,
+      references: 0,
+      total: 2,
+      bySection: { abstract: 0, body: 1, appendix: 1, references: 0 },
     });
   });
 
