@@ -5,7 +5,7 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.1.2] - 2026-08-08
+## [0.1.3] - 2026-08-08
 
 ### Added
 
@@ -27,6 +27,22 @@ and [Semantic Versioning](https://semver.org/).
   work is never rolled back or replaced.
 - Backup files are complete and not password-protected; the wizard explains
   this clearly before anything is written.
+
+## [0.1.2] - 2026-08-08
+
+### Changed
+
+- The editor now shows the paper as separate pages — title page, essay, and
+  references — in the same order as the printed document, instead of one
+  continuous sheet with dividers.
+- New papers start with all of their pages visible, including a references
+  page that shows a short note until the first source is added.
+
+### Fixed
+
+- When exporting to Word with an incomplete title page, the title page window
+  now highlights what is missing in red, updates the message while you type,
+  and finishes the export on its own after you save the corrected title page.
 
 ## [0.1.1] - 2026-08-07
 
@@ -64,7 +80,8 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/apa/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/adominicci/apa/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/adominicci/apa/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/adominicci/apa/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/adominicci/apa/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/adominicci/apa/releases/tag/v0.1.0

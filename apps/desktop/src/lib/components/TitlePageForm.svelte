@@ -2,12 +2,14 @@
   import { untrack } from "svelte";
   import { m } from "$lib/paraglide/messages";
   import Modal from "$lib/components/Modal.svelte";
+  import { localizeTitlePageValidation } from "$lib/components/titlePageValidationMessages";
   import type {
     EssaySettings,
     FontChoice,
     TitlePage,
   } from "$lib/model/essay";
   import { APA_FONTS, APA_FONT_ORDER } from "$lib/model/fonts";
+  import { firstStudentTitlePageBlockingIssue } from "$lib/model/titlePageValidation";
 
   interface Props {
     titlePage: TitlePage;
@@ -50,26 +52,40 @@
       .filter((line) => line !== "");
   }
 
-  function save() {
-    const nextTitle: TitlePage = {
+  function buildDraft(): TitlePage {
+    const draft: TitlePage = {
       ...titlePage,
       title: title.trim() || titlePage.title,
       authors: lines(authorsText),
       affiliations: lines(affiliationsText),
     };
-    if (course.trim()) nextTitle.course = course.trim();
-    else delete nextTitle.course;
-    if (instructor.trim()) nextTitle.instructor = instructor.trim();
-    else delete nextTitle.instructor;
-    if (dueDate.trim()) nextTitle.dueDate = dueDate.trim();
-    else delete nextTitle.dueDate;
+    if (course.trim()) draft.course = course.trim();
+    else delete draft.course;
+    if (instructor.trim()) draft.instructor = instructor.trim();
+    else delete draft.instructor;
+    if (dueDate.trim()) draft.dueDate = dueDate.trim();
+    else delete draft.dueDate;
+    return draft;
+  }
 
+  /* When export was blocked, re-validate the draft as the user types so the
+     error visibly clears once the fields are export-ready. */
+  const liveValidationError = $derived.by(() => {
+    if (!validationMessage) return "";
+    const issue = firstStudentTitlePageBlockingIssue(
+      buildDraft(),
+      settings.documentLanguage,
+    );
+    return issue ? localizeTitlePageValidation(issue.messageKey) : "";
+  });
+
+  function save() {
     const nextSettings: EssaySettings = {
       ...settings,
       variant: "student",
       font,
     };
-    onSave(nextTitle, nextSettings);
+    onSave(buildDraft(), nextSettings);
   }
 </script>
 
@@ -134,8 +150,8 @@
   </label>
 
   <p class="hint">{m.titlepage_hint()}</p>
-  {#if validationMessage}
-    <p class="hint" role="alert">{validationMessage}</p>
+  {#if liveValidationError}
+    <p class="hint validation-error" role="alert">{liveValidationError}</p>
   {/if}
 
   {#snippet footer()}
@@ -143,3 +159,11 @@
     <button class="btn btn-primary" onclick={save}>{m.titlepage_save()}</button>
   {/snippet}
 </Modal>
+
+<style>
+  /* p + two classes outranks modal.css's `.modal .hint` muted color. */
+  p.validation-error {
+    color: var(--danger);
+    font-weight: 600;
+  }
+</style>
