@@ -349,7 +349,7 @@
       actually launches the packaged app. Compilation, installer creation, and
       unit tests cannot satisfy this task; evidence must target the exact feature
       SHA before merge.
-- [ ] 11.6 Verify Google Drive, iCloud Drive, OneDrive, and Dropbox wording is
+- [x] 11.6 Verify Google Drive, iCloud Drive, OneDrive, and Dropbox wording is
       provider-neutral: Tesina proves the local selected-folder file only and
       never claims remote synchronization succeeded. Also audit every surface
       so checksums are never presented as proof of origin, authenticity, or
@@ -365,27 +365,27 @@
 
 ## 12. Required verification, version, and publication
 
-- [ ] 12.1 Run focused portable/archive/import/backup unit and component suites
+- [x] 12.1 Run focused portable/archive/import/backup unit and component suites
       after each slice, then from the repository root run `deno task check`,
       `deno task test`, `deno fmt`, and `deno lint`; require 0 Svelte
       errors/warnings and preserve unrelated snapshot/worktree changes.
-- [ ] 12.2 Run `openspec validate add-portable-library-backups --strict` and
+- [x] 12.2 Run `openspec validate add-portable-library-backups --strict` and
       `git diff --check`; maintain a requirement-evidence matrix mapping every
       scenario to a named automated test, durable packaged-native evidence ID,
       or explicit deferred/not-applicable justification.
-- [ ] 12.3 Bump the next patch version consistently in
+- [x] 12.3 Bump the next patch version consistently in
       `apps/desktop/package.json`, `apps/desktop/src-tauri/tauri.conf.json`,
       `apps/desktop/src-tauri/Cargo.toml`, the Tesina package entry in
       `Cargo.lock`, both message files, README current-version statements, and
       exact release-verifier/tests. Add failing release-contract tests first and
       extend automation so every listed surface is enforced.
-- [ ] 12.4 Move completed `CHANGELOG.md` items from Unreleased into a dated
+- [x] 12.4 Move completed `CHANGELOG.md` items from Unreleased into a dated
       version section, advance its comparison links, and add plain-language
       English changelog notes describing behavior visible in both UI languages:
       portable library files, optional daily backups, the
       seven-version history, unencrypted privacy, and safe Merge restore without
       internal jargon.
-- [ ] 12.5 Re-run the full gates after version/release-note changes, inspect the
+- [x] 12.5 Re-run the full gates after version/release-note changes, inspect the
       final diff and lockfile-derived dependency/license report, validate the
       capability schema and negative permission evidence, and commit each
       verified slice in English. Update PR CI to enforce root `deno fmt --check`

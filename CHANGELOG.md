@@ -5,6 +5,8 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-08-08
+
 ### Added
 
 - Export your complete library — every essay, reference, collection, and
@@ -62,6 +64,7 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/apa/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/adominicci/apa/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/adominicci/apa/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/adominicci/apa/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/adominicci/apa/releases/tag/v0.1.0

@@ -1,6 +1,6 @@
 {
   "name": "@tesina/desktop",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Tesina desktop app (Tauri 2 + Svelte 5)",
   "private": true,
   "type": "module",
