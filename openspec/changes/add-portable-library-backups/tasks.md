@@ -147,26 +147,26 @@
 
 ## 6. Journaled import, rollback, and startup recovery
 
-- [ ] 6.1 Define and test a versioned import-journal schema containing
+- [x] 6.1 Define and test a versioned import-journal schema containing
       transaction ID, archive hash, rollback path/hash, staged/final operations,
       expected final hash/length/type, proof that additive targets did not exist,
       per-operation completion, terminal status, and a redundant checksummed
       operation manifest or independently validated journal copy.
-- [ ] 6.2 Add fault-injection tests for failure before the journal, after each
+- [x] 6.2 Add fault-injection tests for failure before the journal, after each
       asset/essay move, before and after `library.json` replacement, during
       final consistency validation, and during staging cleanup; include a case
       where the live library revision changes between preview confirmation and
       apply and prove the import replans or aborts without writing.
-- [ ] 6.3 Implement `persist/importJournal.ts` to stage under
+- [x] 6.3 Implement `persist/importJournal.ts` to stage under
       `$APPDATA/imports/<transaction>/`, validate a full rollback archive under
       `$APPDATA/backups/imports/`, persist the journal before live writes, and
       apply only additive unused essay/asset paths plus one atomic library
       replacement built from the revision current at apply after verifying the
       live library revision still matches the plan-time revision.
-- [ ] 6.4 Implement idempotent resume that verifies staged/final hashes and
+- [x] 6.4 Implement idempotent resume that verifies staged/final hashes and
       skips completed stable operation IDs without producing duplicate essays,
       references, collections, or assets.
-- [ ] 6.5 Implement rollback that restores the previous library and removes only
+- [x] 6.5 Implement rollback that restores the previous library and removes only
       new final paths whose current bytes match the journaled expected output;
       preserve/quarantine mismatches and enter manual recovery rather than
       deleting an unlisted, changed, or pre-existing path.
@@ -176,11 +176,11 @@
       Add missing/corrupted journal, stage, and rollback combinations proving an
       unrecoverable case fails closed with Retry, privacy-safe diagnostic export,
       and quit guidance while preserving evidence.
-- [ ] 6.7 Add a distinct `OperationCoordinator`: persistence flush precedes its
+- [x] 6.7 Add a distinct `OperationCoordinator`: persistence flush precedes its
       token; close/updater restart await safe points; export/backup cancels and
       cleans temporary output; import reaches a persisted recoverable journal
       state. Test every phase without recursive flush deadlock.
-- [ ] 6.8 Define rollback retention by count/age and transaction status, apply
+- [x] 6.8 Define rollback retention by count/age and transaction status, apply
       restrictive app-data permissions where supported, disclose the complete
       unencrypted recovery copy, and prove cleanup never removes an unfinished
       transaction's rollback.
