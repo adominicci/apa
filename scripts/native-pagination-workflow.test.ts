@@ -10,6 +10,9 @@ const source = await Deno.readTextFile(`${root}.github/workflows/ci.yml`);
 const runnerSource = await Deno.readTextFile(
   `${root}apps/desktop/src/lib/editor/pagination/proof/runNativeProof.ts`,
 );
+const phaseSource = await Deno.readTextFile(
+  `${root}apps/desktop/src/lib/editor/pagination/proof/nativeProofPhases.ts`,
+);
 const processTestSource = await Deno.readTextFile(
   `${root}apps/desktop/src/lib/editor/pagination/proof/proofProcess.test.ts`,
 );
@@ -91,5 +94,21 @@ describe("native pagination CI contract", () => {
     expect(processTestSource).not.toContain(
       'it.runIf(process.platform !== "win32")(\n    "settles at the deadline and kills descendants that retain its pipes"',
     );
+  });
+
+  it("reuses one Windows host build and runner lifecycle for native OS input", () => {
+    const steps = workflowSteps({
+      jobs: { windows: nativeJob("pagination-native-windows") },
+    });
+    const proofCommands = steps.map((step) => step.run).filter((run) =>
+      typeof run === "string" && run.includes("runNativeProof.ts")
+    );
+
+    expect(proofCommands).toHaveLength(1);
+    expect(source).not.toContain("runNativeManualProof.ts");
+    expect(runnerSource.match(/await buildWindowsHost\(\)/g)).toHaveLength(1);
+    expect(runnerSource).toContain("nativeManualProof.html");
+    expect(runnerSource).toContain("nativeProofPhases(process.platform)");
+    expect(phaseSource).toContain('mode: "windows-native-input"');
   });
 });

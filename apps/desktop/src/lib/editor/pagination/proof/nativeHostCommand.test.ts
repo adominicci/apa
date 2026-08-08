@@ -58,6 +58,28 @@ describe("native proof direct host command", () => {
     });
   });
 
+  it("enables native OS input only for the Windows manual-proof route", () => {
+    const manualInputs = {
+      ...inputs,
+      url: new URL("http://127.0.0.1:4312/nativeManualProof.html"),
+    };
+    expect(
+      nativeHostCommand("win32", manualInputs, "windows-native-input"),
+    ).toEqual({
+      command: inputs.windowsHostBinary,
+      args: [
+        manualInputs.url.href,
+        inputs.profileDir,
+        "--drive-native-input",
+      ],
+    });
+    expect(() =>
+      nativeHostCommand("darwin", manualInputs, "windows-native-input")
+    ).toThrow("Windows native input mode");
+    expect(() => nativeHostCommand("win32", inputs, "windows-native-input"))
+      .toThrow("manual proof route");
+  });
+
   it("fails closed on a host without an audited native harness", () => {
     expect(() => nativeHostCommand("linux", inputs)).toThrow(
       "Unsupported native proof platform",

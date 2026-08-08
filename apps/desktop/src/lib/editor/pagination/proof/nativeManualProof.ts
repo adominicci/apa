@@ -12,38 +12,35 @@ import {
   createNativeProofBridge,
   type NativeProofBridgeScope,
 } from "./nativeBridge.ts";
+import {
+  createNativeManualEvidence,
+  nativeManualChecks,
+  type NativeManualEvidenceMode,
+  recordNativeManualEvidence,
+} from "./nativeManualEvidence.ts";
+import {
+  NATIVE_INPUT_PROTOCOL_VERSION,
+  parseNativeManualInputMessage,
+  WINDOWS_NATIVE_INPUT_DRIVER,
+} from "./nativeManualInputProtocol.ts";
 import { startProofPageWatchdog } from "./proofPageWatchdog.ts";
 import "./nativeManualProof.css";
 
-const nativeBridge = createNativeProofBridge(
-  globalThis as unknown as NativeProofBridgeScope,
-);
+const nativeScope = globalThis as unknown as NativeProofBridgeScope;
+const nativeBridge = createNativeProofBridge(nativeScope);
+const evidenceMode: NativeManualEvidenceMode =
+  nativeScope.__TESINA_NATIVE_INPUT_DRIVER__ === WINDOWS_NATIVE_INPUT_DRIVER
+    ? "windows-driven"
+    : "human";
 const shell = requireElement<HTMLElement>("#proof-shell");
 const mount = requireElement<HTMLElement>("#proof-mount");
 const instructions = requireElement<HTMLElement>("#manual-instructions");
 const finishButton = requireElement<HTMLButtonElement>("#manual-finish");
 const resultElement = requireElement<HTMLElement>("#proof-result");
 
-interface ManualEvidence {
-  compositionStarts: number;
-  compositionEnds: number;
-  copies: number;
-  pastes: number;
-  mouseDragAcrossGap: boolean;
-  selectedText: string;
-}
-
-const evidence: ManualEvidence = {
-  compositionStarts: 0,
-  compositionEnds: 0,
-  copies: 0,
-  pastes: 0,
-  mouseDragAcrossGap: false,
-  selectedText: "",
-};
+let evidence = createNativeManualEvidence();
 let editor: Editor | undefined;
 let gapPos = -1;
-let mouseDown = false;
 let finished = false;
 
 function requireElement<T extends Element>(selector: string): T {
@@ -76,12 +73,7 @@ function domPosition(node: Node | null, offset: number): number | null {
 }
 
 function updateStatus(): void {
-  const status = {
-    ime: evidence.compositionStarts > 0 && evidence.compositionEnds > 0,
-    copy: evidence.copies > 0,
-    paste: evidence.pastes > 0,
-    drag: evidence.mouseDragAcrossGap,
-  };
+  const status = nativeManualChecks(evidence, evidenceMode);
   for (const [name, passed] of Object.entries(status)) {
     const element = requireElement<HTMLElement>(`#manual-${name}`);
     element.dataset["passed"] = String(passed);
@@ -89,68 +81,211 @@ function updateStatus(): void {
       passed ? "captured" : "pending"
     }`;
   }
-  finishButton.disabled = !Object.values(status).every(Boolean);
+  finishButton.disabled = evidenceMode === "windows-driven" ||
+    !Object.values(status).every(Boolean);
 }
 
-function inspectMouseSelection(): void {
-  if (!mouseDown || gapPos < 0) return;
-  mouseDown = false;
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+function postNativeInput(value: unknown): void {
+  if (evidenceMode !== "windows-driven" || finished) return;
+  const message = parseNativeManualInputMessage(value);
+  if (!nativeBridge.postNativeInput(message)) {
+    finish(false, "Windows native input channel is unavailable");
+  }
+}
+
+function inspectMouseSelection(event: MouseEvent): void {
+  if (!event.isTrusted || gapPos < 0) return;
   const selection = document.getSelection();
   if (!selection || selection.isCollapsed) return;
   const anchor = domPosition(selection.anchorNode, selection.anchorOffset);
   const focus = domPosition(selection.focusNode, selection.focusOffset);
   if (anchor === null || focus === null) return;
-  evidence.mouseDragAcrossGap = Math.min(anchor, focus) < gapPos &&
-    Math.max(anchor, focus) > gapPos;
-  if (evidence.mouseDragAcrossGap) evidence.selectedText = selection.toString();
+  const prior = evidence;
+  evidence = recordNativeManualEvidence(evidence, {
+    kind: "mouse-up",
+    isTrusted: event.isTrusted,
+    selectionFrom: anchor,
+    selectionTo: focus,
+    gapPosition: gapPos,
+    selectedText: selection.toString(),
+  });
   updateStatus();
+  if (
+    evidence !== prior && evidence.selectionFrom !== null &&
+    evidence.selectionTo !== null && evidence.gapPosition !== null
+  ) {
+    postNativeInput({
+      version: NATIVE_INPUT_PROTOCOL_VERSION,
+      stage: "drag",
+      selectionFrom: evidence.selectionFrom,
+      selectionTo: evidence.selectionTo,
+      gapPosition: evidence.gapPosition,
+      selectedText: evidence.selectedText,
+    });
+  }
 }
 
-document.addEventListener("compositionstart", () => {
-  evidence.compositionStarts += 1;
+document.addEventListener("keydown", (event) => {
+  evidence = recordNativeManualEvidence(evidence, {
+    kind: "key-down",
+    isTrusted: event.isTrusted,
+    key: event.key,
+    isComposing: event.isComposing,
+  });
   updateStatus();
 }, true);
-document.addEventListener("compositionend", () => {
-  evidence.compositionEnds += 1;
+document.addEventListener("compositionstart", (event) => {
+  evidence = recordNativeManualEvidence(evidence, {
+    kind: "composition-start",
+    isTrusted: event.isTrusted,
+    beforeSize: editor?.state.doc.content.size ?? -1,
+  });
   updateStatus();
 }, true);
-document.addEventListener("copy", () => {
-  evidence.copies += 1;
+document.addEventListener("compositionupdate", (event) => {
+  evidence = recordNativeManualEvidence(evidence, {
+    kind: "composition-update",
+    isTrusted: event.isTrusted,
+  });
   updateStatus();
 }, true);
-document.addEventListener("paste", () => {
-  evidence.pastes += 1;
-  updateStatus();
+document.addEventListener("compositionend", (event) => {
+  if (!event.isTrusted) return;
+  const data = event.data;
+  requestAnimationFrame(() => {
+    const prior = evidence;
+    evidence = recordNativeManualEvidence(evidence, {
+      kind: "composition-end",
+      isTrusted: event.isTrusted,
+      data,
+      afterSize: editor?.state.doc.content.size ?? -1,
+    });
+    updateStatus();
+    if (
+      evidence !== prior && evidence.compositionAfterSize !== null &&
+      evidence.compositionBeforeSize !== null
+    ) {
+      postNativeInput({
+        version: NATIVE_INPUT_PROTOCOL_VERSION,
+        stage: "composition",
+        data: evidence.compositionData,
+        beforeSize: evidence.compositionBeforeSize,
+        afterSize: evidence.compositionAfterSize,
+      });
+      if (
+        evidenceMode === "windows-driven" &&
+        Object.values(nativeManualChecks(evidence, evidenceMode)).every(Boolean)
+      ) {
+        finish(true);
+      }
+    }
+  });
 }, true);
-document.addEventListener("mousedown", () => mouseDown = true, true);
+document.addEventListener("copy", (event) => {
+  if (!event.isTrusted) return;
+  const selectedText = document.getSelection()?.toString() ?? "";
+  const prior = evidence;
+  evidence = recordNativeManualEvidence(evidence, {
+    kind: "copy",
+    isTrusted: event.isTrusted,
+    selectedText,
+    documentSize: editor?.state.doc.content.size ?? -1,
+  });
+  updateStatus();
+  if (evidence !== prior && evidence.copyDocumentSize !== null) {
+    requestAnimationFrame(() =>
+      postNativeInput({
+        version: NATIVE_INPUT_PROTOCOL_VERSION,
+        stage: "copy",
+        selectedText: evidence.selectedText,
+        documentSize: evidence.copyDocumentSize,
+      })
+    );
+  }
+}, true);
+document.addEventListener("paste", (event) => {
+  if (!event.isTrusted) return;
+  const pastedText = event.clipboardData?.getData("text/plain") ?? "";
+  const beforeSize = editor?.state.doc.content.size ?? -1;
+  requestAnimationFrame(() => {
+    const prior = evidence;
+    evidence = recordNativeManualEvidence(evidence, {
+      kind: "paste",
+      isTrusted: event.isTrusted,
+      pastedText,
+      beforeSize,
+      afterSize: editor?.state.doc.content.size ?? -1,
+    });
+    updateStatus();
+    if (
+      evidence !== prior && evidence.pasteBeforeSize !== null &&
+      evidence.pasteAfterSize !== null
+    ) {
+      postNativeInput({
+        version: NATIVE_INPUT_PROTOCOL_VERSION,
+        stage: "paste",
+        pastedText: evidence.pastedText,
+        beforeSize: evidence.pasteBeforeSize,
+        afterSize: evidence.pasteAfterSize,
+      });
+    }
+  });
+}, true);
+document.addEventListener("mousedown", (event) => {
+  evidence = recordNativeManualEvidence(evidence, {
+    kind: "mouse-down",
+    isTrusted: event.isTrusted,
+  });
+}, true);
 document.addEventListener("mouseup", inspectMouseSelection, true);
 
-const watchdog = startProofPageWatchdog(240_000, () => {
-  finish(false, "Manual native-input evidence timed out");
-});
+const watchdog = startProofPageWatchdog(
+  evidenceMode === "windows-driven" ? 40_000 : 240_000,
+  () => {
+    finish(false, "Manual native-input evidence timed out");
+  },
+);
 
 function finish(passed: boolean, error?: string): void {
   if (finished) return;
   finished = true;
   watchdog.cancel();
+  const checks = nativeManualChecks(evidence, evidenceMode);
+  const resultPassed = passed && Object.values(checks).every(Boolean);
   const result = {
-    passed,
+    passed: resultPassed,
     engine: navigator.userAgent,
     checks: {
-      nativeImeComposition: evidence.compositionStarts > 0 &&
-        evidence.compositionEnds > 0,
-      nativeClipboard: evidence.copies > 0 && evidence.pastes > 0,
-      nativeMouseDragAcrossGap: evidence.mouseDragAcrossGap,
+      nativeImeComposition: checks.ime,
+      nativeClipboard: checks.copy && checks.paste,
+      nativeMouseDragAcrossGap: checks.drag,
     },
     metrics: {
       compositionStarts: evidence.compositionStarts,
+      compositionUpdates: evidence.compositionUpdates,
       compositionEnds: evidence.compositionEnds,
+      deadKeys: evidence.deadKeys,
+      composingKeys: evidence.composingKeys,
+      compositionData: evidence.compositionData,
       copies: evidence.copies,
       pastes: evidence.pastes,
       selectedTextLength: evidence.selectedText.length,
-      gapPosition: gapPos,
+      selectionFrom: evidence.selectionFrom,
+      selectionTo: evidence.selectionTo,
+      gapPosition: evidence.gapPosition ?? gapPos,
+      inputDriver: evidenceMode === "windows-driven"
+        ? WINDOWS_NATIVE_INPUT_DRIVER
+        : "human",
     },
-    ...(error ? { error } : {}),
+    ...(error
+      ? { error }
+      : resultPassed
+      ? {}
+      : { error: "Native input evidence is incomplete" }),
   };
   resultElement.textContent = JSON.stringify(result, null, 2);
   nativeBridge.postResult(result);
@@ -201,22 +336,44 @@ async function prepare(): Promise<void> {
       epoch: 1,
       gaps: [{ kind: "line", pos: gapPos, height: 180 }],
     });
-    await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => resolve())
-    );
+    await nextFrame();
     shell.dataset["firstPlan"] = "stable";
     editor.view.dispatch(
       editor.state.tr.setSelection(
         TextSelection.create(editor.state.doc, gapPos - 2),
       ).scrollIntoView(),
     );
+    const gapElement = requireElement<HTMLElement>(
+      "[data-pagination-proof-gap='line']",
+    );
+    gapElement.scrollIntoView({ block: "center" });
+    await nextFrame();
     editor.view.focus();
-    requireElement<HTMLElement>("[data-pagination-proof-gap='line']")
-      .scrollIntoView({ block: "center" });
-    instructions.textContent =
-      "Drag across the gray page gap, copy and paste, then enter a composed character (for example Option-E then E).";
+    instructions.textContent = evidenceMode === "windows-driven"
+      ? "The Win32 native-input driver is verifying drag, clipboard, and dead-key composition paths."
+      : "Drag across the gray page gap, copy and paste, then enter a composed character (for example Option-E then E).";
     document.body.dataset["manualReady"] = "true";
     updateStatus();
+    if (evidenceMode === "windows-driven") {
+      const start = editor.view.coordsAtPos(gapPos - 4);
+      const end = editor.view.coordsAtPos(gapPos + 4);
+      const gap = gapElement.getBoundingClientRect();
+      postNativeInput({
+        version: NATIVE_INPUT_PROTOCOL_VERSION,
+        stage: "ready",
+        viewport: { width: innerWidth, height: innerHeight },
+        devicePixelRatio,
+        gap: { top: gap.top, bottom: gap.bottom },
+        dragStart: {
+          x: (start.left + start.right) / 2,
+          y: (start.top + start.bottom) / 2,
+        },
+        dragEnd: {
+          x: (end.left + end.right) / 2,
+          y: (end.top + end.bottom) / 2,
+        },
+      });
+    }
   } finally {
     measurer.destroy();
   }

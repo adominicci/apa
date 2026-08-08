@@ -1,0 +1,227 @@
+export interface NativeInputPoint {
+  x: number;
+  y: number;
+}
+
+export const NATIVE_INPUT_PROTOCOL_VERSION = 1 as const;
+export const WINDOWS_NATIVE_INPUT_DRIVER = "win32-sendinput-v1" as const;
+
+export interface NativeInputViewport {
+  width: number;
+  height: number;
+}
+
+export interface NativeInputGapBounds {
+  top: number;
+  bottom: number;
+}
+
+export type NativeManualInputMessage =
+  | {
+    version: 1;
+    stage: "ready";
+    viewport: NativeInputViewport;
+    devicePixelRatio: number;
+    gap: NativeInputGapBounds;
+    dragStart: NativeInputPoint;
+    dragEnd: NativeInputPoint;
+  }
+  | {
+    version: 1;
+    stage: "drag";
+    selectionFrom: number;
+    selectionTo: number;
+    gapPosition: number;
+    selectedText: string;
+  }
+  | {
+    version: 1;
+    stage: "copy";
+    selectedText: string;
+    documentSize: number;
+  }
+  | {
+    version: 1;
+    stage: "paste";
+    pastedText: string;
+    beforeSize: number;
+    afterSize: number;
+  }
+  | {
+    version: 1;
+    stage: "composition";
+    data: "é";
+    beforeSize: number;
+    afterSize: number;
+  };
+
+function record(value: unknown, label: string): Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function finiteNumber(value: unknown, label: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`${label} must be finite`);
+  }
+  return value;
+}
+
+function positiveNumber(value: unknown, label: string): number {
+  const parsed = finiteNumber(value, label);
+  if (parsed <= 0) throw new Error(`${label} must be positive`);
+  return parsed;
+}
+
+function documentPosition(value: unknown, label: string): number {
+  const parsed = finiteNumber(value, label);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`${label} must be a non-negative integer`);
+  }
+  return parsed;
+}
+
+function nonemptyText(value: unknown, label: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`${label} must be nonempty`);
+  }
+  return value;
+}
+
+function point(value: unknown, label: string): NativeInputPoint {
+  const parsed = record(value, label);
+  return {
+    x: finiteNumber(parsed["x"], `${label}.x`),
+    y: finiteNumber(parsed["y"], `${label}.y`),
+  };
+}
+
+function insideViewport(
+  pointValue: NativeInputPoint,
+  viewport: NativeInputViewport,
+  label: string,
+): void {
+  if (
+    pointValue.x < 0 || pointValue.x >= viewport.width ||
+    pointValue.y < 0 || pointValue.y >= viewport.height
+  ) {
+    throw new Error(`${label} must be inside the viewport`);
+  }
+}
+
+export function parseNativeManualInputMessage(
+  value: unknown,
+): NativeManualInputMessage {
+  const message = record(value, "native input message");
+  if (message["version"] !== 1) {
+    throw new Error("native input message version must be 1");
+  }
+  switch (message["stage"]) {
+    case "ready": {
+      const viewportValue = record(message["viewport"], "viewport");
+      const viewport = {
+        width: positiveNumber(viewportValue["width"], "viewport.width"),
+        height: positiveNumber(viewportValue["height"], "viewport.height"),
+      };
+      const gapValue = record(message["gap"], "gap");
+      const gap = {
+        top: finiteNumber(gapValue["top"], "gap.top"),
+        bottom: finiteNumber(gapValue["bottom"], "gap.bottom"),
+      };
+      if (
+        gap.top < 0 || gap.bottom <= gap.top || gap.bottom >= viewport.height
+      ) {
+        throw new Error("gap must be ordered inside the viewport");
+      }
+      const dragStart = point(message["dragStart"], "dragStart");
+      const dragEnd = point(message["dragEnd"], "dragEnd");
+      insideViewport(dragStart, viewport, "dragStart");
+      insideViewport(dragEnd, viewport, "dragEnd");
+      if (dragStart.y >= gap.top || dragEnd.y <= gap.bottom) {
+        throw new Error("drag points must straddle the gap");
+      }
+      return {
+        version: 1,
+        stage: "ready",
+        viewport,
+        devicePixelRatio: positiveNumber(
+          message["devicePixelRatio"],
+          "devicePixelRatio",
+        ),
+        gap,
+        dragStart,
+        dragEnd,
+      };
+    }
+    case "drag": {
+      const selectionFrom = documentPosition(
+        message["selectionFrom"],
+        "selectionFrom",
+      );
+      const selectionTo = documentPosition(
+        message["selectionTo"],
+        "selectionTo",
+      );
+      const gapPosition = documentPosition(
+        message["gapPosition"],
+        "gapPosition",
+      );
+      if (!(selectionFrom < gapPosition && gapPosition < selectionTo)) {
+        throw new Error("selection must cross the pagination gap");
+      }
+      return {
+        version: 1,
+        stage: "drag",
+        selectionFrom,
+        selectionTo,
+        gapPosition,
+        selectedText: nonemptyText(message["selectedText"], "selectedText"),
+      };
+    }
+    case "copy":
+      return {
+        version: 1,
+        stage: "copy",
+        selectedText: nonemptyText(message["selectedText"], "selectedText"),
+        documentSize: documentPosition(message["documentSize"], "documentSize"),
+      };
+    case "paste": {
+      const pastedText = nonemptyText(message["pastedText"], "pastedText");
+      const beforeSize = documentPosition(message["beforeSize"], "beforeSize");
+      const afterSize = documentPosition(message["afterSize"], "afterSize");
+      if (afterSize - beforeSize !== pastedText.length) {
+        throw new Error(
+          "paste must grow the document by the clipboard text length",
+        );
+      }
+      return {
+        version: 1,
+        stage: "paste",
+        pastedText,
+        beforeSize,
+        afterSize,
+      };
+    }
+    case "composition": {
+      if (message["data"] !== "é") {
+        throw new Error("composition data must be the audited NFC character");
+      }
+      const beforeSize = documentPosition(message["beforeSize"], "beforeSize");
+      const afterSize = documentPosition(message["afterSize"], "afterSize");
+      if (afterSize - beforeSize !== 1) {
+        throw new Error("composition must add exactly one authored character");
+      }
+      return {
+        version: 1,
+        stage: "composition",
+        data: "é",
+        beforeSize,
+        afterSize,
+      };
+    }
+    default:
+      throw new Error("unknown native input message stage");
+  }
+}

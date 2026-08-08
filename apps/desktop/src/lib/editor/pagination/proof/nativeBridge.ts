@@ -1,4 +1,5 @@
 export interface NativeProofBridgeScope {
+  __TESINA_NATIVE_INPUT_DRIVER__?: string;
   webkit?: {
     messageHandlers?: {
       tesinaProof?: { postMessage(value: unknown): void };
@@ -11,6 +12,7 @@ export interface NativeProofBridgeScope {
 export interface NativeProofBridge {
   postResult(value: unknown): boolean;
   postDiagnostic(value: unknown): boolean;
+  postNativeInput(value: unknown): boolean;
 }
 
 export function createNativeProofBridge(
@@ -34,5 +36,13 @@ export function createNativeProofBridge(
   return {
     postResult: (value) => post("result", value),
     postDiagnostic: (value) => post("diagnostic", value),
+    postNativeInput: (value) => {
+      if (!scope.ipc) return false;
+      scope.ipc.postMessage(JSON.stringify({
+        channel: "native-input",
+        payload: value,
+      }));
+      return true;
+    },
   };
 }

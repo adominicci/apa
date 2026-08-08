@@ -1,0 +1,1164 @@
+use serde_json::Value;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct InputPoint {
+    pub(crate) x: f64,
+    pub(crate) y: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct ReadyGeometry {
+    pub(crate) viewport_width: f64,
+    pub(crate) viewport_height: f64,
+    pub(crate) device_pixel_ratio: f64,
+    pub(crate) gap_top: f64,
+    pub(crate) gap_bottom: f64,
+    pub(crate) drag_start: InputPoint,
+    pub(crate) drag_end: InputPoint,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum DriverAction {
+    Drag(ReadyGeometry),
+    Copy,
+    Paste,
+    Compose,
+    Complete,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DriverStage {
+    AwaitingReady,
+    AwaitingDrag,
+    AwaitingCopy,
+    AwaitingPaste,
+    AwaitingComposition,
+    Complete,
+}
+
+#[derive(Debug)]
+pub(crate) struct DriverProtocol {
+    stage: DriverStage,
+    selected_text: Option<String>,
+    document_size: Option<u64>,
+}
+
+impl DriverProtocol {
+    pub(crate) fn new() -> Self {
+        Self {
+            stage: DriverStage::AwaitingReady,
+            selected_text: None,
+            document_size: None,
+        }
+    }
+
+    pub(crate) fn is_complete(&self) -> bool {
+        self.stage == DriverStage::Complete
+    }
+
+    pub(crate) fn selected_text(&self) -> Option<&str> {
+        self.selected_text.as_deref()
+    }
+
+    pub(crate) fn advance(&mut self, value: &Value) -> Result<DriverAction, String> {
+        let message = value
+            .as_object()
+            .ok_or_else(|| "native input payload must be an object".to_string())?;
+        if message.get("version").and_then(Value::as_u64) != Some(1) {
+            return Err("native input protocol version must be 1".into());
+        }
+        let stage = message
+            .get("stage")
+            .and_then(Value::as_str)
+            .ok_or_else(|| "native input payload is missing stage".to_string())?;
+        match (self.stage, stage) {
+            (DriverStage::AwaitingReady, "ready") => {
+                let viewport = object_field(value, "viewport")?;
+                let viewport_width = positive_number(viewport, "width", "viewport.width")?;
+                let viewport_height = positive_number(viewport, "height", "viewport.height")?;
+                let device_pixel_ratio =
+                    positive_number(value, "devicePixelRatio", "devicePixelRatio")?;
+                let gap = object_field(value, "gap")?;
+                let gap_top = finite_number(gap, "top", "gap.top")?;
+                let gap_bottom = finite_number(gap, "bottom", "gap.bottom")?;
+                if gap_top < 0.0 || gap_bottom <= gap_top || gap_bottom >= viewport_height {
+                    return Err("gap must be ordered inside the viewport".into());
+                }
+                let drag_start = point_field(value, "dragStart")?;
+                let drag_end = point_field(value, "dragEnd")?;
+                for (label, point) in [("dragStart", drag_start), ("dragEnd", drag_end)] {
+                    if point.x < 0.0
+                        || point.x >= viewport_width
+                        || point.y < 0.0
+                        || point.y >= viewport_height
+                    {
+                        return Err(format!("{label} must be inside the viewport"));
+                    }
+                }
+                if drag_start.y >= gap_top || drag_end.y <= gap_bottom {
+                    return Err("drag points must straddle the gap".into());
+                }
+                self.stage = DriverStage::AwaitingDrag;
+                Ok(DriverAction::Drag(ReadyGeometry {
+                    viewport_width,
+                    viewport_height,
+                    device_pixel_ratio,
+                    gap_top,
+                    gap_bottom,
+                    drag_start,
+                    drag_end,
+                }))
+            }
+            (DriverStage::AwaitingDrag, "drag") => {
+                let selection_from = document_position(value, "selectionFrom")?;
+                let selection_to = document_position(value, "selectionTo")?;
+                let gap_position = document_position(value, "gapPosition")?;
+                if !(selection_from < gap_position && gap_position < selection_to) {
+                    return Err("selection must cross the pagination gap".into());
+                }
+                let selected_text = nonempty_text(value, "selectedText")?.to_owned();
+                self.selected_text = Some(selected_text);
+                self.stage = DriverStage::AwaitingCopy;
+                Ok(DriverAction::Copy)
+            }
+            (DriverStage::AwaitingCopy, "copy") => {
+                let selected_text = nonempty_text(value, "selectedText")?;
+                if self.selected_text() != Some(selected_text) {
+                    return Err("copied text does not match the drag selection".into());
+                }
+                self.document_size = Some(document_position(value, "documentSize")?);
+                self.stage = DriverStage::AwaitingPaste;
+                Ok(DriverAction::Paste)
+            }
+            (DriverStage::AwaitingPaste, "paste") => {
+                let pasted_text = nonempty_text(value, "pastedText")?;
+                if self.selected_text() != Some(pasted_text) {
+                    return Err("pasted text does not match the copied selection".into());
+                }
+                let before = document_position(value, "beforeSize")?;
+                let after = document_position(value, "afterSize")?;
+                if self.document_size != Some(before)
+                    || after.saturating_sub(before) != pasted_text.encode_utf16().count() as u64
+                {
+                    return Err("paste did not add the exact clipboard text".into());
+                }
+                self.document_size = Some(after);
+                self.stage = DriverStage::AwaitingComposition;
+                Ok(DriverAction::Compose)
+            }
+            (DriverStage::AwaitingComposition, "composition") => {
+                if nonempty_text(value, "data")? != "é" {
+                    return Err("composition data must be the audited NFC character".into());
+                }
+                let before = document_position(value, "beforeSize")?;
+                let after = document_position(value, "afterSize")?;
+                if self.document_size != Some(before) || after != before + 1 {
+                    return Err("composition did not add exactly one authored character".into());
+                }
+                self.stage = DriverStage::Complete;
+                Ok(DriverAction::Complete)
+            }
+            _ => Err(format!(
+                "unexpected native input stage {stage} while {:?}",
+                self.stage
+            )),
+        }
+    }
+}
+
+fn object_field<'a>(value: &'a Value, name: &str) -> Result<&'a Value, String> {
+    value
+        .get(name)
+        .filter(|field| field.is_object())
+        .ok_or_else(|| format!("{name} must be an object"))
+}
+
+fn finite_number(value: &Value, name: &str, label: &str) -> Result<f64, String> {
+    let parsed = value
+        .get(name)
+        .and_then(Value::as_f64)
+        .filter(|number| number.is_finite())
+        .ok_or_else(|| format!("{label} must be finite"))?;
+    Ok(parsed)
+}
+
+fn positive_number(value: &Value, name: &str, label: &str) -> Result<f64, String> {
+    let parsed = finite_number(value, name, label)?;
+    if parsed <= 0.0 {
+        return Err(format!("{label} must be positive"));
+    }
+    Ok(parsed)
+}
+
+fn point_field(value: &Value, name: &str) -> Result<InputPoint, String> {
+    let point = object_field(value, name)?;
+    Ok(InputPoint {
+        x: finite_number(point, "x", &format!("{name}.x"))?,
+        y: finite_number(point, "y", &format!("{name}.y"))?,
+    })
+}
+
+fn document_position(value: &Value, name: &str) -> Result<u64, String> {
+    value
+        .get(name)
+        .and_then(Value::as_u64)
+        .ok_or_else(|| format!("{name} must be a non-negative integer"))
+}
+
+fn nonempty_text<'a>(value: &'a Value, name: &str) -> Result<&'a str, String> {
+    value
+        .get(name)
+        .and_then(Value::as_str)
+        .filter(|text| !text.is_empty())
+        .ok_or_else(|| format!("{name} must be nonempty"))
+}
+
+pub(crate) fn normalize_absolute_coordinate(point: i32, origin: i32, extent: i32) -> i32 {
+    if extent <= 1 {
+        return 0;
+    }
+    let relative = i64::from(point.saturating_sub(origin)).clamp(0, i64::from(extent - 1));
+    ((relative * 65_535 + i64::from((extent - 1) / 2)) / i64::from(extent - 1)) as i32
+}
+
+pub(crate) fn require_complete_input(
+    expected: u32,
+    actual: u32,
+    label: &str,
+) -> Result<(), String> {
+    if actual == expected {
+        Ok(())
+    } else {
+        Err(format!(
+            "{label} SendInput accepted {actual} of {expected} records"
+        ))
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ClipboardSnapshotKind {
+    Empty,
+    UnicodeText,
+}
+
+pub(crate) fn classify_clipboard_snapshot(
+    format_count: i32,
+    unicode_text_available: bool,
+) -> Result<ClipboardSnapshotKind, String> {
+    match (format_count, unicode_text_available) {
+        (0, _) => Ok(ClipboardSnapshotKind::Empty),
+        (count, true) if count > 0 => Ok(ClipboardSnapshotKind::UnicodeText),
+        (count, false) if count > 0 => {
+            Err("Win32 clipboard contains non-text formats and cannot be restored exactly".into())
+        }
+        _ => Err("CountClipboardFormats returned an invalid result".into()),
+    }
+}
+
+pub(crate) fn pending_key_releases(events: &[(u16, bool)], accepted: u32) -> Vec<u16> {
+    let mut pending = Vec::new();
+    for (key, key_up) in events.iter().take(accepted as usize) {
+        if *key_up {
+            pending.retain(|pending_key| pending_key != key);
+        } else if !pending.contains(key) {
+            pending.push(*key);
+        }
+    }
+    pending
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum CleanupAction {
+    MouseUp,
+    ControlUp,
+    RestoreKeyboardLayout,
+}
+
+pub(crate) fn cleanup_actions(
+    mouse_down: bool,
+    control_down: bool,
+    layout_changed: bool,
+) -> Vec<CleanupAction> {
+    let mut actions = Vec::new();
+    if mouse_down {
+        actions.push(CleanupAction::MouseUp);
+    }
+    if control_down {
+        actions.push(CleanupAction::ControlUp);
+    }
+    if layout_changed {
+        actions.push(CleanupAction::RestoreKeyboardLayout);
+    }
+    actions
+}
+
+#[cfg(target_os = "windows")]
+mod platform {
+    use super::{
+        classify_clipboard_snapshot, normalize_absolute_coordinate, pending_key_releases,
+        require_complete_input, ClipboardSnapshotKind, DriverAction, DriverProtocol, InputPoint,
+        ReadyGeometry,
+    };
+    use serde_json::Value;
+    use std::{
+        ffi::c_void,
+        mem::{self, size_of},
+        ptr,
+    };
+    use windows_sys::Win32::{
+        Foundation::{GetLastError, GlobalFree, SetLastError, ERROR_SUCCESS, HWND, POINT},
+        Graphics::Gdi::ClientToScreen,
+        System::{
+            DataExchange::{
+                CloseClipboard, CountClipboardFormats, EmptyClipboard, GetClipboardData,
+                IsClipboardFormatAvailable, OpenClipboard, SetClipboardData,
+            },
+            Memory::{
+                GlobalAlloc, GlobalLock, GlobalSize, GlobalUnlock, GMEM_MOVEABLE, GMEM_ZEROINIT,
+            },
+            Ole::CF_UNICODETEXT,
+            StationsAndDesktops::{
+                CloseDesktop, GetProcessWindowStation, GetThreadDesktop, GetUserObjectInformationW,
+                OpenInputDesktop, DESKTOP_READOBJECTS, UOI_FLAGS, UOI_IO, USEROBJECTFLAGS,
+            },
+            Threading::GetCurrentThreadId,
+        },
+        UI::{
+            Input::KeyboardAndMouse::{
+                ActivateKeyboardLayout, GetAsyncKeyState, GetKeyboardLayout, LoadKeyboardLayoutW,
+                MapVirtualKeyExW, SendInput, HKL, INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE,
+                KEYBDINPUT, KEYEVENTF_KEYUP, KLF_ACTIVATE, KLF_SETFORPROCESS, MAPVK_VK_TO_CHAR,
+                MOUSEEVENTF_ABSOLUTE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MOVE,
+                MOUSEEVENTF_MOVE_NOCOALESCE, MOUSEEVENTF_VIRTUALDESK, MOUSEINPUT, VK_C, VK_CONTROL,
+                VK_E, VK_LBUTTON, VK_LCONTROL, VK_LWIN, VK_MENU, VK_OEM_7, VK_RCONTROL, VK_RIGHT,
+                VK_RWIN, VK_SHIFT, VK_V,
+            },
+            WindowsAndMessaging::{
+                GetClientRect, GetCursorPos, GetForegroundWindow, GetGUIThreadInfo,
+                GetSystemMetrics, GetWindowThreadProcessId, IsChild, SendMessageTimeoutW,
+                SetCursorPos, SetForegroundWindow, GUITHREADINFO, SMTO_ABORTIFHUNG,
+                SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN,
+                WM_INPUTLANGCHANGEREQUEST, WSF_VISIBLE,
+            },
+        },
+    };
+
+    const US_INTERNATIONAL_KLID: [u16; 9] = [
+        b'0' as u16,
+        b'0' as u16,
+        b'0' as u16,
+        b'2' as u16,
+        b'0' as u16,
+        b'4' as u16,
+        b'0' as u16,
+        b'9' as u16,
+        0,
+    ];
+
+    enum ClipboardSnapshot {
+        Empty,
+        UnicodeText(String),
+    }
+
+    pub(crate) struct WindowsNativeInputDriver {
+        hwnd: HWND,
+        device_scale: f64,
+        protocol: DriverProtocol,
+        original_cursor: Option<POINT>,
+        original_clipboard: Option<ClipboardSnapshot>,
+        original_layout: Option<(HKL, HWND, u32)>,
+        mouse_down: bool,
+        pending_key_releases: Vec<u16>,
+        cleaned: bool,
+    }
+
+    impl WindowsNativeInputDriver {
+        pub(crate) fn new(hwnd: HWND, device_scale: f64) -> Result<Self, String> {
+            if hwnd.is_null() || !device_scale.is_finite() || device_scale <= 0.0 {
+                return Err("Windows native input driver received an invalid window".into());
+            }
+            Ok(Self {
+                hwnd,
+                device_scale,
+                protocol: DriverProtocol::new(),
+                original_cursor: None,
+                original_clipboard: None,
+                original_layout: None,
+                mouse_down: false,
+                pending_key_releases: Vec::new(),
+                cleaned: false,
+            })
+        }
+
+        pub(crate) fn is_complete(&self) -> bool {
+            self.protocol.is_complete() && self.cleaned
+        }
+
+        pub(crate) fn advance(&mut self, payload: &Value) -> Result<(), String> {
+            if self.cleaned {
+                return Err("Windows native input driver already settled".into());
+            }
+            match self.protocol.advance(payload)? {
+                DriverAction::Drag(geometry) => {
+                    self.preflight()?;
+                    self.original_clipboard = Some(snapshot_clipboard(self.hwnd)?);
+                    self.send_drag(&geometry)?;
+                }
+                DriverAction::Copy => {
+                    self.require_focus()?;
+                    self.send_control_chord(VK_C, "copy")?;
+                }
+                DriverAction::Paste => {
+                    self.require_focus()?;
+                    let clipboard = normalize_newlines(&read_clipboard_text(self.hwnd)?);
+                    let expected = normalize_newlines(
+                        self.protocol
+                            .selected_text()
+                            .ok_or_else(|| "native input selection is unavailable".to_string())?,
+                    );
+                    if clipboard != expected {
+                        return Err(
+                            "Win32 clipboard text does not match the copied selection".into()
+                        );
+                    }
+                    self.send_paste()?;
+                }
+                DriverAction::Compose => {
+                    self.require_focus()?;
+                    self.activate_composition_layout()?;
+                    self.send_dead_key_sequence()?;
+                }
+                DriverAction::Complete => self.cleanup()?,
+            }
+            Ok(())
+        }
+
+        pub(crate) fn cleanup(&mut self) -> Result<(), String> {
+            if self.cleaned {
+                return Ok(());
+            }
+            let mut errors = Vec::new();
+            if self.mouse_down {
+                if let Err(error) =
+                    send_inputs(&[mouse_input(0, 0, MOUSEEVENTF_LEFTUP)], "mouse release")
+                {
+                    errors.push(error);
+                } else {
+                    self.mouse_down = false;
+                }
+            }
+            for key in mem::take(&mut self.pending_key_releases) {
+                if let Err(error) = send_inputs(&[key_input(key, true)], "key release") {
+                    errors.push(error);
+                    self.pending_key_releases.push(key);
+                }
+            }
+            if let Some((layout, focus, thread_id)) = self.original_layout {
+                if let Err(error) = restore_keyboard_layout(layout, focus, thread_id) {
+                    errors.push(error);
+                } else {
+                    self.original_layout = None;
+                }
+            }
+            if let Some(cursor) = self.original_cursor {
+                if unsafe { SetCursorPos(cursor.x, cursor.y) } == 0 {
+                    errors.push("SetCursorPos failed during native input cleanup".into());
+                } else {
+                    self.original_cursor = None;
+                }
+            }
+            if let Some(clipboard) = self.original_clipboard.as_ref() {
+                if let Err(error) = restore_clipboard_snapshot(self.hwnd, clipboard) {
+                    errors.push(error);
+                } else {
+                    self.original_clipboard = None;
+                }
+            }
+            self.cleaned = errors.is_empty();
+            if errors.is_empty() {
+                Ok(())
+            } else {
+                Err(errors.join("; "))
+            }
+        }
+
+        fn preflight(&mut self) -> Result<(), String> {
+            require_interactive_input_desktop()?;
+            require_input_released()?;
+            self.require_focus()?;
+            let mut cursor = POINT::default();
+            if unsafe { GetCursorPos(&mut cursor) } == 0 {
+                return Err("GetCursorPos failed during native input preflight".into());
+            }
+            self.original_cursor = Some(cursor);
+            Ok(())
+        }
+
+        fn require_focus(&self) -> Result<(HWND, u32), String> {
+            unsafe {
+                let _ = SetForegroundWindow(self.hwnd);
+                if GetForegroundWindow() != self.hwnd {
+                    return Err("visible WebView2 host could not obtain foreground focus".into());
+                }
+                let host_thread = GetWindowThreadProcessId(self.hwnd, ptr::null_mut());
+                if host_thread == 0 {
+                    return Err("WebView2 host window thread is unavailable".into());
+                }
+                let mut info = GUITHREADINFO {
+                    cbSize: size_of::<GUITHREADINFO>() as u32,
+                    ..Default::default()
+                };
+                if GetGUIThreadInfo(host_thread, &mut info) == 0
+                    || info.hwndFocus.is_null()
+                    || (info.hwndFocus != self.hwnd && IsChild(self.hwnd, info.hwndFocus) == 0)
+                {
+                    return Err("visible WebView2 editor does not own keyboard focus".into());
+                }
+                let focus_thread = GetWindowThreadProcessId(info.hwndFocus, ptr::null_mut());
+                if focus_thread == 0 {
+                    return Err("focused WebView2 input thread is unavailable".into());
+                }
+                Ok((info.hwndFocus, focus_thread))
+            }
+        }
+
+        fn send_drag(&mut self, geometry: &ReadyGeometry) -> Result<(), String> {
+            if (geometry.device_pixel_ratio - self.device_scale).abs() > 0.05 {
+                return Err(format!(
+                    "WebView2 device scale mismatch: page={} host={}",
+                    geometry.device_pixel_ratio, self.device_scale
+                ));
+            }
+            let mut client = windows_sys::Win32::Foundation::RECT::default();
+            if unsafe { GetClientRect(self.hwnd, &mut client) } == 0 {
+                return Err("GetClientRect failed for the WebView2 host".into());
+            }
+            let expected_width = (geometry.viewport_width * self.device_scale).round() as i32;
+            let expected_height = (geometry.viewport_height * self.device_scale).round() as i32;
+            if (client.right - expected_width).abs() > 3
+                || (client.bottom - expected_height).abs() > 3
+            {
+                return Err("page viewport does not match the visible WebView2 client area".into());
+            }
+            let start = self.screen_point(geometry.drag_start)?;
+            let end = self.screen_point(geometry.drag_end)?;
+            let (virtual_x, virtual_y, virtual_width, virtual_height) = virtual_desktop()?;
+            let mut inputs = Vec::with_capacity(23);
+            inputs.push(absolute_mouse_move(
+                start,
+                virtual_x,
+                virtual_y,
+                virtual_width,
+                virtual_height,
+                false,
+            ));
+            inputs.push(mouse_input(0, 0, MOUSEEVENTF_LEFTDOWN));
+            for step in 1..=20 {
+                let ratio = f64::from(step) / 20.0;
+                let point = POINT {
+                    x: (f64::from(start.x) + f64::from(end.x - start.x) * ratio).round() as i32,
+                    y: (f64::from(start.y) + f64::from(end.y - start.y) * ratio).round() as i32,
+                };
+                inputs.push(absolute_mouse_move(
+                    point,
+                    virtual_x,
+                    virtual_y,
+                    virtual_width,
+                    virtual_height,
+                    true,
+                ));
+            }
+            inputs.push(mouse_input(0, 0, MOUSEEVENTF_LEFTUP));
+            let actual = unsafe {
+                SendInput(
+                    inputs.len() as u32,
+                    inputs.as_ptr(),
+                    size_of::<INPUT>() as i32,
+                )
+            };
+            self.mouse_down = actual >= 2 && actual < inputs.len() as u32;
+            require_complete_input(inputs.len() as u32, actual, "mouse drag")
+        }
+
+        fn screen_point(&self, point: InputPoint) -> Result<POINT, String> {
+            let mut origin = POINT::default();
+            if unsafe { ClientToScreen(self.hwnd, &mut origin) } == 0 {
+                return Err("ClientToScreen failed for the WebView2 host".into());
+            }
+            Ok(POINT {
+                x: origin.x + (point.x * self.device_scale).round() as i32,
+                y: origin.y + (point.y * self.device_scale).round() as i32,
+            })
+        }
+
+        fn send_control_chord(&mut self, key: u16, label: &str) -> Result<(), String> {
+            self.send_key_sequence(
+                &[
+                    (VK_CONTROL, false),
+                    (key, false),
+                    (key, true),
+                    (VK_CONTROL, true),
+                ],
+                label,
+            )
+        }
+
+        fn send_key_sequence(&mut self, events: &[(u16, bool)], label: &str) -> Result<(), String> {
+            let inputs: Vec<INPUT> = events
+                .iter()
+                .map(|(key, key_up)| key_input(*key, *key_up))
+                .collect();
+            let actual = unsafe {
+                SendInput(
+                    inputs.len() as u32,
+                    inputs.as_ptr(),
+                    size_of::<INPUT>() as i32,
+                )
+            };
+            self.pending_key_releases = pending_key_releases(events, actual);
+            require_complete_input(inputs.len() as u32, actual, label)
+        }
+
+        fn send_paste(&mut self) -> Result<(), String> {
+            self.send_key_sequence(
+                &[
+                    (VK_RIGHT, false),
+                    (VK_RIGHT, true),
+                    (VK_CONTROL, false),
+                    (VK_V, false),
+                    (VK_V, true),
+                    (VK_CONTROL, true),
+                ],
+                "paste",
+            )
+        }
+
+        fn activate_composition_layout(&mut self) -> Result<(), String> {
+            let (focus, focus_thread) = self.require_focus()?;
+            let original = unsafe { GetKeyboardLayout(focus_thread) };
+            if original.is_null() {
+                return Err("focused WebView2 keyboard layout is unavailable".into());
+            }
+            self.original_layout = Some((original, focus, focus_thread));
+            let target =
+                unsafe { LoadKeyboardLayoutW(US_INTERNATIONAL_KLID.as_ptr(), KLF_ACTIVATE) };
+            if target.is_null() {
+                return Err("United States-International layout 00020409 is unavailable".into());
+            }
+            let dead_key = unsafe { MapVirtualKeyExW(VK_OEM_7 as u32, MAPVK_VK_TO_CHAR, target) };
+            if dead_key & 0x8000_0000 == 0 {
+                return Err("VK_OEM_7 is not a dead key under layout 00020409".into());
+            }
+            request_keyboard_layout(target, focus, focus_thread)?;
+            Ok(())
+        }
+
+        fn send_dead_key_sequence(&mut self) -> Result<(), String> {
+            self.send_key_sequence(
+                &[
+                    (VK_OEM_7, false),
+                    (VK_OEM_7, true),
+                    (VK_E, false),
+                    (VK_E, true),
+                ],
+                "dead-key composition",
+            )
+        }
+    }
+
+    impl Drop for WindowsNativeInputDriver {
+        fn drop(&mut self) {
+            let _ = self.cleanup();
+        }
+    }
+
+    fn require_interactive_input_desktop() -> Result<(), String> {
+        unsafe {
+            let station = GetProcessWindowStation();
+            if station.is_null() {
+                return Err("process window station is unavailable".into());
+            }
+            let mut flags = USEROBJECTFLAGS::default();
+            let mut needed = 0;
+            if GetUserObjectInformationW(
+                station,
+                UOI_FLAGS,
+                &mut flags as *mut _ as *mut c_void,
+                size_of::<USEROBJECTFLAGS>() as u32,
+                &mut needed,
+            ) == 0
+                || flags.dwFlags & WSF_VISIBLE as u32 == 0
+            {
+                return Err("Windows runner has no visible interactive window station".into());
+            }
+            let thread_desktop = GetThreadDesktop(GetCurrentThreadId());
+            if thread_desktop.is_null() || !desktop_is_input(thread_desktop) {
+                return Err("native host thread is not attached to the input desktop".into());
+            }
+            let input_desktop = OpenInputDesktop(0, 0, DESKTOP_READOBJECTS);
+            if input_desktop.is_null() {
+                return Err("Windows input desktop is unavailable or locked".into());
+            }
+            let is_input = desktop_is_input(input_desktop);
+            let _ = CloseDesktop(input_desktop);
+            if !is_input {
+                return Err("opened Windows desktop is not the active input desktop".into());
+            }
+        }
+        Ok(())
+    }
+
+    unsafe fn desktop_is_input(desktop: *mut c_void) -> bool {
+        let mut is_input = 0i32;
+        let mut needed = 0;
+        GetUserObjectInformationW(
+            desktop,
+            UOI_IO,
+            &mut is_input as *mut _ as *mut c_void,
+            size_of::<i32>() as u32,
+            &mut needed,
+        ) != 0
+            && is_input != 0
+    }
+
+    fn require_input_released() -> Result<(), String> {
+        for key in [
+            VK_LBUTTON,
+            VK_SHIFT,
+            VK_CONTROL,
+            VK_LCONTROL,
+            VK_RCONTROL,
+            VK_MENU,
+            VK_LWIN,
+            VK_RWIN,
+        ] {
+            if unsafe { GetAsyncKeyState(key as i32) as u16 } & 0x8000 != 0 {
+                return Err(format!(
+                    "Win32 input preflight found virtual key {key} held"
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    fn request_keyboard_layout(layout: HKL, focus: HWND, thread_id: u32) -> Result<(), String> {
+        unsafe {
+            let _ = ActivateKeyboardLayout(layout, KLF_SETFORPROCESS);
+            let mut message_result = 0usize;
+            if SendMessageTimeoutW(
+                focus,
+                WM_INPUTLANGCHANGEREQUEST,
+                0,
+                layout as isize,
+                SMTO_ABORTIFHUNG,
+                1_000,
+                &mut message_result,
+            ) == 0
+            {
+                return Err("focused WebView2 window rejected the keyboard-layout request".into());
+            }
+            if GetKeyboardLayout(thread_id) != layout {
+                return Err("focused WebView2 thread did not activate the requested layout".into());
+            }
+        }
+        Ok(())
+    }
+
+    fn restore_keyboard_layout(layout: HKL, focus: HWND, thread_id: u32) -> Result<(), String> {
+        request_keyboard_layout(layout, focus, thread_id)
+            .map_err(|error| format!("keyboard-layout restoration failed: {error}"))
+    }
+
+    fn virtual_desktop() -> Result<(i32, i32, i32, i32), String> {
+        let result = unsafe {
+            (
+                GetSystemMetrics(SM_XVIRTUALSCREEN),
+                GetSystemMetrics(SM_YVIRTUALSCREEN),
+                GetSystemMetrics(SM_CXVIRTUALSCREEN),
+                GetSystemMetrics(SM_CYVIRTUALSCREEN),
+            )
+        };
+        if result.2 <= 1 || result.3 <= 1 {
+            return Err("Windows virtual desktop geometry is invalid".into());
+        }
+        Ok(result)
+    }
+
+    fn absolute_mouse_move(
+        point: POINT,
+        virtual_x: i32,
+        virtual_y: i32,
+        virtual_width: i32,
+        virtual_height: i32,
+        no_coalesce: bool,
+    ) -> INPUT {
+        let mut flags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK;
+        if no_coalesce {
+            flags |= MOUSEEVENTF_MOVE_NOCOALESCE;
+        }
+        mouse_input(
+            normalize_absolute_coordinate(point.x, virtual_x, virtual_width),
+            normalize_absolute_coordinate(point.y, virtual_y, virtual_height),
+            flags,
+        )
+    }
+
+    fn mouse_input(dx: i32, dy: i32, flags: u32) -> INPUT {
+        INPUT {
+            r#type: INPUT_MOUSE,
+            Anonymous: INPUT_0 {
+                mi: MOUSEINPUT {
+                    dx,
+                    dy,
+                    mouseData: 0,
+                    dwFlags: flags,
+                    time: 0,
+                    dwExtraInfo: 0,
+                },
+            },
+        }
+    }
+
+    fn key_input(key: u16, key_up: bool) -> INPUT {
+        INPUT {
+            r#type: INPUT_KEYBOARD,
+            Anonymous: INPUT_0 {
+                ki: KEYBDINPUT {
+                    wVk: key,
+                    wScan: 0,
+                    dwFlags: if key_up { KEYEVENTF_KEYUP } else { 0 },
+                    time: 0,
+                    dwExtraInfo: 0,
+                },
+            },
+        }
+    }
+
+    fn send_inputs(inputs: &[INPUT], label: &str) -> Result<(), String> {
+        let actual = unsafe {
+            SendInput(
+                inputs.len() as u32,
+                inputs.as_ptr(),
+                size_of::<INPUT>() as i32,
+            )
+        };
+        require_complete_input(inputs.len() as u32, actual, label)
+    }
+
+    fn normalize_newlines(value: &str) -> String {
+        value.replace("\r\n", "\n")
+    }
+
+    fn snapshot_clipboard(hwnd: HWND) -> Result<ClipboardSnapshot, String> {
+        unsafe {
+            if OpenClipboard(hwnd) == 0 {
+                return Err("OpenClipboard failed while snapshotting native state".into());
+            }
+            SetLastError(ERROR_SUCCESS);
+            let format_count = CountClipboardFormats();
+            let count_error = GetLastError();
+            let result = (|| {
+                if format_count == 0 && count_error != ERROR_SUCCESS {
+                    return Err(format!(
+                        "CountClipboardFormats failed with Win32 error {count_error}"
+                    ));
+                }
+                match classify_clipboard_snapshot(
+                    format_count,
+                    IsClipboardFormatAvailable(CF_UNICODETEXT as u32) != 0,
+                )? {
+                    ClipboardSnapshotKind::Empty => Ok(ClipboardSnapshot::Empty),
+                    ClipboardSnapshotKind::UnicodeText => {
+                        read_open_clipboard_text().map(ClipboardSnapshot::UnicodeText)
+                    }
+                }
+            })();
+            close_clipboard_result(result)
+        }
+    }
+
+    fn read_clipboard_text(hwnd: HWND) -> Result<String, String> {
+        unsafe {
+            if OpenClipboard(hwnd) == 0 {
+                return Err("OpenClipboard failed".into());
+            }
+            close_clipboard_result(read_open_clipboard_text())
+        }
+    }
+
+    unsafe fn read_open_clipboard_text() -> Result<String, String> {
+        let handle = GetClipboardData(CF_UNICODETEXT as u32);
+        if handle.is_null() {
+            return Err("CF_UNICODETEXT is unavailable on the Win32 clipboard".into());
+        }
+        let size = GlobalSize(handle);
+        let pointer = GlobalLock(handle) as *const u16;
+        if pointer.is_null() || size < size_of::<u16>() {
+            return Err("Win32 clipboard text memory is unavailable".into());
+        }
+        let units = std::slice::from_raw_parts(pointer, size / size_of::<u16>());
+        let length = units
+            .iter()
+            .position(|unit| *unit == 0)
+            .unwrap_or(units.len());
+        let text = String::from_utf16(&units[..length])
+            .map_err(|_| "Win32 clipboard text is not valid UTF-16".to_string());
+        let _ = GlobalUnlock(handle);
+        text
+    }
+
+    fn restore_clipboard_snapshot(hwnd: HWND, snapshot: &ClipboardSnapshot) -> Result<(), String> {
+        match snapshot {
+            ClipboardSnapshot::Empty => clear_clipboard(hwnd),
+            ClipboardSnapshot::UnicodeText(text) => write_clipboard_text(hwnd, text),
+        }
+    }
+
+    fn clear_clipboard(hwnd: HWND) -> Result<(), String> {
+        unsafe {
+            if OpenClipboard(hwnd) == 0 {
+                return Err("OpenClipboard failed while restoring empty clipboard".into());
+            }
+            let result = if EmptyClipboard() == 0 {
+                Err("EmptyClipboard failed while restoring empty clipboard".into())
+            } else {
+                Ok(())
+            };
+            close_clipboard_result(result)
+        }
+    }
+
+    fn write_clipboard_text(hwnd: HWND, value: &str) -> Result<(), String> {
+        let units: Vec<u16> = value.encode_utf16().chain(std::iter::once(0)).collect();
+        unsafe {
+            let allocation = GlobalAlloc(
+                GMEM_MOVEABLE | GMEM_ZEROINIT,
+                units.len() * size_of::<u16>(),
+            );
+            if allocation.is_null() {
+                return Err("GlobalAlloc failed while restoring the clipboard".into());
+            }
+            let pointer = GlobalLock(allocation) as *mut u16;
+            if pointer.is_null() {
+                let _ = GlobalFree(allocation);
+                return Err("GlobalLock failed while restoring the clipboard".into());
+            }
+            ptr::copy_nonoverlapping(units.as_ptr(), pointer, units.len());
+            let _ = GlobalUnlock(allocation);
+            if OpenClipboard(hwnd) == 0 {
+                let _ = GlobalFree(allocation);
+                return Err("OpenClipboard failed while restoring the clipboard".into());
+            }
+            let mut transferred = false;
+            let result = if EmptyClipboard() == 0 {
+                Err("EmptyClipboard failed while restoring the clipboard".to_string())
+            } else if SetClipboardData(CF_UNICODETEXT as u32, allocation).is_null() {
+                Err("SetClipboardData failed while restoring the clipboard".to_string())
+            } else {
+                transferred = true;
+                Ok(())
+            };
+            if !transferred {
+                let _ = GlobalFree(allocation);
+            }
+            close_clipboard_result(result)
+        }
+    }
+
+    unsafe fn close_clipboard_result<T>(result: Result<T, String>) -> Result<T, String> {
+        if CloseClipboard() != 0 {
+            return result;
+        }
+        match result {
+            Ok(_) => Err("CloseClipboard failed".into()),
+            Err(error) => Err(format!("{error}; CloseClipboard failed")),
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+pub(crate) use platform::WindowsNativeInputDriver;
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        classify_clipboard_snapshot, cleanup_actions, normalize_absolute_coordinate,
+        pending_key_releases, require_complete_input, CleanupAction, ClipboardSnapshotKind,
+        DriverAction, DriverProtocol,
+    };
+    use serde_json::json;
+
+    fn ready() -> serde_json::Value {
+        json!({
+            "version": 1,
+            "stage": "ready",
+            "viewport": { "width": 1200, "height": 900 },
+            "devicePixelRatio": 1.0,
+            "gap": { "top": 320, "bottom": 500 },
+            "dragStart": { "x": 260, "y": 300 },
+            "dragEnd": { "x": 520, "y": 520 }
+        })
+    }
+
+    #[test]
+    fn advances_only_through_the_complete_ordered_protocol() {
+        let mut protocol = DriverProtocol::new();
+        assert!(matches!(
+            protocol.advance(&ready()).unwrap(),
+            DriverAction::Drag(_)
+        ));
+        assert_eq!(
+            protocol
+                .advance(&json!({
+                    "version": 1,
+                    "stage": "drag",
+                    "selectionFrom": 42,
+                    "selectionTo": 75,
+                    "gapPosition": 60,
+                    "selectedText": "invented selection"
+                }))
+                .unwrap(),
+            DriverAction::Copy
+        );
+        assert_eq!(
+            protocol
+                .advance(&json!({
+                    "version": 1,
+                    "stage": "copy",
+                    "selectedText": "invented selection",
+                    "documentSize": 500
+                }))
+                .unwrap(),
+            DriverAction::Paste
+        );
+        assert_eq!(
+            protocol
+                .advance(&json!({
+                    "version": 1,
+                    "stage": "paste",
+                    "pastedText": "invented selection",
+                    "beforeSize": 500,
+                    "afterSize": 518
+                }))
+                .unwrap(),
+            DriverAction::Compose
+        );
+        assert_eq!(
+            protocol
+                .advance(&json!({
+                    "version": 1,
+                    "stage": "composition",
+                    "data": "é",
+                    "beforeSize": 518,
+                    "afterSize": 519
+                }))
+                .unwrap(),
+            DriverAction::Complete
+        );
+        assert!(protocol.is_complete());
+    }
+
+    #[test]
+    fn rejects_out_of_order_duplicate_and_mismatched_messages() {
+        let mut protocol = DriverProtocol::new();
+        assert!(protocol
+            .advance(&json!({
+                "version": 1,
+                "stage": "copy",
+                "selectedText": "invented",
+                "documentSize": 100
+            }))
+            .is_err());
+        protocol.advance(&ready()).unwrap();
+        assert!(protocol.advance(&ready()).is_err());
+
+        let mut protocol = DriverProtocol::new();
+        protocol.advance(&ready()).unwrap();
+        protocol
+            .advance(&json!({
+                "version": 1,
+                "stage": "drag",
+                "selectionFrom": 42,
+                "selectionTo": 75,
+                "gapPosition": 60,
+                "selectedText": "invented"
+            }))
+            .unwrap();
+        assert!(protocol
+            .advance(&json!({
+                "version": 1,
+                "stage": "copy",
+                "selectedText": "different",
+                "documentSize": 100
+            }))
+            .is_err());
+    }
+
+    #[test]
+    fn normalizes_virtual_desktop_edges_without_losing_negative_origins() {
+        assert_eq!(normalize_absolute_coordinate(-1920, -1920, 3840), 0);
+        assert_eq!(normalize_absolute_coordinate(1919, -1920, 3840), 65_535);
+        assert!(normalize_absolute_coordinate(0, -1920, 3840) > 32_767);
+    }
+
+    #[test]
+    fn rejects_partial_send_input_counts() {
+        assert!(require_complete_input(4, 4, "keyboard").is_ok());
+        assert_eq!(
+            require_complete_input(4, 3, "keyboard").unwrap_err(),
+            "keyboard SendInput accepted 3 of 4 records"
+        );
+    }
+
+    #[test]
+    fn cleanup_releases_pressed_input_before_restoring_native_state() {
+        assert_eq!(
+            cleanup_actions(true, true, true),
+            vec![
+                CleanupAction::MouseUp,
+                CleanupAction::ControlUp,
+                CleanupAction::RestoreKeyboardLayout,
+            ]
+        );
+        assert_eq!(
+            cleanup_actions(false, false, true),
+            vec![CleanupAction::RestoreKeyboardLayout]
+        );
+    }
+
+    #[test]
+    fn distinguishes_empty_text_and_unsnapshotable_clipboard_states() {
+        assert_eq!(
+            classify_clipboard_snapshot(0, false).unwrap(),
+            ClipboardSnapshotKind::Empty
+        );
+        assert_eq!(
+            classify_clipboard_snapshot(2, true).unwrap(),
+            ClipboardSnapshotKind::UnicodeText
+        );
+        assert_eq!(
+            classify_clipboard_snapshot(1, false).unwrap_err(),
+            "Win32 clipboard contains non-text formats and cannot be restored exactly"
+        );
+    }
+
+    #[test]
+    fn retains_every_key_whose_accepted_down_event_lacks_an_accepted_release() {
+        let copy = [(0x11, false), (0x43, false), (0x43, true), (0x11, true)];
+        assert_eq!(pending_key_releases(&copy, 2), vec![0x11, 0x43]);
+        assert_eq!(pending_key_releases(&copy, 3), vec![0x11]);
+        assert!(pending_key_releases(&copy, 4).is_empty());
+
+        let paste = [
+            (0x27, false),
+            (0x27, true),
+            (0x11, false),
+            (0x56, false),
+            (0x56, true),
+            (0x11, true),
+        ];
+        assert_eq!(pending_key_releases(&paste, 1), vec![0x27]);
+        assert_eq!(pending_key_releases(&paste, 4), vec![0x11, 0x56]);
+        assert_eq!(pending_key_releases(&paste, 5), vec![0x11]);
+    }
+}

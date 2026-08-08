@@ -11,8 +11,10 @@ import { waitForProofOrigin } from "./proofOrigin.ts";
 import {
   AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS,
   nativeHostCommand,
+  type NativeHostMode,
   windowsHostBuildProcessOptions,
 } from "./nativeHostCommand.ts";
+import { nativeProofPhases } from "./nativeProofPhases.ts";
 
 const proofDir = dirname(fileURLToPath(import.meta.url));
 const tauriDir = resolve(proofDir, "../../../../../src-tauri");
@@ -62,6 +64,7 @@ async function runNativeHost(
   url: URL,
   profileName: string,
   emitResult: boolean,
+  mode: NativeHostMode,
 ): Promise<void> {
   const readiness = await waitForProofOrigin(url, {
     timeoutMs: AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.originReadiness,
@@ -70,12 +73,16 @@ async function runNativeHost(
   console.error(
     `Native proof origin ready after ${readiness.attempts} request(s): ${readiness.url}`,
   );
-  const host = nativeHostCommand(process.platform, {
-    proofDir,
-    url,
-    profileDir: resolve(profileDir, profileName),
-    windowsHostBinary: windowsHostBinary(),
-  });
+  const host = nativeHostCommand(
+    process.platform,
+    {
+      proofDir,
+      url,
+      profileDir: resolve(profileDir, profileName),
+      windowsHostBinary: windowsHostBinary(),
+    },
+    mode,
+  );
   const output = await executeBoundedProcess(
     host.command,
     host.args,
@@ -120,6 +127,14 @@ await runProofLifecycle(async () => {
             "nativeHarnessSelfTest.html",
           ),
           nativeProof: resolve(proofDir, "nativeProof.html"),
+          ...(process.platform === "win32"
+            ? {
+              nativeManualProof: resolve(
+                proofDir,
+                "nativeManualProof.html",
+              ),
+            }
+            : {}),
         },
       },
     },
@@ -138,13 +153,17 @@ await runProofLifecycle(async () => {
   }
   const baseUrl = new URL(`http://127.0.0.1:${address.port}/`);
   console.error(`Native proof bundle listening: ${baseUrl.href}`);
-  await runNativeHost(
-    new URL("nativeHarnessSelfTest.html", baseUrl),
-    "self-test",
-    false,
-  );
-  console.error("Native harness self-test passed");
-  await runNativeHost(new URL("nativeProof.html", baseUrl), "proof", true);
+  for (const phase of nativeProofPhases(process.platform)) {
+    await runNativeHost(
+      new URL(phase.page, baseUrl),
+      phase.profileName,
+      phase.emitResult,
+      phase.mode,
+    );
+    if (phase.page === "nativeHarnessSelfTest.html") {
+      console.error("Native harness self-test passed");
+    }
+  }
 }, async () => {
   await cleanupProofRun(
     proofDirectories,

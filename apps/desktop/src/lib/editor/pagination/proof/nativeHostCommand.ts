@@ -29,10 +29,24 @@ export interface NativeHostCommand {
   args: string[];
 }
 
+export type NativeHostMode = "standard" | "windows-native-input";
+
 export function nativeHostCommand(
   platform: "darwin" | "win32" | string,
   inputs: NativeHostInputs,
+  mode: NativeHostMode = "standard",
 ): NativeHostCommand {
+  if (mode === "windows-native-input" && platform !== "win32") {
+    throw new Error("Windows native input mode requires the WebView2 host");
+  }
+  if (
+    mode === "windows-native-input" &&
+    inputs.url.pathname !== "/nativeManualProof.html"
+  ) {
+    throw new Error(
+      "Windows native input mode requires the manual proof route",
+    );
+  }
   if (platform === "darwin") {
     return {
       command: "xcrun",
@@ -46,7 +60,11 @@ export function nativeHostCommand(
   if (platform === "win32") {
     return {
       command: inputs.windowsHostBinary,
-      args: [inputs.url.href, inputs.profileDir],
+      args: [
+        inputs.url.href,
+        inputs.profileDir,
+        ...(mode === "windows-native-input" ? ["--drive-native-input"] : []),
+      ],
     };
   }
   throw new Error(`Unsupported native proof platform: ${platform}`);

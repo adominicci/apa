@@ -30,9 +30,33 @@ describe("native proof browser bridge", () => {
 
     expect(bridge.postResult({ passed: true })).toBe(true);
     expect(bridge.postDiagnostic({ stage: "ready" })).toBe(true);
+    expect(bridge.postNativeInput({ version: 1, stage: "ready" })).toBe(true);
     expect(messages.map((value) => JSON.parse(value))).toEqual([
       { channel: "result", payload: { passed: true } },
       { channel: "diagnostic", payload: { stage: "ready" } },
+      {
+        channel: "native-input",
+        payload: { version: 1, stage: "ready" },
+      },
     ]);
+  });
+
+  it("does not expose the Windows input-control channel to WKWebView", () => {
+    const results: unknown[] = [];
+    const diagnostics: unknown[] = [];
+    const bridge = createNativeProofBridge({
+      webkit: {
+        messageHandlers: {
+          tesinaProof: { postMessage: (value) => results.push(value) },
+          tesinaDiagnostic: {
+            postMessage: (value) => diagnostics.push(value),
+          },
+        },
+      },
+    });
+
+    expect(bridge.postNativeInput({ version: 1, stage: "ready" })).toBe(false);
+    expect(results).toEqual([]);
+    expect(diagnostics).toEqual([]);
   });
 });

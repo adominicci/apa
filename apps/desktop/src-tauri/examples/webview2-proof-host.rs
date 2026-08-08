@@ -2,6 +2,10 @@
 use url::Url;
 
 #[cfg(any(target_os = "windows", test))]
+#[path = "support/windows-native-input.rs"]
+mod windows_native_input;
+
+#[cfg(any(target_os = "windows", test))]
 fn loopback_url(value: &str) -> bool {
     let Ok(url) = Url::parse(value) else {
         return false;
@@ -37,6 +41,7 @@ mod loopback_tests {
 #[cfg(target_os = "windows")]
 mod windows_host {
     use super::loopback_url;
+    use super::windows_native_input::WindowsNativeInputDriver;
     use serde_json::{json, Value};
     use std::{env, path::PathBuf, process, thread, time::Duration};
     use tao::{
@@ -45,7 +50,12 @@ mod windows_host {
         event_loop::{ControlFlow, EventLoopBuilder},
         window::WindowBuilder,
     };
-    use wry::{http::Request, WebContext, WebViewBuilder};
+    use url::Url;
+    use wry::{
+        http::Request,
+        raw_window_handle::{HasWindowHandle, RawWindowHandle},
+        WebContext, WebViewBuilder,
+    };
 
     const AUTOMATED_HOST_DEADLINE: Duration = Duration::from_secs(45);
     const MANUAL_HOST_DEADLINE: Duration = Duration::from_secs(300);
@@ -60,6 +70,22 @@ mod windows_host {
         process::exit(1);
     }
 
+    fn settle_failure(
+        control_flow: &mut ControlFlow,
+        driver: &mut Option<WindowsNativeInputDriver>,
+        exit_code: i32,
+        message: impl Into<String>,
+    ) {
+        let mut message = message.into();
+        if let Some(driver) = driver.as_mut() {
+            if let Err(cleanup_error) = driver.cleanup() {
+                message = format!("{message}; {cleanup_error}");
+            }
+        }
+        println!("{}", json!({ "passed": false, "error": message }));
+        *control_flow = ControlFlow::ExitWithCode(exit_code);
+    }
+
     pub fn run() -> ! {
         let mut arguments = env::args().skip(1);
         let url = arguments
@@ -69,10 +95,23 @@ mod windows_host {
             .next()
             .map(PathBuf::from)
             .unwrap_or_else(|| fail("missing WebView2 profile directory"));
+        let drive_native_input = match arguments.next().as_deref() {
+            None => false,
+            Some("--drive-native-input") => true,
+            Some(_) => fail(
+                "usage: webview2-proof-host <loopback-url> <profile-dir> [--drive-native-input]",
+            ),
+        };
         if arguments.next().is_some() || !loopback_url(&url) {
-            fail("usage: webview2-proof-host <loopback-url> <profile-dir>");
+            fail("usage: webview2-proof-host <loopback-url> <profile-dir> [--drive-native-input]");
         }
-        let host_deadline = if url.contains("/nativeManualProof.html") {
+        let parsed_url = Url::parse(&url).unwrap_or_else(|_| fail("invalid proof URL"));
+        if drive_native_input && parsed_url.path() != "/nativeManualProof.html" {
+            fail("--drive-native-input requires /nativeManualProof.html");
+        }
+        let host_deadline = if drive_native_input {
+            AUTOMATED_HOST_DEADLINE
+        } else if url.contains("/nativeManualProof.html") {
             MANUAL_HOST_DEADLINE
         } else {
             AUTOMATED_HOST_DEADLINE
@@ -96,15 +135,36 @@ mod windows_host {
         let proxy = event_loop.create_proxy();
         let ipc_proxy = proxy.clone();
         let mut web_context = WebContext::new(Some(profile_dir));
+        let initialization_script = if drive_native_input {
+            "window.__TESINA_NATIVE_HOST__ = 'webview2'; window.__TESINA_NATIVE_INPUT_DRIVER__ = 'win32-sendinput-v1';"
+        } else {
+            "window.__TESINA_NATIVE_HOST__ = 'webview2';"
+        };
         let _webview = WebViewBuilder::new_with_web_context(&mut web_context)
             .with_url(url)
             .with_visible(true)
-            .with_initialization_script("window.__TESINA_NATIVE_HOST__ = 'webview2';")
+            .with_initialization_script(initialization_script)
             .with_ipc_handler(move |request: Request<String>| {
                 let _ = ipc_proxy.send_event(HostEvent::Message(request.body().clone()));
             })
             .build(&window)
             .unwrap_or_else(|error| fail(format!("WebView2 creation failed: {error}")));
+
+        let mut input_driver = if drive_native_input {
+            let handle = window
+                .window_handle()
+                .unwrap_or_else(|error| fail(format!("window handle unavailable: {error}")));
+            let hwnd = match handle.as_raw() {
+                RawWindowHandle::Win32(handle) => handle.hwnd.get() as *mut core::ffi::c_void,
+                _ => fail("WebView2 host did not expose a Win32 window handle"),
+            };
+            Some(
+                WindowsNativeInputDriver::new(hwnd, window.scale_factor())
+                    .unwrap_or_else(|error| fail(error)),
+            )
+        } else {
+            None
+        };
 
         let deadline_proxy = proxy.clone();
         thread::spawn(move || {
@@ -116,15 +176,55 @@ mod windows_host {
             *control_flow = ControlFlow::Wait;
             match event {
                 Event::UserEvent(HostEvent::Message(message)) => {
-                    let envelope = serde_json::from_str::<Value>(&message)
-                        .unwrap_or_else(|error| fail(format!("invalid IPC JSON: {error}")));
+                    let envelope = match serde_json::from_str::<Value>(&message) {
+                        Ok(envelope) => envelope,
+                        Err(error) => {
+                            settle_failure(
+                                control_flow,
+                                &mut input_driver,
+                                1,
+                                format!("invalid IPC JSON: {error}"),
+                            );
+                            return;
+                        }
+                    };
                     match envelope.get("channel").and_then(Value::as_str) {
                         Some("diagnostic") => {
                             eprintln!("[native-proof] javascript {}", envelope["payload"]);
                         }
+                        Some("native-input") => {
+                            let Some(driver) = input_driver.as_mut() else {
+                                settle_failure(
+                                    control_flow,
+                                    &mut input_driver,
+                                    1,
+                                    "native input IPC requires --drive-native-input",
+                                );
+                                return;
+                            };
+                            if let Err(error) = driver.advance(&envelope["payload"]) {
+                                settle_failure(control_flow, &mut input_driver, 1, error);
+                            }
+                        }
                         Some("result") => {
                             let mut result = envelope["payload"].clone();
-                            let passed = result["passed"].as_bool() == Some(true);
+                            if let Some(driver) = input_driver.as_mut() {
+                                if result["passed"].as_bool() == Some(true)
+                                    && !driver.is_complete()
+                                {
+                                    settle_failure(
+                                        control_flow,
+                                        &mut input_driver,
+                                        1,
+                                        "Windows native input result arrived before driver completion",
+                                    );
+                                    return;
+                                }
+                                if let Err(error) = driver.cleanup() {
+                                    settle_failure(control_flow, &mut input_driver, 1, error);
+                                    return;
+                                }
+                            }
                             if let Some(metrics) =
                                 result.get_mut("metrics").and_then(Value::as_object_mut)
                             {
@@ -132,29 +232,51 @@ mod windows_host {
                                     "webView2Runtime".into(),
                                     Value::String(runtime.clone()),
                                 );
+                                if drive_native_input {
+                                    metrics.insert(
+                                        "windowsNativeInputDriver".into(),
+                                        Value::String("win32-sendinput-v1".into()),
+                                    );
+                                    metrics.insert(
+                                        "windowsNativeInputComplete".into(),
+                                        Value::Bool(
+                                            input_driver
+                                                .as_ref()
+                                                .is_some_and(WindowsNativeInputDriver::is_complete),
+                                        ),
+                                    );
+                                }
                             }
+                            let passed = result["passed"].as_bool() == Some(true);
                             println!("{result}");
                             *control_flow = ControlFlow::ExitWithCode(if passed { 0 } else { 1 });
                         }
-                        _ => fail("unknown native proof IPC channel"),
+                        _ => settle_failure(
+                            control_flow,
+                            &mut input_driver,
+                            1,
+                            "unknown native proof IPC channel",
+                        ),
                     }
                 }
                 Event::UserEvent(HostEvent::Deadline) => {
-                    println!(
-                        "{}",
-                        json!({ "passed": false, "error": "WebView2 proof timed out" })
+                    settle_failure(
+                        control_flow,
+                        &mut input_driver,
+                        124,
+                        "WebView2 proof timed out",
                     );
-                    *control_flow = ControlFlow::ExitWithCode(124);
                 }
                 Event::WindowEvent {
                     event: WindowEvent::CloseRequested,
                     ..
                 } => {
-                    println!(
-                        "{}",
-                        json!({ "passed": false, "error": "WebView2 proof window closed" })
+                    settle_failure(
+                        control_flow,
+                        &mut input_driver,
+                        1,
+                        "WebView2 proof window closed",
                     );
-                    *control_flow = ControlFlow::ExitWithCode(1);
                 }
                 _ => {}
             }

@@ -42,6 +42,21 @@ tao = "=0.35.3"
 url = "=2.5.8"
 wry = "=0.55.1"
 
+[target.'cfg(windows)'.dev-dependencies]
+# Test-only OS input for the visible WebView2 proof. This exact version is
+# already locked through the Tauri/Wry graph and is MIT OR Apache-2.0.
+windows-sys = { version = "=0.61.2", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Gdi",
+  "Win32_System_DataExchange",
+  "Win32_System_Memory",
+  "Win32_System_Ole",
+  "Win32_System_StationsAndDesktops",
+  "Win32_System_Threading",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_WindowsAndMessaging",
+] }
+
 [[example]]
 name = "webview2-proof-host"
 path = "examples/webview2-proof-host.rs"

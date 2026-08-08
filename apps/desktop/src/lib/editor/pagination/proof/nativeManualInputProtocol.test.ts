@@ -1,0 +1,128 @@
+import { describe, expect, it } from "vitest";
+import { parseNativeManualInputMessage } from "./nativeManualInputProtocol.ts";
+
+describe("native manual-input protocol", () => {
+  it("accepts finite viewport geometry that visibly straddles the gap", () => {
+    expect(parseNativeManualInputMessage({
+      version: 1,
+      stage: "ready",
+      viewport: { width: 1200, height: 900 },
+      devicePixelRatio: 1.25,
+      gap: { top: 320, bottom: 500 },
+      dragStart: { x: 260, y: 300 },
+      dragEnd: { x: 520, y: 520 },
+    })).toEqual({
+      version: 1,
+      stage: "ready",
+      viewport: { width: 1200, height: 900 },
+      devicePixelRatio: 1.25,
+      gap: { top: 320, bottom: 500 },
+      dragStart: { x: 260, y: 300 },
+      dragEnd: { x: 520, y: 520 },
+    });
+  });
+
+  it.each([
+    ["zero device scale", { devicePixelRatio: 0 }],
+    ["non-finite point", { dragStart: { x: Number.NaN, y: 300 } }],
+    ["off-viewport point", { dragEnd: { x: 1_201, y: 520 } }],
+    ["same-side points", { dragEnd: { x: 520, y: 310 } }],
+  ])("rejects %s", (_label, replacement) => {
+    expect(() =>
+      parseNativeManualInputMessage({
+        version: 1,
+        stage: "ready",
+        viewport: { width: 1200, height: 900 },
+        devicePixelRatio: 1.25,
+        gap: { top: 320, bottom: 500 },
+        dragStart: { x: 260, y: 300 },
+        dragEnd: { x: 520, y: 520 },
+        ...replacement,
+      })
+    ).toThrow();
+  });
+
+  it("accepts only nonempty drag evidence that crosses the PM gap", () => {
+    expect(parseNativeManualInputMessage({
+      version: 1,
+      stage: "drag",
+      selectionFrom: 42,
+      selectionTo: 75,
+      gapPosition: 60,
+      selectedText: "invented selection",
+    })).toMatchObject({ stage: "drag", gapPosition: 60 });
+    expect(() =>
+      parseNativeManualInputMessage({
+        version: 1,
+        stage: "drag",
+        selectionFrom: 61,
+        selectionTo: 75,
+        gapPosition: 60,
+        selectedText: "invented selection",
+      })
+    ).toThrow();
+    expect(() =>
+      parseNativeManualInputMessage({
+        version: 1,
+        stage: "drag",
+        selectionFrom: 42,
+        selectionTo: 75,
+        gapPosition: 60,
+        selectedText: "",
+      })
+    ).toThrow();
+  });
+
+  it("requires exact clipboard text and authored paste growth", () => {
+    expect(parseNativeManualInputMessage({
+      version: 1,
+      stage: "copy",
+      selectedText: "invented selection",
+      documentSize: 500,
+    })).toMatchObject({ stage: "copy", documentSize: 500 });
+    expect(parseNativeManualInputMessage({
+      version: 1,
+      stage: "paste",
+      pastedText: "invented selection",
+      beforeSize: 500,
+      afterSize: 518,
+    })).toMatchObject({ stage: "paste", afterSize: 518 });
+    expect(() =>
+      parseNativeManualInputMessage({
+        version: 1,
+        stage: "paste",
+        pastedText: "invented selection",
+        beforeSize: 500,
+        afterSize: 500,
+      })
+    ).toThrow();
+  });
+
+  it("accepts only the audited composed character with document growth", () => {
+    expect(parseNativeManualInputMessage({
+      version: 1,
+      stage: "composition",
+      data: "é",
+      beforeSize: 518,
+      afterSize: 519,
+    })).toMatchObject({ stage: "composition", data: "é" });
+    expect(() =>
+      parseNativeManualInputMessage({
+        version: 1,
+        stage: "composition",
+        data: "e",
+        beforeSize: 518,
+        afterSize: 519,
+      })
+    ).toThrow();
+    expect(() =>
+      parseNativeManualInputMessage({
+        version: 1,
+        stage: "composition",
+        data: "é",
+        beforeSize: 518,
+        afterSize: 518,
+      })
+    ).toThrow();
+  });
+});
