@@ -1,0 +1,116 @@
+@import "../../apa.css";
+
+:root {
+  --paper: #fff;
+  --fg: #111;
+  --font: Inter, system-ui, sans-serif;
+  --serif: "Times New Roman", Times, serif;
+  --doc-font: "Times New Roman", Times, serif;
+  --doc-font-size: 12pt;
+  --body-title: "A Synthetic Archive Study";
+  --border-soft: #d8d8d8;
+  --border: #bbb;
+  --shadow-paper: none;
+  --surface: #fff;
+  --muted: #555;
+  --accent: #315a8a;
+  --accent-soft: #e8f1fa;
+  --danger: #a00;
+  --hover: #eee;
+  --r-sm: 3px;
+  --r-md: 4px;
+  --fast: 0s;
+  --ease: linear;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  background: #eceff2;
+}
+
+#proof-shell {
+  visibility: hidden;
+  width: 864px;
+  margin: 0 auto;
+}
+
+#proof-shell[data-first-plan="stable"] {
+  visibility: visible;
+}
+
+#proof-result {
+  position: fixed;
+  inset: auto 0 0;
+  max-height: 20vh;
+  overflow: auto;
+  margin: 0;
+  padding: 6px;
+  background: #111;
+  color: #fff;
+  font: 11px/1.2 monospace;
+}
+
+.apa-editor {
+  padding: 24px;
+}
+
+.apa-editor .page-stack,
+.apa-editor .tiptap > .sec {
+  width: 816px;
+}
+
+.apa-editor .tiptap > .sec {
+  aspect-ratio: auto;
+  min-height: 1056px;
+  padding: 96px;
+  border-radius: 0;
+}
+
+.apa-editor .tiptap {
+  line-height: 2;
+}
+
+.apa-editor .tiptap .apa-table tr {
+  height: 44px;
+}
+
+.apa-editor .tiptap .fig-img[alt="proof-standard-figure"] {
+  display: block;
+  width: 360px;
+  height: 260px;
+  background: linear-gradient(135deg, #dbe8ef, #adc4d1);
+}
+
+.apa-editor .tiptap .fig-img[alt="proof-oversize-figure"] {
+  display: block;
+  width: 360px;
+  height: 960px;
+  background: repeating-linear-gradient(
+    0deg,
+    #eadfd5 0 24px,
+    #d8c4b3 24px 48px
+  );
+}
+
+[data-pagination-proof-gap] {
+  background: #eceff2;
+}
+
+[data-pagination-proof-gap="line"],
+[data-pagination-proof-gap="block"] {
+  position: relative;
+  margin-inline: -96px !important;
+  width: 816px;
+}
+
+[data-pagination-proof-gap="line"]::before,
+[data-pagination-proof-gap="block"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-top: 1px solid #d8d8d8;
+  border-bottom: 1px solid #d8d8d8;
+}
