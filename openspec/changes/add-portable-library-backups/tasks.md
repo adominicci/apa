@@ -243,7 +243,7 @@
       `$APPDATA/backup-ledger.json` keyed by the native `backupSetId`; prove
       older settings load with backup disabled and every configuration/ledger
       file is excluded from `.tesina` archives.
-- [ ] 8.4 Refactor `UiSettingsStore` writes into serialized requested/persisted
+- [x] 8.4 Refactor `UiSettingsStore` writes into serialized requested/persisted
       revisions with `flushPending()`, failure retry, and
       persistence-coordinator registration so close/restart cannot lose or
       reorder backup success state.

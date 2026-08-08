@@ -190,9 +190,9 @@ describe("maintenance lease (coordinator)", () => {
       events.push("first:end");
       return 1;
     });
-    const second = coordinator.runMaintenance(async () => {
+    const second = coordinator.runMaintenance(() => {
       events.push("second:start");
-      return 2;
+      return Promise.resolve(2);
     });
     // Give the second op a chance to (incorrectly) start early.
     await new Promise((resolve) => setTimeout(resolve, 0));
