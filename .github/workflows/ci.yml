@@ -23,11 +23,11 @@ jobs:
       - name: Install dependencies
         run: deno install
 
-      - name: Format check (packages)
-        run: deno fmt --check packages vitest.config.ts
+      - name: Format check
+        run: deno fmt --check
 
-      - name: Lint (packages)
-        run: deno lint packages
+      - name: Lint
+        run: deno lint
 
       - name: Svelte check
         run: deno task check

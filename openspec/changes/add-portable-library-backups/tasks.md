@@ -247,7 +247,7 @@
       revisions with `flushPending()`, failure retry, and
       persistence-coordinator registration so close/restart cannot lose or
       reorder backup success state.
-- [ ] 8.5 Add tests for initial configuration, test-before-enable, rapid status
+- [x] 8.5 Add tests for initial configuration, test-before-enable, rapid status
       updates, failed write retry, folder change only after a successful new
       test, and preservation of the previous configuration when the new folder
       test fails. Prove successful change/disable revokes old authority while
@@ -328,7 +328,7 @@
 
 ## 11. End-to-end recovery and cross-platform acceptance
 
-- [ ] 11.1 Add a deterministic full-library fixture with Spanish and English
+- [x] 11.1 Add a deterministic full-library fixture with Spanish and English
       essays, collections, nested citations, same-ID conflicts, identical and
       colliding assets, and at least one figure in every supported image format.
 - [ ] 11.2 Add an application-level integration test that exports the fixture,
@@ -336,7 +336,7 @@
       Merge, restarts state, and proves all
       essays/citations/references/collections/assets resolve with no local
       overwrite.
-- [ ] 11.3 Add crash-restart E2E cases at journal fault points and prove each
+- [x] 11.3 Add crash-restart E2E cases at journal fault points and prove each
       run resumes or rolls back to a consistent library without duplicates.
 - [ ] 11.4 In a packaged macOS app, complete manual export/import, configure a
       real local or synced folder, restart, run Back up now, create eight dated
@@ -408,7 +408,7 @@
       updater availability, clean worktree/feature disposition, exact local
       `main` equals `origin/main`, tag and published target equal that SHA, and
       `dev` parity only when that branch exists (otherwise record its absence).
-- [ ] 12.9 Add an operational rollback runbook: stop before draft publication on
+- [x] 12.9 Add an operational rollback runbook: stop before draft publication on
       verification failure; after publication ship a higher patch version that
       disables entry points while retaining archive readability and startup
       recovery; preserve user `.tesina` files and unfinished journals; record

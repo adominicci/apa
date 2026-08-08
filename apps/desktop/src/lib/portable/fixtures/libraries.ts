@@ -174,6 +174,49 @@ export function largeTextLibraryFixture(): LibraryFixture {
  * A dozen essays with figures across every supported image format, plus an
  * orphan asset that must never reach an archive.
  */
+/**
+ * Task 11.1: one deterministic full-library fixture combining Spanish and
+ * English essays, collections, nested citations, every supported image
+ * format, a byte-identical asset pair under two ids (dedupe fodder), and an
+ * orphan. Same-id conflict variants are derived: `conflictVariantOf` gives
+ * a semantically different copy of any fixture essay.
+ */
+export function fullLibraryFixture(): LibraryFixture {
+  const base = figureHeavyLibraryFixture();
+  const english = Array.from({ length: 3 }, (_, n) =>
+    fixtureEssay(100 + n, {
+      paragraphs: 6,
+      paragraphWords: 60,
+      citedRefs: base.library.references.slice(n, n + 4),
+      figureSrcs: [],
+      language: "en",
+    }));
+  // Byte-identical PNG under two distinct asset ids.
+  const twinBytes = pngBytes(96, 96);
+  const twinA = `essays/assets/${fixtureUuid(4, 6001)}.png`;
+  const twinB = `essays/assets/${fixtureUuid(4, 6002)}.png`;
+  const twinEssay = fixtureEssay(120, {
+    paragraphs: 2,
+    paragraphWords: 30,
+    citedRefs: [],
+    figureSrcs: [twinA, twinB],
+  });
+  return {
+    essays: [...base.essays, ...english, twinEssay],
+    library: base.library,
+    assets: { ...base.assets, [twinA]: twinBytes, [twinB]: twinBytes },
+    orphanAssets: base.orphanAssets,
+  };
+}
+
+/** A same-id, semantically different variant of a fixture essay. */
+export function conflictVariantOf(essay: Essay, title: string): Essay {
+  return structuredClone({
+    ...essay,
+    titlePage: { ...essay.titlePage, title },
+  });
+}
+
 export function figureHeavyLibraryFixture(): LibraryFixture {
   const references = Array.from({ length: 30 }, (_, n) => fixtureReference(n));
   const assets: Record<string, Uint8Array> = {};
