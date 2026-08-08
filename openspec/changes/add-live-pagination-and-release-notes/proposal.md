@@ -28,5 +28,5 @@ None.
 - Live editor composition, ProseMirror decorations/plugins, page measurement, editor page counting, and editor CSS.
 - Release-note parsing/rendering, root layout state, application-version resolution, home sidebar, editor status bar, localization messages, and accessibility behavior.
 - Desktop dependencies if a runtime Markdown parser/sanitizer is selected; any addition must use a permitted MIT, Apache-2, ISC, BSD, or OFL license.
-- Unit, component, pagination, visual/native, preview/export parity, release-contract, and updater tests.
+- Unit, component, pagination, macOS WKWebView, Windows WebView2, preview/export parity, release-contract, and updater tests.
 - Version metadata, README, changelog, tag, draft-release verification, updater manifest, and public macOS release for 0.1.3.
