@@ -1,4 +1,21 @@
 import { resolve } from "node:path";
+import type { ProcessOptions } from "./proofProcess.ts";
+
+export const AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS = Object.freeze({
+  windowsHostBuild: 360_000,
+  originReadiness: 10_000,
+  outerNativeHostProcess: 60_000,
+});
+
+export function windowsHostBuildProcessOptions(
+  environment: Record<string, string | undefined>,
+  targetDir: string,
+): ProcessOptions {
+  return {
+    timeoutMs: AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.windowsHostBuild,
+    env: { ...environment, CARGO_TARGET_DIR: targetDir },
+  };
+}
 
 export interface NativeHostInputs {
   proofDir: string;

@@ -8,7 +8,10 @@ import { cleanupProofRun } from "./proofRunCleanup.ts";
 import { executeBoundedProcess } from "./proofProcess.ts";
 import { runProofLifecycle } from "./proofLifecycle.ts";
 import { waitForProofOrigin } from "./proofOrigin.ts";
-import { nativeHostCommand } from "./nativeHostCommand.ts";
+import {
+  nativeHostCommand,
+  windowsHostBuildProcessOptions,
+} from "./nativeHostCommand.ts";
 
 const proofDir = dirname(fileURLToPath(import.meta.url));
 const tauriDir = resolve(proofDir, "../../../../../src-tauri");
@@ -69,10 +72,7 @@ async function buildWindowsHost(): Promise<void> {
     "webview2-proof-host",
     "--features",
     "native-proof-host",
-  ], {
-    timeoutMs: 180_000,
-    env: { ...process.env, CARGO_TARGET_DIR: hostDir },
-  });
+  ], windowsHostBuildProcessOptions(process.env, hostDir));
   if (output.code !== 0) {
     throw new Error(`WebView2 manual host build exited with ${output.code}`);
   }

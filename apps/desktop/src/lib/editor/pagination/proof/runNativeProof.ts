@@ -8,11 +8,14 @@ import { executeBoundedProcess } from "./proofProcess.ts";
 import { cleanupProofRun } from "./proofRunCleanup.ts";
 import { runProofLifecycle } from "./proofLifecycle.ts";
 import { waitForProofOrigin } from "./proofOrigin.ts";
-import { nativeHostCommand } from "./nativeHostCommand.ts";
+import {
+  AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS,
+  nativeHostCommand,
+  windowsHostBuildProcessOptions,
+} from "./nativeHostCommand.ts";
 
 const proofDir = dirname(fileURLToPath(import.meta.url));
 const tauriDir = resolve(proofDir, "../../../../../src-tauri");
-const NATIVE_PROOF_TIMEOUT_MS = 60_000;
 const proofDirectories: string[] = [];
 let outputDir = "";
 let profileDir = "";
@@ -44,10 +47,7 @@ async function buildWindowsHost(): Promise<void> {
       "--features",
       "native-proof-host",
     ],
-    {
-      timeoutMs: 180_000,
-      env: { ...process.env, CARGO_TARGET_DIR: nativeHostDir },
-    },
+    windowsHostBuildProcessOptions(process.env, nativeHostDir),
   );
   if (output.stdout.trim()) console.error(output.stdout.trim());
   if (output.stderr.trim()) console.error(output.stderr.trim());
@@ -64,7 +64,7 @@ async function runNativeHost(
   emitResult: boolean,
 ): Promise<void> {
   const readiness = await waitForProofOrigin(url, {
-    timeoutMs: 10_000,
+    timeoutMs: AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.originReadiness,
     retryIntervalMs: 25,
   });
   console.error(
@@ -79,7 +79,7 @@ async function runNativeHost(
   const output = await executeBoundedProcess(
     host.command,
     host.args,
-    { timeoutMs: NATIVE_PROOF_TIMEOUT_MS },
+    { timeoutMs: AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.outerNativeHostProcess },
   );
   const stdout = output.stdout.trim();
   const stderr = output.stderr.trim();
