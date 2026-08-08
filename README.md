@@ -7,7 +7,7 @@ in APA 7 style. It runs without an account, and your papers remain on your
 computer. The interface and each document can use English or Spanish
 independently.
 
-Version 0.1.1 supports student papers on macOS 11 or newer. It is distributed
+Version 0.1.2 supports student papers on macOS 11 or newer. It is distributed
 as a DMG through GitHub Releases, not through the Mac App Store. Windows and
 Linux builds are checked in CI but are not published or supported yet.
 
@@ -16,7 +16,7 @@ Linux builds are checked in CI but are not published or supported yet.
 1. Download and open the DMG.
 2. Drag Tesina to the Applications folder.
 3. Open Tesina from Applications. macOS will block this first launch because
-   version 0.1.1 is not signed or notarized with an Apple Developer certificate.
+   version 0.1.2 is not signed or notarized with an Apple Developer certificate.
 4. In the **Tesina Not Opened** message, choose **Done**. Tesina will close. This
    is expected. Do not choose **Move to Trash** unless you want to delete the
    app.
@@ -59,7 +59,7 @@ An app update does not replace your locally saved papers.
 
 The updater verifies release artifacts with Tesina's updater key. This is
 separate from Apple Developer signing and notarization, which are not included
-in version 0.1.1.
+in version 0.1.2.
 
 ## Run from source
 

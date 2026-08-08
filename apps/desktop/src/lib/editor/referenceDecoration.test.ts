@@ -108,9 +108,12 @@ describe("live reference-page decoration", () => {
       editor.view.dispatch(
         editor.state.tr.setMeta("apa:references-external", true),
       );
-      expect(root?.querySelector("[data-reference-sheet='references']"))
-        .toBeNull();
-      expect(root?.textContent).not.toContain("No references yet");
+      const emptyPage = root?.querySelector(
+        "[data-reference-sheet='references']",
+      );
+      expect(emptyPage).not.toBeNull();
+      expect(emptyPage?.textContent).toContain("References");
+      expect(emptyPage?.textContent).toContain("No references yet");
       expect(root?.textContent).not.toContain("Rivera, A. (2024)");
 
       const appendixTwo = textPosition(editor.state.doc, "Appendix two");
@@ -130,7 +133,7 @@ describe("live reference-page decoration", () => {
     }
   });
 
-  it("omits a personal-only references widget and filters personal entries from a mixed widget", () => {
+  it("shows an empty-page hint for personal-only references and filters personal entries from a mixed widget", () => {
     const element = document.createElement("div");
     document.body.append(element);
     const referenceEnv = {
@@ -151,9 +154,14 @@ describe("live reference-page decoration", () => {
 
     try {
       const root = element.querySelector(".tiptap");
-      expect(root?.querySelector("[data-reference-sheet='references']"))
-        .toBeNull();
-      expect(root?.textContent).not.toContain("References");
+      const personalOnlyPage = root?.querySelector(
+        "[data-reference-sheet='references']",
+      );
+      expect(personalOnlyPage).not.toBeNull();
+      expect(personalOnlyPage?.textContent).toContain("No references yet");
+      expect(personalOnlyPage?.textContent).not.toContain(
+        "Conversation about writing",
+      );
 
       referenceEnv.references = [personalCommunication, reference];
       editor.view.dispatch(
@@ -166,6 +174,7 @@ describe("live reference-page decoration", () => {
       expect(page).not.toBeNull();
       expect(page?.textContent).toContain("Rivera, A. (2024)");
       expect(page?.textContent).not.toContain("Conversation about writing");
+      expect(page?.textContent).not.toContain("No references yet");
     } finally {
       editor.destroy();
       element.remove();

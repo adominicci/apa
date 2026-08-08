@@ -52,7 +52,5 @@
 </script>
 
 <div class="apa-editor" data-doclang={documentLanguage}>
-  <article class="paper-sheet">
-    <div class="paper-body" {@attach mountEditor}></div>
-  </article>
+  <div class="page-stack" {@attach mountEditor}></div>
 </div>

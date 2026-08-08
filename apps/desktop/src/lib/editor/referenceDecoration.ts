@@ -59,6 +59,13 @@ function renderReferencePage(
 
   page.replaceChildren(heading);
   page.setAttribute("aria-label", headingText);
+  if (entries.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "ref-empty";
+    empty.textContent = env.emptyLabel;
+    page.append(empty);
+    return;
+  }
   for (const entry of entries) {
     const paragraph = document.createElement("p");
     paragraph.className = "ref-entry";
@@ -80,7 +87,9 @@ function createReferencePage(env: ReferenceDecorationEnv): HTMLElement {
 /**
  * A derived, non-document references page positioned before the first
  * appendix. A ProseMirror widget keeps the page inside the one EditorView
- * without adding a schema node or moving editor-owned DOM.
+ * without adding a schema node or moving editor-owned DOM. The page is
+ * always present — a brand-new essay shows title page, body, and an empty
+ * references page — with a hint until the first citable entry exists.
  */
 export function createReferenceDecorationExtension(
   env: ReferenceDecorationEnv,
@@ -101,11 +110,6 @@ export function createReferenceDecorationExtension(
           },
           props: {
             decorations(state) {
-              const { entries } = buildReferenceList(
-                env.references,
-                env.locale,
-              );
-              if (entries.length === 0) return DecorationSet.empty;
               return DecorationSet.create(state.doc, [
                 Decoration.widget(
                   insertionPosition(state.doc),

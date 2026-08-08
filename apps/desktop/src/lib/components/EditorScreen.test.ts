@@ -576,6 +576,108 @@ describe("editor preview round trip", () => {
   });
 });
 
+describe("APA export title-page gate", () => {
+  it("shows a live validation error and resumes the export after a fixing save", async () => {
+    const essay = exportableEssay(bodyDoc("Seed"));
+    essay.titlePage.course = "PSYC 232"; // no colon → blocked
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    exportButton().click();
+    await vi.waitFor(() => {
+      expect(document.querySelector(".modal [role='alert']")).not.toBeNull();
+    });
+    expect(runtime.exportEssayToDocx).not.toHaveBeenCalled();
+    expect(document.querySelector(".modal [role='alert']")?.textContent).toBe(
+      m.titlepage_error_missing_course(),
+    );
+
+    const courseInput = document.querySelector<HTMLInputElement>(
+      `input[placeholder="${m.titlepage_course_placeholder()}"]`,
+    );
+    if (!courseInput) throw new Error("Course input not found");
+    courseInput.value = "PSYC 232: Desarrollo humano";
+    courseInput.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+    expect(document.querySelector(".modal [role='alert']")).toBeNull();
+
+    const saveButton = [
+      ...document.querySelectorAll<HTMLButtonElement>(".modal .btn-primary"),
+    ].find((button) => button.textContent === m.titlepage_save());
+    if (!saveButton) throw new Error("Save button not found");
+    saveButton.click();
+    await vi.waitFor(() => {
+      expect(runtime.exportEssayToDocx).toHaveBeenCalledOnce();
+    });
+    expect(document.querySelector(".modal")).toBeNull();
+
+    await unmount(component);
+  });
+
+  it("abandons a blocked export when the form is dismissed", async () => {
+    const essay = exportableEssay(bodyDoc("Seed"));
+    essay.titlePage.course = "PSYC 232"; // no colon → blocked
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    exportButton().click();
+    await vi.waitFor(() => {
+      expect(document.querySelector(".modal [role='alert']")).not.toBeNull();
+    });
+
+    const closeButton = [
+      ...document.querySelectorAll<HTMLButtonElement>(".modal .btn-ghost"),
+    ].find((button) => button.textContent === m.common_close());
+    if (!closeButton) throw new Error("Close button not found");
+    closeButton.click();
+    flushSync();
+    expect(document.querySelector(".modal")).toBeNull();
+
+    // Reopen later for an unrelated edit: no stale error, and a valid save
+    // must not launch the abandoned export.
+    document.querySelector<HTMLButtonElement>("button.out-item")!.click();
+    flushSync();
+    expect(document.querySelector(".modal [role='alert']")).toBeNull();
+
+    const courseInput = document.querySelector<HTMLInputElement>(
+      `input[placeholder="${m.titlepage_course_placeholder()}"]`,
+    );
+    if (!courseInput) throw new Error("Course input not found");
+    courseInput.value = "PSYC 232: Desarrollo humano";
+    courseInput.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+
+    const saveButton = [
+      ...document.querySelectorAll<HTMLButtonElement>(".modal .btn-primary"),
+    ].find((button) => button.textContent === m.titlepage_save());
+    if (!saveButton) throw new Error("Save button not found");
+    saveButton.click();
+    flushSync();
+    await drainMicrotasks();
+    expect(runtime.exportEssayToDocx).not.toHaveBeenCalled();
+
+    await unmount(component);
+  });
+});
+
 describe("APA export reference integrity", () => {
   it("preserves a newly cited reference deleted during the autosave debounce", async () => {
     vi.useFakeTimers();
