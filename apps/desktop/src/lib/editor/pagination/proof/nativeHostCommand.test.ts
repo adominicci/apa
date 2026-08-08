@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { nativeHostCommand } from "./nativeHostCommand.ts";
 
@@ -12,7 +13,11 @@ describe("native proof direct host command", () => {
   it("selects the Swift WKWebView runner on macOS", () => {
     expect(nativeHostCommand("darwin", inputs)).toEqual({
       command: "xcrun",
-      args: ["swift", "/proof/WKWebViewProofRunner.swift", inputs.url.href],
+      args: [
+        "swift",
+        resolve(inputs.proofDir, "WKWebViewProofRunner.swift"),
+        inputs.url.href,
+      ],
     });
   });
 
