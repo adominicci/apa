@@ -1147,7 +1147,12 @@
     settings={essay.settings}
     validationMessage={titlePageValidationError}
     onSave={handleSaveTitlePage}
-    onClose={() => (titleFormOpen = false)}
+    onClose={() => {
+      titleFormOpen = false;
+      // Dismissing the form abandons the blocked export, so a later
+      // unrelated save doesn't resume it unexpectedly.
+      titlePageValidationError = "";
+    }}
   />
 {/if}
 
