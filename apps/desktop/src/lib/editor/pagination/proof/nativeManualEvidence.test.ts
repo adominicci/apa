@@ -100,7 +100,7 @@ describe("native manual evidence reducer", () => {
         kind: "key-down",
         isTrusted: true,
         key: "Dead",
-        code: "Quote",
+        code: "Unidentified",
         isComposing: false,
         ctrlKey: false,
       },
@@ -151,6 +151,7 @@ describe("native manual evidence reducer", () => {
       deadKeyAfterSize: 109,
       deadKeyInsertionPos: 73,
       deadKeys: 1,
+      deadKeyCode: "Unidentified",
       undoKeys: 1,
       undoDocumentSize: 108,
       undoDocumentRestored: true,
@@ -222,8 +223,8 @@ describe("native manual evidence reducer", () => {
     state = recordNativeManualEvidence(state, {
       kind: "key-down",
       isTrusted: true,
-      key: "Dead",
-      code: "KeyA",
+      key: "'",
+      code: "Quote",
       isComposing: false,
       ctrlKey: false,
     });
@@ -239,7 +240,7 @@ describe("native manual evidence reducer", () => {
       kind: "key-down",
       isTrusted: true,
       key: "Dead",
-      code: "Quote",
+      code: "",
       isComposing: false,
       ctrlKey: false,
     });
@@ -258,6 +259,7 @@ describe("native manual evidence reducer", () => {
     });
 
     expect(state.deadKeyData).toBe("é");
+    expect(state.deadKeyCode).toBe("");
     expect(state.undoDocumentSize).toBeNull();
     expect(nativeManualChecks(state, "windows-driven").ime).toBe(false);
   });

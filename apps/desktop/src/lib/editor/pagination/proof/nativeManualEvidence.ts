@@ -17,6 +17,7 @@ export interface NativeManualEvidence {
   caretBeforePos: number | null;
   caretAfterPos: number | null;
   deadKeys: number;
+  deadKeyCode: string;
   deadKeyBeforeSize: number | null;
   deadKeyAfterSize: number | null;
   deadKeyInsertionPos: number | null;
@@ -127,6 +128,7 @@ export function createNativeManualEvidence(): NativeManualEvidence {
     caretBeforePos: null,
     caretAfterPos: null,
     deadKeys: 0,
+    deadKeyCode: "",
     deadKeyBeforeSize: null,
     deadKeyAfterSize: null,
     deadKeyInsertionPos: null,
@@ -205,8 +207,10 @@ export function recordNativeManualEvidence(
     case "key-down":
       return {
         ...evidence,
-        deadKeys: evidence.deadKeys +
-          (event.key === "Dead" && event.code === "Quote" ? 1 : 0),
+        deadKeys: evidence.deadKeys + (event.key === "Dead" ? 1 : 0),
+        deadKeyCode: event.key === "Dead"
+          ? event.code ?? ""
+          : evidence.deadKeyCode,
         rightKeys: evidence.rightKeys +
           (event.key === "ArrowRight" ? 1 : 0),
         undoKeys: evidence.undoKeys +

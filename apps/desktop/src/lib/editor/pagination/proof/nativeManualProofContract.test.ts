@@ -72,7 +72,9 @@ describe("visible native manual-proof contract", () => {
       source.indexOf('addEventListener("compositionstart"'),
     );
     expect(deadKeyDownHandler).toContain('event.key === "Dead"');
-    expect(deadKeyDownHandler).toContain('event.code === "Quote"');
+    expect(deadKeyDownHandler).not.toContain('event.code === "Quote"');
+    expect(source).toContain("deadKeyCode: evidence.deadKeyCode");
+    expect(deadKeyDownHandler).toContain("deadKeyAcknowledgementPosted");
     expect(deadKeyDownHandler).toContain('stage: "dead-keydown"');
     expect(deadKeyDownHandler).not.toContain('addEventListener("keyup"');
     const compositionEndHandler = source.slice(

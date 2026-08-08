@@ -152,7 +152,7 @@ document.addEventListener("keydown", (event) => {
   });
   if (
     evidenceMode === "windows-driven" && event.isTrusted &&
-    event.key === "Dead" && event.code === "Quote" && editor
+    event.key === "Dead" && editor
   ) {
     if (deadKeyAcknowledgementPosted) {
       finish(false, "Duplicate trusted Dead keydown was received");
@@ -456,6 +456,7 @@ function finish(passed: boolean, error?: string): void {
       compositionUpdates: evidence.compositionUpdates,
       compositionEnds: evidence.compositionEnds,
       deadKeys: evidence.deadKeys,
+      deadKeyCode: evidence.deadKeyCode,
       deadKeyAckStage: deadKeyAcknowledgementPosted ? "trusted-keydown" : "",
       rightKeys: evidence.rightKeys,
       pasteSelectionPos: evidence.pasteSelectionPos,
