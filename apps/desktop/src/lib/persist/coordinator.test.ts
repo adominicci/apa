@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { PersistenceCoordinator } from "./coordinator";
+import { PersistenceCoordinator } from "./coordinator.ts";
 
 interface Deferred<T> {
   promise: Promise<T>;
