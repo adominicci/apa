@@ -309,6 +309,9 @@ function buildContent(locale: DocLocale): Record<string, unknown> {
             type: "apaEquation",
             attrs: { latex: "B = \\frac{r + c}{2}" },
           },
+          // Deliberately adjacent clean-room atomic pair. Real WebKit collapses
+          // the equation's bottom margin with the figure's top margin, so the
+          // production measurer must count that shared advance only once.
           {
             type: "figure",
             content: [

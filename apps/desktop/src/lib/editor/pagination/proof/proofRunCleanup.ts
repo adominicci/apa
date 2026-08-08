@@ -24,9 +24,12 @@ export async function cleanupProofRun(
     result.status === "rejected" ? [result.reason] : []
   );
 
-  if (previewError !== undefined) throw previewError;
-  if (cleanupErrors.length === 1) throw cleanupErrors[0];
-  if (cleanupErrors.length > 1) {
-    throw new AggregateError(cleanupErrors, "Native proof cleanup failed");
+  const errors = [
+    ...(previewError === undefined ? [] : [previewError]),
+    ...cleanupErrors,
+  ];
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1) {
+    throw new AggregateError(errors, "Native proof cleanup failed");
   }
 }

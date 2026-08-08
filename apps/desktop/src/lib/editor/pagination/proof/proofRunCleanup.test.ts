@@ -40,4 +40,28 @@ describe("native proof cleanup", () => {
       }),
     );
   });
+
+  it("reports preview shutdown and every directory removal failure together", async () => {
+    const removableDirectory = await mkdtemp(
+      resolve(tmpdir(), "tesina-proof-aggregate-cleanup-test-"),
+    );
+    temporaryDirectories.add(removableDirectory);
+    await writeFile(resolve(removableDirectory, "artifact"), "generated");
+    const closeError = new Error("preview close failed");
+
+    const result = await cleanupProofRun(
+      [removableDirectory, "\0dist", "\0profile"],
+      { close: async () => await Promise.reject(closeError) },
+    ).catch((error: unknown) => error);
+
+    expect(result).toBeInstanceOf(AggregateError);
+    const errors = (result as AggregateError).errors;
+    expect(errors).toHaveLength(3);
+    expect(errors[0]).toBe(closeError);
+    expect(errors[1]).toBeInstanceOf(Error);
+    expect(errors[2]).toBeInstanceOf(Error);
+    await expect(stat(removableDirectory)).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
 });

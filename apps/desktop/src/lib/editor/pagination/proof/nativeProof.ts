@@ -7,6 +7,7 @@ import {
   createPaginationMeasurer,
   type PaginationMeasurer,
 } from "../measure.ts";
+import type { MeasuredFragment, RepeatedTableHeader } from "../types.ts";
 import { createLongDocumentFixtures } from "./longDocumentFixture.ts";
 import {
   createDisposablePaginationProofPlugin,
@@ -92,6 +93,43 @@ function positionsOf(doc: PMNode, type: string): number[] {
     return true;
   });
   return result;
+}
+
+function sameRepeatedHeader(
+  left: RepeatedTableHeader | undefined,
+  right: RepeatedTableHeader | undefined,
+): boolean {
+  if (!left || !right) return left === right;
+  return Math.abs(left.height - right.height) < 0.5 &&
+    left.cells.length === right.cells.length &&
+    left.cells.every((cell, index) => {
+      const other = right.cells[index];
+      return cell.text === other?.text && cell.colSpan === other.colSpan;
+    });
+}
+
+function sameTableFragmentMetrics(
+  left: readonly MeasuredFragment[],
+  right: readonly MeasuredFragment[],
+): boolean {
+  return left.length === right.length && left.every((fragment, index) => {
+    const other = right[index];
+    if (!other) return false;
+    const sameTable = !fragment.table || !other.table
+      ? fragment.table === other.table
+      : fragment.table.tableId === other.table.tableId &&
+        fragment.table.columnCount === other.table.columnCount &&
+        sameRepeatedHeader(
+          fragment.table.repeatedHeader,
+          other.table.repeatedHeader,
+        );
+    return fragment.id === other.id && fragment.from === other.from &&
+      fragment.to === other.to && fragment.section === other.section &&
+      fragment.kind === other.kind &&
+      Math.abs(fragment.height - other.height) < 0.5 &&
+      fragment.breakBefore.kind === other.breakBefore.kind &&
+      fragment.breakBefore.pos === other.breakBefore.pos && sameTable;
+  });
 }
 
 function textHasMarkBetween(
@@ -320,11 +358,15 @@ async function runProof(): Promise<ProofResult> {
     const firstTableVisualHeight = firstTable.getBoundingClientRect().height +
       Number.parseFloat(firstTableStyle.marginTop) +
       Number.parseFloat(firstTableStyle.marginBottom);
-    const firstTableMeasuredHeight = initialMeasurement.fragments.filter(
+    const firstTableFragments = initialMeasurement.fragments.filter(
       (fragment) =>
         fragment.from >= firstTablePos &&
         fragment.to <= firstTablePos + firstTableNode.nodeSize,
-    ).reduce((total, fragment) => total + fragment.height, 0);
+    );
+    const firstTableMeasuredHeight = firstTableFragments.reduce(
+      (total, fragment) => total + fragment.height,
+      0,
+    );
     const tableWrapperMarginsMeasured = Math.abs(
       firstTableMeasuredHeight - firstTableVisualHeight,
     ) < 0.5;
@@ -355,6 +397,32 @@ async function runProof(): Promise<ProofResult> {
     const runInMeasurementMatchesVisualSpan = Math.abs(
       measuredRunInHeight - runInVisualHeight,
     ) < 0.5;
+    const equationPos = positionsOf(editor.state.doc, "apaEquation")[0]!;
+    const adjacentFigurePos = positionsOf(editor.state.doc, "figure")[1]!;
+    const equationNode = editor.state.doc.nodeAt(equationPos)!;
+    const adjacentFigureNode = editor.state.doc.nodeAt(adjacentFigurePos)!;
+    const equationElement = editor.view.nodeDOM(equationPos) as HTMLElement;
+    const adjacentFigureElement = editor.view.nodeDOM(
+      adjacentFigurePos,
+    ) as HTMLElement;
+    const equationRect = equationElement.getBoundingClientRect();
+    const adjacentFigureRect = adjacentFigureElement.getBoundingClientRect();
+    const equationStyle = getComputedStyle(equationElement);
+    const adjacentFigureStyle = getComputedStyle(adjacentFigureElement);
+    const adjacentAtomicVisualAdvance = adjacentFigureRect.bottom +
+      Number.parseFloat(adjacentFigureStyle.marginBottom) -
+      (equationRect.top - Number.parseFloat(equationStyle.marginTop));
+    const adjacentAtomicMeasuredAdvance = initialMeasurement.fragments.filter(
+      (fragment) =>
+        fragment.from >= equationPos &&
+        fragment.to <= adjacentFigurePos + adjacentFigureNode.nodeSize,
+    ).reduce((total, fragment) => total + fragment.height, 0);
+    const adjacentAtomicMarginsMeasuredOnce =
+      equationPos + equationNode.nodeSize === adjacentFigurePos &&
+      equationElement.nextElementSibling === adjacentFigureElement &&
+      Math.abs(
+          adjacentAtomicMeasuredAdvance - adjacentAtomicVisualAdvance,
+        ) < 0.5;
     const starts = paragraphLines.map((fragment) => fragment.breakBefore.pos);
     if (starts.length < 4) {
       throw new Error(
@@ -647,6 +715,23 @@ async function runProof(): Promise<ProofResult> {
     const tableGapNextTag = gapRow.nextElementSibling?.tagName ?? "none";
     const validTableRowStructure = tableGapParentTag === "TBODY" &&
       gapRow.cells.length === 1 && gapRow.cells[0]?.colSpan === 3;
+    const tableGapMeasurement = await paginationMeasurer.read({
+      epoch: 3,
+      signal: new AbortController().signal,
+      latestEpoch: () => 3,
+    });
+    if (tableGapMeasurement.status !== "measured") {
+      throw new Error("Table-gap production measurement was stale");
+    }
+    const tableGapFragments = tableGapMeasurement.fragments.filter(
+      (fragment) =>
+        fragment.from >= firstTablePos &&
+        fragment.to <= firstTablePos + firstTableNode.nodeSize,
+    );
+    const tableGapMeasurementsNormalized = sameTableFragmentMetrics(
+      firstTableFragments,
+      tableGapFragments,
+    );
 
     const figurePos = positionsOf(editor.state.doc, "figure")[0]!;
     setDisposablePaginationProofPlan(editor, {
@@ -778,6 +863,7 @@ async function runProof(): Promise<ProofResult> {
       generatedSectionHeadingMeasured:
         generatedHeadingMeasurementMatchesVisualSpan,
       tableWrapperMarginsMeasured,
+      adjacentAtomicMarginsMeasuredOnce,
       runInHeadingMeasuredOnce: runInMeasurementMatchesVisualSpan,
       tableContinuationHeaderMeasured:
         tableFragments[0]?.table?.repeatedHeader === undefined &&
@@ -791,6 +877,7 @@ async function runProof(): Promise<ProofResult> {
             0,
           ) === 3,
       existingDecorationsNormalized,
+      tableGapMeasurementsNormalized,
       authoredDeletionReflow: initialTrailingPlan.gaps.length === 1 &&
         deletionReplanCount === 2 && mappedGapCountAfterDeletion === 1 &&
         postDeleteDerivedGapCount === 0 && trailingGapRemovedAfterDelete &&
@@ -862,6 +949,8 @@ async function runProof(): Promise<ProofResult> {
         generatedHeadingMeasuredHeight,
         firstTableVisualHeight,
         firstTableMeasuredHeight,
+        adjacentAtomicVisualAdvance,
+        adjacentAtomicMeasuredAdvance,
         measuredRunInHeight,
         runInVisualHeight,
         repeatedTableHeaderHeight: repeatedTableHeader?.height ?? 0,

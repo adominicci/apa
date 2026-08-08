@@ -475,6 +475,60 @@ function textFragments(
   });
 }
 
+const MARGIN_COLLAPSING_BLOCKS = new Set([
+  "apaTable",
+  "figure",
+  "apaEquation",
+]);
+
+function collapsedVerticalMargin(first: number, second: number): number {
+  return Math.max(0, first, second) + Math.min(0, first, second);
+}
+
+function collapseAdjacentAtomicMargins(
+  view: EditorView,
+  sectionNode: PMNode,
+  sectionPos: number,
+  fragments: MeasuredFragment[],
+): void {
+  let previousBottomMargin: number | null = null;
+  sectionNode.forEach((node, offset) => {
+    if (!MARGIN_COLLAPSING_BLOCKS.has(node.type.name)) {
+      previousBottomMargin = null;
+      return;
+    }
+    const pos = sectionPos + 1 + offset;
+    const element = elementAt(view, pos);
+    const ownerWindow = element?.ownerDocument.defaultView;
+    if (!element || !ownerWindow) {
+      previousBottomMargin = null;
+      return;
+    }
+    const style = ownerWindow.getComputedStyle(element);
+    const topMargin = cssNumber(style.marginTop);
+    const bottomMargin = cssNumber(style.marginBottom);
+    if (previousBottomMargin !== null) {
+      // Each block measurement already owns both of its margins. Adjacent
+      // vertical margins collapse in native layout, so assign the shared
+      // margin to the previous block and remove only the duplicated portion
+      // from the current block's first fragment.
+      const duplicatedMargin = previousBottomMargin + topMargin -
+        collapsedVerticalMargin(previousBottomMargin, topMargin);
+      const fragmentIndex = fragments.findIndex((fragment) =>
+        fragment.from >= pos && fragment.to <= pos + node.nodeSize
+      );
+      if (fragmentIndex >= 0 && duplicatedMargin !== 0) {
+        const fragment = fragments[fragmentIndex]!;
+        fragments[fragmentIndex] = {
+          ...fragment,
+          height: Math.max(0, fragment.height - duplicatedMargin),
+        };
+      }
+    }
+    previousBottomMargin = bottomMargin;
+  });
+}
+
 function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
   const fragments: MeasuredFragment[] = [];
   const emptySections: EmptySection[] = [];
@@ -533,10 +587,12 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
           ? element
           : element.querySelector("table");
         if (!tableElement) return true;
-        const rowHeight = Array.from(tableElement.rows).reduce(
-          (total, row) => total + row.getBoundingClientRect().height,
-          0,
-        );
+        const rowHeight = Array.from(tableElement.rows)
+          .filter((row) => !row.matches(GAP_SELECTOR))
+          .reduce(
+            (total, row) => total + row.getBoundingClientRect().height,
+            0,
+          );
         const tableChromeHeight = Math.max(
           0,
           heightWithoutGaps(tableElement) - rowHeight,
@@ -656,6 +712,13 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
       }
       return true;
     });
+
+    collapseAdjacentAtomicMargins(
+      view,
+      sectionNode,
+      sectionPos,
+      sectionFragments,
+    );
 
     if (sectionFragments.length === 0) {
       emptySections.push({ section, pos: sectionPos + 1 });
