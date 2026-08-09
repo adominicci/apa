@@ -62,6 +62,7 @@ import {
   AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS,
   NATIVE_EXPANDED_PROOF_BUDGET_MS,
 } from "./nativeProofDeadlines.ts";
+import { nativeWorkloadTrimPosition } from "./nativeWorkloadCalibration.ts";
 import { startProofPageWatchdog } from "./proofPageWatchdog.ts";
 import "./nativeProof.css";
 
@@ -136,6 +137,179 @@ function positionsOf(doc: PMNode, type: string): number[] {
     return true;
   });
   return result;
+}
+
+interface DomBreakLine {
+  top: number;
+  height: number;
+  pos: number;
+}
+
+function domBreakLines(editor: Editor, element: HTMLElement): DomBreakLine[] {
+  const lines: DomBreakLine[] = [];
+  for (const breakElement of element.querySelectorAll("br")) {
+    if (
+      breakElement.closest(
+        "[data-pagination-gap], [data-pagination-proof-gap]",
+      )
+    ) continue;
+    const parent = breakElement.parentNode;
+    if (!parent) continue;
+    const offset = [...parent.childNodes].indexOf(breakElement);
+    if (offset < 0) continue;
+    const rect = breakElement.getBoundingClientRect();
+    const top = rect.top;
+    const pos = editor.view.posAtDOM(parent, offset);
+    const line = lines.find((entry) => Math.abs(entry.top - top) < 0.75);
+    if (line) {
+      line.height = Math.max(line.height, rect.height);
+      line.pos = Math.min(line.pos, pos);
+    } else lines.push({ top, height: rect.height, pos });
+  }
+  return lines.sort((left, right) =>
+    left.top - right.top || left.pos - right.pos
+  );
+}
+
+function measuredLineSpan(
+  fragments: readonly { height: number }[],
+): number {
+  return fragments.reduce((total, fragment) => total + fragment.height, 0);
+}
+
+function visualLineSpan(
+  lines: readonly DomBreakLine[],
+  lineHeight: number,
+): number {
+  const first = lines[0];
+  const last = lines.at(-1);
+  return first && last ? last.top - first.top + lineHeight : 0;
+}
+
+interface NativeHardBreakEvidence {
+  passed: boolean;
+  trailingDomLines: number;
+  trailingMeasuredLines: number;
+  breakOnlyDomLines: number;
+  breakOnlyMeasuredLines: number;
+  trailingVisualSpan: number;
+  trailingMeasuredSpan: number;
+  breakOnlyVisualSpan: number;
+  breakOnlyMeasuredSpan: number;
+}
+
+async function measureNativeHardBreakEvidence(
+  host: HTMLElement,
+): Promise<NativeHardBreakEvidence> {
+  const mount = document.createElement("div");
+  mount.className = "page-stack";
+  mount.dataset["hardBreakProof"] = "true";
+  host.append(mount);
+  const editor = createTesinaEditor({
+    element: mount,
+    content: {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "This invented native line ends with a forced break.",
+              },
+              { type: "hardBreak" },
+            ],
+          },
+          {
+            type: "paragraph",
+            content: [{ type: "hardBreak" }, { type: "hardBreak" }],
+          },
+        ],
+      }],
+    },
+    newlyCreated: true,
+    citationEnv: { refsById: new Map(), locale: "en" },
+    referenceEnv: { references: [], locale: "en", emptyLabel: "unused" },
+    paginationEnv: null,
+  });
+  const measurer = createPaginationMeasurer({
+    view: editor.view,
+    onInvalidate: () => {},
+  });
+  try {
+    const measurement = await measurer.read({
+      epoch: 1,
+      signal: new AbortController().signal,
+      latestEpoch: () => 1,
+    });
+    if (measurement.status !== "measured") {
+      throw new Error("Native hard-break measurement was stale");
+    }
+    const paragraphPositions = positionsOf(editor.state.doc, "paragraph");
+    const trailingPos = paragraphPositions[0]!;
+    const breakOnlyPos = paragraphPositions[1]!;
+    const trailingParagraph = editor.view.nodeDOM(trailingPos) as HTMLElement;
+    const breakOnlyParagraph = editor.view.nodeDOM(breakOnlyPos) as HTMLElement;
+    const trailingDomLines = domBreakLines(editor, trailingParagraph);
+    const breakOnlyDomLines = domBreakLines(editor, breakOnlyParagraph);
+    const trailingMeasuredLines = measurement.fragments.filter((fragment) =>
+      fragment.lineGroup?.id === `text:${trailingPos}`
+    );
+    const breakOnlyMeasuredLines = measurement.fragments.filter((fragment) =>
+      fragment.lineGroup?.id === `text:${breakOnlyPos}`
+    );
+    const lineHeight = Number.parseFloat(
+      getComputedStyle(breakOnlyParagraph).lineHeight,
+    );
+    const evidence: NativeHardBreakEvidence = {
+      passed: Number.isFinite(lineHeight) && lineHeight > 0 &&
+        trailingDomLines.length === 2 && breakOnlyDomLines.length === 3 &&
+        trailingMeasuredLines.length === trailingDomLines.length &&
+        breakOnlyMeasuredLines.length === breakOnlyDomLines.length &&
+        trailingMeasuredLines.at(-1)?.breakBefore.pos ===
+          trailingDomLines.at(-1)?.pos &&
+        breakOnlyMeasuredLines.every((fragment, index) =>
+          fragment.breakBefore.pos === breakOnlyDomLines[index]?.pos
+        ) &&
+        Math.abs(
+            measuredLineSpan(trailingMeasuredLines) -
+              visualLineSpan(trailingDomLines, lineHeight),
+          ) < 0.5 &&
+        Math.abs(
+            measuredLineSpan(breakOnlyMeasuredLines) -
+              visualLineSpan(breakOnlyDomLines, lineHeight),
+          ) < 0.5,
+      trailingDomLines: trailingDomLines.length,
+      trailingMeasuredLines: trailingMeasuredLines.length,
+      breakOnlyDomLines: breakOnlyDomLines.length,
+      breakOnlyMeasuredLines: breakOnlyMeasuredLines.length,
+      trailingVisualSpan: visualLineSpan(trailingDomLines, lineHeight),
+      trailingMeasuredSpan: measuredLineSpan(trailingMeasuredLines),
+      breakOnlyVisualSpan: visualLineSpan(breakOnlyDomLines, lineHeight),
+      breakOnlyMeasuredSpan: measuredLineSpan(breakOnlyMeasuredLines),
+    };
+    diagnostic("native-hard-break-evidence", {
+      lineHeight,
+      trailingDom: trailingDomLines,
+      trailingMeasured: trailingMeasuredLines.map((fragment) => ({
+        pos: fragment.breakBefore.pos,
+        height: fragment.height,
+      })),
+      breakOnlyDom: breakOnlyDomLines,
+      breakOnlyMeasured: breakOnlyMeasuredLines.map((fragment) => ({
+        pos: fragment.breakBefore.pos,
+        height: fragment.height,
+      })),
+      ...evidence,
+    });
+    return evidence;
+  } finally {
+    measurer.destroy();
+    editor.destroy();
+    mount.remove();
+  }
 }
 
 function textHasMarkBetween(
@@ -665,6 +839,15 @@ async function runNativePerformanceWorkload(
     );
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const authored = baseline.pageCount?.authored ?? 0;
+      diagnostic("native-performance-calibration-attempt", {
+        targetPages,
+        attempt,
+        authored,
+        paragraphCount: positionsOf(editor.state.doc, "paragraph").length,
+        docContentSize: editor.state.doc.content.size,
+        nextPageStart: baseline.visiblePlan?.pageStarts[targetPages] ??
+          baseline.lastStablePlan?.pageStarts[targetPages] ?? null,
+      });
       if (authored === targetPages) break;
       const plan = baseline.visiblePlan ?? baseline.lastStablePlan;
       if (!plan) throw new Error("Native workload has no stable plan");
@@ -676,7 +859,17 @@ async function runNativePerformanceWorkload(
             `Cannot trim ${authored} authored pages to ${targetPages}`,
           );
         }
-        editor.view.dispatch(editor.state.tr.delete(cutoff, documentEnd));
+        const trimFrom = nativeWorkloadTrimPosition(
+          cutoff,
+          positionsOf(editor.state.doc, "paragraph"),
+        );
+        diagnostic("native-performance-calibration-trim", {
+          targetPages,
+          cutoff,
+          trimFrom,
+          documentEnd,
+        });
+        editor.view.dispatch(editor.state.tr.delete(trimFrom, documentEnd));
       } else {
         const paragraphType = editor.schema.nodes["paragraph"];
         if (!paragraphType) throw new Error("Paragraph schema is unavailable");
@@ -1013,6 +1206,9 @@ async function runProof(): Promise<ProofResult> {
     }
     const paragraphLines = initialMeasurement.fragments.filter((fragment) =>
       fragment.lineGroup?.id === `text:${paragraphPos}`
+    );
+    const hardBreakEvidence = await measureNativeHardBreakEvidence(
+      requireElement<HTMLElement>("#proof-editor"),
     );
     const tableFragments = initialMeasurement.fragments.filter((fragment) =>
       fragment.kind === "tableRow"
@@ -2015,6 +2211,7 @@ async function runProof(): Promise<ProofResult> {
       productionPaginationStack: productionComposition.total ===
           firstProductionStable.pageCount!.total + 1 &&
         productionPageChromeSequential && productionReferencesBeforeAppendix,
+      hardBreakOnlyLinesMeasured: hardBreakEvidence.passed,
       productionPageChromeInert,
       productionScaleInvariantCount,
       productionJsonIdentity,
@@ -2044,6 +2241,14 @@ async function runProof(): Promise<ProofResult> {
       checks,
       metrics: {
         measuredParagraphLines: starts.length,
+        trailingBreakDomLines: hardBreakEvidence.trailingDomLines,
+        trailingBreakMeasuredLines: hardBreakEvidence.trailingMeasuredLines,
+        hardBreakOnlyDomLines: hardBreakEvidence.breakOnlyDomLines,
+        hardBreakOnlyMeasuredLines: hardBreakEvidence.breakOnlyMeasuredLines,
+        trailingBreakVisualSpan: hardBreakEvidence.trailingVisualSpan,
+        trailingBreakMeasuredSpan: hardBreakEvidence.trailingMeasuredSpan,
+        hardBreakOnlyVisualSpan: hardBreakEvidence.breakOnlyVisualSpan,
+        hardBreakOnlyMeasuredSpan: hardBreakEvidence.breakOnlyMeasuredSpan,
         measuredFragments: initialMeasurement.fragments.length,
         measuredListLines: initialMeasurement.fragments.filter((fragment) =>
           fragment.kind === "listItem"

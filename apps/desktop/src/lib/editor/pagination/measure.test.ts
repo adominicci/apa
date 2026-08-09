@@ -422,4 +422,142 @@ describe("text line sampling", () => {
       mount.remove();
     }
   });
+
+  it("measures trailing and hard-break-only visual lines through the production adapter", () => {
+    const mount = document.createElement("div");
+    document.body.append(mount);
+    const editor = createTesinaEditor({
+      element: mount,
+      content: {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "Lead" },
+                { type: "hardBreak" },
+              ],
+            },
+            {
+              type: "paragraph",
+              content: [{ type: "hardBreak" }, { type: "hardBreak" }],
+            },
+          ],
+        }],
+      },
+      newlyCreated: true,
+      citationEnv: { refsById: new Map(), locale: "en" },
+      referenceEnv: { references: [], locale: "en", emptyLabel: "unused" },
+      paginationEnv: null,
+    });
+    const paragraphPositions: number[] = [];
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "paragraph") paragraphPositions.push(pos);
+      return true;
+    });
+    const trailingPos = paragraphPositions[0]!;
+    const breakOnlyPos = paragraphPositions[1]!;
+    const trailing = editor.view.nodeDOM(trailingPos) as HTMLElement;
+    const breakOnly = editor.view.nodeDOM(breakOnlyPos) as HTMLElement;
+    const textNode = trailing.firstChild!;
+    const trailingBreaks = [...trailing.querySelectorAll("br")];
+    const breakOnlyBreaks = [...breakOnly.querySelectorAll("br")];
+
+    expect(trailingBreaks.map((element) => element.className)).toEqual([
+      "",
+      "ProseMirror-trailingBreak",
+    ]);
+    expect(breakOnlyBreaks.map((element) => element.className)).toEqual([
+      "",
+      "",
+      "ProseMirror-trailingBreak",
+    ]);
+    vi.spyOn(trailing, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 100, 624, 40),
+    );
+    vi.spyOn(breakOnly, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 200, 624, 60),
+    );
+    trailingBreaks.forEach((element, index) => {
+      vi.spyOn(element, "getBoundingClientRect").mockReturnValue(
+        new DOMRect(32, 100 + index * 20, 0, 16),
+      );
+    });
+    breakOnlyBreaks.forEach((element, index) => {
+      vi.spyOn(element, "getBoundingClientRect").mockReturnValue(
+        new DOMRect(0, 200 + index * 20, 0, 16),
+      );
+    });
+    const derivedGap = document.createElement("span");
+    derivedGap.dataset.paginationGap = "true";
+    const derivedGapBreak = document.createElement("br");
+    derivedGap.append(derivedGapBreak);
+    trailing.append(derivedGap);
+    vi.spyOn(derivedGap, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 180, 0, 0),
+    );
+    vi.spyOn(derivedGapBreak, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 180, 0, 16),
+    );
+    const rangeSpy = vi.spyOn(document, "createRange").mockImplementation(
+      () =>
+        ({
+          setStart(node: Node) {
+            expect(node).toBe(textNode);
+          },
+          setEnd(node: Node) {
+            expect(node).toBe(textNode);
+          },
+          getClientRects() {
+            return [new DOMRect(0, 100, 32, 16)] as unknown as DOMRectList;
+          },
+        }) as unknown as Range,
+    );
+    const getComputedStyle = globalThis.getComputedStyle.bind(globalThis);
+    const styleSpy = vi.spyOn(globalThis, "getComputedStyle")
+      .mockImplementation(
+        (element, pseudoElement) =>
+          pseudoElement
+            ? {
+              display: "none",
+              content: "none",
+            } as CSSStyleDeclaration
+            : getComputedStyle(element),
+      );
+
+    try {
+      const snapshot = browserPaginationLayoutAdapter.readLayout(editor.view);
+      const trailingLines = snapshot.fragments.filter((fragment) =>
+        fragment.lineGroup?.id === `text:${trailingPos}`
+      );
+      const breakOnlyLines = snapshot.fragments.filter((fragment) =>
+        fragment.lineGroup?.id === `text:${breakOnlyPos}`
+      );
+      const trailingParent = trailingBreaks[1]!.parentNode!;
+
+      expect(trailingLines.map((line) => line.breakBefore.pos)).toEqual([
+        editor.view.posAtDOM(textNode, 0),
+        editor.view.posAtDOM(
+          trailingParent,
+          [...trailingParent.childNodes].indexOf(trailingBreaks[1]!),
+        ),
+      ]);
+      expect(breakOnlyLines.map((line) => line.breakBefore.pos)).toEqual(
+        breakOnlyBreaks.map((element) => {
+          const parent = element.parentNode!;
+          return editor.view.posAtDOM(
+            parent,
+            [...parent.childNodes].indexOf(element),
+          );
+        }),
+      );
+    } finally {
+      styleSpy.mockRestore();
+      rangeSpy.mockRestore();
+      editor.destroy();
+      mount.remove();
+    }
+  });
 });

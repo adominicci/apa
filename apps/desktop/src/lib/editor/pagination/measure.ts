@@ -387,6 +387,28 @@ function firstVisibleOffsetForLine(
   return Math.max(0, low - 1);
 }
 
+function mergeLineSamples(
+  samples: readonly LineSample[],
+): LineMeasurement[] {
+  const lines: LineMeasurement[] = [];
+  for (
+    const sample of [...samples].sort((left, right) =>
+      left.top - right.top || left.pos - right.pos
+    )
+  ) {
+    const line = lines.find((entry) =>
+      Math.abs(entry.top - sample.top) <= LINE_TOLERANCE
+    );
+    if (line) {
+      line.bottom = Math.max(line.bottom, sample.bottom);
+      line.pos = Math.min(line.pos, sample.pos);
+    } else {
+      lines.push({ ...sample });
+    }
+  }
+  return lines;
+}
+
 /**
  * Enumerates each text node once, then locates only the first visible
  * character on each wrapped line with cached binary prefix probes.
@@ -416,23 +438,34 @@ export function measureTextLineSamples(
     }
   }
 
-  const lines: LineMeasurement[] = [];
-  for (
-    const sample of samples.sort((left, right) =>
-      left.top - right.top || left.pos - right.pos
-    )
-  ) {
-    const line = lines.find((entry) =>
-      Math.abs(entry.top - sample.top) <= LINE_TOLERANCE
-    );
-    if (line) {
-      line.bottom = Math.max(line.bottom, sample.bottom);
-      line.pos = Math.min(line.pos, sample.pos);
-    } else {
-      lines.push({ ...sample });
-    }
+  return mergeLineSamples(samples);
+}
+
+function hardBreakLineSamples(
+  view: EditorView,
+  element: HTMLElement,
+  fallbackPos: number,
+  fallbackLineHeight: number,
+  scale: number,
+  gaps: readonly LayoutRect[],
+): LineSample[] {
+  const samples: LineSample[] = [];
+  for (const breakElement of element.querySelectorAll("br")) {
+    if (breakElement.closest(GAP_SELECTOR)) continue;
+    const parent = breakElement.parentNode;
+    if (!parent) continue;
+    const offset = [...parent.childNodes].indexOf(breakElement);
+    if (offset < 0) continue;
+    const rect = canonicalRect(breakElement.getBoundingClientRect(), scale);
+    const top = normalizedTop(rect.top, gaps);
+    if (!Number.isFinite(top)) continue;
+    samples.push({
+      top,
+      bottom: top + Math.max(rect.height, fallbackLineHeight),
+      pos: mapDomPosition(view, parent, offset, fallbackPos),
+    });
   }
-  return lines;
+  return samples;
 }
 
 function lineMeasurements(
@@ -445,6 +478,11 @@ function lineMeasurements(
   const ownerWindow = ownerDocument.defaultView;
   const showText = ownerWindow?.NodeFilter.SHOW_TEXT ?? 4;
   const gaps = paginationGaps(element, scale);
+  const elementRect = canonicalRect(element.getBoundingClientRect(), scale);
+  const style = ownerWindow?.getComputedStyle(element);
+  const fallbackLineHeight = style
+    ? lineHeight(style, elementRect.height)
+    : Math.max(1, elementRect.height);
   const probes: TextLineProbe[] = [];
   const walker = ownerDocument.createTreeWalker(element, showText);
   for (let current = walker.nextNode(); current; current = walker.nextNode()) {
@@ -473,17 +511,22 @@ function lineMeasurements(
       },
     });
   }
-  const lines = measureTextLineSamples(probes);
+  const lines = mergeLineSamples([
+    ...measureTextLineSamples(probes),
+    ...hardBreakLineSamples(
+      view,
+      element,
+      fallbackPos,
+      fallbackLineHeight,
+      scale,
+      gaps,
+    ),
+  ]);
 
   if (lines.length === 0) {
-    const rect = canonicalRect(element.getBoundingClientRect(), scale);
-    const style = ownerWindow?.getComputedStyle(element);
-    const height = style
-      ? lineHeight(style, rect.height)
-      : Math.max(1, rect.height);
     return [{
-      top: normalizedTop(rect.top, gaps),
-      bottom: rect.top + height,
+      top: normalizedTop(elementRect.top, gaps),
+      bottom: elementRect.top + fallbackLineHeight,
       pos: fallbackPos,
     }];
   }
