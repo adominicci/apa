@@ -1,4 +1,5 @@
 mod backup_directory;
+mod external_files;
 
 use tauri::Manager;
 
@@ -41,6 +42,7 @@ pub fn run() {
             backup_directory::backup_ledger_entries,
             backup_directory::backup_status,
             backup_directory::backup_disable,
+            external_files::external_rename_no_replace,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -239,6 +239,11 @@ impl BackupDirectoryCore {
         }
     }
 
+    fn start_configuration_operation(&self) -> u64 {
+        self.invalidate_current_configuration_epoch();
+        self.configuration_epoch()
+    }
+
     fn require_configuration_epoch(&self, expected: u64) -> Result<(), BackupError> {
         if self.configuration_epoch() != expected {
             return Err(BackupError::new(
@@ -273,8 +278,18 @@ impl BackupDirectoryCore {
 
     /// Validates a picker-provided folder, creates the `Tesina Backups`
     /// subfolder, and stores it as the pending selection without persisting.
-    pub fn begin_configuration(&self, path: &str) -> Result<PendingConfiguration, BackupError> {
-        self.invalidate_current_configuration_epoch();
+    #[cfg(test)]
+    fn begin_configuration(&self, path: &str) -> Result<PendingConfiguration, BackupError> {
+        let epoch = self.start_configuration_operation();
+        self.begin_configuration_at_epoch(path, epoch)
+    }
+
+    fn begin_configuration_at_epoch(
+        &self,
+        path: &str,
+        epoch: u64,
+    ) -> Result<PendingConfiguration, BackupError> {
+        self.require_configuration_epoch(epoch)?;
         let selected = PathBuf::from(path);
         let metadata = fs::symlink_metadata(&selected)
             .map_err(|error| BackupError::io("selected folder is not accessible", &error))?;
@@ -317,6 +332,7 @@ impl BackupDirectoryCore {
             backup_subfolder_path: subfolder.to_string_lossy().into_owned(),
         };
         let mut inner = self.lock();
+        self.claim_configuration_commit(epoch)?;
         inner.pending = Some(PendingState {
             canonical_folder_path: canonical,
             test_archives: Vec::new(),
@@ -350,7 +366,8 @@ impl BackupDirectoryCore {
     /// active authorization (old files untouched), and clears pending.
     #[cfg(test)]
     fn activate_configuration(&self) -> Result<ActiveConfiguration, BackupError> {
-        self.activate_configuration_at_epoch(self.configuration_epoch())
+        let epoch = self.start_configuration_operation();
+        self.activate_configuration_at_epoch(epoch)
     }
 
     fn activate_configuration_at_epoch(
@@ -1032,10 +1049,51 @@ async fn run_activation_with_timeout(
     timeout: Duration,
     core: BackupDirectoryCore,
 ) -> Result<ActiveConfiguration, BackupError> {
-    let epoch = core.configuration_epoch();
+    let epoch = core.start_configuration_operation();
     let worker = core.clone();
     let mut task =
         tauri::async_runtime::spawn_blocking(move || worker.activate_configuration_at_epoch(epoch));
+    match tokio::time::timeout(timeout, &mut task).await {
+        Err(_) => {
+            if core.invalidate_configuration_epoch(epoch) {
+                return Err(BackupError::new(
+                    BackupErrorCode::Timeout,
+                    "the selected backup folder did not respond before the timeout",
+                ));
+            }
+            if core.configuration_epoch() == epoch.wrapping_add(1) {
+                match task.await {
+                    Err(error) => Err(BackupError::new(
+                        BackupErrorCode::Io,
+                        format!("selected-folder worker failed: {error}"),
+                    )),
+                    Ok(result) => result,
+                }
+            } else {
+                Err(BackupError::new(
+                    BackupErrorCode::Timeout,
+                    "the selected backup folder did not respond before the timeout",
+                ))
+            }
+        }
+        Ok(Err(error)) => Err(BackupError::new(
+            BackupErrorCode::Io,
+            format!("selected-folder worker failed: {error}"),
+        )),
+        Ok(Ok(result)) => result,
+    }
+}
+
+async fn run_begin_configuration_with_timeout(
+    timeout: Duration,
+    core: BackupDirectoryCore,
+    path: String,
+) -> Result<PendingConfiguration, BackupError> {
+    let epoch = core.start_configuration_operation();
+    let worker = core.clone();
+    let mut task = tauri::async_runtime::spawn_blocking(move || {
+        worker.begin_configuration_at_epoch(&path, epoch)
+    });
     match tokio::time::timeout(timeout, &mut task).await {
         Err(_) => {
             if core.invalidate_configuration_epoch(epoch) {
@@ -1073,7 +1131,7 @@ pub async fn backup_begin_configuration(
     path: String,
 ) -> Result<PendingConfiguration, BackupError> {
     let core = state.inner().clone();
-    run_selected_folder(move || core.begin_configuration(&path)).await
+    run_begin_configuration_with_timeout(SELECTED_FOLDER_TIMEOUT, core, path).await
 }
 
 #[tauri::command]
@@ -1249,6 +1307,39 @@ mod tests {
 
         assert!(!fixture.app_data_dir.join(DIRECTORY_FILE_NAME).exists());
         assert!(!core.status().configured);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn timed_out_folder_selection_cannot_replace_a_newer_choice() {
+        let fixture = fixture();
+        let core = core(&fixture);
+        let first = fixture._root.path().join("FirstFolder");
+        let second = fixture._root.path().join("SecondFolder");
+        fs::create_dir_all(&first).unwrap();
+        fs::create_dir_all(&second).unwrap();
+
+        let guard = core.state.lock().unwrap();
+        let error = run_begin_configuration_with_timeout(
+            Duration::from_millis(5),
+            core.clone(),
+            first.to_string_lossy().into_owned(),
+        )
+        .await
+        .expect_err("blocked first selection must time out");
+        assert_eq!(error.code, BackupErrorCode::Timeout);
+        drop(guard);
+
+        core.begin_configuration(second.to_str().unwrap()).unwrap();
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        let pending = core.status();
+        assert_eq!(
+            core.lock()
+                .pending
+                .as_ref()
+                .map(|state| state.canonical_folder_path.clone()),
+            Some(fs::canonicalize(second).unwrap())
+        );
+        assert!(!pending.configured);
     }
 
     struct Fixture {

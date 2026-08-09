@@ -19,6 +19,7 @@ import {
   writeTextFile,
 } from "@tauri-apps/plugin-fs";
 import { appDataDir, dirname, join } from "@tauri-apps/api/path";
+import { invoke } from "@tauri-apps/api/core";
 import { persistence } from "./coordinator.ts";
 import type { ImportFs } from "./importJournal.ts";
 import type { SnapshotIo } from "./librarySnapshot.ts";
@@ -216,8 +217,7 @@ export function externalDialogFs() {
       await rename(from, to);
     },
     async renameNoReplace(from: string, to: string) {
-      if (await exists(to)) throw new Error("destination exists");
-      await rename(from, to);
+      await invoke("external_rename_no_replace", { from, to });
     },
     async remove(path: string) {
       if (await exists(path)) await remove(path);
