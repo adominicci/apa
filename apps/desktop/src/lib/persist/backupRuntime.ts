@@ -69,6 +69,24 @@ async function invokeBackup<T>(
   }
 }
 
+async function invokeBackupBinary<T>(
+  command: string,
+  fileName: string,
+  bytes: Uint8Array,
+): Promise<T> {
+  try {
+    return await invoke<T>(command, bytes, {
+      headers: { "x-tesina-file-name": fileName },
+    });
+  } catch (error) {
+    const normalized = normalizeBackupError(error);
+    if (normalized.code === "file_too_large") {
+      normalized.code = "portable/file-too-large";
+    }
+    throw normalized;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Tauri adapter (BackupAdapter over the Rust command surface)
 // ---------------------------------------------------------------------------
@@ -78,17 +96,20 @@ export const tauriBackupAdapter: BackupAdapter = {
     return invokeBackup<BackupAdapterStatus>("backup_status");
   },
   async writeArchive(fileName, bytes) {
-    const sha256 = await invokeBackup<string>("backup_write_archive", {
+    const sha256 = await invokeBackupBinary<string>(
+      "backup_write_archive",
       fileName,
-      bytes: Array.from(bytes),
-    });
+      bytes,
+    );
     return { sha256 };
   },
   async readArchive(fileName) {
-    const bytes = await invokeBackup<number[]>("backup_read_archive", {
+    const bytes = await invokeBackupBinary<ArrayBuffer | Uint8Array>(
+      "backup_read_archive",
       fileName,
-    });
-    return new Uint8Array(bytes);
+      new Uint8Array(),
+    );
+    return bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   },
   async confirmArchive(fileName, expectedSha256) {
     await invokeBackup<void>("backup_confirm_archive", {
@@ -212,10 +233,11 @@ export function writeWizardTestBackup(): Promise<{
     const service = await libraryArchiveService();
     const packaged = await service.package();
     const fileName = testBackupFileName();
-    await invokeBackup<string>("backup_write_test_archive", {
+    await invokeBackupBinary<string>(
+      "backup_write_test_archive",
       fileName,
-      bytes: Array.from(packaged.bytes),
-    });
+      packaged.bytes,
+    );
     // Spec: validated test = written, reopened, and fully validated.
     const reread = await tauriBackupAdapter.readArchive(fileName);
     await validateArchive(reread, ARCHIVE_LIMITS);

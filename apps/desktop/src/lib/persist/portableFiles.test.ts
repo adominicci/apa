@@ -184,6 +184,26 @@ describe("writeArchiveReplacing", () => {
     expect(fs.files.get("/docs/lib.tesina")).toBe(GOOD);
   });
 
+  it("journals an existing destination even when rename can replace it", async () => {
+    const fs = new FakeFs();
+    fs.files.set("/docs/lib.tesina", OLD);
+    const journal = new FakeJournal();
+    const seen: ReplacementRecord[] = [];
+    journal.save = (record) => {
+      seen.push(record);
+      journal.records.set(record.id, record);
+      return Promise.resolve();
+    };
+    await writeArchiveReplacing(
+      makeDeps(fs),
+      journal,
+      "/docs/lib.tesina",
+      GOOD,
+    );
+    expect(seen).toHaveLength(1);
+    expect(fs.files.get("/docs/lib.tesina")).toBe(GOOD);
+  });
+
   it("preserves the previous file through the journaled fallback", async () => {
     const fs = new FakeFs();
     fs.renameReplaces = false;
@@ -261,6 +281,44 @@ describe("writeArchiveReplacing", () => {
     expect(new TextDecoder().decode(fs.files.get(record.destinationPath)!))
       .toBe("user-modified");
     expect(journal.records.size).toBe(1); // kept as evidence
+  });
+
+  it("keeps the journal when a preserved previous file meets an unexpected destination", async () => {
+    const fs = new FakeFs();
+    const journal = new FakeJournal();
+    const deps = makeDeps(fs);
+    const record: ReplacementRecord = {
+      id: "r2",
+      destinationPath: "/docs/lib.tesina",
+      temporaryPath: "/docs/lib.tesina.u1.tmp",
+      previousPath: "/docs/lib.tesina.u2.prev",
+      expectedSha256: await deps.sha256(GOOD),
+      previousSha256: await deps.sha256(OLD),
+    };
+    await journal.save(record);
+    fs.files.set(record.previousPath, OLD);
+    fs.files.set(
+      record.destinationPath,
+      new TextEncoder().encode("sync-corrupted"),
+    );
+    await recoverReplacements(deps, journal);
+    expect(fs.files.get(record.previousPath)).toBe(OLD);
+    expect(journal.records.size).toBe(1);
+  });
+
+  it("stops waiting for a stalled export when cancellation is requested", async () => {
+    const fs = new FakeFs();
+    fs.writeFile = () => new Promise<void>(() => {});
+    const controller = new AbortController();
+    const work = writeArchiveReplacing(
+      makeDeps(fs),
+      new FakeJournal(),
+      "/docs/lib.tesina",
+      GOOD,
+      controller.signal,
+    );
+    controller.abort();
+    await expect(work).rejects.toMatchObject({ code: "portable/cancelled" });
   });
 });
 

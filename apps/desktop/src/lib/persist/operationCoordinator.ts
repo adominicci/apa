@@ -13,6 +13,8 @@ export type OperationKind = "export" | "backup" | "import";
 export interface OperationHandle {
   /** True once shutdown was requested; long ops should stop at safe points. */
   readonly cancelled: boolean;
+  /** Aborts cancellable native/file operations during shutdown. */
+  readonly signal: AbortSignal;
   /**
    * Imports call this the moment their journal is persisted: from here on a
    * crash is recoverable, so shutdown no longer needs to wait for the
@@ -24,6 +26,7 @@ export interface OperationHandle {
 interface ActiveOperation {
   kind: OperationKind;
   cancelled: boolean;
+  controller: AbortController;
   recoverable: Promise<void>;
   markRecoverable: () => void;
   settled: Promise<void>;
@@ -56,6 +59,7 @@ export class OperationCoordinator {
     const operation: ActiveOperation = {
       kind,
       cancelled: false,
+      controller: new AbortController(),
       recoverable,
       markRecoverable,
       settled: Promise.resolve(),
@@ -64,6 +68,7 @@ export class OperationCoordinator {
       get cancelled() {
         return operation.cancelled;
       },
+      signal: operation.controller.signal,
       markRecoverable,
     };
     this.#active.add(operation);
@@ -86,6 +91,7 @@ export class OperationCoordinator {
     const waits: Promise<void>[] = [];
     for (const operation of this.#active) {
       operation.cancelled = true;
+      operation.controller.abort();
       if (operation.kind === "import") {
         waits.push(Promise.race([operation.settled, operation.recoverable]));
       } else {

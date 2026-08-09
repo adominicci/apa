@@ -51,7 +51,7 @@ export interface LibraryArchiveService {
   /** Captures and packages one validated archive. */
   package(options?: { backupSetId?: string }): Promise<PackagedArchive>;
   /** Manual export to a user-chosen (possibly existing) destination. */
-  exportToFile(destinationPath: string): Promise<{
+  exportToFile(destinationPath: string, signal?: AbortSignal): Promise<{
     path: string;
     contentDigest: string;
   }>;
@@ -128,7 +128,7 @@ export function createLibraryArchiveService(
   return {
     package: (options) => deps.runMaintenance(() => packageOnce(options)),
 
-    exportToFile: (destinationPath) =>
+    exportToFile: (destinationPath, signal) =>
       deps.runMaintenance(async () => {
         const packaged = await packageOnce();
         const { path } = await writeArchiveReplacing(
@@ -136,6 +136,7 @@ export function createLibraryArchiveService(
           deps.replacementJournal,
           destinationPath,
           packaged.bytes,
+          signal,
         );
         return { path, contentDigest: packaged.contentDigest };
       }),

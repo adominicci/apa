@@ -101,8 +101,8 @@ export async function exportLibraryToChosenFile(
   });
   if (destination === null) return null;
   const service = await libraryArchiveService();
-  return await operations.run("export", async () => {
-    const result = await service.exportToFile(destination);
+  return await operations.run("export", async (handle) => {
+    const result = await service.exportToFile(destination, handle.signal);
     return { path: result.path };
   });
 }

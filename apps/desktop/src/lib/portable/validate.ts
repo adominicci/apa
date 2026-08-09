@@ -184,6 +184,9 @@ function validateEssayPayload(
       where,
     );
   }
+  validateEssaySettings(essay.settings, where);
+  validateTitlePage(essay.titlePage, where);
+  validateProseMirrorDoc(essay.content, where);
   const id = requireCanonicalId(essay.id, `${where}: essay id`);
   if (id !== expectedId) {
     throw new ValidateError(
@@ -229,6 +232,248 @@ function validateEssayPayload(
     );
   }
   return essay as Essay;
+}
+
+const DOCUMENT_LANGUAGES = new Set(["en", "es"]);
+const PAPER_VARIANTS = new Set(["student", "professional"]);
+const FONT_CHOICES = new Set([
+  "times-new-roman-12",
+  "georgia-11",
+  "computer-modern-10",
+  "aptos-12",
+  "calibri-11",
+  "arial-11",
+  "lucida-sans-unicode-10",
+]);
+const PAPER_SIZES = new Set(["us-letter", "a4"]);
+
+function validateEssaySettings(value: unknown, where: string): void {
+  const settings = value as Record<string, unknown>;
+  if (
+    !DOCUMENT_LANGUAGES.has(String(settings.documentLanguage)) ||
+    !PAPER_VARIANTS.has(String(settings.variant)) ||
+    !FONT_CHOICES.has(String(settings.font)) ||
+    !PAPER_SIZES.has(String(settings.paperSize)) ||
+    typeof settings.includeUncitedReferences !== "boolean" ||
+    (settings.runningHead !== undefined &&
+      typeof settings.runningHead !== "string") ||
+    (settings.wordGoal !== undefined &&
+      (!Number.isSafeInteger(settings.wordGoal) ||
+        (settings.wordGoal as number) <= 0))
+  ) {
+    throw new ValidateError(
+      "validate/essay-schema",
+      "an essay has malformed or unsupported settings",
+      where,
+    );
+  }
+}
+
+function validateTitlePage(value: unknown, where: string): void {
+  const titlePage = value as Record<string, unknown>;
+  const optionalStrings = ["course", "instructor", "dueDate", "authorNote"];
+  if (
+    typeof titlePage.title !== "string" ||
+    !Array.isArray(titlePage.authors) ||
+    !titlePage.authors.every((item) => typeof item === "string") ||
+    !Array.isArray(titlePage.affiliations) ||
+    !titlePage.affiliations.every((item) => typeof item === "string") ||
+    optionalStrings.some((key) =>
+      titlePage[key] !== undefined && typeof titlePage[key] !== "string"
+    )
+  ) {
+    throw new ValidateError(
+      "validate/essay-schema",
+      "an essay has a malformed title page",
+      where,
+    );
+  }
+}
+
+const SUPPORTED_NODE_TYPES = new Set([
+  "doc",
+  "sectionAbstract",
+  "sectionBody",
+  "sectionAppendix",
+  "keywordsLine",
+  "paragraph",
+  "text",
+  "heading",
+  "blockquote",
+  "bulletList",
+  "orderedList",
+  "listItem",
+  "hardBreak",
+  "citation",
+  "apaTable",
+  "tableTitle",
+  "table",
+  "tableRow",
+  "tableHeader",
+  "tableCell",
+  "tableNote",
+  "figure",
+  "figureTitle",
+  "figureImage",
+  "figureNote",
+  "apaEquation",
+]);
+const SUPPORTED_MARK_TYPES = new Set(["bold", "italic", "underline"]);
+
+function validateProseMirrorDoc(value: unknown, where: string): void {
+  if (value === null || typeof value !== "object") {
+    throwEssayContent(where);
+  }
+  const doc = value as { type?: unknown; content?: unknown };
+  if (doc.type !== "doc" || !Array.isArray(doc.content)) {
+    throwEssayContent(where);
+  }
+  const sectionTypes = doc.content.map((node) =>
+    node !== null && typeof node === "object"
+      ? (node as { type?: unknown }).type
+      : undefined
+  );
+  let index = sectionTypes[0] === "sectionAbstract" ? 1 : 0;
+  if (sectionTypes[index] !== "sectionBody") throwEssayContent(where);
+  index += 1;
+  if (sectionTypes.slice(index).some((type) => type !== "sectionAppendix")) {
+    throwEssayContent(where);
+  }
+  walkProseMirrorNode(doc, where);
+}
+
+function walkProseMirrorNode(value: unknown, where: string): void {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throwEssayContent(where);
+  }
+  const node = value as {
+    type?: unknown;
+    text?: unknown;
+    attrs?: unknown;
+    marks?: unknown;
+    content?: unknown;
+  };
+  if (typeof node.type !== "string" || !SUPPORTED_NODE_TYPES.has(node.type)) {
+    throwEssayContent(where);
+  }
+  if (node.type === "text" && typeof node.text !== "string") {
+    throwEssayContent(where);
+  }
+  if (node.type !== "text" && node.text !== undefined) throwEssayContent(where);
+  if (
+    node.attrs !== undefined &&
+    (node.attrs === null || typeof node.attrs !== "object" ||
+      Array.isArray(node.attrs))
+  ) throwEssayContent(where);
+  if (node.marks !== undefined) {
+    if (!Array.isArray(node.marks)) throwEssayContent(where);
+    for (const mark of node.marks) {
+      if (
+        mark === null || typeof mark !== "object" ||
+        !SUPPORTED_MARK_TYPES.has(String((mark as { type?: unknown }).type))
+      ) throwEssayContent(where);
+    }
+  }
+  if (node.content !== undefined) {
+    if (!Array.isArray(node.content)) throwEssayContent(where);
+    for (const child of node.content) walkProseMirrorNode(child, where);
+  }
+  validateNodeChildren(node, where);
+}
+
+function validateNodeChildren(
+  node: { type?: unknown; attrs?: unknown; content?: unknown },
+  where: string,
+): void {
+  const type = String(node.type);
+  const children = Array.isArray(node.content) ? node.content : [];
+  const childTypes = children.map((child) =>
+    String((child as { type?: unknown }).type)
+  );
+  const all = (allowed: Set<string>) =>
+    childTypes.every((childType) => allowed.has(childType));
+  const inline = new Set(["text", "citation", "hardBreak"]);
+  const blocks = new Set([
+    "paragraph",
+    "heading",
+    "blockquote",
+    "bulletList",
+    "orderedList",
+    "apaTable",
+    "figure",
+  ]);
+  const nonEmptyBlocks = new Set([...blocks, "apaEquation"]);
+  let valid = true;
+  switch (type) {
+    case "doc":
+      // The exact section ordering is checked by validateProseMirrorDoc.
+      valid = children.length > 0;
+      break;
+    case "sectionAbstract":
+      valid = children.length > 0 && childTypes[0] === "paragraph" &&
+        childTypes.every((childType, index) =>
+          childType === "paragraph" ||
+          (childType === "keywordsLine" && index === childTypes.length - 1)
+        );
+      break;
+    case "sectionBody":
+    case "sectionAppendix":
+      valid = children.length > 0 && all(nonEmptyBlocks);
+      break;
+    case "paragraph":
+    case "heading":
+    case "keywordsLine":
+    case "tableTitle":
+    case "tableNote":
+    case "figureTitle":
+    case "figureNote":
+      valid = all(inline);
+      break;
+    case "blockquote":
+    case "tableCell":
+    case "tableHeader":
+      valid = children.length > 0 && all(blocks);
+      break;
+    case "bulletList":
+    case "orderedList":
+      valid = children.length > 0 && childTypes.every((t) => t === "listItem");
+      break;
+    case "listItem":
+      valid = children.length > 0 && childTypes[0] === "paragraph" &&
+        all(blocks);
+      break;
+    case "apaTable":
+      valid = childTypes.length === 3 && childTypes[0] === "tableTitle" &&
+        childTypes[1] === "table" && childTypes[2] === "tableNote";
+      break;
+    case "table":
+      valid = children.length > 0 && childTypes.every((t) => t === "tableRow");
+      break;
+    case "tableRow":
+      valid = children.length > 0 &&
+        childTypes.every((t) => t === "tableHeader" || t === "tableCell");
+      break;
+    case "figure":
+      valid = childTypes.length === 3 && childTypes[0] === "figureTitle" &&
+        childTypes[1] === "figureImage" && childTypes[2] === "figureNote";
+      break;
+    case "text":
+    case "citation":
+    case "hardBreak":
+    case "figureImage":
+    case "apaEquation":
+      valid = children.length === 0;
+      break;
+  }
+  if (!valid) throwEssayContent(where);
+}
+
+function throwEssayContent(where: string): never {
+  throw new ValidateError(
+    "validate/essay-schema",
+    "an essay contains an unsupported ProseMirror document",
+    where,
+  );
 }
 
 interface DocNode {

@@ -16,7 +16,7 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
-use std::io::{ErrorKind, Write};
+use std::io::{ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -28,6 +28,7 @@ const LEDGER_FILE_NAME: &str = "backup-ledger.json";
 const ARCHIVE_EXTENSION: &str = ".tesina";
 const MAX_FILE_NAME_LENGTH: usize = 120;
 const SELECTED_FOLDER_TIMEOUT: Duration = Duration::from_secs(30);
+const MAX_ARCHIVE_BYTES: usize = 1024 * 1024 * 1024;
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -45,6 +46,7 @@ pub enum BackupErrorCode {
     InvalidFileName,
     NameTaken,
     HashMismatch,
+    FileTooLarge,
     Timeout,
     Io,
 }
@@ -311,9 +313,11 @@ impl BackupDirectoryCore {
                     "the test archive is not a regular file",
                 ));
             }
-            let bytes = fs::read(&path)
-                .map_err(|error| BackupError::io("cannot reopen test archive", &error))?;
-            let current_sha256 = sha256_hex(&bytes);
+            let current_sha256 = sha256_file_bounded(
+                &path,
+                "cannot reopen test archive",
+                MAX_ARCHIVE_BYTES,
+            )?;
             if !current_sha256.eq_ignore_ascii_case(expected_sha256) {
                 return Err(BackupError::new(
                     BackupErrorCode::HashMismatch,
@@ -393,9 +397,11 @@ impl BackupDirectoryCore {
         let active = require_active(&inner)?;
         let backup_set_id = active.backup_set_id.clone();
         let subfolder = resolve_subfolder(&active.canonical_folder_path)?;
-        let bytes = fs::read(subfolder.join(file_name))
-            .map_err(|error| BackupError::io("cannot reopen archive for confirmation", &error))?;
-        let current = sha256_hex(&bytes);
+        let current = sha256_file_bounded(
+            &subfolder.join(file_name),
+            "cannot reopen archive for confirmation",
+            MAX_ARCHIVE_BYTES,
+        )?;
         if !current.eq_ignore_ascii_case(expected_sha256) {
             return Err(BackupError::new(
                 BackupErrorCode::HashMismatch,
@@ -420,6 +426,14 @@ impl BackupDirectoryCore {
     /// Reads an archive from the pending subfolder while a configuration is
     /// in progress (wizard validation), otherwise from the active subfolder.
     pub fn read_archive(&self, file_name: &str) -> Result<Vec<u8>, BackupError> {
+        self.read_archive_with_limit(file_name, MAX_ARCHIVE_BYTES)
+    }
+
+    fn read_archive_with_limit(
+        &self,
+        file_name: &str,
+        max_bytes: usize,
+    ) -> Result<Vec<u8>, BackupError> {
         validate_file_name(file_name)?;
         let inner = self.lock();
         let subfolder = if let Some(pending) = inner.pending.as_ref() {
@@ -437,7 +451,21 @@ impl BackupDirectoryCore {
                 "the requested archive is not a regular file",
             ));
         }
-        fs::read(&path).map_err(|error| BackupError::io("cannot read archive", &error))
+        let file = fs::File::open(&path)
+            .map_err(|error| BackupError::io("cannot read archive", &error))?;
+        let mut bytes = Vec::with_capacity(
+            usize::try_from(metadata.len()).unwrap_or(max_bytes).min(max_bytes),
+        );
+        file.take((max_bytes as u64).saturating_add(1))
+            .read_to_end(&mut bytes)
+            .map_err(|error| BackupError::io("cannot read archive", &error))?;
+        if bytes.len() > max_bytes {
+            return Err(BackupError::new(
+                BackupErrorCode::FileTooLarge,
+                "the archive exceeds the supported size limit",
+            ));
+        }
+        Ok(bytes)
     }
 
     /// Non-recursive listing of `*.tesina` regular files in the active
@@ -501,9 +529,11 @@ impl BackupDirectoryCore {
                 "the removal candidate is not a regular file",
             ));
         }
-        let bytes =
-            fs::read(&path).map_err(|error| BackupError::io("cannot read archive", &error))?;
-        let current = sha256_hex(&bytes);
+        let current = sha256_file_bounded(
+            &path,
+            "cannot read archive",
+            MAX_ARCHIVE_BYTES,
+        )?;
         if !current.eq_ignore_ascii_case(expected_sha256) {
             return Err(BackupError::new(
                 BackupErrorCode::HashMismatch,
@@ -799,6 +829,34 @@ fn sha256_hex(bytes: &[u8]) -> String {
     hex
 }
 
+fn sha256_file_bounded(
+    path: &Path,
+    context: &str,
+    max_bytes: usize,
+) -> Result<String, BackupError> {
+    let mut file = fs::File::open(path).map_err(|error| BackupError::io(context, &error))?;
+    let mut digest = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    let mut total = 0_usize;
+    loop {
+        let read = file
+            .read(&mut buffer)
+            .map_err(|error| BackupError::io(context, &error))?;
+        if read == 0 {
+            break;
+        }
+        total = total.saturating_add(read);
+        if total > max_bytes {
+            return Err(BackupError::new(
+                BackupErrorCode::FileTooLarge,
+                "the archive exceeds the supported size limit",
+            ));
+        }
+        digest.update(&buffer[..read]);
+    }
+    Ok(format!("{:x}", digest.finalize()))
+}
+
 // ---------------------------------------------------------------------------
 // RFC 3339 timestamp (UTC, second precision) without a date-time dependency
 // ---------------------------------------------------------------------------
@@ -887,9 +945,10 @@ pub async fn backup_begin_configuration(
 #[tauri::command]
 pub async fn backup_write_test_archive(
     state: tauri::State<'_, BackupDirectoryCore>,
-    file_name: String,
-    bytes: Vec<u8>,
+    request: tauri::ipc::Request<'_>,
 ) -> Result<String, BackupError> {
+    let file_name = request_file_name(&request)?;
+    let bytes = request_bytes(&request)?;
     let core = state.inner().clone();
     run_selected_folder(move || core.write_test_archive(&file_name, &bytes)).await
 }
@@ -913,9 +972,10 @@ pub async fn backup_cancel_configuration(
 #[tauri::command]
 pub async fn backup_write_archive(
     state: tauri::State<'_, BackupDirectoryCore>,
-    file_name: String,
-    bytes: Vec<u8>,
+    request: tauri::ipc::Request<'_>,
 ) -> Result<String, BackupError> {
+    let file_name = request_file_name(&request)?;
+    let bytes = request_bytes(&request)?;
     let core = state.inner().clone();
     run_selected_folder(move || core.write_archive(&file_name, &bytes)).await
 }
@@ -933,10 +993,36 @@ pub async fn backup_confirm_archive(
 #[tauri::command]
 pub async fn backup_read_archive(
     state: tauri::State<'_, BackupDirectoryCore>,
-    file_name: String,
-) -> Result<Vec<u8>, BackupError> {
+    request: tauri::ipc::Request<'_>,
+) -> Result<tauri::ipc::Response, BackupError> {
+    let file_name = request_file_name(&request)?;
     let core = state.inner().clone();
-    run_selected_folder(move || core.read_archive(&file_name)).await
+    let bytes = run_selected_folder(move || core.read_archive(&file_name)).await?;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
+fn request_file_name(request: &tauri::ipc::Request<'_>) -> Result<String, BackupError> {
+    request
+        .headers()
+        .get("x-tesina-file-name")
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_owned)
+        .ok_or_else(|| {
+            BackupError::new(
+                BackupErrorCode::InvalidFileName,
+                "binary archive request is missing its file name",
+            )
+        })
+}
+
+fn request_bytes(request: &tauri::ipc::Request<'_>) -> Result<Vec<u8>, BackupError> {
+    match request.body() {
+        tauri::ipc::InvokeBody::Raw(bytes) => Ok(bytes.clone()),
+        tauri::ipc::InvokeBody::Json(_) => Err(BackupError::new(
+            BackupErrorCode::Io,
+            "archive bytes must use Tauri's raw binary IPC body",
+        )),
+    }
 }
 
 #[tauri::command]
@@ -1291,6 +1377,19 @@ mod tests {
             .unwrap()
             .iter()
             .any(|entry| entry.file_name == "Round Trip.tesina"));
+    }
+
+    #[test]
+    fn read_archive_stops_at_the_native_size_limit() {
+        let fixture = fixture();
+        let core = core(&fixture);
+        configure(&core, &fixture.selected_dir);
+        core.write_archive("Bounded.tesina", b"0123456789").unwrap();
+
+        let error = core
+            .read_archive_with_limit("Bounded.tesina", 5)
+            .expect_err("the reader must stop at max plus one byte");
+        assert_eq!(error.code, BackupErrorCode::FileTooLarge);
     }
 
     #[test]

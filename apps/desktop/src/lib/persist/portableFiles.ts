@@ -124,27 +124,31 @@ export async function writeArchiveReplacing(
   journal: ReplacementJournal,
   destinationPath: string,
   bytes: Uint8Array,
+  signal?: AbortSignal,
 ): Promise<{ path: string }> {
   const tmp = siblingTempPath(destinationPath, deps.uuid());
-  await deps.fs.writeFile(tmp, bytes);
-  await deps.validate(await deps.fs.readFile(tmp));
-
-  const hadPrevious = await deps.fs.exists(destinationPath);
+  let journalSaved = false;
   try {
-    await deps.fs.rename(tmp, destinationPath);
-  } catch {
+    await abortable(signal, () => deps.fs.writeFile(tmp, bytes));
+    await deps.validate(
+      await abortable(signal, () => deps.fs.readFile(tmp)),
+    );
+
+    const hadPrevious = await abortable(
+      signal,
+      () => deps.fs.exists(destinationPath),
+    );
     if (!hadPrevious) {
-      // Nothing to preserve and the direct rename still failed: surface it.
-      try {
-        await deps.fs.remove(tmp);
-      } catch { /* keep the temp as evidence if even cleanup fails */ }
-      throw new PortableFileError(
-        "portable/destination-write",
-        "the destination rejected the archive write",
-        destinationPath,
+      await abortable(signal, () => deps.fs.rename(tmp, destinationPath));
+      await deps.validate(
+        await abortable(signal, () => deps.fs.readFile(destinationPath)),
       );
+      return { path: destinationPath };
     }
-    // Journaled fallback: move the previous file aside, then install.
+
+    // Always journal an existing destination. Some rename implementations
+    // replace successfully, but that would destroy the last known-good file
+    // before the newly installed bytes pass their final reopen validation.
     const record: ReplacementRecord = {
       id: deps.uuid(),
       destinationPath,
@@ -152,18 +156,69 @@ export async function writeArchiveReplacing(
       previousPath: `${destinationPath}.${deps.uuid()}.prev`,
       expectedSha256: await deps.sha256(bytes),
       previousSha256: await deps.sha256(
-        await deps.fs.readFile(destinationPath),
+        await abortable(signal, () => deps.fs.readFile(destinationPath)),
       ),
     };
-    await journal.save(record);
-    await deps.fs.rename(destinationPath, record.previousPath);
-    await deps.fs.rename(tmp, destinationPath);
-    await deps.validate(await deps.fs.readFile(destinationPath));
-    await deps.fs.remove(record.previousPath);
-    await journal.remove(record.id);
+    await abortable(signal, () => journal.save(record));
+    journalSaved = true;
+    await abortable(
+      signal,
+      () => deps.fs.rename(destinationPath, record.previousPath),
+    );
+    await abortable(signal, () => deps.fs.rename(tmp, destinationPath));
+    await deps.validate(
+      await abortable(signal, () => deps.fs.readFile(destinationPath)),
+    );
+    await abortable(signal, () => deps.fs.remove(record.previousPath));
+    await abortable(signal, () => journal.remove(record.id));
+    return { path: destinationPath };
+  } catch (error) {
+    if (!journalSaved) {
+      // Before a durable record exists, this operation owns the temporary
+      // file exclusively. Cleanup is best-effort and deliberately detached
+      // from an already-aborted signal.
+      try {
+        await Promise.race([
+          deps.fs.remove(tmp),
+          new Promise<void>((resolve) => setTimeout(resolve, 1_000)),
+        ]);
+      } catch { /* preserve the primary error */ }
+    }
+    throw error;
   }
-  await deps.validate(await deps.fs.readFile(destinationPath));
-  return { path: destinationPath };
+}
+
+function abortable<T>(
+  signal: AbortSignal | undefined,
+  operation: () => Promise<T>,
+): Promise<T> {
+  if (signal?.aborted) {
+    return Promise.reject(
+      new PortableFileError("portable/cancelled", "operation cancelled"),
+    );
+  }
+  const work = operation();
+  return new Promise<T>((resolve, reject) => {
+    const cancel = () =>
+      reject(
+        new PortableFileError("portable/cancelled", "operation cancelled"),
+      );
+    const timeout = setTimeout(
+      () =>
+        reject(
+          new PortableFileError(
+            "portable/timeout",
+            "the selected destination did not respond before the timeout",
+          ),
+        ),
+      30_000,
+    );
+    signal?.addEventListener("abort", cancel, { once: true });
+    work.then(resolve, reject).finally(() => {
+      clearTimeout(timeout);
+      signal?.removeEventListener("abort", cancel);
+    });
+  });
 }
 
 /**
@@ -207,8 +262,16 @@ export async function recoverReplacements(
       // The new bytes are gone: restore the previous destination.
       if (!(await deps.fs.exists(destinationPath))) {
         await deps.fs.rename(previousPath, destinationPath);
+        await journal.remove(record.id);
+        continue;
       }
-      await journal.remove(record.id);
+      const destinationBytes = await deps.fs.readFile(destinationPath);
+      if ((await deps.sha256(destinationBytes)) === record.previousSha256) {
+        await removeIfExists(deps, previousPath);
+        await journal.remove(record.id);
+      }
+      // An unexpected destination leaves both the preserved previous file
+      // and its journal intact for a later recovery/diagnostic pass.
       continue;
     }
     // Neither candidate exists any more; keep the record as evidence.

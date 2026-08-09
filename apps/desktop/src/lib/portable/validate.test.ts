@@ -180,6 +180,34 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
     await expectCode(await rebuildArchive(files), "validate/identifier");
   });
 
+  it("rejects incomplete title-page and settings objects", async () => {
+    const files = mutateEssay(await goldenFiles(), (e) => {
+      e.titlePage = {};
+      e.settings = {};
+    });
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
+  it("rejects unsupported settings enum values", async () => {
+    const files = mutateEssay(await goldenFiles(), (e) => {
+      (e.settings as Record<string, unknown>).documentLanguage = "fr";
+    });
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
+  it("rejects a ProseMirror document with an unsupported node", async () => {
+    const files = mutateEssay(await goldenFiles(), (e) => {
+      e.content = {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [{ type: "script", attrs: { src: "evil" } }],
+        }],
+      };
+    });
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
   it("rejects a malformed shared library", async () => {
     const files = await goldenFiles();
     files.set(
@@ -296,11 +324,20 @@ describe("relationship validation (task 3.3 + amended spec)", () => {
   it("rejects a citation that resolves nowhere in the archive", async () => {
     const files = mutateEssay(await goldenFiles(), (e) => {
       const doc = e.content as {
-        content: { content: { type: string; attrs?: unknown }[] }[];
+        content: {
+          content: {
+            type: string;
+            attrs?: unknown;
+            content?: { type: string; attrs?: unknown }[];
+          }[];
+        }[];
       };
       doc.content[0].content.push({
-        type: "citation",
-        attrs: { items: [{ refId: fixtureUuid(1, 9990) }] },
+        type: "paragraph",
+        content: [{
+          type: "citation",
+          attrs: { items: [{ refId: fixtureUuid(1, 9990) }] },
+        }],
       });
       e.referencesSnapshot = [];
     });

@@ -41,3 +41,21 @@ describe("normalizeBackupError", () => {
     expect(normalizeBackupError(null).code).toBe("io");
   });
 });
+
+describe("binary backup IPC contract", () => {
+  it("passes archive payloads as raw binary instead of JSON number arrays", async () => {
+    const deno = (globalThis as unknown as {
+      Deno: {
+        cwd(): string;
+        readTextFile(path: string): Promise<string>;
+      };
+    }).Deno;
+    const source = await deno.readTextFile(
+      `${deno.cwd()}/apps/desktop/src/lib/persist/backupRuntime.ts`,
+    );
+    expect(source).toContain("invoke<T>(command, bytes");
+    expect(source).toContain('"x-tesina-file-name": fileName');
+    expect(source).not.toContain("Array.from(bytes)");
+    expect(source).not.toContain("Array.from(packaged.bytes)");
+  });
+});
