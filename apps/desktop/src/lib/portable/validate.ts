@@ -102,6 +102,173 @@ function requireCanonicalId(value: unknown, where: string): string {
   return value;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function referenceError(code: string, where: string): never {
+  throw new ValidateError(code, "a reference entry is malformed", where);
+}
+
+function validOptionalString(value: unknown): boolean {
+  return value === undefined || typeof value === "string";
+}
+
+function validOptionalBoolean(value: unknown): boolean {
+  return value === undefined || typeof value === "boolean";
+}
+
+function validOptionalInteger(value: unknown): boolean {
+  return value === undefined || Number.isSafeInteger(value);
+}
+
+function validateDate(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return validOptionalInteger(value.year) &&
+    (value.month === undefined ||
+      (Number.isSafeInteger(value.month) && Number(value.month) >= 1 &&
+        Number(value.month) <= 12)) &&
+    (value.day === undefined ||
+      (Number.isSafeInteger(value.day) && Number(value.day) >= 1 &&
+        Number(value.day) <= 31)) &&
+    validOptionalBoolean(value.noDate) && validOptionalBoolean(value.inPress);
+}
+
+function validateContributors(value: unknown): boolean {
+  return Array.isArray(value) && value.every((contributor) => {
+    if (!isRecord(contributor)) return false;
+    if (contributor.kind === "person") {
+      return typeof contributor.family === "string" &&
+        validOptionalString(contributor.given) &&
+        validOptionalString(contributor.suffix);
+    }
+    return contributor.kind === "group" &&
+      typeof contributor.name === "string" &&
+      validOptionalString(contributor.abbreviation);
+  });
+}
+
+function validateOptionalContributors(value: unknown): boolean {
+  return value === undefined || validateContributors(value);
+}
+
+function validateReferencePayload(
+  value: unknown,
+  where: string,
+  code: string,
+): Reference {
+  if (!isRecord(value)) referenceError(code, where);
+  requireCanonicalId(value.id, `${where}: reference id`);
+  if (
+    typeof value.title !== "string" || !validateContributors(value.authors) ||
+    !validateDate(value.date) || !validOptionalString(value.doi) ||
+    !validOptionalString(value.url) || !validOptionalString(value.extra) ||
+    (value.retrievedDate !== undefined && !validateDate(value.retrievedDate))
+  ) referenceError(code, where);
+
+  const strings = (...keys: string[]) =>
+    keys.every((key) => validOptionalString(value[key]));
+  const requiredStrings = (...keys: string[]) =>
+    keys.every((key) => typeof value[key] === "string");
+  let valid = false;
+  switch (value.type) {
+    case "journalArticle":
+      valid = requiredStrings("journal") &&
+        strings("volume", "issue", "pageStart", "pageEnd", "articleNumber");
+      break;
+    case "book":
+      valid = strings("edition", "volume", "publisher", "descriptor") &&
+        validateOptionalContributors(value.editors) &&
+        validateOptionalContributors(value.translators) &&
+        validateOptionalContributors(value.illustrators) &&
+        validOptionalInteger(value.originalYear);
+      break;
+    case "bookChapter":
+      valid = validateContributors(value.editors) &&
+        requiredStrings("bookTitle") &&
+        strings("edition", "volume", "pageStart", "pageEnd", "publisher");
+      break;
+    case "website":
+      valid = strings("siteName");
+      break;
+    case "report":
+      valid = strings(
+        "institution",
+        "reportNumber",
+        "standardNumber",
+        "descriptor",
+      );
+      break;
+    case "thesis":
+      valid =
+        (value.thesisType === "doctoral" || value.thesisType === "masters") &&
+        requiredStrings("institution") && strings("archive") &&
+        validOptionalBoolean(value.unpublished);
+      break;
+    case "conferencePaper":
+      valid = requiredStrings("conferenceName") &&
+        strings("location", "contributionType") &&
+        validOptionalInteger(value.dayEnd);
+      break;
+    case "newspaperArticle":
+      valid = requiredStrings("publication") &&
+        strings("volume", "issue", "pageStart", "pageEnd");
+      break;
+    case "referenceEntry":
+      valid = requiredStrings("workTitle") && strings("edition", "publisher");
+      break;
+    case "video":
+      valid = requiredStrings("platform") && strings("username", "descriptor");
+      break;
+    case "podcastEpisode":
+      valid = (value.kind === undefined || value.kind === "episode" ||
+        value.kind === "show") &&
+        strings("episodeNumber", "showTitle", "platform") &&
+        validOptionalInteger(value.yearEnd) &&
+        validOptionalBoolean(value.ongoing);
+      break;
+    case "socialMedia":
+      valid = requiredStrings("platform", "contentType") && strings("username");
+      break;
+    case "software":
+      valid = (value.kind === "software" || value.kind === "dataset") &&
+        strings("version", "publisher", "descriptor");
+      break;
+    case "film":
+      valid = (value.kind === "film" || value.kind === "tvSeries") &&
+        strings("productionCompany") && validOptionalInteger(value.yearEnd) &&
+        validOptionalBoolean(value.ongoing);
+      break;
+    case "tvEpisode":
+      valid = requiredStrings("seriesTitle") &&
+        (value.credit === undefined || value.credit === "writer" ||
+          value.credit === "director" || value.credit === "writerDirector") &&
+        strings("season", "episode", "productionCompany") &&
+        validateOptionalContributors(value.executiveProducers);
+      break;
+    case "music":
+      valid = (value.kind === "album" || value.kind === "song") &&
+        strings("albumTitle", "label");
+      break;
+    case "artwork":
+      valid = strings("medium", "venue", "location");
+      break;
+    case "preprint":
+      valid = requiredStrings("repository") && strings("itemNumber");
+      break;
+    case "unpublishedWork":
+      valid =
+        (value.status === "unpublished" || value.status === "inPreparation" ||
+          value.status === "submitted") && strings("institution");
+      break;
+    case "personalCommunication":
+      valid = strings("medium");
+      break;
+  }
+  if (!valid) referenceError(code, where);
+  return value as unknown as Reference;
+}
+
 function validateLibraryPayload(
   value: unknown,
   where: string,
@@ -119,18 +286,7 @@ function validateLibraryPayload(
     );
   }
   for (const reference of lib.references) {
-    if (
-      reference === null || typeof reference !== "object" ||
-      typeof (reference as Reference).type !== "string" ||
-      typeof (reference as Reference).title !== "string"
-    ) {
-      throw new ValidateError(
-        "validate/library-schema",
-        "a reference entry is malformed",
-        where,
-      );
-    }
-    requireCanonicalId((reference as Reference).id, `${where}: reference id`);
+    validateReferencePayload(reference, where, "validate/library-schema");
   }
   const collections = lib.collections ?? [];
   for (const collection of collections) {
@@ -219,17 +375,7 @@ function validateEssayPayload(
     requireCanonicalId(essay.sourceEssayId, `${where}: sourceEssayId`);
   }
   for (const reference of essay.referencesSnapshot) {
-    if (reference === null || typeof reference !== "object") {
-      throw new ValidateError(
-        "validate/essay-schema",
-        "a snapshot reference is malformed",
-        where,
-      );
-    }
-    requireCanonicalId(
-      (reference as Reference).id,
-      `${where}: snapshot reference id`,
-    );
+    validateReferencePayload(reference, where, "validate/essay-schema");
   }
   return essay as Essay;
 }
@@ -365,6 +511,7 @@ function walkProseMirrorNode(value: unknown, where: string): void {
     (node.attrs === null || typeof node.attrs !== "object" ||
       Array.isArray(node.attrs))
   ) throwEssayContent(where);
+  if (node.type === "citation") validateCitationAttrs(node.attrs, where);
   if (node.marks !== undefined) {
     if (!Array.isArray(node.marks)) throwEssayContent(where);
     for (const mark of node.marks) {
@@ -379,6 +526,33 @@ function walkProseMirrorNode(value: unknown, where: string): void {
     for (const child of node.content) walkProseMirrorNode(child, where);
   }
   validateNodeChildren(node, where);
+}
+
+const CITATION_MODES = new Set(["parenthetical", "narrative"]);
+const LOCATOR_TYPES = new Set(["page", "pages", "paragraph", "timestamp"]);
+
+function validateCitationAttrs(value: unknown, where: string): void {
+  if (
+    !isRecord(value) || !Array.isArray(value.items) ||
+    !CITATION_MODES.has(String(value.mode))
+  ) {
+    throwEssayContent(where);
+  }
+  for (const item of value.items) {
+    if (!isRecord(item)) throwEssayContent(where);
+    requireCanonicalId(item.refId, `${where}: citation refId`);
+    if (
+      !validOptionalString(item.prefix) || !validOptionalString(item.suffix) ||
+      !validOptionalBoolean(item.suppressAuthor)
+    ) throwEssayContent(where);
+    if (item.locator !== undefined) {
+      if (
+        !isRecord(item.locator) ||
+        !LOCATOR_TYPES.has(String(item.locator.type)) ||
+        typeof item.locator.value !== "string"
+      ) throwEssayContent(where);
+    }
+  }
 }
 
 function validateNodeChildren(

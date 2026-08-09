@@ -71,6 +71,7 @@ function makeHarness(): Harness {
           }
           return Promise.resolve(bytes);
         },
+        sha256File: (p) => sha256Hex(externalFiles.get(p)!),
         writeFile: (p, bytes) => {
           externalFiles.set(p, bytes);
           return Promise.resolve();

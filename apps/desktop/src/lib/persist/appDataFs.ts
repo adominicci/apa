@@ -25,6 +25,7 @@ import type { SnapshotIo } from "./librarySnapshot.ts";
 import type { ReplacementJournal, ReplacementRecord } from "./portableFiles.ts";
 import { readJson, writeJsonAtomic } from "./atomic.ts";
 import { installReplacement, isWindowsWebView } from "./atomicReplace.ts";
+import { sha256 } from "@noble/hashes/sha256";
 
 async function absolute(relPath: string): Promise<string> {
   return await join(await appDataDir(), relPath);
@@ -175,6 +176,23 @@ export function externalDialogFs() {
         offset += chunk.length;
       }
       return bytes;
+    },
+    async sha256File(path: string) {
+      const file = await open(path, { read: true });
+      const hash = sha256.create();
+      try {
+        while (true) {
+          const buffer = new Uint8Array(64 * 1024);
+          const read = await file.read(buffer);
+          if (read === null || read === 0) break;
+          hash.update(buffer.subarray(0, read));
+        }
+      } finally {
+        await file.close();
+      }
+      return [...hash.digest()].map((byte) =>
+        byte.toString(16).padStart(2, "0")
+      ).join("");
     },
     async writeFile(path: string, bytes: Uint8Array) {
       await writeFile(path, bytes);

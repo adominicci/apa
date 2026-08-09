@@ -39,6 +39,7 @@ export function describeArchiveError(error: unknown): string {
     case "snapshot/unstable":
       return m.err_stale_plan();
     case "import/recovery-required":
+    case "portable/replacement-recovery-required":
       return m.err_recovery_required();
     case "archive/invalid-source-essay":
     case "archive/invalid-source-library":

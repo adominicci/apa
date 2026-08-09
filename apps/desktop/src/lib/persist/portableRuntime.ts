@@ -20,7 +20,11 @@ import {
   createLibraryArchiveService,
   type LibraryArchiveService,
 } from "./archiveService.ts";
-import { readTesinaBounded, recoverReplacements } from "./portableFiles.ts";
+import {
+  PortableFileError,
+  readTesinaBounded,
+  recoverReplacements,
+} from "./portableFiles.ts";
 import {
   applyConfirmedImport,
   type ImportApplyResult,
@@ -91,7 +95,7 @@ function importFlowDeps(service: LibraryArchiveService): ImportFlowDeps {
   };
 }
 
-/** Native save dialog + recoverable export. Returns null on cancel. */
+/** Native save dialog + scoped recovery and recoverable export. */
 export async function exportLibraryToChosenFile(
   defaultFileName: string,
 ): Promise<{ path: string } | null> {
@@ -100,6 +104,33 @@ export async function exportLibraryToChosenFile(
     filters: [{ name: "Tesina", extensions: ["tesina"] }],
   });
   if (destination === null) return null;
+  // Dialog grants are deliberately session-only. Re-selecting this exact
+  // destination renews access to it and its operation-owned siblings, which
+  // is the first safe point to resume an interrupted replacement.
+  const fs = externalDialogFs();
+  await recoverReplacements(
+    {
+      fs,
+      validate: async (bytes) => {
+        await readArchiveStructure(bytes, ARCHIVE_LIMITS);
+      },
+      uuid: () => crypto.randomUUID(),
+      sha256: sha256Hex,
+    },
+    appDataReplacementJournal,
+    destination,
+  );
+  if (
+    (await appDataReplacementJournal.list()).some((record) =>
+      record.destinationPath === destination
+    )
+  ) {
+    throw new PortableFileError(
+      "portable/replacement-recovery-required",
+      "the interrupted export destination still requires recovery",
+      destination,
+    );
+  }
   const service = await libraryArchiveService();
   return await operations.run("export", async (handle) => {
     const result = await service.exportToFile(destination, handle.signal);
@@ -159,24 +190,12 @@ function recoveryDeps(): RecoveryDeps {
 }
 
 /**
- * Startup recovery (task 6.6): pending imports first, then interrupted
- * manual-export replacements. Runs before the library becomes interactive.
+ * Startup recovery (task 6.6): pending imports run before the library becomes
+ * interactive. Manual-export records wait for a fresh save-dialog grant and
+ * are recovered by exportLibraryToChosenFile on that destination's next use.
  */
 export async function runStartupRecovery(): Promise<RecoveryOutcome[]> {
-  const outcomes = await recoverPendingImports(recoveryDeps());
-  try {
-    await recoverReplacements({
-      fs: externalDialogFs(),
-      validate: async (bytes) => {
-        await readArchiveStructure(bytes, ARCHIVE_LIMITS);
-      },
-      uuid: () => crypto.randomUUID(),
-      sha256: sha256Hex,
-    }, appDataReplacementJournal);
-  } catch {
-    // Replacement recovery is best-effort at startup; records persist.
-  }
-  return outcomes;
+  return await recoverPendingImports(recoveryDeps());
 }
 
 /**

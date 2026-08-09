@@ -15,6 +15,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@noble/hashes": "1.8.0",
     "@retorquere/bibtex-parser": "^10.0.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2",

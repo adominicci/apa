@@ -217,6 +217,53 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
     await expectCode(await rebuildArchive(files), "validate/library-schema");
   });
 
+  it("rejects incomplete and unsupported reference variants", async () => {
+    const files = await goldenFiles();
+    const library = JSON.parse(
+      new TextDecoder().decode(files.get("library.json")!),
+    );
+    library.references[0] = {
+      id: library.references[0].id,
+      type: "madeUpSource",
+      title: "Incomplete",
+    };
+    files.set("library.json", canonicalJsonBytes(library));
+    await expectCode(await rebuildArchive(files), "validate/library-schema");
+  });
+
+  it("rejects malformed snapshot references", async () => {
+    const files = mutateEssay(await goldenFiles(), (essay) => {
+      const references = essay.referencesSnapshot as Record<string, unknown>[];
+      references[0] = {
+        id: references[0]!.id,
+        type: "book",
+        title: "Missing authors and date",
+      };
+    });
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
+  it("rejects malformed citation attributes", async () => {
+    const files = mutateEssay(await goldenFiles(), (essay) => {
+      const doc = essay.content as { content: unknown[] };
+      const walk = (value: unknown): boolean => {
+        if (!value || typeof value !== "object") return false;
+        const node = value as {
+          type?: string;
+          attrs?: unknown;
+          content?: unknown[];
+        };
+        if (node.type === "citation") {
+          node.attrs = { items: null, mode: "parenthetical" };
+          return true;
+        }
+        return node.content?.some(walk) ?? false;
+      };
+      if (!walk(doc)) throw new Error("fixture has no citation");
+    });
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
   it("rejects a collection with a malformed member list", async () => {
     const files = await goldenFiles();
     const library = JSON.parse(
@@ -336,7 +383,10 @@ describe("relationship validation (task 3.3 + amended spec)", () => {
         type: "paragraph",
         content: [{
           type: "citation",
-          attrs: { items: [{ refId: fixtureUuid(1, 9990) }] },
+          attrs: {
+            items: [{ refId: fixtureUuid(1, 9990) }],
+            mode: "parenthetical",
+          },
         }],
       });
       e.referencesSnapshot = [];

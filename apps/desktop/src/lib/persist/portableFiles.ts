@@ -30,6 +30,8 @@ export interface ExternalFs {
   readFile(path: string): Promise<Uint8Array>;
   /** Streams at most maxBytes and rejects before allocating beyond it. */
   readFileBounded(path: string, maxBytes: number): Promise<Uint8Array>;
+  /** Computes SHA-256 incrementally without materializing the whole file. */
+  sha256File(path: string): Promise<string>;
   writeFile(path: string, bytes: Uint8Array): Promise<void>;
   /** Replaces an existing destination where the platform supports it. */
   rename(from: string, to: string): Promise<void>;
@@ -155,8 +157,9 @@ export async function writeArchiveReplacing(
       temporaryPath: tmp,
       previousPath: `${destinationPath}.${deps.uuid()}.prev`,
       expectedSha256: await deps.sha256(bytes),
-      previousSha256: await deps.sha256(
-        await abortable(signal, () => deps.fs.readFile(destinationPath)),
+      previousSha256: await abortable(
+        signal,
+        () => deps.fs.sha256File(destinationPath),
       ),
     };
     await abortable(signal, () => journal.save(record));
@@ -229,8 +232,13 @@ function abortable<T>(
 export async function recoverReplacements(
   deps: WriteDeps,
   journal: ReplacementJournal,
+  authorizedDestination?: string,
 ): Promise<void> {
   for (const record of await journal.list()) {
+    if (
+      authorizedDestination !== undefined &&
+      record.destinationPath !== authorizedDestination
+    ) continue;
     const { destinationPath, temporaryPath, previousPath } = record;
     const destOk = await fileMatches(deps, destinationPath, record);
     if (destOk) {
@@ -243,8 +251,9 @@ export async function recoverReplacements(
     if (await fileMatches(deps, temporaryPath, record)) {
       // Interrupted before install: finish it.
       if (await deps.fs.exists(destinationPath)) {
-        const destBytes = await deps.fs.readFile(destinationPath);
-        if ((await deps.sha256(destBytes)) !== record.previousSha256) {
+        if (
+          (await deps.fs.sha256File(destinationPath)) !== record.previousSha256
+        ) {
           // The destination is neither the old nor the new file — the user
           // (or another writer) changed it. Never guess; keep the evidence.
           continue;
@@ -265,8 +274,9 @@ export async function recoverReplacements(
         await journal.remove(record.id);
         continue;
       }
-      const destinationBytes = await deps.fs.readFile(destinationPath);
-      if ((await deps.sha256(destinationBytes)) === record.previousSha256) {
+      if (
+        (await deps.fs.sha256File(destinationPath)) === record.previousSha256
+      ) {
         await removeIfExists(deps, previousPath);
         await journal.remove(record.id);
       }
@@ -285,8 +295,7 @@ async function fileMatches(
 ): Promise<boolean> {
   if (!(await deps.fs.exists(path))) return false;
   try {
-    const bytes = await deps.fs.readFile(path);
-    return (await deps.sha256(bytes)) === record.expectedSha256;
+    return (await deps.fs.sha256File(path)) === record.expectedSha256;
   } catch {
     return false;
   }

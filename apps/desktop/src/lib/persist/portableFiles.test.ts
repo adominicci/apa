@@ -53,6 +53,15 @@ class FakeFs implements ExternalFs {
     }
     return Promise.resolve(bytes);
   }
+  async sha256File(path: string): Promise<string> {
+    const bytes = this.files.get(path);
+    if (!bytes) throw new Error(`missing ${path}`);
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      bytes as unknown as ArrayBuffer,
+    );
+    return [...new Uint8Array(digest)].map((b) => b.toString(16)).join("");
+  }
   writeFile(path: string, bytes: Uint8Array): Promise<void> {
     this.#tick(`write:${path}`);
     this.files.set(path, bytes);
@@ -204,6 +213,25 @@ describe("writeArchiveReplacing", () => {
     expect(fs.files.get("/docs/lib.tesina")).toBe(GOOD);
   });
 
+  it("hashes an existing destination without reading it into memory", async () => {
+    const fs = new FakeFs();
+    fs.files.set("/docs/lib.tesina", OLD);
+    const originalRead = fs.readFile.bind(fs);
+    fs.readFile = (path) => {
+      if (path === "/docs/lib.tesina" && fs.files.get(path) === OLD) {
+        throw new Error("unbounded destination read");
+      }
+      return originalRead(path);
+    };
+    await writeArchiveReplacing(
+      makeDeps(fs),
+      new FakeJournal(),
+      "/docs/lib.tesina",
+      GOOD,
+    );
+    expect(fs.files.get("/docs/lib.tesina")).toBe(GOOD);
+  });
+
   it("preserves the previous file through the journaled fallback", async () => {
     const fs = new FakeFs();
     fs.renameReplaces = false;
@@ -304,6 +332,34 @@ describe("writeArchiveReplacing", () => {
     await recoverReplacements(deps, journal);
     expect(fs.files.get(record.previousPath)).toBe(OLD);
     expect(journal.records.size).toBe(1);
+  });
+
+  it("recovers only the destination reauthorized by the current dialog", async () => {
+    const fs = new FakeFs();
+    const journal = new FakeJournal();
+    const deps = makeDeps(fs);
+    for (
+      const [id, destinationPath] of [["r1", "/a/lib.tesina"], [
+        "r2",
+        "/b/lib.tesina",
+      ]]
+    ) {
+      const record: ReplacementRecord = {
+        id,
+        destinationPath,
+        temporaryPath: `${destinationPath}.tmp`,
+        previousPath: `${destinationPath}.prev`,
+        expectedSha256: await deps.sha256(GOOD),
+        previousSha256: await deps.sha256(OLD),
+      };
+      await journal.save(record);
+      fs.files.set(record.temporaryPath, GOOD);
+      fs.files.set(record.destinationPath, OLD);
+    }
+    await recoverReplacements(deps, journal, "/a/lib.tesina");
+    expect(fs.files.get("/a/lib.tesina")).toBe(GOOD);
+    expect(fs.files.get("/b/lib.tesina")).toBe(OLD);
+    expect([...journal.records.keys()]).toEqual(["r2"]);
   });
 
   it("stops waiting for a stalled export when cancellation is requested", async () => {
