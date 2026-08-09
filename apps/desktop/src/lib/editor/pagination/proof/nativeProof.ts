@@ -44,16 +44,19 @@ import {
 import { inlineFlowVisualHeight } from "./nativeProofGeometry.ts";
 import { samePlannerFragmentInputs } from "./plannerInputEquality.ts";
 import {
+  captureSynchronousNativeMutation,
   countCausalStableReports,
   evaluateLivePagedGeometry,
   evaluateNativePaginationWorkload,
   latestSettledNativeReport,
   type NativePaginationOperationResult,
+  type NativePaginationQuiescenceSnapshot,
   type NativePaginationWorkloadPages,
   type NativePaginationWorkloadResult,
   percentile95,
   remainingNativeDeadlineMs,
   waitForNativeCondition,
+  waitForNativeQuiescence,
 } from "./nativePerformance.ts";
 import {
   AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS,
@@ -260,6 +263,10 @@ class NativePaginationFrameLedger {
   executed = 0;
   maxPending = 0;
 
+  get pending(): number {
+    return this.#pending.size;
+  }
+
   request = (callback: FrameRequestCallback): number => {
     let handle = 0;
     handle = this.#nativeRequest((timestamp) => {
@@ -297,12 +304,17 @@ async function captureNativePaginationOperation(
   description: string,
   timeoutMs: number,
   mutate: () => void,
+  activitySnapshot: () => Omit<
+    NativePaginationQuiescenceSnapshot,
+    "stable" | "epoch" | "reportCount"
+  >,
   outcomeSatisfied: () => boolean = () => true,
   diagnosticState: () => Record<string, unknown> = () => ({}),
 ): Promise<CapturedNativeOperation> {
   const reportIndex = reports.length;
   const executedBefore = frames.executed;
   const startedAt = performance.now();
+  const deadline = startedAt + timeoutMs;
   mutate();
   const authoredDoc = editor.state.doc;
   const targetEpoch = paginationPluginKey.getState(editor.state)?.epoch;
@@ -322,7 +334,31 @@ async function captureNativePaginationOperation(
         ) !== undefined;
       },
       {
-        timeoutMs,
+        timeoutMs: remainingNativeDeadlineMs(deadline),
+        yieldControl: async () => {
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+          await frame();
+        },
+      },
+    );
+    await waitForNativeQuiescence(
+      description,
+      () => {
+        const current = paginationPluginKey.getState(editor.state);
+        return {
+          stable: latestSettledNativeReport(
+            reports.slice(reportIndex),
+            current,
+            targetEpoch,
+            editor.state.doc.eq(authoredDoc) && outcomeSatisfied(),
+          ) !== undefined,
+          epoch: current?.epoch ?? -1,
+          reportCount: reports.length,
+          ...activitySnapshot(),
+        };
+      },
+      {
+        timeoutMs: remainingNativeDeadlineMs(deadline),
         yieldControl: async () => {
           await new Promise<void>((resolve) => setTimeout(resolve, 0));
           await frame();
@@ -410,8 +446,13 @@ async function waitForLatestStableReport(
   reports: PaginationStateReport[],
   description: string,
   timeoutMs: number,
+  activitySnapshot: () => Omit<
+    NativePaginationQuiescenceSnapshot,
+    "stable" | "epoch" | "reportCount"
+  >,
 ): Promise<PaginationStateReport> {
   let stable: PaginationStateReport | undefined;
+  const deadline = performance.now() + timeoutMs;
   await waitForNativeCondition(
     description,
     () => {
@@ -422,7 +463,27 @@ async function waitForLatestStableReport(
       return stable !== undefined;
     },
     {
-      timeoutMs,
+      timeoutMs: remainingNativeDeadlineMs(deadline),
+      yieldControl: async () => {
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        await frame();
+      },
+    },
+  );
+  await waitForNativeQuiescence(
+    description,
+    () => {
+      const current = paginationPluginKey.getState(editor.state);
+      stable = latestSettledNativeReport(reports, current);
+      return {
+        stable: stable !== undefined,
+        epoch: current?.epoch ?? -1,
+        reportCount: reports.length,
+        ...activitySnapshot(),
+      };
+    },
+    {
+      timeoutMs: remainingNativeDeadlineMs(deadline),
       yieldControl: async () => {
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
         await frame();
@@ -512,6 +573,12 @@ async function runNativePerformanceWorkload(
       destroy: () => productionMeasurer.destroy(),
     };
   };
+  const activitySnapshot = () => ({
+    readsStarted: layoutReads,
+    readsCompleted: layoutReadsCompleted,
+    readsInFlight: layoutReadsInFlight,
+    pendingFrames: frames.pending,
+  });
 
   try {
     editor.registerPlugin(createPaginationPlugin({
@@ -532,6 +599,7 @@ async function runNativePerformanceWorkload(
           reports,
           description,
           remainingNativeDeadlineMs(setupDeadline),
+          activitySnapshot,
         );
       } catch (error) {
         const current = paginationPluginKey.getState(editor.state);
@@ -646,7 +714,7 @@ async function runNativePerformanceWorkload(
       referenceEntries: mount.querySelectorAll(".ref-entry").length,
     });
     const inputDurationsMs: number[] = [];
-    const readsBeforeInput = layoutReads;
+    let readsDuringInput = 0;
     const rapidTyping = await captureNativePaginationOperation(
       editor,
       reports,
@@ -655,17 +723,22 @@ async function runNativePerformanceWorkload(
       budget.typingDeletionMs,
       () => {
         for (let index = 0; index < 20; index += 1) {
-          const startedAt = performance.now();
-          editor.view.dispatch(
-            editor.state.tr.insertText("x", firstParagraph),
+          const input = captureSynchronousNativeMutation(
+            () => {
+              editor.view.dispatch(
+                editor.state.tr.insertText("x", firstParagraph),
+              );
+            },
+            () => layoutReads,
           );
-          inputDurationsMs.push(performance.now() - startedAt);
+          inputDurationsMs.push(input.durationMs);
+          readsDuringInput += input.layoutReads;
         }
       },
+      activitySnapshot,
       undefined,
       operationDiagnosticState,
     );
-    const readsDuringInput = layoutReads - readsBeforeInput;
 
     let deletionInputMs = 0;
     let deletionReadsDuringInput = 0;
@@ -676,14 +749,18 @@ async function runNativePerformanceWorkload(
       `${targetPages}-page deletion`,
       budget.typingDeletionMs,
       () => {
-        const readsBeforeDeletion = layoutReads;
-        const startedAt = performance.now();
-        editor.view.dispatch(
-          editor.state.tr.delete(firstParagraph, firstParagraph + 20),
+        const input = captureSynchronousNativeMutation(
+          () => {
+            editor.view.dispatch(
+              editor.state.tr.delete(firstParagraph, firstParagraph + 20),
+            );
+          },
+          () => layoutReads,
         );
-        deletionInputMs = performance.now() - startedAt;
-        deletionReadsDuringInput = layoutReads - readsBeforeDeletion;
+        deletionInputMs = input.durationMs;
+        deletionReadsDuringInput = input.layoutReads;
       },
+      activitySnapshot,
       undefined,
       operationDiagnosticState,
     );
@@ -700,6 +777,7 @@ async function runNativePerformanceWorkload(
         referenceEnv.references = fixture.references;
         refreshReferenceDecoration(editor);
       },
+      activitySnapshot,
       () =>
         mount.querySelectorAll(".ref-entry").length > referenceEntriesBefore,
       operationDiagnosticState,
@@ -721,6 +799,7 @@ async function runNativePerformanceWorkload(
         shell.style.setProperty("--doc-font-size", "12pt");
         invalidatePagination(editor, "font");
       },
+      activitySnapshot,
       () =>
         getComputedStyle(editor.view.dom).fontFamily !== fontFamilyBefore &&
         getComputedStyle(editor.view.dom).fontSize === "16px",
@@ -737,9 +816,30 @@ async function runNativePerformanceWorkload(
     const scaledLayout = calculatePaperScale(612, proofEditor.scrollHeight);
     proofEditor.style.transformOrigin = "top left";
     proofEditor.style.transform = `scale(${scaledLayout.scale})`;
-    await frame();
-    await frame();
-    await frame();
+    await waitForNativeQuiescence(
+      `${targetPages}-page scale resize`,
+      () => {
+        const current = paginationPluginKey.getState(editor.state);
+        const currentScale = editor.view.dom.getBoundingClientRect().width /
+          editor.view.dom.offsetWidth;
+        return {
+          stable: latestSettledNativeReport(reports, current) !== undefined &&
+            Math.abs(currentScale - scaleBefore) > 0.001,
+          epoch: current?.epoch ?? -1,
+          reportCount: reports.length,
+          ...activitySnapshot(),
+        };
+      },
+      {
+        timeoutMs: remainingNativeDeadlineMs(
+          resizeStartedAt + budget.resizeMs,
+        ),
+        yieldControl: async () => {
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+          await frame();
+        },
+      },
+    );
     const scaleAfter = editor.view.dom.getBoundingClientRect().width /
       editor.view.dom.offsetWidth;
     const resizeEndEpoch = paginationPluginKey.getState(editor.state)?.epoch ??

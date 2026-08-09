@@ -90,6 +90,21 @@ export interface NativeConditionWaitOptions {
   yieldControl?: () => Promise<void>;
 }
 
+export interface NativePaginationQuiescenceSnapshot {
+  stable: boolean;
+  epoch: number;
+  reportCount: number;
+  readsStarted: number;
+  readsCompleted: number;
+  readsInFlight: number;
+  pendingFrames: number;
+}
+
+export interface SynchronousNativeMutationResult {
+  durationMs: number;
+  layoutReads: number;
+}
+
 interface NativeSettlementState {
   status: "settling" | "stable" | "fallback";
   epoch: number;
@@ -156,8 +171,74 @@ export async function waitForNativeCondition(
     }
     await yieldControl();
     yields += 1;
+    if (now() - startedAt >= options.timeoutMs) {
+      throw new Error(
+        `Timed out waiting for ${description} after ${options.timeoutMs}ms`,
+      );
+    }
   }
   return yields;
+}
+
+function sameNativeQuiescenceSnapshot(
+  left: NativePaginationQuiescenceSnapshot,
+  right: NativePaginationQuiescenceSnapshot,
+): boolean {
+  return left.epoch === right.epoch &&
+    left.reportCount === right.reportCount &&
+    left.readsStarted === right.readsStarted &&
+    left.readsCompleted === right.readsCompleted &&
+    left.readsInFlight === right.readsInFlight &&
+    left.pendingFrames === right.pendingFrames;
+}
+
+/**
+ * Requires an idle stable snapshot to remain unchanged across a caller-owned
+ * macrotask plus native-frame yield.
+ */
+export async function waitForNativeQuiescence(
+  description: string,
+  snapshot: () => NativePaginationQuiescenceSnapshot,
+  options: NativeConditionWaitOptions,
+): Promise<NativePaginationQuiescenceSnapshot> {
+  let previous: NativePaginationQuiescenceSnapshot | undefined;
+  let latest: NativePaginationQuiescenceSnapshot | undefined;
+  await waitForNativeCondition(
+    `${description} quiescence`,
+    () => {
+      latest = snapshot();
+      if (
+        !latest.stable || latest.readsInFlight !== 0 ||
+        latest.pendingFrames !== 0
+      ) {
+        previous = undefined;
+        return false;
+      }
+      if (previous && sameNativeQuiescenceSnapshot(previous, latest)) {
+        return true;
+      }
+      previous = latest;
+      return false;
+    },
+    options,
+  );
+  if (!latest) throw new Error(`${description} produced no activity snapshot`);
+  return latest;
+}
+
+/** Measures only work performed before a synchronous editor mutation returns. */
+export function captureSynchronousNativeMutation(
+  mutate: () => void,
+  layoutReadCount: () => number,
+  now: () => number = () => performance.now(),
+): SynchronousNativeMutationResult {
+  const readsBefore = layoutReadCount();
+  const startedAt = now();
+  mutate();
+  return {
+    durationMs: now() - startedAt,
+    layoutReads: layoutReadCount() - readsBefore,
+  };
 }
 
 function near(value: number, expected: number, tolerance = 0.5): boolean {

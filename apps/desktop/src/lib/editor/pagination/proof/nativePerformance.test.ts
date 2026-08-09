@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  captureSynchronousNativeMutation,
   countCausalStableReports,
   evaluateLivePagedGeometry,
   evaluateNativePaginationWorkload,
@@ -7,6 +8,7 @@ import {
   type NativePaginationWorkloadResult,
   remainingNativeDeadlineMs,
   waitForNativeCondition,
+  waitForNativeQuiescence,
 } from "./nativePerformance.ts";
 
 function passingResult(
@@ -229,6 +231,103 @@ describe("native condition settlement", () => {
     )).rejects.toThrow(
       "Timed out waiting for stalled pagination after 5ms",
     );
+  });
+
+  it("fails closed when the condition becomes true only after a late yield", async () => {
+    let now = 0;
+    let ready = false;
+
+    await expect(waitForNativeCondition(
+      "late pagination",
+      () => ready,
+      {
+        timeoutMs: 5,
+        now: () => now,
+        yieldControl: () => {
+          now = 6;
+          ready = true;
+          return Promise.resolve();
+        },
+      },
+    )).rejects.toThrow(
+      "Timed out waiting for late pagination after 5ms",
+    );
+  });
+
+  it("requires unchanged stable activity across consecutive native yields", async () => {
+    const snapshots = [
+      {
+        stable: true,
+        epoch: 4,
+        reportCount: 3,
+        readsStarted: 8,
+        readsCompleted: 7,
+        readsInFlight: 1,
+        pendingFrames: 1,
+      },
+      {
+        stable: true,
+        epoch: 4,
+        reportCount: 3,
+        readsStarted: 8,
+        readsCompleted: 8,
+        readsInFlight: 0,
+        pendingFrames: 0,
+      },
+      {
+        stable: true,
+        epoch: 5,
+        reportCount: 4,
+        readsStarted: 9,
+        readsCompleted: 9,
+        readsInFlight: 0,
+        pendingFrames: 0,
+      },
+      {
+        stable: true,
+        epoch: 5,
+        reportCount: 4,
+        readsStarted: 9,
+        readsCompleted: 9,
+        readsInFlight: 0,
+        pendingFrames: 0,
+      },
+    ];
+    let index = 0;
+    let now = 0;
+
+    await expect(waitForNativeQuiescence(
+      "native pagination",
+      () => snapshots[index]!,
+      {
+        timeoutMs: 10,
+        now: () => now,
+        yieldControl: () => {
+          index = Math.min(index + 1, snapshots.length - 1);
+          now += 1;
+          return Promise.resolve();
+        },
+      },
+    )).resolves.toEqual(snapshots[3]);
+    expect(index).toBe(3);
+  });
+
+  it("counts only layout reads started inside the synchronous mutation", async () => {
+    let reads = 7;
+    let now = 10;
+
+    const captured = captureSynchronousNativeMutation(
+      () => {
+        queueMicrotask(() => reads += 1);
+        now = 13;
+      },
+      () => reads,
+      () => now,
+    );
+
+    expect(captured).toEqual({ durationMs: 3, layoutReads: 0 });
+    await Promise.resolve();
+    expect(reads).toBe(8);
   });
 
   it("accepts a stable operation superseded by a newer causal epoch", () => {
