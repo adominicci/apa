@@ -35,6 +35,7 @@ pub fn run() {
             backup_directory::backup_write_archive,
             backup_directory::backup_confirm_archive,
             backup_directory::backup_read_archive,
+            backup_directory::backup_read_test_archive,
             backup_directory::backup_list_archives,
             backup_directory::backup_remove_archive,
             backup_directory::backup_ledger_entries,

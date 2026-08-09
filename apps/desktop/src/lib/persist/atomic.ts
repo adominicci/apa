@@ -9,7 +9,11 @@ import {
 } from "@tauri-apps/plugin-fs";
 import { appDataDir, dirname, join } from "@tauri-apps/api/path";
 import { persistence } from "./coordinator.ts";
-import { installReplacement, isWindowsWebView } from "./atomicReplace.ts";
+import {
+  installReplacement,
+  isWindowsWebView,
+  recoverInterruptedReplacement,
+} from "./atomicReplace.ts";
 
 /**
  * All Tesina data lives under the OS app-data directory ($APPDATA), the only
@@ -65,6 +69,9 @@ export async function writeJsonAtomicQuiet(
 /** Returns `null` when the file does not exist yet. */
 export async function readJson<T>(relativePath: string): Promise<T | null> {
   const target = await resolveAbsolute(relativePath);
+  if (isWindowsWebView()) {
+    await recoverInterruptedReplacement(target, { exists, remove, rename });
+  }
   if (!(await exists(target))) return null;
   return JSON.parse(await readTextFile(target)) as T;
 }

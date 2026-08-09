@@ -425,10 +425,23 @@ impl BackupDirectoryCore {
         Ok(())
     }
 
-    /// Reads an archive from the pending subfolder while a configuration is
-    /// in progress (wizard validation), otherwise from the active subfolder.
+    /// Reads an automatic backup only from the active subfolder.
     pub fn read_archive(&self, file_name: &str) -> Result<Vec<u8>, BackupError> {
         self.read_archive_with_limit(file_name, MAX_ARCHIVE_BYTES)
+    }
+
+    /// Reads a setup-wizard test only from the pending subfolder.
+    pub fn read_test_archive(&self, file_name: &str) -> Result<Vec<u8>, BackupError> {
+        validate_file_name(file_name)?;
+        let inner = self.lock();
+        let pending = inner.pending.as_ref().ok_or_else(|| {
+            BackupError::new(
+                BackupErrorCode::PendingMissing,
+                "no folder configuration is in progress",
+            )
+        })?;
+        let subfolder = resolve_subfolder(&pending.canonical_folder_path)?;
+        Self::read_archive_file(&subfolder, file_name, MAX_ARCHIVE_BYTES)
     }
 
     fn read_archive_with_limit(
@@ -438,12 +451,16 @@ impl BackupDirectoryCore {
     ) -> Result<Vec<u8>, BackupError> {
         validate_file_name(file_name)?;
         let inner = self.lock();
-        let subfolder = if let Some(pending) = inner.pending.as_ref() {
-            resolve_subfolder(&pending.canonical_folder_path)?
-        } else {
-            let active = require_active(&inner)?;
-            resolve_subfolder(&active.canonical_folder_path)?
-        };
+        let active = require_active(&inner)?;
+        let subfolder = resolve_subfolder(&active.canonical_folder_path)?;
+        Self::read_archive_file(&subfolder, file_name, max_bytes)
+    }
+
+    fn read_archive_file(
+        subfolder: &Path,
+        file_name: &str,
+        max_bytes: usize,
+    ) -> Result<Vec<u8>, BackupError> {
         let path = subfolder.join(file_name);
         let metadata = fs::symlink_metadata(&path)
             .map_err(|error| BackupError::io("archive is not accessible", &error))?;
@@ -1003,6 +1020,17 @@ pub async fn backup_read_archive(
     Ok(tauri::ipc::Response::new(bytes))
 }
 
+#[tauri::command]
+pub async fn backup_read_test_archive(
+    state: tauri::State<'_, BackupDirectoryCore>,
+    request: tauri::ipc::Request<'_>,
+) -> Result<tauri::ipc::Response, BackupError> {
+    let file_name = request_file_name(&request)?;
+    let core = state.inner().clone();
+    let bytes = run_selected_folder(move || core.read_test_archive(&file_name)).await?;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
 fn request_file_name(request: &tauri::ipc::Request<'_>) -> Result<String, BackupError> {
     request
         .headers()
@@ -1261,8 +1289,10 @@ mod tests {
 
         let path = subfolder_of(&fixture.selected_dir).join("Wizard Test.tesina");
         assert!(path.is_file(), "test archive must land in pending subfolder");
-        // Reading during pending resolves against the pending subfolder.
-        assert_eq!(core.read_archive("Wizard Test.tesina").unwrap(), b"wizard bytes");
+        assert_eq!(
+            core.read_test_archive("Wizard Test.tesina").unwrap(),
+            b"wizard bytes"
+        );
 
         core.activate_configuration().unwrap();
         let entries = core.ledger_entries().unwrap();
@@ -1274,6 +1304,26 @@ mod tests {
         assert!(entries[0].created_at.ends_with('Z'));
         assert_eq!(&entries[0].created_at[4..5], "-");
         assert_eq!(&entries[0].created_at[10..11], "T");
+    }
+
+    #[test]
+    fn active_archive_reads_are_not_redirected_during_reconfiguration() {
+        let fixture = fixture();
+        let core = core(&fixture);
+        configure(&core, &fixture.selected_dir);
+        core.write_archive("Active.tesina", b"active bytes").unwrap();
+
+        let replacement = fixture._root.path().join("ReplacementFolder");
+        fs::create_dir_all(&replacement).unwrap();
+        core.begin_configuration(replacement.to_str().unwrap()).unwrap();
+        core.write_test_archive("Pending.tesina", b"pending bytes")
+            .unwrap();
+
+        assert_eq!(core.read_archive("Active.tesina").unwrap(), b"active bytes");
+        assert_eq!(
+            core.read_test_archive("Pending.tesina").unwrap(),
+            b"pending bytes"
+        );
     }
 
     #[test]

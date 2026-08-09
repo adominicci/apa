@@ -263,6 +263,11 @@ export async function recoverReplacements(
         await deps.fs.rename(destinationPath, previousPath);
       }
       await deps.fs.rename(temporaryPath, destinationPath);
+      if (!(await fileMatches(deps, destinationPath, record))) {
+        // A sync provider may alter the installed path during the rename.
+        // Keep the preserved previous file and journal for safe recovery.
+        continue;
+      }
       await removeIfExists(deps, previousPath);
       await journal.remove(record.id);
       continue;
@@ -295,7 +300,11 @@ async function fileMatches(
 ): Promise<boolean> {
   if (!(await deps.fs.exists(path))) return false;
   try {
-    return (await deps.fs.sha256File(path)) === record.expectedSha256;
+    if ((await deps.fs.sha256File(path)) !== record.expectedSha256) {
+      return false;
+    }
+    await deps.validate(await deps.fs.readFile(path));
+    return true;
   } catch {
     return false;
   }

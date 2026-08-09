@@ -239,7 +239,14 @@ export function writeWizardTestBackup(): Promise<{
       packaged.bytes,
     );
     // Spec: validated test = written, reopened, and fully validated.
-    const reread = await tauriBackupAdapter.readArchive(fileName);
+    const rereadBytes = await invokeBackupBinary<ArrayBuffer | Uint8Array>(
+      "backup_read_test_archive",
+      fileName,
+      new Uint8Array(),
+    );
+    const reread = rereadBytes instanceof Uint8Array
+      ? rereadBytes
+      : new Uint8Array(rereadBytes);
     await validateArchive(reread, ARCHIVE_LIMITS);
     return { fileName, contentDigest: packaged.contentDigest };
   });

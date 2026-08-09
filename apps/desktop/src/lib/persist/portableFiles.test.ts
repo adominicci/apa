@@ -311,6 +311,35 @@ describe("writeArchiveReplacing", () => {
     expect(journal.records.size).toBe(1); // kept as evidence
   });
 
+  it("keeps the previous export when a recovered install changes after rename", async () => {
+    const fs = new FakeFs();
+    const journal = new FakeJournal();
+    const deps = makeDeps(fs);
+    const record: ReplacementRecord = {
+      id: "r-sync-race",
+      destinationPath: "/docs/lib.tesina",
+      temporaryPath: "/docs/lib.tesina.tmp",
+      previousPath: "/docs/lib.tesina.prev",
+      expectedSha256: await deps.sha256(GOOD),
+      previousSha256: await deps.sha256(OLD),
+    };
+    await journal.save(record);
+    fs.files.set(record.temporaryPath, GOOD);
+    fs.files.set(record.previousPath, OLD);
+    const originalRename = fs.rename.bind(fs);
+    fs.rename = async (from, to) => {
+      await originalRename(from, to);
+      if (to === record.destinationPath) {
+        fs.files.set(to, new TextEncoder().encode("sync-truncated"));
+      }
+    };
+
+    await recoverReplacements(deps, journal);
+
+    expect(fs.files.get(record.previousPath)).toBe(OLD);
+    expect(journal.records.has(record.id)).toBe(true);
+  });
+
   it("keeps the journal when a preserved previous file meets an unexpected destination", async () => {
     const fs = new FakeFs();
     const journal = new FakeJournal();

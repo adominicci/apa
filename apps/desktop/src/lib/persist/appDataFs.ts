@@ -24,20 +24,33 @@ import type { ImportFs } from "./importJournal.ts";
 import type { SnapshotIo } from "./librarySnapshot.ts";
 import type { ReplacementJournal, ReplacementRecord } from "./portableFiles.ts";
 import { readJson, writeJsonAtomic } from "./atomic.ts";
-import { installReplacement, isWindowsWebView } from "./atomicReplace.ts";
+import {
+  installReplacement,
+  isWindowsWebView,
+  recoverInterruptedReplacement,
+} from "./atomicReplace.ts";
 import { sha256 } from "@noble/hashes/sha256";
 
 async function absolute(relPath: string): Promise<string> {
   return await join(await appDataDir(), relPath);
 }
 
+async function recoverWindowsTarget(target: string): Promise<void> {
+  if (isWindowsWebView()) {
+    await recoverInterruptedReplacement(target, { exists, remove, rename });
+  }
+}
+
 /** ImportFs over $APPDATA. Writes are atomic (tmp + rename) and counted. */
 export const appDataImportFs: ImportFs = {
   async exists(relPath) {
-    return await exists(await absolute(relPath));
+    const target = await absolute(relPath);
+    await recoverWindowsTarget(target);
+    return await exists(target);
   },
   async readBytes(relPath) {
     const target = await absolute(relPath);
+    await recoverWindowsTarget(target);
     if (!(await exists(target))) return null;
     return await readFile(target);
   },
@@ -90,6 +103,7 @@ export const appDataSnapshotIo: SnapshotIo = {
   },
   async readEssayFile(name) {
     const target = await absolute(`essays/${name}`);
+    await recoverWindowsTarget(target);
     if (!(await exists(target))) return null;
     try {
       return JSON.parse(await readTextFile(target));
@@ -103,6 +117,7 @@ export const appDataSnapshotIo: SnapshotIo = {
   },
   async readAssetFile(relPath) {
     const target = await absolute(relPath);
+    await recoverWindowsTarget(target);
     if (!(await exists(target))) return null;
     return await readFile(target);
   },
