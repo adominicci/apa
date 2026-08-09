@@ -66,6 +66,7 @@
 
 .apa-editor .tiptap [data-pagination-gap="line"],
 .apa-editor .tiptap [data-pagination-gap="block"],
+.apa-editor .tiptap [data-pagination-gap="section"],
 .apa-editor .tiptap [data-pagination-proof-gap="line"],
 .apa-editor .tiptap [data-pagination-proof-gap="block"],
 .apa-editor .tiptap [data-pagination-gap-space] {
