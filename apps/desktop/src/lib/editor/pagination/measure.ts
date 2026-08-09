@@ -743,12 +743,12 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
     if (generatedHeight > 0) {
       sectionFragments.push({
         id: `section:${sectionPos}:generated-heading`,
-        from: sectionPos + 1,
-        to: sectionPos + 1,
+        from: sectionPos,
+        to: sectionPos,
         section,
         kind: "heading",
         height: generatedHeight,
-        breakBefore: { kind: "block", pos: sectionPos + 1, section },
+        breakBefore: { kind: "block", pos: sectionPos, section },
         forcePageStart: true,
         keepWithNext: true,
       });

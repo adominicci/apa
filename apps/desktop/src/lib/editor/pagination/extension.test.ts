@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Content, Editor } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { exportDocx } from "@tesina/docx-export";
@@ -14,7 +14,10 @@ import type {
   PaginationMeasurer,
   PaginationMeasurerOptions,
 } from "./measure.ts";
-import { createPaginationMeasurer } from "./measure.ts";
+import {
+  browserPaginationLayoutAdapter,
+  createPaginationMeasurer,
+} from "./measure.ts";
 import type {
   MeasuredFragment,
   PaginationInput,
@@ -230,6 +233,102 @@ async function flushUntilStatus(
 afterEach(() => document.body.replaceChildren());
 
 describe("derived pagination extension", () => {
+  it("places a section-start gap before generated heading and reference chrome", async () => {
+    const frames = new TestFrames();
+    const { editor, element } = createEditor({
+      type: "doc",
+      content: [
+        {
+          type: "sectionBody",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "Body before references" }],
+          }],
+        },
+        {
+          type: "sectionAppendix",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "Appendix after references" }],
+          }],
+        },
+      ],
+    });
+    const appendixPos = positionsOf(editor.state.doc, "sectionAppendix")[0]!;
+    const getComputedStyle = globalThis.getComputedStyle.bind(globalThis);
+    const styleSpy = vi.spyOn(globalThis, "getComputedStyle")
+      .mockImplementation(
+        (target, pseudoElement) =>
+          pseudoElement === "::before"
+            ? {
+              display: "block",
+              content: '"Generated heading"',
+              fontSize: "16px",
+              lineHeight: "16px",
+            } as CSSStyleDeclaration
+            : getComputedStyle(target),
+      );
+    const rectSpy = vi.spyOn(
+      globalThis.HTMLElement.prototype,
+      "getBoundingClientRect",
+    ).mockImplementation(function (this: HTMLElement) {
+      const height = this.matches(".sec-body p")
+        ? 600
+        : this.matches(".sec-appendix p")
+        ? 120
+        : 0;
+      return new DOMRect(0, 0, 624, height);
+    });
+    const measurer: PaginationMeasurer = {
+      read: ({ epoch }) => {
+        const snapshot = browserPaginationLayoutAdapter.readLayout(editor.view);
+        return Promise.resolve({ status: "measured", epoch, ...snapshot });
+      },
+      destroy: () => {},
+    };
+
+    try {
+      editor.registerPlugin(createPaginationPlugin(
+        {
+          reason: "authored-content",
+          getReferencePageCount: () => 1,
+        },
+        {
+          createMeasurer: () => measurer,
+          requestFrame: frames.request,
+          cancelFrame: frames.cancel,
+        },
+      ));
+      await frames.flushAll();
+
+      const gaps = element.querySelectorAll<HTMLElement>(
+        `[data-pagination-pos="${appendixPos}"]`,
+      );
+      const gap = gaps[0];
+      const references = element.querySelector<HTMLElement>(
+        "[data-reference-pages]",
+      );
+      const appendix = editor.view.nodeDOM(appendixPos);
+
+      expect(gaps).toHaveLength(1);
+      expect(references).not.toBeNull();
+      expect(appendix).toBeInstanceOf(HTMLElement);
+      expect(gap!.parentElement).toBe(editor.view.dom);
+      expect(
+        gap!.compareDocumentPosition(references!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(
+        references!.compareDocumentPosition(appendix!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+    } finally {
+      rectSpy.mockRestore();
+      styleSpy.mockRestore();
+      editor.destroy();
+    }
+  });
+
   it("reports settling, stable, and last-stable fallback lifecycle states", async () => {
     const frames = new TestFrames();
     const { editor } = createEditor();
