@@ -34,6 +34,7 @@ class Harness {
   clock = new Date(2026, 2, 5, 10, 0, 0);
   writeError: { code: string } | null = null;
   validationError: { code: string } | null = null;
+  settingsFlushError: { code: string } | null = null;
   removeError = false;
   clockAfterConfirm: Date | null = null;
   packages = 0;
@@ -115,6 +116,10 @@ class Harness {
         updateBackup: (patch) => {
           this.settingsValue = { ...this.settingsValue, ...patch };
         },
+        flushPending: () =>
+          this.settingsFlushError
+            ? Promise.reject(this.settingsFlushError)
+            : Promise.resolve(),
       },
       runOperation: (_kind, fn) => fn(),
       subscribeActivity: (listener) => {
@@ -206,6 +211,17 @@ describe("BackupStore scheduling", () => {
     const retry = await harnessRef.store.runAutomatic();
     expect(retry.kind).toBe("success");
     expect(harnessRef.settingsValue?.lastErrorCode).toBeUndefined();
+  });
+
+  it("fails and rolls back success gating when metadata cannot persist", async () => {
+    harnessRef.settingsFlushError = { code: "settings_persist_failed" };
+
+    expect(await harnessRef.store.runAutomatic()).toEqual({
+      kind: "failed",
+      errorCode: "settings_persist_failed",
+    });
+    expect(harnessRef.settingsValue?.lastSuccessContentDigest).toBeUndefined();
+    expect(harnessRef.settingsValue?.lastAutoSuccessDay).toBeUndefined();
   });
 
   it("does not ledger a backup until reopen validation succeeds", async () => {

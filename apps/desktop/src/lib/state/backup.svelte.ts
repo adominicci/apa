@@ -51,6 +51,7 @@ export interface BackupStoreDeps {
   settings: {
     readonly backup: BackupUiSettings | undefined;
     updateBackup(patch: Partial<BackupUiSettings>): void;
+    flushPending(): Promise<void>;
   };
   runOperation<T>(
     kind: "backup",
@@ -223,12 +224,24 @@ export class BackupStore {
       await deps.adapter.confirmArchive(fileName, writtenSha256);
 
       const completedAt = deps.now();
+      const previousSuccess = {
+        lastSuccessAt: deps.settings.backup?.lastSuccessAt,
+        lastSuccessContentDigest: deps.settings.backup
+          ?.lastSuccessContentDigest,
+        lastAutoSuccessDay: deps.settings.backup?.lastAutoSuccessDay,
+      };
       deps.settings.updateBackup({
         lastSuccessAt: completedAt.toISOString(),
         lastSuccessContentDigest: packaged.contentDigest,
         lastErrorCode: undefined,
         ...(manual ? {} : { lastAutoSuccessDay: localDay(completedAt) }),
       });
+      try {
+        await deps.settings.flushPending();
+      } catch (error) {
+        deps.settings.updateBackup(previousSuccess);
+        throw error;
+      }
 
       const retentionWarning = await this.#applyRetention(status.backupSetId);
 

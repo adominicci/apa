@@ -83,6 +83,7 @@ export async function writeArchiveExclusive(
   candidates: string[],
 ): Promise<{ path: string }> {
   let tmp: string | null = null;
+  const expectedSha256 = await deps.sha256(bytes);
   try {
     for (const candidate of candidates) {
       if (await deps.fs.exists(candidate)) continue;
@@ -97,7 +98,15 @@ export async function writeArchiveExclusive(
         continue; // raced by another writer; try the next unused name
       }
       tmp = null;
-      await deps.validate(await deps.fs.readFile(candidate));
+      const installed = await deps.fs.readFile(candidate);
+      if ((await deps.sha256(installed)) !== expectedSha256) {
+        throw new PortableFileError(
+          "portable/destination-changed",
+          "the installed archive changed before it could be verified",
+          candidate,
+        );
+      }
+      await deps.validate(installed);
       return { path: candidate };
     }
     throw new PortableFileError(
@@ -129,6 +138,7 @@ export async function writeArchiveReplacing(
   signal?: AbortSignal,
 ): Promise<{ path: string }> {
   const tmp = siblingTempPath(destinationPath, deps.uuid());
+  const expectedSha256 = await deps.sha256(bytes);
   let journalSaved = false;
   try {
     await abortable(signal, () => deps.fs.writeFile(tmp, bytes));
@@ -145,9 +155,18 @@ export async function writeArchiveReplacing(
         signal,
         () => deps.fs.renameNoReplace(tmp, destinationPath),
       );
-      await deps.validate(
-        await abortable(signal, () => deps.fs.readFile(destinationPath)),
+      const installed = await abortable(
+        signal,
+        () => deps.fs.readFile(destinationPath),
       );
+      if ((await deps.sha256(installed)) !== expectedSha256) {
+        throw new PortableFileError(
+          "portable/destination-changed",
+          "the installed destination changed before it could be verified",
+          destinationPath,
+        );
+      }
+      await deps.validate(installed);
       return { path: destinationPath };
     }
 
@@ -159,7 +178,7 @@ export async function writeArchiveReplacing(
       destinationPath,
       temporaryPath: tmp,
       previousPath: `${destinationPath}.${deps.uuid()}.prev`,
-      expectedSha256: await deps.sha256(bytes),
+      expectedSha256,
       previousSha256: await abortable(
         signal,
         () => deps.fs.sha256File(destinationPath),

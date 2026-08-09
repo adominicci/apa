@@ -25,11 +25,20 @@ async function settle(): Promise<void> {
 
 function fakeSettings(
   backup?: BackupUiSettings,
-): BackupSettingsFacade & { updateBackup: ReturnType<typeof vi.fn> } {
-  return { backup, updateBackup: vi.fn() };
+): BackupSettingsFacade & {
+  updateBackup: ReturnType<typeof vi.fn>;
+  flushPending(): Promise<void>;
+} {
+  return {
+    backup,
+    updateBackup: vi.fn(),
+    flushPending: () => Promise.resolve(),
+  };
 }
 
-function fakeStore(settings: BackupSettingsFacade): BackupStore {
+function fakeStore(
+  settings: BackupSettingsFacade & { flushPending(): Promise<void> },
+): BackupStore {
   return new BackupStore({
     adapter: {
       status: () =>

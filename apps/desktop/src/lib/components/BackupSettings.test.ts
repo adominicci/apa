@@ -64,6 +64,7 @@ class Harness {
   archives = [{ fileName: ARCHIVE_NAME, byteLength: 1024 }];
   settings: BackupSettingsFacade & {
     updateBackup: ReturnType<typeof vi.fn>;
+    flushPending(): Promise<void>;
   };
   adapter: BackupAdapter;
   store: BackupStore;
@@ -90,7 +91,11 @@ class Harness {
   onClose = vi.fn();
 
   constructor(backup?: BackupUiSettings) {
-    this.settings = { backup, updateBackup: vi.fn() };
+    this.settings = {
+      backup,
+      updateBackup: vi.fn(),
+      flushPending: () => Promise.resolve(),
+    };
     this.adapter = {
       status: () =>
         Promise.resolve(

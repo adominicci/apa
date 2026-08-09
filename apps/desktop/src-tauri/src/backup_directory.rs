@@ -643,14 +643,7 @@ impl BackupDirectoryCore {
                 "the removal candidate is not a regular file",
             ));
         }
-        let current = sha256_file_bounded(&path, "cannot read archive", MAX_ARCHIVE_BYTES)?;
-        if !current.eq_ignore_ascii_case(expected_sha256) {
-            return Err(BackupError::new(
-                BackupErrorCode::HashMismatch,
-                "the file's current bytes do not match the recorded hash; nothing was deleted",
-            ));
-        }
-        fs::remove_file(&path).map_err(|error| BackupError::io("cannot remove archive", &error))?;
+        quarantine_and_remove_archive(&path, expected_sha256, |_| Ok(()))?;
         let mut ledger = load_ledger(&self.app_data_dir);
         ledger.entries.retain(|entry| {
             !(entry.file_name == file_name && entry.backup_set_id == backup_set_id)
@@ -1023,6 +1016,55 @@ fn sha256_file_bounded(
         digest.update(&buffer[..read]);
     }
     Ok(format!("{:x}", digest.finalize()))
+}
+
+/// Moves the pathname out of service before hashing so a sync provider may
+/// recreate the public name without making us delete unverified bytes. The
+/// hook is a deterministic test seam for that post-quarantine race.
+fn quarantine_and_remove_archive<F>(
+    path: &Path,
+    expected_sha256: &str,
+    after_quarantine: F,
+) -> Result<(), BackupError>
+where
+    F: FnOnce(&Path) -> Result<(), BackupError>,
+{
+    let parent = path.parent().ok_or_else(|| {
+        BackupError::new(BackupErrorCode::Io, "the archive has no parent directory")
+    })?;
+    let quarantine = parent.join(format!(".delete-{}", Uuid::new_v4()));
+    fs::rename(path, &quarantine)
+        .map_err(|error| BackupError::io("cannot quarantine archive", &error))?;
+
+    let outcome = (|| {
+        after_quarantine(&quarantine)?;
+        let metadata = fs::symlink_metadata(&quarantine)
+            .map_err(|error| BackupError::io("quarantined archive is not accessible", &error))?;
+        if !metadata.is_file() {
+            return Err(BackupError::new(
+                BackupErrorCode::Io,
+                "the quarantined removal candidate is not a regular file",
+            ));
+        }
+        let current = sha256_file_bounded(
+            &quarantine,
+            "cannot read quarantined archive",
+            MAX_ARCHIVE_BYTES,
+        )?;
+        if !current.eq_ignore_ascii_case(expected_sha256) {
+            return Err(BackupError::new(
+                BackupErrorCode::HashMismatch,
+                "the quarantined bytes do not match the recorded hash; nothing was deleted",
+            ));
+        }
+        fs::remove_file(&quarantine)
+            .map_err(|error| BackupError::io("cannot remove quarantined archive", &error))
+    })();
+
+    if outcome.is_err() && quarantine.exists() && !path.exists() {
+        let _ = fs::rename(&quarantine, path);
+    }
+    outcome
 }
 
 // ---------------------------------------------------------------------------
@@ -1967,6 +2009,29 @@ mod tests {
             .unwrap()
             .iter()
             .any(|entry| entry.file_name == "Test Backup.tesina"));
+    }
+
+    #[test]
+    fn removal_keeps_a_new_file_that_arrives_after_quarantine() {
+        let fixture = fixture();
+        let path = fixture.selected_dir.join("Raced.tesina");
+        fs::write(&path, b"recorded bytes").unwrap();
+        let expected = sha256_hex(b"recorded bytes");
+
+        quarantine_and_remove_archive(&path, &expected, |_| {
+            fs::write(&path, b"new synced bytes")
+                .map_err(|error| BackupError::io("test replacement failed", &error))
+        })
+        .unwrap();
+
+        assert_eq!(fs::read(&path).unwrap(), b"new synced bytes");
+        assert!(fs::read_dir(&fixture.selected_dir)
+            .unwrap()
+            .all(|entry| !entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".delete-")));
     }
 
     #[cfg(unix)]

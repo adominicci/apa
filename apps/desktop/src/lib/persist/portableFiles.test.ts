@@ -180,6 +180,20 @@ describe("writeArchiveExclusive", () => {
     ).rejects.toMatchObject({ code: "portable/no-free-name" });
     expect(fs.files.get("/backups/one.tesina")).toBe(OLD);
   });
+
+  it("rejects a valid provider swap after an exclusive install", async () => {
+    const fs = new FakeFs();
+    const originalNoReplace = fs.renameNoReplace.bind(fs);
+    fs.renameNoReplace = async (from, to) => {
+      await originalNoReplace(from, to);
+      fs.files.set(to, OTHER_VALID);
+    };
+
+    await expect(
+      writeArchiveExclusive(makeDeps(fs), GOOD, ["/backups/one.tesina"]),
+    ).rejects.toMatchObject({ code: "portable/destination-changed" });
+    expect(fs.files.get("/backups/one.tesina")).toBe(OTHER_VALID);
+  });
 });
 
 describe("writeArchiveReplacing", () => {
@@ -212,6 +226,25 @@ describe("writeArchiveReplacing", () => {
       ),
     ).rejects.toThrow();
     expect(fs.files.get("/docs/lib.tesina")).toBe(OLD);
+  });
+
+  it("rejects a valid provider swap after a first-time export install", async () => {
+    const fs = new FakeFs();
+    const originalNoReplace = fs.renameNoReplace.bind(fs);
+    fs.renameNoReplace = async (from, to) => {
+      await originalNoReplace(from, to);
+      fs.files.set(to, OTHER_VALID);
+    };
+
+    await expect(
+      writeArchiveReplacing(
+        makeDeps(fs),
+        new FakeJournal(),
+        "/docs/lib.tesina",
+        GOOD,
+      ),
+    ).rejects.toMatchObject({ code: "portable/destination-changed" });
+    expect(fs.files.get("/docs/lib.tesina")).toBe(OTHER_VALID);
   });
 
   it("journals an existing destination even when rename can replace it", async () => {
