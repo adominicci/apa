@@ -63,6 +63,14 @@ function makeHarness(): Harness {
           externalFiles.has(p)
             ? Promise.resolve(externalFiles.get(p)!)
             : Promise.reject(new Error(`missing ${p}`)),
+        readFileBounded: (p, maxBytes) => {
+          const bytes = externalFiles.get(p);
+          if (!bytes) return Promise.reject(new Error(`missing ${p}`));
+          if (bytes.length > maxBytes) {
+            return Promise.reject(new Error("too large"));
+          }
+          return Promise.resolve(bytes);
+        },
         writeFile: (p, bytes) => {
           externalFiles.set(p, bytes);
           return Promise.resolve();

@@ -28,6 +28,8 @@ export class PortableFileError extends Error {
 export interface ExternalFs {
   exists(path: string): Promise<boolean>;
   readFile(path: string): Promise<Uint8Array>;
+  /** Streams at most maxBytes and rejects before allocating beyond it. */
+  readFileBounded(path: string, maxBytes: number): Promise<Uint8Array>;
   writeFile(path: string, bytes: Uint8Array): Promise<void>;
   /** Replaces an existing destination where the platform supports it. */
   rename(from: string, to: string): Promise<void>;
@@ -256,5 +258,13 @@ export async function readTesinaBounded(
       path,
     );
   }
-  return await fs.readFile(path);
+  const bytes = await fs.readFileBounded(path, maxBytes);
+  if (bytes.length > maxBytes) {
+    throw new PortableFileError(
+      "portable/file-too-large",
+      "the selected file grew beyond the supported archive size while reading",
+      path,
+    );
+  }
+  return bytes;
 }

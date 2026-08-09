@@ -8,6 +8,7 @@
 import {
   exists,
   mkdir,
+  open,
   readDir,
   readFile,
   readTextFile,
@@ -23,36 +24,10 @@ import type { ImportFs } from "./importJournal.ts";
 import type { SnapshotIo } from "./librarySnapshot.ts";
 import type { ReplacementJournal, ReplacementRecord } from "./portableFiles.ts";
 import { readJson, writeJsonAtomic } from "./atomic.ts";
+import { installReplacement, isWindowsWebView } from "./atomicReplace.ts";
 
 async function absolute(relPath: string): Promise<string> {
   return await join(await appDataDir(), relPath);
-}
-
-interface ReplaceOps {
-  exists(path: string): Promise<boolean>;
-  remove(path: string): Promise<void>;
-  rename(from: string, to: string): Promise<void>;
-}
-
-/**
- * Installs a prepared sibling file over an existing target. Unix rename
- * replaces directly; Windows requires the existing destination removed
- * first. Import journals have two independently validated copies, so the
- * fallback remains recoverable if the process stops between those steps.
- */
-export async function installReplacement(
-  tmp: string,
-  target: string,
-  ops: ReplaceOps,
-  windowsReplace = false,
-): Promise<void> {
-  try {
-    await ops.rename(tmp, target);
-  } catch (error) {
-    if (!windowsReplace || !(await ops.exists(target))) throw error;
-    await ops.remove(target);
-    await ops.rename(tmp, target);
-  }
 }
 
 /** ImportFs over $APPDATA. Writes are atomic (tmp + rename) and counted. */
@@ -76,7 +51,7 @@ export const appDataImportFs: ImportFs = {
       tmp,
       target,
       { exists, remove, rename },
-      typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent),
+      isWindowsWebView(),
     );
   },
   async rename(fromRel, toRel) {
@@ -169,6 +144,37 @@ export function externalDialogFs() {
     },
     async readFile(path: string) {
       return await readFile(path);
+    },
+    async readFileBounded(path: string, maxBytes: number) {
+      const file = await open(path, { read: true });
+      const chunks: Uint8Array[] = [];
+      let total = 0;
+      try {
+        while (true) {
+          const buffer = new Uint8Array(
+            Math.min(64 * 1024, maxBytes - total + 1),
+          );
+          const read = await file.read(buffer);
+          if (read === null || read === 0) break;
+          total += read;
+          if (total > maxBytes) {
+            throw Object.assign(
+              new Error("selected archive exceeded its read limit"),
+              { code: "portable/file-too-large" },
+            );
+          }
+          chunks.push(buffer.slice(0, read));
+        }
+      } finally {
+        await file.close();
+      }
+      const bytes = new Uint8Array(total);
+      let offset = 0;
+      for (const chunk of chunks) {
+        bytes.set(chunk, offset);
+        offset += chunk.length;
+      }
+      return bytes;
     },
     async writeFile(path: string, bytes: Uint8Array) {
       await writeFile(path, bytes);

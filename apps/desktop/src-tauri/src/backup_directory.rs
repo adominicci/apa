@@ -299,11 +299,34 @@ impl BackupDirectoryCore {
             canonical_folder_path: canonical_folder_path.to_string_lossy().into_owned(),
             backup_set_id: backup_set_id.clone(),
         };
+        let subfolder = resolve_subfolder(&canonical_folder_path)?;
+        let mut validated_tests = Vec::with_capacity(pending.test_archives.len());
+        for (file_name, expected_sha256) in &pending.test_archives {
+            let path = subfolder.join(file_name);
+            let metadata = fs::symlink_metadata(&path)
+                .map_err(|error| BackupError::io("test archive is not accessible", &error))?;
+            if !metadata.is_file() {
+                return Err(BackupError::new(
+                    BackupErrorCode::Io,
+                    "the test archive is not a regular file",
+                ));
+            }
+            let bytes = fs::read(&path)
+                .map_err(|error| BackupError::io("cannot reopen test archive", &error))?;
+            let current_sha256 = sha256_hex(&bytes);
+            if !current_sha256.eq_ignore_ascii_case(expected_sha256) {
+                return Err(BackupError::new(
+                    BackupErrorCode::HashMismatch,
+                    "the validated test archive changed before activation",
+                ));
+            }
+            validated_tests.push((file_name.clone(), current_sha256));
+        }
         write_json_atomic(&self.app_data_dir, DIRECTORY_FILE_NAME, &config)?;
 
         let created_at = rfc3339_now();
         let mut ledger = load_ledger(&self.app_data_dir);
-        for (file_name, sha256) in &pending.test_archives {
+        for (file_name, sha256) in &validated_tests {
             ledger.entries.push(LedgerEntry {
                 file_name: file_name.clone(),
                 sha256: sha256.clone(),
@@ -1163,6 +1186,27 @@ mod tests {
         assert!(entries[0].created_at.ends_with('Z'));
         assert_eq!(&entries[0].created_at[4..5], "-");
         assert_eq!(&entries[0].created_at[10..11], "T");
+    }
+
+    #[test]
+    fn activation_rejects_a_test_archive_changed_after_validation() {
+        let fixture = fixture();
+        let core = core(&fixture);
+        core.begin_configuration(fixture.selected_dir.to_str().unwrap())
+            .unwrap();
+        core.write_test_archive("Changed Test.tesina", b"validated")
+            .unwrap();
+        fs::write(
+            subfolder_of(&fixture.selected_dir).join("Changed Test.tesina"),
+            b"truncated",
+        )
+        .unwrap();
+
+        let error = core
+            .activate_configuration()
+            .expect_err("changed test archive must not activate backups");
+        assert_eq!(error.code, BackupErrorCode::HashMismatch);
+        assert!(!fixture.app_data_dir.join(DIRECTORY_FILE_NAME).exists());
     }
 
     #[test]

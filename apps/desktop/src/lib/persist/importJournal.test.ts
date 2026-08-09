@@ -169,6 +169,31 @@ async function makeScenario(): Promise<Scenario> {
 }
 
 describe("stageImport (task 6.1)", () => {
+  it("removes unjournaled staging when rollback creation fails", async () => {
+    const { fs, journal } = await makeScenario();
+    await fs.removeDir(`imports/${TX}`);
+    await fs.remove(`backups/imports/${TX}.tesina`);
+    await expect(
+      stageImport(
+        {
+          transactionId: TX,
+          operations: [],
+          mergedLibrary: { schemaVersion: 1, references: [], collections: [] },
+          preview: journal.operations as never,
+        } as never,
+        {
+          fs,
+          readArchiveAsset: () => Promise.reject(new Error("unused")),
+          createRollback: () => Promise.reject(new Error("disk full")),
+          now: () => "2026-01-21T00:00:01.000Z",
+          archiveSha256: journal.archiveSha256,
+          previousLibrarySha256: journal.previousLibrarySha256,
+        },
+      ),
+    ).rejects.toThrow("disk full");
+    expect(await fs.list(`imports/${TX}`)).toEqual([]);
+  });
+
   it("persists two reopen-validated checksummed journal copies", async () => {
     const { fs, journal } = await makeScenario();
     expect(journal.status).toBe("staged");

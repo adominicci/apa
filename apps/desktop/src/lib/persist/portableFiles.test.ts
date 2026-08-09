@@ -15,6 +15,7 @@ import {
 
 class FakeFs implements ExternalFs {
   files = new Map<string, Uint8Array>();
+  reportedSizes = new Map<string, number>();
   /** Operation log for boundary assertions. */
   ops: string[] = [];
   /** When set, the numbered operation throws (1-based). */
@@ -37,6 +38,19 @@ class FakeFs implements ExternalFs {
   readFile(path: string): Promise<Uint8Array> {
     const bytes = this.files.get(path);
     if (!bytes) return Promise.reject(new Error(`missing ${path}`));
+    return Promise.resolve(bytes);
+  }
+  readFileBounded(path: string, maxBytes: number): Promise<Uint8Array> {
+    const bytes = this.files.get(path);
+    if (!bytes) return Promise.reject(new Error(`missing ${path}`));
+    if (bytes.length > maxBytes) {
+      return Promise.reject(
+        new PortableFileError(
+          "portable/file-too-large",
+          "file grew while reading",
+        ),
+      );
+    }
     return Promise.resolve(bytes);
   }
   writeFile(path: string, bytes: Uint8Array): Promise<void> {
@@ -68,7 +82,9 @@ class FakeFs implements ExternalFs {
     return Promise.resolve();
   }
   statSize(path: string): Promise<number | null> {
-    return Promise.resolve(this.files.get(path)?.length ?? null);
+    return Promise.resolve(
+      this.reportedSizes.get(path) ?? this.files.get(path)?.length ?? null,
+    );
   }
 }
 
@@ -260,6 +276,14 @@ describe("readTesinaBounded", () => {
     const fs = new FakeFs();
     fs.files.set("/docs/ok.tesina", GOOD);
     expect(await readTesinaBounded(fs, "/docs/ok.tesina", 1024)).toBe(GOOD);
+  });
+
+  it("rejects a file that grows after the metadata preflight", async () => {
+    const fs = new FakeFs();
+    fs.files.set("/docs/growing.tesina", new Uint8Array(100));
+    fs.reportedSizes.set("/docs/growing.tesina", 10);
+    await expect(readTesinaBounded(fs, "/docs/growing.tesina", 50)).rejects
+      .toMatchObject({ code: "portable/file-too-large" });
   });
 
   it("reports a vanished file", async () => {

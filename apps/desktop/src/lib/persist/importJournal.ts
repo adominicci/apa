@@ -202,6 +202,7 @@ export async function stageImport(
   const { fs } = deps;
   const operations: JournalOp[] = [];
   let opIndex = 0;
+  let rollback: { relPath: string; sha256: string } | null = null;
 
   try {
     for (const op of plan.operations) {
@@ -260,7 +261,7 @@ export async function stageImport(
       canonicalJsonBytes(plan.mergedLibrary),
     );
 
-    const rollback = await deps.createRollback(plan.transactionId);
+    rollback = await deps.createRollback(plan.transactionId);
     const journal: ImportJournalV1 = {
       schemaVersion: 1,
       transactionId: plan.transactionId,
@@ -275,13 +276,15 @@ export async function stageImport(
     await persistJournal(fs, journal);
     return journal;
   } catch (error) {
-    // A stale additive destination can be detected after stage files exist but
-    // before any journal is returned. Nothing live has changed, so remove the
-    // unjournaled transaction rather than letting startup treat it as corrupt.
-    if (
-      error instanceof ImportJournalError && error.code === "import/stale-plan"
-    ) {
-      await fs.removeDir(txDir(plan.transactionId));
+    // No live write can occur before stageImport returns. Retire every failed
+    // pre-journal transaction so startup never mistakes orphan staging for a
+    // corrupt recoverable import.
+    await fs.removeDir(txDir(plan.transactionId));
+    if (rollback !== null) {
+      const bytes = await fs.readBytes(rollback.relPath);
+      if (bytes !== null && (await sha256Hex(bytes)) === rollback.sha256) {
+        await fs.remove(rollback.relPath);
+      }
     }
     throw error;
   }

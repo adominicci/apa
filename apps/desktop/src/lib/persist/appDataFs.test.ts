@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { installReplacement } from "./appDataFs.ts";
+import { installReplacement } from "./atomicReplace.ts";
 
 describe("installReplacement", () => {
   it("retries after removing an existing Windows destination", async () => {
