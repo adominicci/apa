@@ -22,18 +22,27 @@ fn loopback_url(value: &str) -> bool {
 #[cfg(any(target_os = "windows", test))]
 struct PendingNativeInput<T> {
     payload: Option<T>,
+    held_result: Option<T>,
+    result_received: bool,
 }
 
 #[cfg(any(target_os = "windows", test))]
 impl<T> Default for PendingNativeInput<T> {
     fn default() -> Self {
-        Self { payload: None }
+        Self {
+            payload: None,
+            held_result: None,
+            result_received: false,
+        }
     }
 }
 
 #[cfg(any(target_os = "windows", test))]
 impl<T> PendingNativeInput<T> {
     fn queue(&mut self, payload: T) -> Result<(), &'static str> {
+        if self.result_received {
+            return Err("native input IPC arrived after the final result");
+        }
         if self.payload.is_some() {
             return Err("native input IPC arrived before the prior stage drained");
         }
@@ -45,18 +54,35 @@ impl<T> PendingNativeInput<T> {
         self.payload.take()
     }
 
-    fn require_drained_for_result(&self) -> Result<(), &'static str> {
+    fn queue_result(&mut self, result: T) -> Result<Option<T>, &'static str> {
+        if self.result_received {
+            return Err("native input result arrived more than once");
+        }
+        self.result_received = true;
         if self.payload.is_some() {
-            Err("native input result arrived before the pending stage drained")
+            self.held_result = Some(result);
+            Ok(None)
         } else {
-            Ok(())
+            Ok(Some(result))
         }
     }
+
+    fn take_result_if_drained(&mut self) -> Option<T> {
+        if self.payload.is_some() {
+            return None;
+        }
+        self.held_result.take()
+    }
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn incomplete_driver_result_error(result: impl std::fmt::Display) -> String {
+    format!("Windows native input result arrived before driver completion; page result: {result}")
 }
 
 #[cfg(test)]
 mod loopback_tests {
-    use super::{loopback_url, PendingNativeInput};
+    use super::{incomplete_driver_result_error, loopback_url, PendingNativeInput};
 
     #[test]
     fn accepts_http_loopback_hosts() {
@@ -73,24 +99,53 @@ mod loopback_tests {
     }
 
     #[test]
-    fn pending_native_input_rejects_overlap_and_an_early_result() {
+    fn pending_native_input_holds_one_result_until_the_prior_input_drains() {
         let mut pending = PendingNativeInput::default();
         assert!(pending.queue("caret").is_ok());
         assert_eq!(
             pending.queue("dead-key"),
             Err("native input IPC arrived before the prior stage drained")
         );
-        assert_eq!(
-            pending.require_drained_for_result(),
-            Err("native input result arrived before the pending stage drained")
-        );
+        assert_eq!(pending.queue_result("complete"), Ok(None));
+        assert_eq!(pending.take_result_if_drained(), None);
         assert_eq!(pending.take(), Some("caret"));
-        assert!(pending.require_drained_for_result().is_ok());
+        assert_eq!(pending.take_result_if_drained(), Some("complete"));
+    }
+
+    #[test]
+    fn pending_native_input_rejects_duplicate_results_and_input_after_a_result() {
+        let mut pending = PendingNativeInput::default();
+        assert!(pending.queue("caret").is_ok());
+        assert_eq!(pending.queue_result("complete"), Ok(None));
+        assert_eq!(
+            pending.queue_result("duplicate"),
+            Err("native input result arrived more than once")
+        );
+        assert_eq!(
+            pending.queue("dead-key"),
+            Err("native input IPC arrived after the final result")
+        );
+    }
+
+    #[test]
+    fn pending_native_input_returns_an_immediate_result_when_no_input_is_pending() {
+        let mut pending = PendingNativeInput::default();
+        assert_eq!(pending.queue_result("complete"), Ok(Some("complete")));
+        assert_eq!(pending.take_result_if_drained(), None);
+    }
+
+    #[test]
+    fn incomplete_driver_rejection_preserves_the_page_result_diagnostic() {
+        assert_eq!(
+            incomplete_driver_result_error("clipboard mismatch"),
+            "Windows native input result arrived before driver completion; page result: clipboard mismatch"
+        );
     }
 }
 
 #[cfg(target_os = "windows")]
 mod windows_host {
+    use super::incomplete_driver_result_error;
     use super::loopback_url;
     use super::windows_native_input::WindowsNativeInputDriver;
     use super::PendingNativeInput;
@@ -137,6 +192,50 @@ mod windows_host {
         }
         println!("{}", json!({ "passed": false, "error": message }));
         *control_flow = ControlFlow::ExitWithCode(exit_code);
+    }
+
+    fn settle_result(
+        control_flow: &mut ControlFlow,
+        input_driver: &mut Option<WindowsNativeInputDriver>,
+        runtime: &str,
+        drive_native_input: bool,
+        mut result: Value,
+    ) {
+        if let Some(driver) = input_driver.as_mut() {
+            if !driver.is_complete() {
+                settle_failure(
+                    control_flow,
+                    input_driver,
+                    1,
+                    incomplete_driver_result_error(&result),
+                );
+                return;
+            }
+            if let Err(error) = driver.cleanup() {
+                settle_failure(control_flow, input_driver, 1, error);
+                return;
+            }
+        }
+        if let Some(metrics) = result.get_mut("metrics").and_then(Value::as_object_mut) {
+            metrics.insert("webView2Runtime".into(), Value::String(runtime.to_owned()));
+            if drive_native_input {
+                metrics.insert(
+                    "windowsNativeInputDriver".into(),
+                    Value::String("win32-sendinput-v1".into()),
+                );
+                metrics.insert(
+                    "windowsNativeInputComplete".into(),
+                    Value::Bool(
+                        input_driver
+                            .as_ref()
+                            .is_some_and(WindowsNativeInputDriver::is_complete),
+                    ),
+                );
+            }
+        }
+        let passed = result["passed"].as_bool() == Some(true);
+        println!("{result}");
+        *control_flow = ControlFlow::ExitWithCode(if passed { 0 } else { 1 });
     }
 
     pub fn run() -> ! {
@@ -265,53 +364,19 @@ mod windows_host {
                             }
                         }
                         Some("result") => {
-                            if let Err(error) = pending_native_input.require_drained_for_result() {
-                                settle_failure(control_flow, &mut input_driver, 1, error);
-                                return;
-                            }
-                            let mut result = envelope["payload"].clone();
-                            if let Some(driver) = input_driver.as_mut() {
-                                if result["passed"].as_bool() == Some(true)
-                                    && !driver.is_complete()
-                                {
-                                    settle_failure(
-                                        control_flow,
-                                        &mut input_driver,
-                                        1,
-                                        "Windows native input result arrived before driver completion",
-                                    );
-                                    return;
-                                }
-                                if let Err(error) = driver.cleanup() {
-                                    settle_failure(control_flow, &mut input_driver, 1, error);
-                                    return;
+                            match pending_native_input.queue_result(envelope["payload"].clone()) {
+                                Ok(Some(result)) => settle_result(
+                                    control_flow,
+                                    &mut input_driver,
+                                    &runtime,
+                                    drive_native_input,
+                                    result,
+                                ),
+                                Ok(None) => {}
+                                Err(error) => {
+                                    settle_failure(control_flow, &mut input_driver, 1, error)
                                 }
                             }
-                            if let Some(metrics) =
-                                result.get_mut("metrics").and_then(Value::as_object_mut)
-                            {
-                                metrics.insert(
-                                    "webView2Runtime".into(),
-                                    Value::String(runtime.clone()),
-                                );
-                                if drive_native_input {
-                                    metrics.insert(
-                                        "windowsNativeInputDriver".into(),
-                                        Value::String("win32-sendinput-v1".into()),
-                                    );
-                                    metrics.insert(
-                                        "windowsNativeInputComplete".into(),
-                                        Value::Bool(
-                                            input_driver
-                                                .as_ref()
-                                                .is_some_and(WindowsNativeInputDriver::is_complete),
-                                        ),
-                                    );
-                                }
-                            }
-                            let passed = result["passed"].as_bool() == Some(true);
-                            println!("{result}");
-                            *control_flow = ControlFlow::ExitWithCode(if passed { 0 } else { 1 });
                         }
                         _ => settle_failure(
                             control_flow,
@@ -322,20 +387,29 @@ mod windows_host {
                     }
                 }
                 Event::MainEventsCleared => {
-                    let Some(payload) = pending_native_input.take() else {
-                        return;
-                    };
-                    let Some(driver) = input_driver.as_mut() else {
-                        settle_failure(
+                    if let Some(payload) = pending_native_input.take() {
+                        let Some(driver) = input_driver.as_mut() else {
+                            settle_failure(
+                                control_flow,
+                                &mut input_driver,
+                                1,
+                                "pending native input requires --drive-native-input",
+                            );
+                            return;
+                        };
+                        if let Err(error) = driver.advance(&payload) {
+                            settle_failure(control_flow, &mut input_driver, 1, error);
+                            return;
+                        }
+                    }
+                    if let Some(result) = pending_native_input.take_result_if_drained() {
+                        settle_result(
                             control_flow,
                             &mut input_driver,
-                            1,
-                            "pending native input requires --drive-native-input",
+                            &runtime,
+                            drive_native_input,
+                            result,
                         );
-                        return;
-                    };
-                    if let Err(error) = driver.advance(&payload) {
-                        settle_failure(control_flow, &mut input_driver, 1, error);
                     }
                 }
                 Event::UserEvent(HostEvent::Deadline) => {

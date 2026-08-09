@@ -157,7 +157,7 @@ describe("visible native manual-proof contract", () => {
     expect(cargoManifest).toContain('windows-sys = { version = "=0.61.2"');
   });
 
-  it("drains the native event loop before injecting each acknowledged input stage", () => {
+  it("drains the native event loop before injecting input and settling its queued result", () => {
     expect(nativeHost).toContain("struct PendingNativeInput<T>");
     expect(nativeHost).toContain(
       "let mut pending_native_input = PendingNativeInput::<Value>::default()",
@@ -175,9 +175,10 @@ describe("visible native manual-proof contract", () => {
       nativeHost.indexOf('Some("result") =>'),
       nativeHost.indexOf("Event::MainEventsCleared =>"),
     );
-    expect(resultMessage).toContain(
-      "pending_native_input.require_drained_for_result()",
+    expect(resultMessage).toMatch(
+      /pending_native_input\s*\.queue_result\(envelope\["payload"\]\.clone\(\)\)/,
     );
+    expect(resultMessage).not.toContain("driver.advance");
 
     const drainedEvents = nativeHost.slice(
       nativeHost.indexOf("Event::MainEventsCleared =>"),
@@ -185,7 +186,30 @@ describe("visible native manual-proof contract", () => {
     );
     expect(drainedEvents).toContain("pending_native_input.take()");
     expect(drainedEvents).toContain("driver.advance(&payload)");
+    expect(drainedEvents).toContain(
+      "pending_native_input.take_result_if_drained()",
+    );
+    expect(drainedEvents.indexOf("driver.advance(&payload)")).toBeLessThan(
+      drainedEvents.indexOf("pending_native_input.take_result_if_drained()"),
+    );
+    expect(
+      drainedEvents.indexOf("pending_native_input.take_result_if_drained()"),
+    ).toBeLessThan(drainedEvents.indexOf("settle_result("));
     expect(drainedEvents).not.toMatch(/sleep|dispatchEvent|execute_script/);
+
+    const resultSettlement = nativeHost.slice(
+      nativeHost.indexOf("fn settle_result("),
+      nativeHost.indexOf("pub fn run()"),
+    );
+    expect(resultSettlement).toContain("if !driver.is_complete()");
+    expect(resultSettlement).toContain(
+      "incomplete_driver_result_error(&result)",
+    );
+    const driverCompletionGuard = resultSettlement.slice(
+      resultSettlement.indexOf("if let Some(driver)"),
+      resultSettlement.indexOf("if let Err(error) = driver.cleanup()"),
+    );
+    expect(driverCompletionGuard).not.toContain('result["passed"]');
   });
 
   it("wires the shared fail-closed cleanup executor into the native driver", () => {
