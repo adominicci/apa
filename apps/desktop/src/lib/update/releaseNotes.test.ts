@@ -3,7 +3,6 @@ import {
   clearPendingReleaseNotes,
   PENDING_RELEASE_NOTES_KEY,
   readPendingReleaseNotes,
-  releaseNotesForVersion,
   savePendingReleaseNotes,
 } from "./releaseNotes.ts";
 
@@ -54,22 +53,16 @@ describe("pending release notes", () => {
     });
   });
 
-  it("returns notes only for the running version and preserves a future marker", () => {
+  it("preserves a future marker for runtime matching by the controller", () => {
     savePendingReleaseNotes(storage, {
       version: "0.3.0",
       body: "Coming after restart",
     });
 
-    expect(
-      releaseNotesForVersion(storage, "0.2.0", "Update installed."),
-    ).toBeNull();
     expect(readPendingReleaseNotes(storage)).toEqual({
       version: "0.3.0",
       body: "Coming after restart",
     });
-    expect(
-      releaseNotesForVersion(storage, "0.3.0", "Update installed."),
-    ).toEqual({ version: "0.3.0", body: "Coming after restart" });
   });
 
   it.each([
@@ -93,7 +86,7 @@ describe("pending release notes", () => {
       '{"version":"0.2.0","body":"Installed successfully"}',
     );
 
-    clearPendingReleaseNotes(storage);
+    clearPendingReleaseNotes(storage, readPendingReleaseNotes(storage)!);
 
     expect(readPendingReleaseNotes(storage)).toBeNull();
     expect(storage.length).toBe(0);
@@ -117,31 +110,30 @@ describe("pending release notes", () => {
     });
   });
 
-  it("clears empty-body notes after their localized fallback is dismissed", () => {
-    savePendingReleaseNotes(storage, { version: "0.2.0", body: "  \n" });
-    const displayed = releaseNotesForVersion(
-      storage,
-      "0.2.0",
-      "Tesina was updated successfully.",
-    )!;
+  it("does not clear a concurrently replaced marker for the same version", () => {
+    const displayed = {
+      version: "0.2.0",
+      body: "Original marker",
+    };
+    savePendingReleaseNotes(storage, {
+      version: "0.2.0",
+      body: "Replacement marker written while the dialog was open",
+    });
 
     clearPendingReleaseNotes(storage, displayed);
 
-    expect(readPendingReleaseNotes(storage)).toBeNull();
+    expect(readPendingReleaseNotes(storage)).toEqual({
+      version: "0.2.0",
+      body: "Replacement marker written while the dialog was open",
+    });
   });
 
-  it("uses localized fallback copy when the manifest body is empty", () => {
+  it("clears empty-body markers after canonical notes are dismissed", () => {
     savePendingReleaseNotes(storage, { version: "0.2.0", body: "  \n" });
+    const marker = readPendingReleaseNotes(storage)!;
 
-    expect(
-      releaseNotesForVersion(
-        storage,
-        "0.2.0",
-        "Tesina was updated successfully.",
-      ),
-    ).toEqual({
-      version: "0.2.0",
-      body: "Tesina was updated successfully.",
-    });
+    clearPendingReleaseNotes(storage, marker);
+
+    expect(readPendingReleaseNotes(storage)).toBeNull();
   });
 });

@@ -59,12 +59,12 @@
 
 ## Task 7: Canonical bundled notes and shared release-note controller
 
-- [ ] 7.1 Move the pure `extractReleaseNotes` logic into `apps/desktop/src/lib/update/extractReleaseNotes.ts` with no app/browser imports, keep `scripts/extract-release-notes.ts` as a thin CLI adapter, and run the existing extraction/release-workflow tests unchanged or stronger.
-- [ ] 7.2 Create `bundledReleaseNotes.ts` that statically reads the desktop package version and `CHANGELOG.md?raw`, extracts exactly that version's Markdown, and fails tests/build verification when the section is missing, empty, or mismatched.
-- [ ] 7.3 Add tests proving a pending updater record matching the runtime version triggers the one-time automatic modal but cannot override the canonical bundled body, stale notes are ignored, automatic and manual openings render the identical current body, and bundled notes remain available offline after local storage is cleared.
-- [ ] 7.4 Create a layout-scoped Svelte release-notes controller/context with immediate packaged-version fallback, validated runtime-version resolution, automatic-versus-manual presentation state, installed-note reopening, mismatch/unavailable handling that never mislabels notes, and dismissal that clears only the exact matching pending marker.
-- [ ] 7.5 Refactor `+layout.svelte` to use the controller while preserving updater-banner precedence, persistence barriers, theme handling, startup non-blocking behavior, and one-time automatic notes.
-- [ ] 7.6 Run the Svelte MCP autofixer on `+layout.svelte` and any controller harness, run focused layout/updater tests, and commit the bundled-note/controller checkpoint with an English commit message.
+- [x] 7.1 Move the pure `extractReleaseNotes` logic into `apps/desktop/src/lib/update/extractReleaseNotes.ts` with no app/browser imports, keep `scripts/extract-release-notes.ts` as a thin CLI adapter, and run the existing extraction/release-workflow tests unchanged or stronger.
+- [x] 7.2 Create `bundledReleaseNotes.ts` that statically reads the desktop package version and `CHANGELOG.md?raw`, extracts exactly that version's Markdown, and fails tests/build verification when the section is missing, empty, or mismatched.
+- [x] 7.3 Add tests proving a pending updater record matching the runtime version triggers the one-time automatic modal but cannot override the canonical bundled body, stale notes are ignored, automatic and manual openings render the identical current body, and bundled notes remain available offline after local storage is cleared.
+- [x] 7.4 Create a layout-scoped Svelte release-notes controller/context with immediate packaged-version fallback, validated runtime-version resolution, automatic-versus-manual presentation state, installed-note reopening, mismatch/unavailable handling that never mislabels notes, and dismissal that clears only the exact matching pending marker.
+- [x] 7.5 Refactor `+layout.svelte` to use the controller while preserving updater-banner precedence, persistence barriers, theme handling, startup non-blocking behavior, and one-time automatic notes.
+- [x] 7.6 Run the Svelte MCP autofixer on `+layout.svelte` and any controller harness, run focused layout/updater tests, and commit the bundled-note/controller checkpoint with an English commit message.
 
 ## Task 8: Clickable installed version on home and editor surfaces
 

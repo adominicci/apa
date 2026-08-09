@@ -52,28 +52,15 @@ export function readPendingReleaseNotes(
   return null;
 }
 
-export function releaseNotesForVersion(
-  storage: ReleaseNotesStorage,
-  runningVersion: string,
-  fallbackBody: string,
-): PendingReleaseNotes | null {
-  const pending = readPendingReleaseNotes(storage);
-  if (pending?.version !== runningVersion) return null;
-  return {
-    version: pending.version,
-    body: pending.body.trim() === "" ? fallbackBody : pending.body,
-  };
-}
-
 export function clearPendingReleaseNotes(
   storage: ReleaseNotesStorage,
-  displayed?: PendingReleaseNotes,
+  displayed: PendingReleaseNotes,
 ): void {
   try {
-    if (displayed) {
-      const pending = readPendingReleaseNotes(storage);
-      if (pending?.version !== displayed.version) return;
-    }
+    const pending = readPendingReleaseNotes(storage);
+    if (
+      pending?.version !== displayed.version || pending.body !== displayed.body
+    ) return;
     storage.removeItem(PENDING_RELEASE_NOTES_KEY);
   } catch {
     // Dismissal remains non-blocking if web storage is unavailable.

@@ -1,4 +1,4 @@
-import { extractReleaseNotes } from "./extract-release-notes.ts";
+import { extractReleaseNotes } from "../apps/desktop/src/lib/update/extractReleaseNotes.ts";
 
 export interface ReleaseVersionContract {
   tag: string;
