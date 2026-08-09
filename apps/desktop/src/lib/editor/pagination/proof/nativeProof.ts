@@ -298,6 +298,7 @@ async function captureNativePaginationOperation(
   timeoutMs: number,
   mutate: () => void,
   outcomeSatisfied: () => boolean = () => true,
+  diagnosticState: () => Record<string, unknown> = () => ({}),
 ): Promise<CapturedNativeOperation> {
   const reportIndex = reports.length;
   const executedBefore = frames.executed;
@@ -308,25 +309,57 @@ async function captureNativePaginationOperation(
   if (targetEpoch === undefined) {
     throw new Error(`Pagination state disappeared during ${description}`);
   }
-  await waitForNativeCondition(
-    `${description} to settle at or after epoch ${targetEpoch}`,
-    () => {
-      const current = paginationPluginKey.getState(editor.state);
-      return latestSettledNativeReport(
-        reports.slice(reportIndex),
-        current,
-        targetEpoch,
-        editor.state.doc.eq(authoredDoc) && outcomeSatisfied(),
-      ) !== undefined;
-    },
-    {
-      timeoutMs,
-      yieldControl: async () => {
-        await new Promise<void>((resolve) => setTimeout(resolve, 0));
-        await frame();
+  try {
+    await waitForNativeCondition(
+      `${description} to settle at or after epoch ${targetEpoch}`,
+      () => {
+        const current = paginationPluginKey.getState(editor.state);
+        return latestSettledNativeReport(
+          reports.slice(reportIndex),
+          current,
+          targetEpoch,
+          editor.state.doc.eq(authoredDoc) && outcomeSatisfied(),
+        ) !== undefined;
       },
-    },
-  );
+      {
+        timeoutMs,
+        yieldControl: async () => {
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+          await frame();
+        },
+      },
+    );
+  } catch (error) {
+    const current = paginationPluginKey.getState(editor.state);
+    diagnostic("native-performance-operation-timeout", {
+      description,
+      timeoutMs,
+      elapsedMs: performance.now() - startedAt,
+      targetEpoch,
+      currentState: current
+        ? {
+          status: current.status,
+          epoch: current.epoch,
+          pass: current.pass,
+          reason: current.reason,
+          hasCandidate: current.candidateSignature !== null,
+          hasStablePlan: current.lastStablePlan !== null,
+        }
+        : null,
+      authoredDocMatches: editor.state.doc.eq(authoredDoc),
+      outcomeSatisfied: outcomeSatisfied(),
+      framesExecuted: frames.executed - executedBefore,
+      reportTrail: reports.slice(reportIndex).map((report) => ({
+        status: report.status,
+        epoch: report.epoch,
+        reason: report.reason,
+        pageCount: report.pageCount,
+      })),
+      ...diagnosticState(),
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
   const operationReports = reports.slice(reportIndex);
   const stable = latestSettledNativeReport(
     operationReports,
@@ -590,6 +623,16 @@ async function runNativePerformanceWorkload(
     }
 
     const firstParagraph = positionsOf(editor.state.doc, "paragraph")[0]! + 1;
+    const operationDiagnosticState = () => ({
+      targetPages,
+      layoutReads,
+      layoutReadsCompleted,
+      layoutReadsInFlight,
+      layoutReadHistory: layoutReadHistory.slice(-8),
+      fontStatus: document.fonts?.status ?? "unavailable",
+      referencePageCount,
+      referenceEntries: mount.querySelectorAll(".ref-entry").length,
+    });
     const inputDurationsMs: number[] = [];
     const readsBeforeInput = layoutReads;
     const rapidTyping = await captureNativePaginationOperation(
@@ -607,6 +650,8 @@ async function runNativePerformanceWorkload(
           inputDurationsMs.push(performance.now() - startedAt);
         }
       },
+      undefined,
+      operationDiagnosticState,
     );
     const readsDuringInput = layoutReads - readsBeforeInput;
 
@@ -627,6 +672,8 @@ async function runNativePerformanceWorkload(
         deletionInputMs = performance.now() - startedAt;
         deletionReadsDuringInput = layoutReads - readsBeforeDeletion;
       },
+      undefined,
+      operationDiagnosticState,
     );
     inputDurationsMs.push(deletionInputMs);
 
@@ -643,6 +690,7 @@ async function runNativePerformanceWorkload(
       },
       () =>
         mount.querySelectorAll(".ref-entry").length > referenceEntriesBefore,
+      operationDiagnosticState,
     );
     const referenceEntriesAfter = mount.querySelectorAll(".ref-entry").length;
 
@@ -664,6 +712,7 @@ async function runNativePerformanceWorkload(
       () =>
         getComputedStyle(editor.view.dom).fontFamily !== fontFamilyBefore &&
         getComputedStyle(editor.view.dom).fontSize === "16px",
+      operationDiagnosticState,
     );
     const fontFamilyAfter = getComputedStyle(editor.view.dom).fontFamily;
 
