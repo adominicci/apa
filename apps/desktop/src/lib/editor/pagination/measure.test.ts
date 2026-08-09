@@ -1042,17 +1042,23 @@ describe("text line sampling", () => {
     expect(heading.dataset["apaRunIn"]).toBe("true");
     const headingNode = heading.firstChild!;
     const paragraphNode = paragraph.firstChild!;
+    const existingGap = document.createElement("span");
+    existingGap.dataset["paginationGap"] = "line";
+    heading.append(existingGap);
+    vi.spyOn(existingGap, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 120, 816, 200),
+    );
     vi.spyOn(heading, "getClientRects").mockReturnValue(
       [
         new DOMRect(0, 100, 16, 16),
-        new DOMRect(0, 120, 16, 16),
-        new DOMRect(0, 140, 16, 16),
+        new DOMRect(0, 320, 16, 16),
+        new DOMRect(0, 340, 16, 16),
       ] as unknown as DOMRectList,
     );
     vi.spyOn(paragraph, "getClientRects").mockReturnValue(
       [
-        new DOMRect(16, 140, 16, 16),
-        new DOMRect(0, 160, 16, 16),
+        new DOMRect(16, 340, 16, 16),
+        new DOMRect(0, 360, 16, 16),
       ] as unknown as DOMRectList,
     );
     let measuredNode: Node | null = null;
@@ -1068,18 +1074,17 @@ describe("text line sampling", () => {
             endExclusive = offset;
           },
           getClientRects() {
-            const top = measuredNode === headingNode
-              ? 100
+            const tops = measuredNode === headingNode
+              ? [100, 320, 340]
               : measuredNode === paragraphNode
-              ? 140
-              : null;
-            if (top === null) return [] as unknown as DOMRectList;
+              ? [340, 360]
+              : [];
             return Array.from(
               { length: Math.ceil(endExclusive / 2) },
               (_, line) =>
                 new DOMRect(
                   0,
-                  top + line * 20,
+                  tops[line]!,
                   Math.min(2, endExclusive - line * 2) * 8,
                   16,
                 ),

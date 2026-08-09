@@ -505,11 +505,12 @@ function lineMeasurements(
   element: HTMLElement,
   fallbackPos: number,
   scale: number,
+  normalizationElement: Element = element,
 ): LineMeasurement[] {
   const ownerDocument = element.ownerDocument;
   const ownerWindow = ownerDocument.defaultView;
   const showText = ownerWindow?.NodeFilter.SHOW_TEXT ?? 4;
-  const gaps = paginationGaps(element, scale);
+  const gaps = paginationGaps(normalizationElement, scale);
   const elementRect = canonicalRect(element.getBoundingClientRect(), scale);
   const style = ownerWindow?.getComputedStyle(element);
   const fallbackLineHeight = style
@@ -779,7 +780,14 @@ function runInHeadingFragments(
   section: SectionKind,
   scale: number,
 ): MeasuredFragment[] {
-  const headingLines = lineMeasurements(view, element, pos + 1, scale);
+  const normalizationElement = element.parentElement ?? element;
+  const headingLines = lineMeasurements(
+    view,
+    element,
+    pos + 1,
+    scale,
+    normalizationElement,
+  );
   let paragraphElement = element.nextElementSibling;
   while (
     paragraphElement &&
@@ -797,6 +805,7 @@ function runInHeadingFragments(
       paragraphElement,
       pos + node.nodeSize + 1,
       scale,
+      normalizationElement,
     )
     : [];
   const paragraphFirstTop = paragraphLines[0]?.top;
