@@ -35,11 +35,13 @@ class Harness {
   writeError: { code: string } | null = null;
   validationError: { code: string } | null = null;
   removeError = false;
+  clockAfterConfirm: Date | null = null;
   packages = 0;
   activityListeners = new Set<() => void>();
   store: BackupStore;
 
-  constructor() {
+  constructor(settingsValue?: BackupUiSettings) {
+    if (settingsValue !== undefined) this.settingsValue = settingsValue;
     const adapter: BackupAdapter = {
       status: () =>
         Promise.resolve({
@@ -63,6 +65,9 @@ class Harness {
           createdAt: this.clock.toISOString(),
           backupSetId: SET_ID,
         });
+        if (this.clockAfterConfirm !== null) {
+          this.clock = this.clockAfterConfirm;
+        }
         return Promise.resolve();
       },
       readArchive: (fileName) => {
@@ -84,6 +89,7 @@ class Harness {
       },
       ledgerEntries: () => Promise.resolve([...this.ledger]),
     };
+    const getSettingsValue = () => this.settingsValue;
     this.store = new BackupStore({
       adapter,
       packageArchive: () => {
@@ -104,7 +110,7 @@ class Harness {
           : Promise.resolve(),
       settings: {
         get backup() {
-          return harnessRef.settingsValue;
+          return getSettingsValue();
         },
         updateBackup: (patch) => {
           this.settingsValue = { ...this.settingsValue, ...patch };
@@ -155,6 +161,19 @@ describe("BackupStore scheduling", () => {
     harnessRef.clock = new Date(2026, 2, 6, 0, 1, 0);
     const nextDay = await harnessRef.store.runAutomatic();
     expect(nextDay.kind).toBe("success");
+  });
+
+  it("records the completion day when a slow backup crosses midnight", async () => {
+    harnessRef.clock = new Date(2026, 2, 5, 23, 59, 59);
+    harnessRef.clockAfterConfirm = new Date(2026, 2, 6, 0, 0, 1);
+    expect((await harnessRef.store.runAutomatic()).kind).toBe("success");
+    expect(harnessRef.settingsValue?.lastAutoSuccessDay).toBe("2026-03-06");
+
+    harnessRef.digest = "digest-2";
+    expect(await harnessRef.store.runAutomatic()).toEqual({
+      kind: "skipped",
+      reason: "daily-limit",
+    });
   });
 
   it("Back up now bypasses only the daily limit", async () => {
@@ -239,6 +258,17 @@ describe("BackupStore scheduling", () => {
     });
     expect(harnessRef.archives.size).toBe(0);
   });
+
+  it("checks folder availability before returning for the daily limit", async () => {
+    await harnessRef.store.runAutomatic();
+    harnessRef.folderAvailable = false;
+
+    expect(await harnessRef.store.runAutomatic()).toEqual({
+      kind: "failed",
+      errorCode: "folder_unavailable",
+    });
+    expect(harnessRef.settingsValue?.lastErrorCode).toBe("folder_unavailable");
+  });
 });
 
 describe("retention execution (task 9.5 wiring)", () => {
@@ -270,5 +300,17 @@ describe("retention execution (task 9.5 wiring)", () => {
     expect(
       second.kind === "success" ? second.retentionWarning : false,
     ).toBe(true);
+  });
+
+  it("restores retention warnings after a restart", () => {
+    const restarted = new Harness({
+      ...harnessRef.settingsValue,
+      retentionWarning: true,
+      accumulationWarning: true,
+    });
+    harnessRef = restarted;
+
+    expect(restarted.store.retentionWarning).toBe(true);
+    expect(restarted.store.accumulationWarning).toBe(true);
   });
 });

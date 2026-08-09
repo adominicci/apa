@@ -95,6 +95,9 @@ export class BackupStore {
 
   constructor(deps: BackupStoreDeps) {
     this.#deps = deps;
+    this.retentionWarning = deps.settings.backup?.retentionWarning ?? false;
+    this.accumulationWarning = deps.settings.backup?.accumulationWarning ??
+      false;
   }
 
   /** Starts listening for persistence activity (after startup recovery). */
@@ -166,12 +169,6 @@ export class BackupStore {
       return { kind: "skipped", reason: "not-configured" };
     }
 
-    const today = localDay(deps.now());
-    if (!manual && deps.settings.backup?.lastAutoSuccessDay === today) {
-      this.#scheduleNextLocalDay();
-      return { kind: "skipped", reason: "daily-limit" };
-    }
-
     try {
       deps.settings.updateBackup({
         lastAttemptAt: deps.now().toISOString(),
@@ -180,6 +177,12 @@ export class BackupStore {
         throw Object.assign(new Error("backup folder unavailable"), {
           code: "folder_unavailable",
         });
+      }
+
+      const today = localDay(deps.now());
+      if (!manual && deps.settings.backup?.lastAutoSuccessDay === today) {
+        this.#scheduleNextLocalDay();
+        return { kind: "skipped", reason: "daily-limit" };
       }
 
       const digest = await deps.currentContentDigest();
@@ -219,11 +222,12 @@ export class BackupStore {
       await deps.validateArchiveBytes(await deps.adapter.readArchive(fileName));
       await deps.adapter.confirmArchive(fileName, writtenSha256);
 
+      const completedAt = deps.now();
       deps.settings.updateBackup({
-        lastSuccessAt: deps.now().toISOString(),
+        lastSuccessAt: completedAt.toISOString(),
         lastSuccessContentDigest: packaged.contentDigest,
         lastErrorCode: undefined,
-        ...(manual ? {} : { lastAutoSuccessDay: today }),
+        ...(manual ? {} : { lastAutoSuccessDay: localDay(completedAt) }),
       });
 
       const retentionWarning = await this.#applyRetention(status.backupSetId);
@@ -269,9 +273,14 @@ export class BackupStore {
         }
       }
       this.retentionWarning = warning || plan.accumulationWarning;
+      deps.settings.updateBackup({
+        retentionWarning: this.retentionWarning,
+        accumulationWarning: this.accumulationWarning,
+      });
       return this.retentionWarning;
     } catch {
       this.retentionWarning = true;
+      deps.settings.updateBackup({ retentionWarning: true });
       return true;
     }
   }

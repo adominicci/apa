@@ -26,6 +26,8 @@ export interface BackupUiSettings {
   lastErrorCode?: string;
   /** Local calendar day (YYYY-MM-DD) of the last AUTOMATIC success. */
   lastAutoSuccessDay?: string;
+  retentionWarning?: boolean;
+  accumulationWarning?: boolean;
   setupCardDismissed?: boolean;
 }
 
@@ -57,6 +59,9 @@ function sanitizeBackup(value: unknown): BackupUiSettings | undefined {
   }
   if (typeof raw["setupCardDismissed"] === "boolean") {
     out.setupCardDismissed = raw["setupCardDismissed"];
+  }
+  for (const key of ["retentionWarning", "accumulationWarning"] as const) {
+    if (typeof raw[key] === "boolean") out[key] = raw[key] as boolean;
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }
