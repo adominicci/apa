@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { extractReleaseNotes } from "./extract-release-notes.ts";
+import { extractReleaseNotes } from "../apps/desktop/src/lib/update/extractReleaseNotes.ts";
 
 const decoder = new TextDecoder();
 const scriptPath = decodeURIComponent(
@@ -63,6 +63,26 @@ const changelog = `# Changelog
 `;
 
 describe("extractReleaseNotes", () => {
+  it("keeps the shared extractor pure and the CLI adapter thin", async () => {
+    const extractorSource = await Deno.readTextFile(
+      new URL(
+        "../apps/desktop/src/lib/update/extractReleaseNotes.ts",
+        import.meta.url,
+      ),
+    );
+    const cliSource = await Deno.readTextFile(
+      new URL("./extract-release-notes.ts", import.meta.url),
+    );
+
+    expect(extractorSource).not.toMatch(
+      /\b(?:import|Deno|window|document|localStorage)\b/,
+    );
+    expect(cliSource).toContain(
+      'import { extractReleaseNotes } from "../apps/desktop/src/lib/update/extractReleaseNotes.ts";',
+    );
+    expect(cliSource).not.toContain("function escapeRegExp");
+  });
+
   it("returns only the requested version body", () => {
     expect(extractReleaseNotes(changelog, "0.1.0")).toBe(
       `### Added

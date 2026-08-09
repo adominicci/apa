@@ -31,6 +31,7 @@
     documentLanguage="en"
     {citationEnv}
     {referenceEnv}
+    paginationEnv={null}
     onLaunchConsumed={consumeLaunch}
     {onReady}
   />

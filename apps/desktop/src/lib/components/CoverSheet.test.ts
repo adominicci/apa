@@ -31,6 +31,19 @@ async function typeField(
 }
 
 describe("CoverSheet inline fields", () => {
+  it("shows derived page 1 as inert cover chrome", () => {
+    component = mount(CoverSheetHarness, { target: document.body });
+    flushSync();
+
+    const number = document.querySelector<HTMLElement>(
+      "[data-cover-page-number]",
+    );
+    expect(number?.textContent).toBe("1");
+    expect(number?.contentEditable).toBe("false");
+    expect(number?.getAttribute("aria-hidden")).toBe("true");
+    expect(number?.tabIndex).toBe(-1);
+  });
+
   it("keeps spaces while typing multi-word course and instructor values", async () => {
     component = mount(CoverSheetHarness, { target: document.body });
     flushSync();

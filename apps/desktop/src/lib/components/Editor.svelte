@@ -6,6 +6,7 @@
   import type { CitationEnv } from "$lib/editor/citation";
   import { createTesinaEditor } from "$lib/editor/createEditor";
   import type { ReferenceDecorationEnv } from "$lib/editor/referenceDecoration";
+  import type { PaginationEnvironment } from "$lib/editor/pagination/types";
   import "$lib/editor/apa.css";
 
   interface Props {
@@ -14,6 +15,7 @@
     documentLanguage?: DocLocale;
     citationEnv: CitationEnv;
     referenceEnv: ReferenceDecorationEnv;
+    paginationEnv: PaginationEnvironment | null;
     onUpdate?: (docJson: unknown, words: number) => void;
     onReady?: (editor: Editor) => void;
     onLaunchConsumed?: () => void;
@@ -26,6 +28,7 @@
     documentLanguage = "es",
     citationEnv,
     referenceEnv,
+    paginationEnv,
     onUpdate,
     onReady,
     onLaunchConsumed,
@@ -40,6 +43,7 @@
         newlyCreated,
         citationEnv,
         referenceEnv,
+        paginationEnv,
         onUpdate,
         onEditEquation,
       });

@@ -34,17 +34,19 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          deno run --allow-read scripts/verify-release-version.ts \
+          version="${RELEASE_TAG#v}"
+          notes_path="$RUNNER_TEMP/tesina-release-notes.md"
+          deno run \
+            --allow-read \
+            --allow-write="$notes_path" \
+            scripts/verify-release-version.ts \
             "$RELEASE_TAG" \
             apps/desktop/src-tauri/tauri.conf.json \
             apps/desktop/package.json \
             apps/desktop/src-tauri/Cargo.toml \
-            CHANGELOG.md
-
-          version="${RELEASE_TAG#v}"
-          notes_path="$RUNNER_TEMP/tesina-release-notes.md"
-          deno run --allow-read scripts/extract-release-notes.ts \
-            CHANGELOG.md "$version" > "$notes_path"
+            apps/desktop/src-tauri/Cargo.lock \
+            CHANGELOG.md \
+            "$notes_path"
 
           delimiter="TESINA_RELEASE_NOTES_$(uuidgen)"
           if grep -Fqx "$delimiter" "$notes_path"; then
@@ -55,7 +57,7 @@ jobs:
           {
             echo "body<<$delimiter"
             cat "$notes_path"
-            echo "$delimiter"
+            printf '\n%s\n' "$delimiter"
             echo "path=$notes_path"
             echo "version=$version"
           } >> "$GITHUB_OUTPUT"

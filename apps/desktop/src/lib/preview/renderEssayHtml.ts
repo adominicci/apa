@@ -315,7 +315,7 @@ function blocksHtml(
 }
 
 export function renderEssayCss(settings: Essay["settings"]): string {
-  const size = settings.paperSize === "a4" ? "A4" : "letter";
+  const size = settings.paperSize === "a4" ? "A4" : "8.5in 11in";
   const font = fontFamilyCss(settings.font);
   const root = ".tesina-document";
   const marginBoxText = `font-family: ${font}; color: #131313; line-height: 2;`;

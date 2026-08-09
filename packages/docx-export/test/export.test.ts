@@ -335,6 +335,22 @@ beforeAll(async () => {
 });
 
 describe("exportDocx (student, es)", () => {
+  it("keeps live pagination chrome out of Word while preserving APA page geometry", () => {
+    expect(documentXml.match(/<w:pageBreakBefore\/>/g)).toHaveLength(4);
+    expect(documentXml).not.toMatch(/<w:br[^>]*w:type="page"/);
+    expect(documentXml).toContain(
+      '<w:pgSz w:w="12240" w:h="15840" w:orient="portrait"/>',
+    );
+    expect(documentXml).toContain(
+      '<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"',
+    );
+    expect(stylesXml).toContain('w:rFonts w:ascii="Times New Roman"');
+    expect(stylesXml).toContain('<w:sz w:val="24"/>');
+    expect(stylesXml).toContain(
+      '<w:spacing w:after="0" w:before="0" w:line="480" w:lineRule="auto"/>',
+    );
+  });
+
   it("uses browser-safe ArrayBuffer packing", async () => {
     const toBuffer = vi.spyOn(Packer, "toBuffer").mockRejectedValue(
       new Error("nodebuffer is not supported by this platform"),

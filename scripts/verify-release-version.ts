@@ -1,11 +1,17 @@
-import { extractReleaseNotes } from "./extract-release-notes.ts";
+import { extractReleaseNotes } from "../apps/desktop/src/lib/update/extractReleaseNotes.ts";
 
 export interface ReleaseVersionContract {
   tag: string;
   tauriConfig: string;
   packageJson: string;
   cargoToml: string;
+  cargoLock: string;
   changelog: string;
+}
+
+export interface VerifiedReleaseVersion {
+  readonly version: string;
+  readonly notes: string;
 }
 
 function parseJsonVersion(label: string, contents: string): string {
@@ -45,9 +51,40 @@ function parseCargoPackageVersion(contents: string): string {
   throw new Error("Cargo metadata has no [package] version string.");
 }
 
+function parseCargoLockPackageVersion(
+  contents: string,
+  packageName: string,
+): string {
+  const versions: string[] = [];
+  const packages = contents.split(/(?=^\[\[package\]\][ \t]*\r?$)/m);
+
+  for (const packageBlock of packages) {
+    if (!/^\[\[package\]\][ \t]*\r?$/m.test(packageBlock)) continue;
+    const name = /^name\s*=\s*"([^"]+)"\s*(?:#.*)?$/m.exec(packageBlock)?.[1];
+    if (name !== packageName) continue;
+
+    const version = /^version\s*=\s*"([^"]+)"\s*(?:#.*)?$/m.exec(
+      packageBlock,
+    )?.[1];
+    if (!version) {
+      throw new Error(
+        `Cargo.lock package "${packageName}" has no version string.`,
+      );
+    }
+    versions.push(version);
+  }
+
+  if (versions.length !== 1) {
+    throw new Error(
+      `Cargo.lock must contain exactly one "${packageName}" package; found ${versions.length}.`,
+    );
+  }
+  return versions[0];
+}
+
 export function verifyReleaseVersion(
   contract: ReleaseVersionContract,
-): string {
+): VerifiedReleaseVersion {
   const tag = /^v(.+)$/.exec(contract.tag);
   if (!tag) {
     throw new Error(
@@ -60,6 +97,10 @@ export function verifyReleaseVersion(
     ["Tauri", parseJsonVersion("Tauri", contract.tauriConfig)],
     ["package", parseJsonVersion("package", contract.packageJson)],
     ["Cargo", parseCargoPackageVersion(contract.cargoToml)],
+    [
+      "Cargo.lock Tesina package",
+      parseCargoLockPackageVersion(contract.cargoLock, "tesina"),
+    ],
   ] as const;
 
   for (const [label, actual] of versions) {
@@ -70,8 +111,10 @@ export function verifyReleaseVersion(
     }
   }
 
-  extractReleaseNotes(contract.changelog, version);
-  return version;
+  return Object.freeze({
+    version,
+    notes: extractReleaseNotes(contract.changelog, version),
+  });
 }
 
 if (import.meta.main) {
@@ -81,31 +124,48 @@ if (import.meta.main) {
       tauriConfigPath,
       packageJsonPath,
       cargoTomlPath,
+      cargoLockPath,
       changelogPath,
+      notesOutputPath,
     ] = Deno.args;
     if (
       !tag || !tauriConfigPath || !packageJsonPath || !cargoTomlPath ||
-      !changelogPath || Deno.args.length !== 5
+      !cargoLockPath || !changelogPath || !notesOutputPath ||
+      Deno.args.length !== 7
     ) {
       throw new Error(
-        "Usage: deno run --allow-read scripts/verify-release-version.ts <tag> <tauri-config> <package-json> <cargo-toml> <changelog>",
+        "Usage: deno run --allow-read --allow-write=<notes-output> scripts/verify-release-version.ts <tag> <tauri-config> <package-json> <cargo-toml> <cargo-lock> <changelog> <notes-output>",
       );
     }
 
-    const [tauriConfig, packageJson, cargoToml, changelog] = await Promise.all([
-      Deno.readTextFile(tauriConfigPath),
-      Deno.readTextFile(packageJsonPath),
-      Deno.readTextFile(cargoTomlPath),
-      Deno.readTextFile(changelogPath),
-    ]);
-    const version = verifyReleaseVersion({
+    try {
+      const existingOutput = await Deno.lstat(notesOutputPath);
+      if (!existingOutput.isFile) {
+        throw new Error("Release notes output path must be a regular file.");
+      }
+      await Deno.remove(notesOutputPath);
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) throw error;
+    }
+
+    const [tauriConfig, packageJson, cargoToml, cargoLock, changelog] =
+      await Promise.all([
+        Deno.readTextFile(tauriConfigPath),
+        Deno.readTextFile(packageJsonPath),
+        Deno.readTextFile(cargoTomlPath),
+        Deno.readTextFile(cargoLockPath),
+        Deno.readTextFile(changelogPath),
+      ]);
+    const verified = verifyReleaseVersion({
       tag,
       tauriConfig,
       packageJson,
       cargoToml,
+      cargoLock,
       changelog,
     });
-    console.log(`Verified release version ${version}.`);
+    await Deno.writeTextFile(notesOutputPath, verified.notes);
+    console.log(`Verified release version ${verified.version}.`);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     Deno.exitCode = 1;

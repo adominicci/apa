@@ -5,6 +5,7 @@
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import Modal from "$lib/components/Modal.svelte";
   import { m } from "$lib/paraglide/messages";
+  import { useReleaseNotesController } from "$lib/update/releaseNotesController.svelte";
 
   interface Props {
     onCreate: (language: DocLocale) => void;
@@ -13,6 +14,7 @@
   }
 
   let { onCreate, onOpen, onOpenLibrary }: Props = $props();
+  const releaseNotes = useReleaseNotesController();
 
   type View = "all" | "recent" | "drafts" | "templates";
   type Chip = "all" | "es" | "en" | "unfinished";
@@ -137,7 +139,25 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1l2.1-2.1M17 7l2.1-2.1" /></svg>
         {m.side_settings()}
       </button>
-      <div class="foot">{m.side_version()}</div>
+      <div class="foot">
+        <button
+          type="button"
+          data-release-notes-version
+          title={m.release_notes_open_tooltip({
+            version: releaseNotes.installedVersion,
+          }, { locale: uiLocale.current })}
+          aria-label={m.release_notes_open_label({
+            version: releaseNotes.installedVersion,
+          }, { locale: uiLocale.current })}
+          onclick={() => releaseNotes.openInstalledNotes()}
+        >
+          {m.app_version_short({ version: releaseNotes.installedVersion }, {
+            locale: uiLocale.current,
+          })}
+        </button>
+        <span aria-hidden="true">·</span>
+        <span>{m.side_apa_edition(undefined, { locale: uiLocale.current })}</span>
+      </div>
     </aside>
 
     <div class="home-main">
@@ -507,6 +527,23 @@
     color: var(--muted);
     font-size: 11.5px;
     font-family: var(--mono);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .foot button {
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    padding: 1px 0;
+    cursor: pointer;
+  }
+
+  .foot button:hover,
+  .foot button:focus-visible {
+    color: var(--accent);
   }
 
   .home-main {

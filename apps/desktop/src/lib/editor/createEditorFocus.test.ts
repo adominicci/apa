@@ -2,6 +2,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createTesinaEditor } from "./createEditor.ts";
+import { paginationPluginKey } from "./pagination/extension.ts";
 
 Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 Range.prototype.getBoundingClientRect = () => new DOMRect();
@@ -30,6 +31,7 @@ function createEditor(newlyCreated: boolean) {
       locale: "en",
       emptyLabel: "No references yet",
     },
+    paginationEnv: null,
   });
   return { editor, element };
 }
@@ -40,6 +42,28 @@ afterEach(() => {
 });
 
 describe("editor focus for a paper launch", () => {
+  it("installs pagination only when the caller supplies an explicit environment", () => {
+    const element = document.createElement("div");
+    document.body.append(element);
+    const editor = createTesinaEditor({
+      element,
+      content,
+      newlyCreated: true,
+      citationEnv: { refsById: new Map(), locale: "en" },
+      referenceEnv: {
+        references: [],
+        locale: "en",
+        emptyLabel: "No references yet",
+      },
+      paginationEnv: { reason: "canonical-layout" },
+    });
+
+    expect(paginationPluginKey.getState(editor.state)).toEqual(
+      expect.objectContaining({ status: "settling", epoch: 1 }),
+    );
+    editor.destroy();
+  });
+
   it("leaves a newly created paper unfocused at the start", () => {
     vi.useFakeTimers();
     const { editor, element } = createEditor(true);

@@ -15,7 +15,13 @@ import {
   readPendingReleaseNotes,
   type ReleaseNotesStorage,
 } from "$lib/update/releaseNotes";
-import EditorScreen from "./EditorScreen.svelte";
+import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
+import { createReleaseNotesController } from "$lib/update/releaseNotesController.svelte";
+import EditorScreen from "./EditorScreenReleaseNotesHarness.test.svelte";
+import type {
+  PaginationEnvironment,
+  StablePaginationPlan,
+} from "$lib/editor/pagination/types";
 
 const runtime = vi.hoisted(() => ({
   editors: [] as TiptapEditor[],
@@ -23,6 +29,8 @@ const runtime = vi.hoisted(() => ({
   persistedDocs: [] as unknown[],
   libraryReferences: [] as Reference[],
   exportEssayToDocx: vi.fn(),
+  paginationEnvs: [] as PaginationEnvironment[],
+  paginationInvalidations: [] as string[],
 }));
 
 interface Deferred<T> {
@@ -65,9 +73,31 @@ vi.mock("$lib/editor/createEditor", async () => {
     createTesinaEditor(
       args: Parameters<typeof actual.createTesinaEditor>[0],
     ) {
-      const editor = actual.createTesinaEditor(args);
+      if (args.paginationEnv) runtime.paginationEnvs.push(args.paginationEnv);
+      const editor = actual.createTesinaEditor({
+        ...args,
+        // jsdom has no layout engine; the lifecycle contract is exercised by
+        // driving the captured production environment below.
+        paginationEnv: null,
+      });
       runtime.editors.push(editor);
       return editor;
+    },
+  };
+});
+
+vi.mock("$lib/editor/pagination/extension", async () => {
+  const actual = await vi.importActual<
+    typeof import("$lib/editor/pagination/extension")
+  >("$lib/editor/pagination/extension");
+  return {
+    ...actual,
+    invalidatePagination(
+      editor: Parameters<typeof actual.invalidatePagination>[0],
+      reason: Parameters<typeof actual.invalidatePagination>[1],
+    ) {
+      runtime.paginationInvalidations.push(reason);
+      return actual.invalidatePagination(editor, reason);
     },
   };
 });
@@ -228,10 +258,391 @@ afterEach(() => {
   runtime.libraryReferences = [];
   runtime.exportEssayToDocx.mockReset();
   runtime.exportEssayToDocx.mockResolvedValue({ status: "cancelled" });
+  runtime.paginationEnvs = [];
+  runtime.paginationInvalidations = [];
   document.body.replaceChildren();
 });
 
 describe("editor preview round trip", () => {
+  it("shows a native installed-version button beside APA 7 in the status bar", async () => {
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay: essayWithBody("Seed"),
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    const versionButton = document.querySelector<HTMLButtonElement>(
+      ".statusbar button[data-release-notes-version]",
+    );
+    expect(versionButton).not.toBeNull();
+    expect(versionButton?.type).toBe("button");
+    expect(versionButton?.textContent).toBe(
+      `v${bundledReleaseNotes.version}`,
+    );
+    expect(versionButton?.title).toBe(
+      `Novedades de Tesina ${bundledReleaseNotes.version}`,
+    );
+    expect(versionButton?.getAttribute("aria-label")).toBe(
+      `Abrir las notas de Tesina ${bundledReleaseNotes.version}`,
+    );
+    expect(versionButton?.previousElementSibling?.textContent).toBe("APA 7");
+
+    document.querySelector<HTMLButtonElement>(
+      `.fm-btn[aria-label="${m.fab_focus()}"]`,
+    )!.click();
+    flushSync();
+    expect(document.querySelector(".statusbar")?.classList).toContain("dim");
+    expect(versionButton?.isConnected).toBe(true);
+    await unmount(component);
+  });
+
+  it("opens the canonical installed notes from the editor without changing the essay", async () => {
+    const essay = essayWithBody("Canonical-note identity");
+    const before = structuredClone(essay);
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    const authoredJson = JSON.stringify(runtime.editors[0]!.getJSON());
+    const versionButton = document.querySelector<HTMLButtonElement>(
+      ".statusbar button[data-release-notes-version]",
+    )!;
+    expect(versionButton.type).toBe("button");
+    versionButton.focus();
+    versionButton.click();
+    flushSync();
+
+    const dialog = document.querySelector<HTMLElement>("[role='dialog']");
+    expect(dialog?.textContent).toContain(
+      `Tesina ${bundledReleaseNotes.version}`,
+    );
+    expect(dialog?.textContent).toContain(
+      "Essays now flow automatically from one US Letter page to the next",
+    );
+    document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
+    flushSync();
+    expect(document.activeElement).toBe(versionButton);
+    expect(JSON.stringify(runtime.editors[0]!.getJSON())).toBe(authoredJson);
+    expect(essay).toEqual(before);
+    await unmount(component);
+  });
+
+  it("opens mismatch-safe notes and returns focus without navigation or essay mutation", async () => {
+    const releaseNotesController = createReleaseNotesController({
+      bundled: bundledReleaseNotes,
+      getRuntimeVersion: () => Promise.resolve("9.8.7"),
+      getStorage: () => null,
+      unavailableBody: () =>
+        "Las notas no están disponibles para esta versión.",
+    });
+    releaseNotesController.setUiReady(true);
+    await releaseNotesController.resolveRuntimeVersion();
+    const essay = essayWithBody("Identity-safe body");
+    const essayBefore = structuredClone(essay);
+    const onBack = vi.fn();
+    const onOpenLibrary = vi.fn();
+    const initialLocation = globalThis.location.href;
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack,
+        onOpenLibrary,
+        releaseNotesController,
+      },
+    });
+    flushSync();
+    const authoredJson = JSON.stringify(runtime.editors[0]!.getJSON());
+
+    const versionButton = document.querySelector<HTMLButtonElement>(
+      ".statusbar button[data-release-notes-version]",
+    )!;
+    expect(versionButton.textContent).toBe("v9.8.7");
+    expect(versionButton.title).toBe("Novedades de Tesina 9.8.7");
+    versionButton.focus();
+    versionButton.click();
+    flushSync();
+
+    const dialog = document.querySelector<HTMLElement>("[role='dialog']");
+    expect(dialog?.textContent).toContain("Tesina 9.8.7");
+    expect(dialog?.textContent).toContain(
+      "Las notas no están disponibles para esta versión.",
+    );
+    expect(dialog?.textContent).not.toContain(
+      "Essays now flow automatically from one US Letter page to the next",
+    );
+    globalThis.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
+    );
+    expect(dialog?.contains(document.activeElement)).toBe(true);
+
+    document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
+    flushSync();
+    expect(document.activeElement).toBe(versionButton);
+
+    versionButton.click();
+    flushSync();
+    expect(document.querySelector("[role='dialog']")?.textContent).toContain(
+      "Las notas no están disponibles para esta versión.",
+    );
+    expect(JSON.stringify(runtime.editors[0]!.getJSON())).toBe(authoredJson);
+    expect(essay).toEqual(essayBefore);
+    expect(globalThis.location.href).toBe(initialLocation);
+    expect(onBack).not.toHaveBeenCalled();
+    expect(onOpenLibrary).not.toHaveBeenCalled();
+    await unmount(component);
+  });
+
+  it("shows localized live pagination lifecycle without a words-based estimate", async () => {
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay: essayWithBody("Seed ".repeat(900)),
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+    await tick();
+
+    const pageStatus = () =>
+      document.querySelector<HTMLElement>("[data-live-page-status]")
+        ?.textContent?.trim();
+    expect(pageStatus()).toBe(m.status_pages_pending());
+    expect(pageStatus()).not.toBe(m.status_pages_many({ count: 4 }));
+
+    const environment = runtime.paginationEnvs[0]!;
+    environment.onPageCount?.({
+      status: "fallback",
+      epoch: 1,
+      reason: "canonical-layout",
+      pageCount: null,
+      visiblePlan: null,
+      lastStablePlan: null,
+    });
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_unavailable());
+
+    const plan: StablePaginationPlan = {
+      status: "stable",
+      epoch: 2,
+      pageStarts: [
+        { pageIndex: 0, pos: 1, section: "body", kind: "section" },
+        { pageIndex: 1, pos: 20, section: "body", kind: "line" },
+      ],
+      pageGaps: [],
+      tableRowStarts: [],
+      overflows: [],
+      pageCount: {
+        authored: 2,
+        references: 1,
+        total: 3,
+        bySection: { abstract: 0, body: 2, appendix: 0, references: 1 },
+      },
+    };
+    environment.onPageCount?.({
+      status: "stable",
+      epoch: 2,
+      reason: "authored-content",
+      pageCount: plan.pageCount,
+      visiblePlan: plan,
+      lastStablePlan: plan,
+    });
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 4 }));
+
+    runtime.editors[0]!.commands.insertContentAt(2, "Page-growing edit ");
+    const editedJson = JSON.stringify(runtime.editors[0]!.getJSON());
+    expect(editedJson).toContain("Page-growing edit");
+    const expandedPlan: StablePaginationPlan = {
+      ...plan,
+      epoch: 3,
+      pageStarts: [
+        ...plan.pageStarts,
+        { pageIndex: 2, pos: 30, section: "body", kind: "line" },
+      ],
+      pageCount: {
+        authored: 3,
+        references: 1,
+        total: 4,
+        bySection: { abstract: 0, body: 3, appendix: 0, references: 1 },
+      },
+    };
+    environment.onPageCount?.({
+      status: "settling",
+      epoch: 3,
+      reason: "authored-content",
+      pageCount: plan.pageCount,
+      visiblePlan: plan,
+      lastStablePlan: plan,
+    });
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 4 }));
+    environment.onPageCount?.({
+      status: "stable",
+      epoch: 3,
+      reason: "authored-content",
+      pageCount: expandedPlan.pageCount,
+      visiblePlan: expandedPlan,
+      lastStablePlan: expandedPlan,
+    });
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 5 }));
+
+    environment.onPageCount?.({
+      status: "settling",
+      epoch: 4,
+      reason: "font",
+      pageCount: expandedPlan.pageCount,
+      visiblePlan: expandedPlan,
+      lastStablePlan: expandedPlan,
+    });
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 5 }));
+
+    const previewButton = document.querySelector<HTMLButtonElement>(
+      ".tb-actions button:nth-child(3)",
+    )!;
+    previewButton.click();
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 5 }));
+    previewButton.click();
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 5 }));
+
+    const outer = document.querySelector<HTMLElement>(".paper-scale-outer");
+    const inner = document.querySelector<HTMLElement>(".paper-scale-inner");
+    expect(outer?.style.width).toBe("816px");
+    expect(inner?.style.width).toBe("816px");
+    expect(inner?.style.transform).toBe("scale(1)");
+    await unmount(component);
+  });
+
+  it("fits narrow and wide canvases without repaginating for panel or focus changes", async () => {
+    let availableWidth = 612;
+    const observerCallbacks: Array<() => void> = [];
+    const originalResizeObserver = globalThis.ResizeObserver;
+    const clientWidth = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "clientWidth",
+    );
+    const scrollHeight = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "scrollHeight",
+    );
+    class TestResizeObserver {
+      constructor(callback: ResizeObserverCallback) {
+        observerCallbacks.push(() => callback([], this));
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    Object.defineProperty(globalThis, "ResizeObserver", {
+      configurable: true,
+      value: TestResizeObserver,
+    });
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      get() {
+        return this.classList.contains("paper-fit-viewport")
+          ? availableWidth
+          : 0;
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+      configurable: true,
+      get() {
+        return this.classList.contains("paper-scale-inner") ? 2112 : 0;
+      },
+    });
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay: essayWithBody("Seed"),
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    try {
+      flushSync();
+      expect(
+        document.querySelector<HTMLElement>(".paper-scale-inner")?.style
+          .transform,
+      ).toBe("scale(0.75)");
+      expect(
+        document.querySelector<HTMLElement>(".paper-scale-outer")?.style
+          .height,
+      ).toBe("1584px");
+      expect(
+        document.querySelector<HTMLButtonElement>(
+          ".statusbar button[data-release-notes-version]",
+        )?.type,
+      ).toBe("button");
+
+      availableWidth = 816;
+      document.querySelector<HTMLButtonElement>(
+        ".tb-actions button:nth-child(2)",
+      )!.click();
+      observerCallbacks.forEach((callback) => callback());
+      flushSync();
+      expect(
+        document.querySelector<HTMLElement>(".paper-scale-inner")?.style
+          .transform,
+      ).toBe("scale(1)");
+
+      document.querySelector<HTMLButtonElement>(
+        `.fm-btn[aria-label="${m.fab_focus()}"]`,
+      )!.click();
+      flushSync();
+      expect(runtime.paginationInvalidations).toEqual([]);
+    } finally {
+      await unmount(component);
+      if (originalResizeObserver) {
+        Object.defineProperty(globalThis, "ResizeObserver", {
+          configurable: true,
+          value: originalResizeObserver,
+        });
+      } else {
+        Reflect.deleteProperty(globalThis, "ResizeObserver");
+      }
+      if (clientWidth) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "clientWidth",
+          clientWidth,
+        );
+      }
+      if (scrollHeight) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "scrollHeight",
+          scrollHeight,
+        );
+      }
+    }
+  });
+
   it("suppresses only the pseudo body title for a matching authored H1", async () => {
     const essay = essayWithBody("Seed");
     essay.titlePage.title = "Legacy Body Title";
@@ -258,6 +669,46 @@ describe("editor preview round trip", () => {
       expect(sheetStack?.style.getPropertyValue("--body-title")).toBe("none");
       expect(authoredHeading?.textContent).toBe("Legacy Body Title");
       expect(runtime.editors[0]?.getJSON()).toEqual(essay.content);
+    } finally {
+      await unmount(component);
+    }
+  });
+
+  it("repaginates after a cover-title edit updates the generated body heading", async () => {
+    const essay = essayWithBody("Seed");
+    essay.titlePage.title = "Short title";
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+
+    try {
+      flushSync();
+      await tick();
+      runtime.paginationInvalidations = [];
+
+      const title = document.querySelector<HTMLInputElement>(
+        ".cover-sheet input.cf.title",
+      );
+      expect(title).not.toBeNull();
+      title!.value =
+        "A substantially longer generated body title that wraps onto several lines";
+      title!.dispatchEvent(new Event("input", { bubbles: true }));
+      flushSync();
+      await tick();
+      await drainMicrotasks();
+
+      expect(
+        document.querySelector<HTMLElement>(".sheet-stack")?.style
+          .getPropertyValue("--body-title"),
+      ).toContain("substantially longer generated body title");
+      expect(runtime.paginationInvalidations).toEqual(["canonical-layout"]);
     } finally {
       await unmount(component);
     }

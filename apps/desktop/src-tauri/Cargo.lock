@@ -4236,10 +4236,11 @@ dependencies = [
 
 [[package]]
 name = "tesina"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "serde",
  "serde_json",
+ "tao",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
@@ -4248,6 +4249,9 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-process",
  "tauri-plugin-updater",
+ "url",
+ "windows-sys 0.61.2",
+ "wry",
 ]
 
 [[package]]
