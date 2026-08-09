@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onMount, untrack } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
+  import type { Attachment } from "svelte/attachments";
   import type { Editor as TiptapEditor } from "@tiptap/core";
   import { hasAuthoredBodyTitle } from "@tesina/docx-export";
   import type { CitationAttrs, DocLocale, Reference } from "@tesina/engine";
@@ -33,7 +34,19 @@
   import {
     type ReferenceDecorationEnv,
     refreshReferenceDecoration,
+    repaintReferenceDecoration,
   } from "$lib/editor/referenceDecoration";
+  import { invalidatePagination } from "$lib/editor/pagination/extension";
+  import { composeDocumentPages } from "$lib/editor/pagination/pageComposition";
+  import {
+    calculatePaperScale,
+    observePaperScale,
+    type PaperScaleLayout,
+  } from "$lib/editor/pagination/paperScale";
+  import type {
+    PaginationEnvironment,
+    PaginationStateReport,
+  } from "$lib/editor/pagination/types";
   import {
     canInsertApaEquation,
     insertApaEquation,
@@ -74,6 +87,7 @@
     persistence,
     type PersistenceRegistration,
   } from "$lib/persist/coordinator";
+  import { useReleaseNotesController } from "$lib/update/releaseNotesController.svelte";
 
   interface Props {
     essay: Essay;
@@ -95,6 +109,7 @@
     onBack,
     onOpenLibrary,
   }: Props = $props();
+  const releaseNotes = useReleaseNotesController();
 
   // Remounted per essay via {#key essay.id}; initial captures are deliberate.
   let documentLanguage = $state<DocLocale>(
@@ -114,7 +129,10 @@
   let refsOpen = $state(true);
   let focusMode = $state(false);
   let previewOpen = $state(false);
-  let pageCount = $state(0);
+  let previewPageCount = $state(0);
+  let referencePageCount = $state(1);
+  let livePaginationReport = $state<PaginationStateReport | null>(null);
+  let paperLayout = $state<PaperScaleLayout>(calculatePaperScale(816, 0));
   let refSearch = $state("");
   let confirmingDelete = $state<string | null>(null);
   let exporting = $state(false);
@@ -177,7 +195,16 @@
     editingGoal = false;
     scheduleSave();
   }
-  const pagesEst = $derived(Math.max(1, Math.ceil(words / 250)));
+  const liveComposition = $derived.by(() => {
+    const report = livePaginationReport;
+    const plan = report?.visiblePlan ?? report?.lastStablePlan;
+    if (!plan || !report?.pageCount) return null;
+    return composeDocumentPages({
+      authoredPageStarts: plan.pageStarts,
+      referencePageCount: report.pageCount.references,
+    });
+  });
+  const livePageTotal = $derived(liveComposition?.total ?? null);
 
   function setFont(font: FontChoice) {
     essay.settings = { ...essay.settings, font };
@@ -209,15 +236,90 @@
     emptyLabel: untrack(() =>
       m.refsheet_empty(undefined, { locale: documentLanguage })
     ),
+    fontKey: untrack(() => essay.settings.font),
+    onPageCountChange: (count) => {
+      referencePageCount = count;
+    },
+  };
+
+  function handlePaginationReport(report: PaginationStateReport) {
+    const prior = livePaginationReport;
+    livePaginationReport = report.pageCount || !prior?.pageCount
+      ? report
+      : {
+        ...report,
+        pageCount: prior.pageCount,
+        visiblePlan: report.visiblePlan ?? prior.visiblePlan,
+        lastStablePlan: report.lastStablePlan ?? prior.lastStablePlan,
+      };
+
+    const visiblePlan = report.visiblePlan ?? report.lastStablePlan;
+    if (!visiblePlan) return;
+    const composition = composeDocumentPages({
+      authoredPageStarts: visiblePlan.pageStarts,
+      referencePageCount: report.pageCount?.references ?? referencePageCount,
+      documentEnd: editor?.state.doc.content.size,
+    });
+    referenceEnv.pageNumbers = composition.pages
+      .filter((page) => page.kind === "references")
+      .map((page) => page.pageNumber);
+    if (editor && !editor.isDestroyed) repaintReferenceDecoration(editor);
+  }
+
+  const paginationEnv: PaginationEnvironment = {
+    reason: "canonical-layout",
+    getReferencePageCount: () => referencePageCount,
+    onPageCount: handlePaginationReport,
+  };
+
+  const mountPaperScale: Attachment<HTMLDivElement> = (outer) => {
+    const viewport = outer.parentElement;
+    const stack = outer.firstElementChild;
+    if (!(viewport instanceof HTMLElement) || !(stack instanceof HTMLElement)) {
+      return;
+    }
+    return observePaperScale(viewport, stack, (layout) => {
+      paperLayout = layout;
+    });
   };
 
   $effect(() => {
     referenceEnv.references = referencesForExport;
     referenceEnv.locale = documentLanguage;
+    referenceEnv.fontKey = essay.settings.font;
     referenceEnv.emptyLabel = m.refsheet_empty(undefined, {
       locale: documentLanguage,
     });
     if (editor && !editor.isDestroyed) refreshReferenceDecoration(editor);
+  });
+
+  let lastPaginationLocale = untrack(() => documentLanguage);
+  let lastPaginationFont = untrack(() => essay.settings.font);
+  let lastPaginationTitle = untrack(() => essayTitle);
+  $effect(() => {
+    const currentEditor = editor;
+    const locale = documentLanguage;
+    const font = essay.settings.font;
+    const title = essayTitle;
+    if (!currentEditor || currentEditor.isDestroyed) return;
+    const localeChanged = locale !== lastPaginationLocale;
+    const fontChanged = font !== lastPaginationFont;
+    const titleChanged = title !== lastPaginationTitle;
+    if (!localeChanged && !fontChanged && !titleChanged) return;
+    lastPaginationLocale = locale;
+    lastPaginationFont = font;
+    lastPaginationTitle = title;
+    void tick().then(async () => {
+      if (currentEditor !== editor || currentEditor.isDestroyed) return;
+      if (localeChanged) invalidatePagination(currentEditor, "document-locale");
+      if (titleChanged) invalidatePagination(currentEditor, "canonical-layout");
+      if (fontChanged) {
+        invalidatePagination(currentEditor, "font");
+        await document.fonts?.ready;
+        if (currentEditor !== editor || currentEditor.isDestroyed) return;
+        invalidatePagination(currentEditor, "font-ready");
+      }
+    });
   });
 
   const abstractLabel = $derived(
@@ -732,7 +834,7 @@
         class:on={previewOpen}
         onclick={() => {
           previewOpen = !previewOpen;
-          if (!previewOpen) pageCount = 0;
+          if (previewOpen) previewPageCount = 0;
         }}
         title={m.tb_preview()}
         aria-label={m.tb_preview()}
@@ -853,30 +955,46 @@
               {essay}
               docJson={lastDoc ?? editor?.getJSON()}
               references={referencesForExport}
-              onPageCount={(pages) => (pageCount = pages)}
+              onPageCount={(pages) => (previewPageCount = pages)}
             />
           {/key}
         </div>
       {:else}
-        <div class="sheet-stack" style={sheetFontStyle}>
-          <CoverSheet
-            titlePage={essay.titlePage}
-            language={documentLanguage}
-            onChange={handleCoverChange}
-            onOpenForm={() => (titleFormOpen = true)}
-          />
-          <Editor
-            initialDoc={lastDoc}
-            {newlyCreated}
-            {onLaunchConsumed}
-            {documentLanguage}
-            {citationEnv}
-            {referenceEnv}
-            onUpdate={handleUpdate}
-            onReady={handleReady}
-            onEditEquation={(pos, latex) =>
-              (equationDialog = { mode: "edit", pos, latex })}
-          />
+        <div class="paper-fit-viewport">
+          <div
+            class="paper-scale-outer"
+            data-paper-scale={paperLayout.scale}
+            style:width={`${paperLayout.outerWidth}px`}
+            style:height={`${paperLayout.outerHeight}px`}
+            {@attach mountPaperScale}
+          >
+            <div
+              class="paper-scale-inner sheet-stack"
+              style={sheetFontStyle}
+              style:width={`${paperLayout.layoutWidth}px`}
+              style:transform={`scale(${paperLayout.scale})`}
+            >
+              <CoverSheet
+                titlePage={essay.titlePage}
+                language={documentLanguage}
+                onChange={handleCoverChange}
+                onOpenForm={() => (titleFormOpen = true)}
+              />
+              <Editor
+                initialDoc={lastDoc}
+                {newlyCreated}
+                {onLaunchConsumed}
+                {documentLanguage}
+                {citationEnv}
+                {referenceEnv}
+                {paginationEnv}
+                onUpdate={handleUpdate}
+                onReady={handleReady}
+                onEditEquation={(pos, latex) =>
+                  (equationDialog = { mode: "edit", pos, latex })}
+              />
+            </div>
+          </div>
         </div>
       {/if}
     </main>
@@ -1069,12 +1187,21 @@
   <footer class="statusbar" class:dim={focusMode}>
     <span>{words === 1 ? m.editor_words_one() : m.editor_words_many({ count: words })}</span>
     <span class="sep">·</span>
-    <span>
-      {previewOpen && pageCount > 0
-        ? pageCount === 1 ? m.status_pages_one() : m.status_pages_many({ count: pageCount })
-        : pagesEst === 1
-        ? m.status_pages_one()
-        : m.status_pages_many({ count: pagesEst })}
+    <span
+      data-live-page-status
+      data-preview-page-count={previewPageCount > 0
+        ? previewPageCount
+        : undefined}
+    >
+      {#if livePageTotal !== null}
+        {livePageTotal === 1
+          ? m.status_pages_one()
+          : m.status_pages_many({ count: livePageTotal })}
+      {:else if livePaginationReport?.status === "fallback"}
+        {m.status_pages_unavailable()}
+      {:else}
+        {m.status_pages_pending()}
+      {/if}
     </span>
     <span class="sep">·</span>
     <span>{m.status_refs({ count: citedCounts.size })}</span>
@@ -1088,7 +1215,23 @@
       {documentLanguage.toUpperCase()}
     </button>
     <span class="sep">·</span>
-    <span>APA 7</span>
+    <span>{m.status_apa_edition(undefined, { locale: uiLocale.current })}</span>
+    <button
+      type="button"
+      class="version"
+      data-release-notes-version
+      title={m.release_notes_open_tooltip({
+        version: releaseNotes.installedVersion,
+      }, { locale: uiLocale.current })}
+      aria-label={m.release_notes_open_label({
+        version: releaseNotes.installedVersion,
+      }, { locale: uiLocale.current })}
+      onclick={() => releaseNotes.openInstalledNotes()}
+    >
+      {m.app_version_short({ version: releaseNotes.installedVersion }, {
+        locale: uiLocale.current,
+      })}
+    </button>
     {#if exportMessage}
       <span class="export-msg">{exportMessage}</span>
     {/if}
@@ -1526,6 +1669,12 @@
     overflow-y: auto;
     scroll-behavior: smooth;
     min-width: 0;
+    padding: 2.5rem 1.5rem 8rem;
+    box-sizing: border-box;
+  }
+
+  .paper-fit-viewport {
+    width: 100%;
   }
 
   /* The stacked page-sheets: the cover plus one sheet per document section
@@ -1535,12 +1684,17 @@
     flex-direction: column;
     align-items: center;
     gap: 28px;
-    padding: 2.5rem 1.5rem 8rem;
+    transform-origin: top left;
+  }
+
+  .paper-scale-outer {
+    position: relative;
+    margin-inline: auto;
   }
 
   .sheet-stack :global(.apa-editor) {
     padding: 0;
-    width: 100%;
+    width: 816px;
     min-height: 0;
   }
 
@@ -1801,13 +1955,27 @@
     color: var(--border);
   }
 
-  .statusbar .lang {
+  .statusbar .lang,
+  .statusbar .version {
     border: none;
     background: none;
     font: inherit;
-    color: var(--accent);
     cursor: pointer;
     padding: 0 2px;
+    flex: 0 0 auto;
+  }
+
+  .statusbar .lang {
+    color: var(--accent);
+  }
+
+  .statusbar .version {
+    color: inherit;
+  }
+
+  .statusbar .version:hover,
+  .statusbar .version:focus-visible {
+    color: var(--accent);
   }
 
   .export-msg {

@@ -90,3 +90,13 @@ jobs:
           --allow-env=TAURI_ARTIFACT_PATHS,EXPECTED_INSTALLER_SUFFIXES
           --allow-read
           scripts/verify-installer-artifacts.ts
+
+      - name: Smoke-test the packaged macOS application
+        if: matrix.platform == 'macos-latest'
+        env:
+          TAURI_ARTIFACT_PATHS: ${{ steps.tauri-build.outputs.artifactPaths }}
+        run: >-
+          deno run
+          --allow-env=TAURI_ARTIFACT_PATHS,GITHUB_SHA
+          --allow-run
+          scripts/run-packaged-macos-smoke.ts

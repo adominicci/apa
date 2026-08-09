@@ -38,15 +38,73 @@ describe("APA editor indentation", () => {
 });
 
 describe("APA editor page-sheets", () => {
-  it("renders each top-level section as its own US Letter page-sheet", () => {
+  it("uses fixed letter geometry for one continuous paginated editor", () => {
     expect(css).toMatch(
-      /\.apa-editor \.tiptap > \.sec\s*\{[^}]*background:\s*var\(--paper\);[^}]*aspect-ratio:\s*8\.5 \/ 11;[^}]*padding:\s*1in;/s,
+      /\.apa-editor \.paper-sheet\s*\{[^}]*width:\s*816px;[^}]*height:\s*1056px;[^}]*padding:\s*96px;/s,
     );
     expect(css).toMatch(
-      /\.apa-editor \.tiptap > \.sec \+ \.sec\s*\{[^}]*margin-top:/s,
+      /\.apa-editor \.tiptap\s*\{[^}]*width:\s*816px;[^}]*padding:\s*96px;[^}]*background:\s*var\(--paper\);/s,
     );
-    // Sections are separate pages now — no dashed in-sheet divider.
-    expect(css).not.toMatch(/\.sec \+ \.sec\s*\{[^}]*border-top:/s);
+    expect(css).not.toMatch(
+      /\.apa-editor \.tiptap\s*\{[^}]*repeating-linear-gradient/s,
+    );
+    expect(css).toMatch(
+      /\.apa-editor \.tiptap > \.sec\s*\{[^}]*width:\s*624px;[^}]*background:\s*transparent;/s,
+    );
+    expect(css).not.toContain("aspect-ratio");
+    expect(css).not.toMatch(/width:\s*min\(/);
+    expect(css).not.toMatch(/\.tiptap > \.sec \+ \.sec\s*\{/);
+  });
+
+  it("makes each derived gap own its 28px full-canvas painted band", () => {
+    expect(css).toMatch(
+      /\[data-pagination-canvas-gap\]\s*\{[^}]*position:\s*absolute;[^}]*left:\s*-816px;[^}]*top:\s*calc\(100% - 124px\);[^}]*width:\s*2448px;[^}]*height:\s*28px;[^}]*box-sizing:\s*border-box;[^}]*background:\s*var\(--canvas\);[^}]*border-top:\s*1px solid var\(--border-soft\);[^}]*border-bottom:\s*1px solid var\(--border-soft\);[^}]*pointer-events:\s*none;[^}]*user-select:\s*none;/s,
+    );
+    expect(css).toMatch(
+      /\.apa-editor \.tiptap\s*\{[^}]*overflow:\s*clip;/s,
+    );
+    expect(css).toMatch(
+      /\[data-pagination-gap="line"\],\s*\.apa-editor \.tiptap \[data-pagination-gap="block"\],\s*\.apa-editor \.tiptap \[data-pagination-gap="section"\],\s*\.apa-editor \.tiptap \[data-pagination-proof-gap="line"\],\s*\.apa-editor \.tiptap \[data-pagination-proof-gap="block"\],\s*\.apa-editor \.tiptap \[data-pagination-gap-space\]\s*\{[^}]*position:\s*relative;/s,
+    );
+  });
+
+  it("keeps page chrome isolated from authored content and selection", () => {
+    expect(css).toMatch(
+      /\.tesina-page-number\s*\{[^}]*position:\s*absolute;[^}]*pointer-events:\s*none;[^}]*user-select:\s*none;/s,
+    );
+    expect(css).toMatch(
+      /\[data-pagination-canvas-gap\]\s*\{[^}]*box-shadow:\s*0 2px 8px rgb\(0 0 0 \/ 14%\);/s,
+    );
+    expect(css).toMatch(
+      /\.reference-page-stack\s*\{[^}]*display:\s*contents;/s,
+    );
+    expect(css).toMatch(
+      /\.sec-references\s*\{[^}]*height:\s*864px;[^}]*padding:\s*0;/s,
+    );
+    expect(css).toMatch(
+      /\[data-reference-page-gap\]\s*\{[^}]*position:\s*relative;[^}]*width:\s*624px;[^}]*height:\s*220px;/s,
+    );
+    expect(css).not.toMatch(
+      /\.sec-references\s*\+\s*\.sec-references\s*\{[^}]*margin-top:/s,
+    );
+  });
+
+  it("bounds every painted oversize atomic block and table without hiding its content", () => {
+    expect(css).toMatch(
+      /\.tesina-pagination-overflow\[data-pagination-overflow="atomic"\]\s*\{[^}]*max-height:\s*calc\(864px - 2em\);[^}]*overflow-y:\s*auto;[^}]*outline:/s,
+    );
+    expect(css).toMatch(
+      /tr\.tesina-pagination-overflow\[data-pagination-overflow="tableRow"\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(\s*var\(--pagination-overflow-columns\),\s*minmax\(0,\s*1fr\)\s*\);[^}]*width:\s*624px;[^}]*height:\s*var\(--pagination-overflow-max-height,\s*864px\);[^}]*max-height:\s*var\(--pagination-overflow-max-height,\s*864px\);[^}]*overflow-y:\s*auto;[^}]*outline:/s,
+    );
+    expect(css).toMatch(
+      /tr\.tesina-pagination-overflow\[data-pagination-overflow="tableRow"\]\s*>\s*\.tesina-pagination-overflow-cell\s*\{[^}]*display:\s*block;[^}]*grid-column:\s*span var\(--pagination-overflow-span\);/s,
+    );
+    expect(css).toMatch(
+      /\.tesina-pagination-overflow-table\s*>\s*table\s*\{[^}]*table-layout:\s*fixed;[^}]*width:\s*100%;/s,
+    );
+    expect(css).toMatch(
+      /\.sec-references\s+\.ref-entry\[data-reference-overflow="true"\]\s*\{[^}]*max-height:\s*864px;[^}]*overflow-y:\s*auto;[^}]*overflow-wrap:\s*anywhere;[^}]*outline:/s,
+    );
   });
 });
 
@@ -77,6 +135,9 @@ describe("APA editor table headers", () => {
     );
     expect(css).toMatch(
       /\.apa-editor \.tiptap \.apa-table th,\s*\.apa-editor \.tiptap \.apa-table td\s*\{[^}]*border:\s*1px dashed #cdd2d8;/s,
+    );
+    expect(css).toMatch(
+      /\[data-pagination-repeated-header-cell\]\s*\{[^}]*padding:\s*4px 8px;[^}]*border:\s*1px dashed #cdd2d8;[^}]*border-bottom:\s*1px solid var\(--fg\);[^}]*font-weight:\s*normal;[^}]*text-align:\s*center;/s,
     );
   });
 });

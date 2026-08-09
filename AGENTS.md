@@ -22,12 +22,16 @@ functional clone of Essayist — never copy its name, code, text, or assets.
 - Keep the version in `apps/desktop/package.json`,
   `apps/desktop/src-tauri/tauri.conf.json`,
   `apps/desktop/src-tauri/Cargo.toml`, the Tesina entry in
-  `apps/desktop/src-tauri/Cargo.lock`, the visible version in both message
-  files, and the current-version statements in `README.md` in sync.
+  `apps/desktop/src-tauri/Cargo.lock`, and the current-version statements in
+  `README.md` in sync. Visible app versions come from the shared Tauri runtime
+  version with the desktop package version as its fallback; translation
+  messages provide parameterized labels and must never embed a version literal.
 - Move the completed items from `CHANGELOG.md` under `Unreleased` into a dated
   section for the new version. Release notes must explain what users will
   notice in plain English. Do not use technical jargon, internal file names, or
-  implementation details.
+  implementation details. That changelog section is the only release-note
+  source: both the desktop bundle and release workflow extract the same
+  Markdown from it; never maintain a duplicate release-note body.
 - A change is not finished when its PR reaches `main`. Tag that exact `main`
   commit with the matching `v` version, let the release workflow create its
   draft, verify the updater files, and publish the release so users can receive

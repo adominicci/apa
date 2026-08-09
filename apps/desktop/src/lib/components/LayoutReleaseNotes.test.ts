@@ -6,7 +6,11 @@ import {
   readPendingReleaseNotes,
   savePendingReleaseNotes,
 } from "$lib/update/releaseNotes";
+import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import LayoutReleaseNotesHarness from "./LayoutReleaseNotesHarness.test.svelte";
+
+const canonicalNotesExcerpt =
+  "Export your complete library — every essay, reference, collection";
 
 const runtime = vi.hoisted(() => ({
   getVersion: vi.fn<() => Promise<string>>(),
@@ -49,6 +53,7 @@ let component: ReturnType<typeof mount> | null = null;
 
 beforeEach(() => {
   localStorage.clear();
+  delete document.documentElement.dataset.theme;
   runtime.getVersion.mockReset();
   runtime.updater.status = "available";
   runtime.updater.version = "0.3.0";
@@ -75,27 +80,37 @@ describe("update and release-note precedence", () => {
     const version = deferred<string>();
     runtime.getVersion.mockReturnValue(version.promise);
     savePendingReleaseNotes(localStorage, {
-      version: "0.2.0",
-      body: "Installed update notes",
+      version: bundledReleaseNotes.version,
+      body: "<script>Updater body must never render</script>",
     });
 
     component = mount(LayoutReleaseNotesHarness, { target: document.body });
     flushSync();
 
+    expect(document.querySelector("[data-layout-child]")?.textContent).toBe(
+      "Paper list",
+    );
+    expect(document.documentElement.dataset.theme).toBe("light");
     expect(document.querySelector(".update-banner")).toBeNull();
 
-    version.resolve("0.2.0");
+    version.resolve(bundledReleaseNotes.version);
     await tick();
     flushSync();
 
     expect(document.querySelector("[role='dialog']")).not.toBeNull();
     expect(document.querySelector(".update-banner")).toBeNull();
+    expect(document.querySelector(".markdown-content")?.textContent).toContain(
+      canonicalNotesExcerpt,
+    );
+    expect(document.body.textContent).not.toContain(
+      "Updater body must never render",
+    );
   });
 
   it("preserves a newer marker on dismissal before exposing the updater", async () => {
-    runtime.getVersion.mockResolvedValue("0.2.0");
+    runtime.getVersion.mockResolvedValue(bundledReleaseNotes.version);
     savePendingReleaseNotes(localStorage, {
-      version: "0.2.0",
+      version: bundledReleaseNotes.version,
       body: "Displayed update notes",
     });
     component = mount(LayoutReleaseNotesHarness, { target: document.body });
@@ -116,5 +131,110 @@ describe("update and release-note precedence", () => {
       version: "0.3.0",
       body: "Newly installed update notes",
     });
+  });
+
+  it("exposes bundled installed notes through the layout context without storage", async () => {
+    runtime.getVersion.mockRejectedValue(new Error("runtime unavailable"));
+    component = mount(LayoutReleaseNotesHarness, { target: document.body });
+    await vi.waitFor(() => {
+      expect(
+        document.querySelector<HTMLButtonElement>(
+          "[data-open-installed-notes]",
+        )?.textContent,
+      ).toContain(`v${bundledReleaseNotes.version}`);
+      expect(document.querySelector(".update-banner")).not.toBeNull();
+    });
+
+    document.querySelector<HTMLButtonElement>(
+      "[data-open-installed-notes]",
+    )!.click();
+    flushSync();
+
+    expect(document.querySelector("[role='dialog']")).not.toBeNull();
+    expect(document.querySelector(".markdown-content")?.textContent).toContain(
+      canonicalNotesExcerpt,
+    );
+    expect(document.querySelector(".update-banner")).toBeNull();
+  });
+
+  it("opens the packaged fallback while runtime lookup is still pending and gates automatic notes", async () => {
+    const version = deferred<string>();
+    runtime.getVersion.mockReturnValue(version.promise);
+    savePendingReleaseNotes(localStorage, {
+      version: bundledReleaseNotes.version,
+      body: "Updater body",
+    });
+    component = mount(LayoutReleaseNotesHarness, { target: document.body });
+    flushSync();
+
+    expect(document.querySelector(".update-banner")).toBeNull();
+    document.querySelector<HTMLButtonElement>(
+      "[data-open-installed-notes]",
+    )!.click();
+    flushSync();
+
+    expect(document.querySelector(".markdown-content")?.textContent).toContain(
+      canonicalNotesExcerpt,
+    );
+    expect(document.body.textContent).not.toContain("Updater body");
+    expect(document.querySelector(".update-banner")).toBeNull();
+
+    version.resolve("0.3.0");
+    await vi.waitFor(() => {
+      expect(document.querySelector(".sub")?.textContent).toContain("0.3.0");
+      expect(document.querySelector(".markdown-content")?.textContent)
+        .toContain(
+          "Release notes are not available for this installed version.",
+        );
+    });
+
+    document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
+    flushSync();
+    expect(document.querySelector(".update-banner")).not.toBeNull();
+    expect(readPendingReleaseNotes(localStorage)?.version).toBe(
+      bundledReleaseNotes.version,
+    );
+  });
+
+  it("ignores stale markers and exposes the updater after resolution", async () => {
+    runtime.getVersion.mockResolvedValue(bundledReleaseNotes.version);
+    savePendingReleaseNotes(localStorage, {
+      version: "0.1.1",
+      body: "Stale updater body",
+    });
+    component = mount(LayoutReleaseNotesHarness, { target: document.body });
+
+    await vi.waitFor(() => {
+      expect(document.querySelector(".update-banner")).not.toBeNull();
+    });
+
+    expect(document.querySelector("[role='dialog']")).toBeNull();
+    expect(readPendingReleaseNotes(localStorage)?.version).toBe("0.1.1");
+  });
+
+  it("shows the runtime version with unavailable copy on a package mismatch", async () => {
+    runtime.getVersion.mockResolvedValue("0.3.0");
+    component = mount(LayoutReleaseNotesHarness, { target: document.body });
+    await vi.waitFor(() => {
+      expect(
+        document.querySelector<HTMLButtonElement>(
+          "[data-open-installed-notes]",
+        )?.textContent,
+      ).toContain("v0.3.0");
+    });
+
+    document.querySelector<HTMLButtonElement>(
+      "[data-open-installed-notes]",
+    )!.click();
+    flushSync();
+
+    expect(document.querySelector(".sub")?.textContent).toContain(
+      "0.3.0",
+    );
+    expect(document.querySelector(".markdown-content")?.textContent).toContain(
+      "Release notes are not available for this installed version.",
+    );
+    expect(document.querySelector(".markdown-content")?.textContent).not
+      .toContain(canonicalNotesExcerpt);
   });
 });

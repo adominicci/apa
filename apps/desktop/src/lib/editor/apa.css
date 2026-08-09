@@ -1,38 +1,21 @@
-/*
- * APA 7 visual styling for the editor. Sheets are always paper-white with
- * near-black serif text regardless of app theme — the document is a document.
- * Each top-level section (abstract, body, references, appendices) renders as
- * its own page-sheet so the edit view mirrors the preview's page flow. Exact
- * pagination still lives in the preview/export; here the text column matches
- * the printable width (8.5in - 2in margins) so line breaks approximate the
- * final page.
- */
+/* Canonical US Letter geometry. The parent canvas may transform the complete
+   stack to fit, but this 816px coordinate system never changes, so wrapping
+   and derived pagination stay independent from panel and window width. */
 .apa-editor {
-  /* Block, NOT flex — this is load-bearing. The sheet derives its height from
-     `aspect-ratio`, and WebKit (WKWebView) mis-computes the cross-size (height)
-     of a flex ITEM with aspect-ratio inside an auto-height flex container: the
-     page renders square/short on first paint and only corrects after a reflow
-     (e.g. opening + closing the preview). As a plain block centred with auto
-     margins the sheet is no longer a flex item, so aspect-ratio is honoured on
-     first paint. See WebKit bug 209983 / 265243. Do NOT switch back to
-     display:flex + justify-content. */
   display: block;
-  padding: 3rem 1.5rem 10rem;
-  min-height: 100%;
+  width: 816px;
+  min-height: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
-/* The cover sheet's single page (CoverSheet.svelte reuses this class). */
+/* The cover is an ordinary fixed Letter sheet beside the one live editor. */
 .apa-editor .paper-sheet {
   background: var(--paper);
   color: var(--fg);
-  /* Real US Letter page: 8.5in wide with 1in margins, 12pt text — a true 1:1
-     mockup so the edit screen reads and wraps like the exported page. The
-     aspect ratio keeps proportion if the window is too narrow for 8.5in, and
-     content taller than one page grows past the ratio. */
-  width: min(100%, 8.5in);
-  aspect-ratio: 8.5 / 11;
-  /* Horizontal centring (replaces the parent's old flex justify-content). */
+  width: 816px;
+  height: 1056px;
+  padding: 96px;
   margin-inline: auto;
   box-sizing: border-box;
   display: flex;
@@ -40,37 +23,95 @@
   border: 1px solid var(--border-soft);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-paper);
-  padding: 1in;
 }
 
-/* The editor mounts inside a transparent column; each top-level section
-   paints its own page-sheet below. */
 .apa-editor .page-stack {
-  width: min(100%, 8.5in);
+  width: 816px;
   margin-inline: auto;
 }
 
 .apa-editor .tiptap {
+  position: relative;
+  width: 816px;
+  min-height: 1056px;
+  padding: 96px;
+  box-sizing: border-box;
+  background: var(--paper);
   font-family: var(--doc-font, var(--serif));
   font-size: var(--doc-font-size, 12pt);
   line-height: 2;
   outline: none;
+  overflow: clip;
+  counter-reset: apa-table apa-figure apa-equation;
 }
 
-/* One page-sheet per top-level section (abstract, body, references,
-   appendices), so the document flows as discrete pages like the preview.
-   These are plain blocks — NOT flex items — so the aspect-ratio height is
-   honoured on first paint in WKWebView (see the .apa-editor note above). */
+/* Authored sections stay one continuous ProseMirror flow. Derived gap widgets
+   move overflow to the next printable top; sections no longer paint sheets. */
 .apa-editor .tiptap > .sec {
-  background: var(--paper);
-  color: var(--fg);
-  width: 100%;
-  aspect-ratio: 8.5 / 11;
+  width: 624px;
   box-sizing: border-box;
-  border: 1px solid var(--border-soft);
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-paper);
-  padding: 1in;
+  background: transparent;
+  color: var(--fg);
+  padding: 0;
+}
+
+.apa-editor .tiptap .tesina-page-number {
+  position: absolute;
+  right: 96px;
+  z-index: 2;
+  transform: translateY(-48px);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.apa-editor .tiptap [data-pagination-gap="line"],
+.apa-editor .tiptap [data-pagination-gap="block"],
+.apa-editor .tiptap [data-pagination-gap="section"],
+.apa-editor .tiptap [data-pagination-proof-gap="line"],
+.apa-editor .tiptap [data-pagination-proof-gap="block"],
+.apa-editor .tiptap [data-pagination-gap-space] {
+  position: relative;
+}
+
+.apa-editor .tiptap [data-pagination-canvas-gap] {
+  position: absolute;
+  left: -816px;
+  top: calc(100% - 124px);
+  width: 2448px;
+  height: 28px;
+  box-sizing: border-box;
+  background: var(--canvas);
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 14%);
+  pointer-events: none;
+  user-select: none;
+}
+
+.apa-editor .tiptap .reference-page-stack {
+  display: contents;
+}
+
+.apa-editor .tiptap .sec-references {
+  width: 624px;
+  height: 864px;
+  padding: 0;
+  position: relative;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.apa-editor .tiptap .sec-references > .tesina-page-number {
+  right: 0;
+}
+
+.apa-editor .tiptap [data-reference-page-gap] {
+  position: relative;
+  width: 624px;
+  height: 220px;
+  pointer-events: none;
+  user-select: none;
 }
 
 .apa-editor .tiptap p {
@@ -137,15 +178,6 @@
   font-style: italic;
 }
 
-.apa-editor .tiptap {
-  counter-reset: apa-table apa-figure apa-equation;
-}
-
-/* Gap between page-sheets — matches the sheet-stack gap around the cover. */
-.apa-editor .tiptap > .sec + .sec {
-  margin-top: 28px;
-}
-
 .apa-editor .tiptap .sec::before {
   display: block;
   text-align: center;
@@ -177,6 +209,15 @@
   text-indent: -0.5in;
 }
 
+.apa-editor .tiptap .sec-references .ref-entry[data-reference-overflow="true"] {
+  max-height: 864px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+  outline: 2px dashed var(--warn, #a65f00);
+  outline-offset: -2px;
+}
+
 .apa-editor .tiptap .sec-references .ref-empty {
   text-align: center;
   text-indent: 0;
@@ -206,11 +247,15 @@
   content: "Appendix";
 }
 
-.apa-editor[data-doclang="es"] .tiptap .sec-appendix[data-appendix-letter]::before {
+.apa-editor[data-doclang="es"]
+  .tiptap
+  .sec-appendix[data-appendix-letter]::before {
   content: "Apéndice " attr(data-appendix-letter);
 }
 
-.apa-editor[data-doclang="en"] .tiptap .sec-appendix[data-appendix-letter]::before {
+.apa-editor[data-doclang="en"]
+  .tiptap
+  .sec-appendix[data-appendix-letter]::before {
   content: "Appendix " attr(data-appendix-letter);
 }
 
@@ -274,6 +319,54 @@
   counter-increment: apa-table;
   margin: 1em 0;
   position: relative;
+}
+
+/* A non-splittable block that exceeds the printable area stays authored and
+   editable. Derived pagination decorates that exact node and bounds only its
+   presentation, keeping all content reachable through the local scroller. */
+.apa-editor
+  .tiptap
+  .tesina-pagination-overflow[data-pagination-overflow="atomic"] {
+  max-height: calc(864px - 2em);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  outline: 2px dashed var(--warn, #a65f00);
+  outline-offset: -2px;
+}
+
+/* Keep valid table/tbody/tr/td DOM while the exceptional row becomes its own
+   bounded grid viewport. Derived span metadata preserves the authored column
+   structure; later rows and their page gaps remain in ordinary table flow. */
+.apa-editor
+  .tiptap
+  tr.tesina-pagination-overflow[data-pagination-overflow="tableRow"] {
+  display: grid;
+  grid-template-columns:
+    repeat(
+    var(--pagination-overflow-columns),
+    minmax(0, 1fr)
+  );
+  width: 624px;
+  height: var(--pagination-overflow-max-height, 864px);
+  max-height: var(--pagination-overflow-max-height, 864px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  outline: 2px dashed var(--warn, #a65f00);
+  outline-offset: -2px;
+}
+
+.apa-editor .tiptap .apa-table .tesina-pagination-overflow-table > table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.apa-editor
+  .tiptap
+  tr.tesina-pagination-overflow[data-pagination-overflow="tableRow"]
+  > .tesina-pagination-overflow-cell {
+  display: block;
+  grid-column: span var(--pagination-overflow-span);
+  min-width: 0;
 }
 
 /* Per-table/figure pencil: tables edit the grid structure; figures offer a
@@ -396,6 +489,19 @@
 
 .apa-editor .tiptap .apa-table th {
   /* The real APA header rule — solid, overrides the ghost bottom above. */
+  border-bottom: 1px solid var(--fg);
+  font-weight: normal;
+  text-align: center;
+}
+
+/* A continued table uses inert derived spans because inserting a second real
+   table header would mutate the authored ProseMirror table. Match the visible
+   cell box exactly so continuation sheets retain the APA header treatment. */
+.apa-editor .tiptap [data-pagination-repeated-header-cell] {
+  box-sizing: border-box;
+  padding: 4px 8px;
+  vertical-align: top;
+  border: 1px dashed #cdd2d8;
   border-bottom: 1px solid var(--fg);
   font-weight: normal;
   text-align: center;

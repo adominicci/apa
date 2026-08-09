@@ -29,6 +29,7 @@ const baseProps = {
     locale: "en" as const,
     emptyLabel: "No references yet",
   },
+  paginationEnv: null,
 };
 
 afterEach(() => {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import Modal from "$lib/components/Modal.svelte";
+  import MarkdownContent from "$lib/components/MarkdownContent.svelte";
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
@@ -16,7 +17,7 @@
   subtitle={m.release_notes_version({ version })}
   {onClose}
 >
-  <p class="release-notes">{body}</p>
+  <MarkdownContent source={body} />
 
   {#snippet footer()}
     <button class="btn btn-primary" onclick={onClose}>
@@ -24,13 +25,3 @@
     </button>
   {/snippet}
 </Modal>
-
-<style>
-  .release-notes {
-    margin: 0;
-    color: var(--fg-2);
-    line-height: 1.55;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
-</style>

@@ -1,0 +1,99 @@
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+import {
+  nativeHostCommand,
+  windowsHostBuildProcessOptions,
+} from "./nativeHostCommand.ts";
+import { AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS } from "./nativeProofDeadlines.ts";
+
+const inputs = {
+  proofDir: "/proof",
+  url: new URL("http://127.0.0.1:4312/nativeProof.html"),
+  profileDir: "/tmp/profile",
+  windowsHostBinary: "C:\\tmp\\webview2-proof-host.exe",
+};
+
+describe("native proof direct host command", () => {
+  it("gives cold Windows host compilation its own bounded process options", () => {
+    expect(
+      windowsHostBuildProcessOptions(
+        { KEEP: "yes", CARGO_TARGET_DIR: "stale" },
+        "D:\\fresh",
+      ),
+    ).toEqual({
+      timeoutMs: 360_000,
+      env: { KEEP: "yes", CARGO_TARGET_DIR: "D:\\fresh" },
+    });
+  });
+
+  it("keeps the cold build distinct from the outer host-process cushion", () => {
+    expect(AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS).toEqual({
+      windowsHostBuild: 360_000,
+      originReadiness: 10_000,
+      outerNativeHostProcess: 60_000,
+      expandedPaginationPage: 120_000,
+      expandedPaginationHost: 135_000,
+      expandedPaginationOuter: 150_000,
+    });
+    expect(AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.windowsHostBuild).toBeLessThan(
+      10 * 60_000,
+    );
+    expect(AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.outerNativeHostProcess).toBe(
+      60_000,
+    );
+    expect(AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationPage)
+      .toBeLessThan(
+        AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationHost,
+      );
+    expect(AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationHost)
+      .toBeLessThan(
+        AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationOuter,
+      );
+  });
+
+  it("selects the Swift WKWebView runner on macOS", () => {
+    expect(nativeHostCommand("darwin", inputs)).toEqual({
+      command: "xcrun",
+      args: [
+        "swift",
+        resolve(inputs.proofDir, "WKWebViewProofRunner.swift"),
+        inputs.url.href,
+      ],
+    });
+  });
+
+  it("selects the prebuilt WebView2 executable directly on Windows", () => {
+    expect(nativeHostCommand("win32", inputs)).toEqual({
+      command: inputs.windowsHostBinary,
+      args: [inputs.url.href, inputs.profileDir],
+    });
+  });
+
+  it("enables native OS input only for the Windows manual-proof route", () => {
+    const manualInputs = {
+      ...inputs,
+      url: new URL("http://127.0.0.1:4312/nativeManualProof.html"),
+    };
+    expect(
+      nativeHostCommand("win32", manualInputs, "windows-native-input"),
+    ).toEqual({
+      command: inputs.windowsHostBinary,
+      args: [
+        manualInputs.url.href,
+        inputs.profileDir,
+        "--drive-native-input",
+      ],
+    });
+    expect(() =>
+      nativeHostCommand("darwin", manualInputs, "windows-native-input")
+    ).toThrow("Windows native input mode");
+    expect(() => nativeHostCommand("win32", inputs, "windows-native-input"))
+      .toThrow("manual proof route");
+  });
+
+  it("fails closed on a host without an audited native harness", () => {
+    expect(() => nativeHostCommand("linux", inputs)).toThrow(
+      "Unsupported native proof platform",
+    );
+  });
+});
