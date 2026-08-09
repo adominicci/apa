@@ -113,8 +113,17 @@ describe("native performance harness wiring", () => {
     expect(firstPaint).toContain(
       "\"[data-pagination-proof-gap='line'] [data-pagination-canvas-gap]\"",
     );
+    expect(source).toMatch(
+      /firstPlannedGap\.height >= 179 &&\s+firstPlannedCanvas\.width >= 815/,
+    );
+  });
+
+  it("compares overflow table cells with the scrollbar-free client width", () => {
     expect(source).toContain(
-      "firstPlannedGap.height >= 179 &&\n        firstPlannedCanvas.width >= 815",
+      "const productionRowClientWidth = productionRowOverflow.clientWidth;",
+    );
+    expect(source).toMatch(
+      /productionRowCellWidths\.reduce\([\s\S]*?-\s+productionRowClientWidth/,
     );
   });
 

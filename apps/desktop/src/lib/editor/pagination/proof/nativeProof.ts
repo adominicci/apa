@@ -2178,6 +2178,7 @@ async function runProof(): Promise<ProofResult> {
     const productionAtomicClientHeight = productionAtomicOverflow.clientHeight;
     const productionRowScrollHeight = productionRowOverflow.scrollHeight;
     const productionRowClientHeight = productionRowOverflow.clientHeight;
+    const productionRowClientWidth = productionRowOverflow.clientWidth;
     productionAtomicOverflow.scrollTop = productionAtomicScrollHeight;
     productionRowOverflow.scrollTop = productionRowScrollHeight;
     const productionAtomicContentReachable =
@@ -2234,7 +2235,7 @@ async function runProof(): Promise<ProofResult> {
       productionRowCellWidths.every((width) => width > 0) &&
       Math.abs(
           productionRowCellWidths.reduce((total, width) => total + width, 0) -
-            productionRowRect.width,
+            productionRowClientWidth,
         ) < 1 &&
       productionRowRect.height <= 864.5 &&
       productionRowScrollHeight > productionRowClientHeight &&
@@ -2781,6 +2782,7 @@ async function runProof(): Promise<ProofResult> {
         productionTableLayout: productionRowTableLayout,
         productionTableRowOverflowScrollHeight: productionRowScrollHeight,
         productionTableRowOverflowClientHeight: productionRowClientHeight,
+        productionTableRowOverflowClientWidth: productionRowClientWidth,
         productionTableRowDisplay: productionRowDisplay,
         productionTableRowOverflowY: productionRowOverflowY,
         productionTableRowOutlineStyle: productionRowOutlineStyle,
