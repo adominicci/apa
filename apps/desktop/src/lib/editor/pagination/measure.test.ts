@@ -102,7 +102,10 @@ function adapterWithReadiness(
 }
 
 describe("pagination DOM measurement lifecycle", () => {
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it("fails a permanently stalled font or image readiness wait on a fixed deadline", async () => {
     vi.useFakeTimers();
@@ -223,6 +226,70 @@ describe("pagination DOM measurement lifecycle", () => {
     adapter.invalidate?.("canonical-layout");
     expect(adapter.observing).toBe(false);
     expect(invalidations).toEqual(["asset"]);
+  });
+
+  it("observes authored images without treating derived page chrome as an asset", () => {
+    class TestResizeObserver {
+      static instances: TestResizeObserver[] = [];
+      readonly observed: Element[] = [];
+      disconnected = false;
+
+      constructor(readonly callback: ResizeObserverCallback) {
+        TestResizeObserver.instances.push(this);
+      }
+
+      observe(target: Element) {
+        this.observed.push(target);
+      }
+
+      unobserve() {}
+
+      disconnect() {
+        this.disconnected = true;
+      }
+
+      trigger() {
+        this.callback([], this as unknown as ResizeObserver);
+      }
+    }
+    vi.stubGlobal("ResizeObserver", TestResizeObserver);
+    const root = document.createElement("div");
+    const image = document.createElement("img");
+    const gap = document.createElement("div");
+    gap.dataset.paginationGap = "true";
+    const pageNumber = document.createElement("span");
+    pageNumber.dataset.paginationPageNumber = "2";
+    root.append(image, gap, pageNumber);
+    const invalidations: PaginationReason[] = [];
+
+    const stop = browserPaginationLayoutAdapter.observe(
+      { dom: root } as unknown as EditorView,
+      (reason) => invalidations.push(reason),
+    );
+    const observer = TestResizeObserver.instances[0]!;
+
+    expect(observer.observed).toEqual([image]);
+    expect(observer.observed).not.toContain(root);
+    expect(observer.observed).not.toContain(gap);
+    expect(observer.observed).not.toContain(pageNumber);
+    gap.style.height = "96px";
+    pageNumber.textContent = "3";
+    expect(invalidations).toEqual([]);
+
+    observer.trigger();
+    expect(invalidations).toEqual(["asset"]);
+
+    const laterImage = document.createElement("img");
+    root.append(laterImage);
+    laterImage.dispatchEvent(new Event("load"));
+    expect(invalidations).toEqual(["asset", "asset"]);
+    expect(observer.observed).toContain(laterImage);
+
+    stop();
+    expect(observer.disconnected).toBe(true);
+    laterImage.dispatchEvent(new Event("error"));
+    observer.trigger();
+    expect(invalidations).toEqual(["asset", "asset"]);
   });
 });
 

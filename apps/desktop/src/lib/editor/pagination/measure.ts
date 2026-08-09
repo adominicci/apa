@@ -246,17 +246,6 @@ function observeBrowserInputs(
   const ownerDocument = view.dom.ownerDocument;
   const ownerWindow = ownerDocument.defaultView;
   let active = true;
-  const onAsset = (event: Event) => {
-    if (
-      active && ownerWindow?.HTMLImageElement &&
-      event.target instanceof ownerWindow.HTMLImageElement
-    ) {
-      onInvalidate("asset");
-    }
-  };
-  view.dom.addEventListener("load", onAsset, true);
-  view.dom.addEventListener("error", onAsset, true);
-
   const ResizeObserverConstructor = ownerWindow?.ResizeObserver ??
     globalThis.ResizeObserver;
   const resizeObserver = typeof ResizeObserverConstructor === "function"
@@ -264,7 +253,21 @@ function observeBrowserInputs(
       if (active) onInvalidate("asset");
     })
     : undefined;
-  resizeObserver?.observe(view.dom);
+  const observeImage = (image: HTMLImageElement) => {
+    resizeObserver?.observe(image);
+  };
+  const onAsset = (event: Event) => {
+    if (
+      active && ownerWindow?.HTMLImageElement &&
+      event.target instanceof ownerWindow.HTMLImageElement
+    ) {
+      observeImage(event.target);
+      onInvalidate("asset");
+    }
+  };
+  view.dom.addEventListener("load", onAsset, true);
+  view.dom.addEventListener("error", onAsset, true);
+  view.dom.querySelectorAll<HTMLImageElement>("img").forEach(observeImage);
 
   ownerDocument.fonts?.ready.then(() => {
     if (active) onInvalidate("font-ready");

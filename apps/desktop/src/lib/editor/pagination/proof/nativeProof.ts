@@ -404,17 +404,23 @@ async function captureNativePaginationOperation(
     editor.state.doc.eq(authoredDoc) && outcomeSatisfied(),
   );
   if (!stable) throw new Error(`${description} did not produce a stable plan`);
+  const result: NativePaginationOperationResult = {
+    settlementMs: performance.now() - startedAt,
+    paginationFrames: frames.executed - executedBefore,
+    stableCommits: countCausalStableReports(operationReports, targetEpoch),
+    fallbackCommits:
+      operationReports.filter((report) => report.status === "fallback").length,
+    startEpoch: targetEpoch,
+    endEpoch: stable.epoch,
+  };
+  diagnostic("native-performance-operation-complete", {
+    description,
+    targetEpoch,
+    result,
+    ...diagnosticState(),
+  });
   return {
-    result: {
-      settlementMs: performance.now() - startedAt,
-      paginationFrames: frames.executed - executedBefore,
-      stableCommits: countCausalStableReports(operationReports, targetEpoch),
-      fallbackCommits:
-        operationReports.filter((report) => report.status === "fallback")
-          .length,
-      startEpoch: targetEpoch,
-      endEpoch: stable.epoch,
-    },
+    result,
     reports: operationReports,
     targetEpoch,
   };
@@ -712,6 +718,8 @@ async function runNativePerformanceWorkload(
       fontStatus: document.fonts?.status ?? "unavailable",
       referencePageCount,
       referenceEntries: mount.querySelectorAll(".ref-entry").length,
+      inputP95Ms: percentile95(inputDurationsMs),
+      inputMaxMs: Math.max(0, ...inputDurationsMs),
     });
     const inputDurationsMs: number[] = [];
     let readsDuringInput = 0;

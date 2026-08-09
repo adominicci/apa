@@ -27,6 +27,11 @@ describe("native performance harness wiring", () => {
   it("waits for an idle stable barrier inside measured operations", () => {
     expect(capture).toContain("waitForNativeQuiescence(");
     expect(capture).toContain("remainingNativeDeadlineMs(deadline)");
+    expect(capture).toContain(
+      'diagnostic("native-performance-operation-complete"',
+    );
+    expect(workload).toContain("inputP95Ms: percentile95(inputDurationsMs)");
+    expect(workload).toContain("inputMaxMs: Math.max(0, ...inputDurationsMs)");
   });
 
   it("measures only synchronous reads for typing and deletion", () => {
