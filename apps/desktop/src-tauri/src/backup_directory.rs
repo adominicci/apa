@@ -902,18 +902,11 @@ fn write_json_atomic(
         tmp.sync_all()
             .map_err(|error| BackupError::io("cannot sync record", &error))?;
         drop(tmp);
-        // Unix rename replaces an existing destination; Windows rename does
-        // not, so retry once after removing the old record. The brief
-        // non-atomic window is safe here: both record readers fail closed
-        // (a missing directory record loads as unconfigured, a missing
-        // ledger means retain-all) and never destroy data.
+        recover_record_replacement(&final_path)?;
         match fs::rename(&tmp_path, &final_path) {
             Ok(()) => Ok(()),
             Err(_first) if cfg!(windows) && final_path.exists() => {
-                fs::remove_file(&final_path)
-                    .map_err(|error| BackupError::io("cannot replace existing record", &error))?;
-                fs::rename(&tmp_path, &final_path)
-                    .map_err(|error| BackupError::io("cannot install replacement record", &error))
+                replace_record_preserving(&tmp_path, &final_path)
             }
             Err(error) => Err(BackupError::io("cannot atomically replace record", &error)),
         }
@@ -924,8 +917,51 @@ fn write_json_atomic(
     result
 }
 
+fn record_previous_path(final_path: &Path) -> PathBuf {
+    let name = final_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("record");
+    final_path.with_file_name(format!(".{name}.previous"))
+}
+
+fn recover_record_replacement(final_path: &Path) -> Result<(), BackupError> {
+    let previous_path = record_previous_path(final_path);
+    if !previous_path.exists() {
+        return Ok(());
+    }
+    if final_path.exists() {
+        fs::remove_file(&previous_path)
+            .map_err(|error| BackupError::io("cannot retire previous record", &error))
+    } else {
+        fs::rename(&previous_path, final_path)
+            .map_err(|error| BackupError::io("cannot restore previous record", &error))
+    }
+}
+
+fn replace_record_preserving(tmp_path: &Path, final_path: &Path) -> Result<(), BackupError> {
+    let previous_path = record_previous_path(final_path);
+    recover_record_replacement(final_path)?;
+    fs::rename(final_path, &previous_path)
+        .map_err(|error| BackupError::io("cannot preserve existing record", &error))?;
+    match fs::rename(tmp_path, final_path) {
+        Ok(()) => fs::remove_file(&previous_path)
+            .map_err(|error| BackupError::io("cannot retire previous record", &error)),
+        Err(install_error) => {
+            fs::rename(&previous_path, final_path)
+                .map_err(|error| BackupError::io("cannot restore previous record", &error))?;
+            Err(BackupError::io(
+                "cannot install replacement record",
+                &install_error,
+            ))
+        }
+    }
+}
+
 fn load_directory_config(app_data_dir: &Path) -> Option<BackupDirectoryConfig> {
-    let bytes = fs::read(app_data_dir.join(DIRECTORY_FILE_NAME)).ok()?;
+    let path = app_data_dir.join(DIRECTORY_FILE_NAME);
+    recover_record_replacement(&path).ok()?;
+    let bytes = fs::read(path).ok()?;
     let config: BackupDirectoryConfig = serde_json::from_slice(&bytes).ok()?;
     if config.schema_version != 1 {
         return None;
@@ -938,7 +974,11 @@ fn load_directory_config(app_data_dir: &Path) -> Option<BackupDirectoryConfig> {
 }
 
 fn load_ledger(app_data_dir: &Path) -> Ledger {
-    let Ok(bytes) = fs::read(app_data_dir.join(LEDGER_FILE_NAME)) else {
+    let path = app_data_dir.join(LEDGER_FILE_NAME);
+    if recover_record_replacement(&path).is_err() {
+        return Ledger::empty();
+    }
+    let Ok(bytes) = fs::read(path) else {
         return Ledger::empty();
     };
     match serde_json::from_slice::<Ledger>(&bytes) {
@@ -1048,11 +1088,15 @@ where
     T: Send + 'static,
     F: FnOnce() -> Result<T, BackupError> + Send + 'static,
 {
-    match tokio::time::timeout(timeout, tauri::async_runtime::spawn_blocking(operation)).await {
-        Err(_) => Err(BackupError::new(
-            BackupErrorCode::Timeout,
-            "the selected backup folder did not respond before the timeout",
-        )),
+    let mut task = tauri::async_runtime::spawn_blocking(operation);
+    match tokio::time::timeout(timeout, &mut task).await {
+        Err(_) => match task.await {
+            Err(error) => Err(BackupError::new(
+                BackupErrorCode::Io,
+                format!("selected-folder worker failed: {error}"),
+            )),
+            Ok(result) => result,
+        },
         Ok(Err(error)) => Err(BackupError::new(
             BackupErrorCode::Io,
             format!("selected-folder worker failed: {error}"),
@@ -1294,14 +1338,39 @@ mod tests {
     use tempfile::TempDir;
 
     #[tokio::test(flavor = "current_thread")]
-    async fn selected_folder_work_times_out_instead_of_blocking_shutdown_forever() {
-        let error = run_selected_folder_with_timeout(Duration::from_millis(5), || {
+    async fn selected_folder_work_finishes_before_the_command_settles() {
+        let result = run_selected_folder_with_timeout(Duration::from_millis(5), || {
             std::thread::sleep(Duration::from_millis(50));
-            Ok(())
+            Ok(42)
         })
         .await
-        .expect_err("hung provider work must be bounded");
-        assert_eq!(error.code, BackupErrorCode::Timeout);
+        .expect("late provider work must still reconcile");
+        assert_eq!(result, 42);
+    }
+
+    #[test]
+    fn record_replacement_restores_the_previous_file_when_installation_fails() {
+        let root = TempDir::new().unwrap();
+        let final_path = root.path().join(DIRECTORY_FILE_NAME);
+        let missing_tmp = root.path().join("missing.tmp");
+        fs::write(&final_path, b"known-good").unwrap();
+
+        replace_record_preserving(&missing_tmp, &final_path)
+            .expect_err("missing replacement must fail");
+        assert_eq!(fs::read(&final_path).unwrap(), b"known-good");
+        assert!(!record_previous_path(&final_path).exists());
+    }
+
+    #[test]
+    fn record_recovery_restores_a_preserved_file_after_interruption() {
+        let root = TempDir::new().unwrap();
+        let final_path = root.path().join(LEDGER_FILE_NAME);
+        let previous_path = record_previous_path(&final_path);
+        fs::write(&previous_path, b"known-good").unwrap();
+
+        recover_record_replacement(&final_path).unwrap();
+        assert_eq!(fs::read(&final_path).unwrap(), b"known-good");
+        assert!(!previous_path.exists());
     }
 
     #[tokio::test(flavor = "current_thread")]

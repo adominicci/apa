@@ -229,6 +229,8 @@ describe("UpdaterStore install lifecycle", () => {
       () => {},
     );
     const storage = new MemoryStorage();
+    const resumeAfterFailedShutdown = vi.fn<() => Promise<void>>()
+      .mockResolvedValue();
     const store = new UpdaterStore({
       check: () =>
         Promise.resolve({
@@ -239,6 +241,7 @@ describe("UpdaterStore install lifecycle", () => {
       storage: () => storage,
       flushPending: () => Promise.resolve(),
       relaunch: () => Promise.reject(new Error("relaunch unavailable")),
+      resumeAfterFailedShutdown,
     });
 
     try {
@@ -250,6 +253,7 @@ describe("UpdaterStore install lifecycle", () => {
         version: "0.2.0",
         body: "Installed before relaunch",
       });
+      expect(resumeAfterFailedShutdown).toHaveBeenCalledOnce();
     } finally {
       consoleError.mockRestore();
     }

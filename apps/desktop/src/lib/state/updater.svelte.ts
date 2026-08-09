@@ -17,6 +17,7 @@ export interface UpdaterDependencies {
   check(): Promise<UpdaterUpdate | null>;
   flushPending(): Promise<void>;
   relaunch(): Promise<void>;
+  resumeAfterFailedShutdown?(): Promise<void>;
   storage(): ReleaseNotesStorage | null;
 }
 
@@ -30,6 +31,7 @@ const defaultDependencies: UpdaterDependencies = {
     await persistence.flushPending();
   },
   relaunch,
+  resumeAfterFailedShutdown: () => operations.resumeAfterFailedShutdown(),
   storage: () => {
     try {
       return typeof localStorage === "undefined" ? null : localStorage;
@@ -144,6 +146,7 @@ export class UpdaterStore {
       this.#installedPendingRelaunch = false;
       this.status = "idle";
     } catch (err) {
+      await this.#dependencies.resumeAfterFailedShutdown?.();
       console.error("No se pudo instalar la actualización:", err);
       this.status = "error";
     }

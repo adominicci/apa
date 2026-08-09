@@ -35,6 +35,7 @@ interface ActiveOperation {
 export class OperationCoordinator {
   #active = new Set<ActiveOperation>();
   #shuttingDown = false;
+  #shutdownEpoch = 0;
 
   get shuttingDown(): boolean {
     return this.#shuttingDown;
@@ -88,6 +89,7 @@ export class OperationCoordinator {
    */
   async awaitSafeShutdown(): Promise<void> {
     this.#shuttingDown = true;
+    this.#shutdownEpoch += 1;
     const waits: Promise<void>[] = [];
     for (const operation of this.#active) {
       operation.cancelled = true;
@@ -99,6 +101,16 @@ export class OperationCoordinator {
       }
     }
     await Promise.all(waits);
+  }
+
+  /** Reopens operation admission when the outer close/relaunch did not occur. */
+  async resumeAfterFailedShutdown(): Promise<void> {
+    if (!this.#shuttingDown) return;
+    const epoch = this.#shutdownEpoch;
+    await Promise.all([...this.#active].map((operation) => operation.settled));
+    if (this.#shutdownEpoch === epoch) {
+      this.#shuttingDown = false;
+    }
   }
 }
 

@@ -81,6 +81,7 @@
           await persistence.flushPending();
         },
         destroy: () => appWindow.destroy(),
+        resumeAfterFailedShutdown: () => operations.resumeAfterFailedShutdown(),
         onError: (error) => {
           console.error("No se pudo cerrar la aplicación:", error);
         },

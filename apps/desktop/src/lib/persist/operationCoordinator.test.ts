@@ -66,6 +66,16 @@ describe("OperationCoordinator", () => {
       .rejects.toThrow("shutting down");
   });
 
+  it("re-enables operations after an aborted shutdown", async () => {
+    const coordinator = new OperationCoordinator();
+    await coordinator.awaitSafeShutdown();
+    await coordinator.resumeAfterFailedShutdown();
+
+    await expect(coordinator.run("backup", () => Promise.resolve(42)))
+      .resolves.toBe(42);
+    expect(coordinator.shuttingDown).toBe(false);
+  });
+
   it("never re-enters a persistence flush (ordering contract)", async () => {
     // The contract: callers flush BEFORE run(); run() itself never invokes
     // a flush. This test pins the API shape — run resolves without any

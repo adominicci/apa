@@ -1,5 +1,29 @@
 use std::fs;
+use std::io;
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+
+fn copy_no_replace(from: &Path, to: &Path) -> Result<(), String> {
+    let mut source =
+        fs::File::open(from).map_err(|error| format!("cannot open temporary file: {error}"))?;
+    let mut destination = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(to)
+        .map_err(|error| format!("cannot create destination exclusively: {error}"))?;
+    let result = io::copy(&mut source, &mut destination)
+        .map_err(|error| format!("cannot copy temporary file: {error}"))
+        .and_then(|_| {
+            destination
+                .sync_all()
+                .map_err(|error| format!("cannot sync destination: {error}"))
+        });
+    drop(destination);
+    if result.is_err() {
+        let _ = fs::remove_file(to);
+    }
+    result
+}
 
 fn atomic_rename_no_replace(from: &Path, to: &Path) -> Result<(), String> {
     let from_parent = from.parent().ok_or("temporary file has no parent")?;
@@ -32,8 +56,13 @@ fn atomic_rename_no_replace(from: &Path, to: &Path) -> Result<(), String> {
     // A hard link creates the destination atomically and fails if it already
     // exists. Because the prepared file is a sibling, both names are on the
     // same filesystem. Removing the temporary name completes the move.
-    fs::hard_link(from, to)
-        .map_err(|error| format!("cannot install destination exclusively: {error}"))?;
+    match fs::hard_link(from, to) {
+        Ok(()) => {}
+        Err(error) if error.kind() == ErrorKind::AlreadyExists => {
+            return Err(format!("destination already exists: {error}"));
+        }
+        Err(_) => copy_no_replace(from, to)?,
+    }
     let _ = fs::remove_file(from);
     Ok(())
 }
@@ -82,5 +111,19 @@ mod tests {
         let wrong_name = root.path().join("unrelated.tmp");
         fs::write(&wrong_name, b"new").unwrap();
         assert!(atomic_rename_no_replace(&wrong_name, &destination).is_err());
+    }
+
+    #[test]
+    fn exclusive_copy_fallback_installs_without_replacing() {
+        let root = TempDir::new().unwrap();
+        let source = root.path().join("Library.tesina.123.tmp");
+        let destination = root.path().join("Library.tesina");
+        fs::write(&source, b"new").unwrap();
+
+        copy_no_replace(&source, &destination).unwrap();
+        assert_eq!(fs::read(&destination).unwrap(), b"new");
+        assert!(source.exists());
+        assert!(copy_no_replace(&source, &destination).is_err());
+        assert_eq!(fs::read(&destination).unwrap(), b"new");
     }
 }
