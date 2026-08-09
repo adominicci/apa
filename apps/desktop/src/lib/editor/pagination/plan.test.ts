@@ -724,6 +724,34 @@ describe("planPagination", () => {
     });
   });
 
+  it("derives every continuation page of one long appendix before the next appendix", () => {
+    const plan = stablePlan({
+      epoch: 18,
+      fragments: [
+        fragment("body", 1, 120),
+        fragment("appendix-a-start", 20, 500, {
+          section: "appendix",
+          forcePageStart: true,
+        }),
+        fragment("appendix-a-continuation", 30, 500, {
+          section: "appendix",
+        }),
+        fragment("appendix-b-start", 40, 120, {
+          section: "appendix",
+          forcePageStart: true,
+        }),
+      ],
+    });
+
+    expect(plan.pageStarts).toEqual([
+      { pageIndex: 0, pos: 1, section: "body", kind: "section" },
+      { pageIndex: 1, pos: 20, section: "appendix", kind: "section" },
+      { pageIndex: 2, pos: 30, section: "appendix", kind: "line" },
+      { pageIndex: 3, pos: 40, section: "appendix", kind: "section" },
+    ]);
+    expect(plan.pageCount.bySection.appendix).toBe(3);
+  });
+
   it("rejects a measurement epoch older than the latest request", () => {
     expect(
       planPagination({ epoch: 18, latestEpoch: 19, fragments: [] }),

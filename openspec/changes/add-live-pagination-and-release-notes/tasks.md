@@ -76,10 +76,10 @@
 
 ## Task 9: Full local quality and scenario matrix
 
-- [ ] 9.1 Build a requirement-to-evidence matrix covering every scenario in both OpenSpec capability specs and link each row to a unit, component, macOS WKWebView, Windows WebView2, packaged-app smoke, DOCX, or manual accessibility result.
-- [ ] 9.2 Run all focused tests plus `/Users/andresdominicci/.deno/bin/deno task check` and require 0 errors and 0 warnings.
-- [ ] 9.3 Run `/Users/andresdominicci/.deno/bin/deno task test`, `/Users/andresdominicci/.deno/bin/deno fmt`, and `/Users/andresdominicci/.deno/bin/deno lint`; review the formatting diff before committing and rerun all four gates after formatting.
-- [ ] 9.4 Run `openspec validate add-live-pagination-and-release-notes --strict`, inspect `git diff --check`, audit the final diff for unrelated files/generated artifacts/secrets/competitor copy, and commit the verified implementation with an English commit message.
+- [x] 9.1 Build a requirement-to-evidence matrix covering every scenario in both OpenSpec capability specs and link each row to a unit, component, macOS WKWebView, Windows WebView2, packaged-app smoke, DOCX, or manual accessibility result.
+- [x] 9.2 Run all focused tests plus `/Users/andresdominicci/.deno/bin/deno task check` and require 0 errors and 0 warnings.
+- [x] 9.3 Run `/Users/andresdominicci/.deno/bin/deno task test`, `/Users/andresdominicci/.deno/bin/deno fmt`, and `/Users/andresdominicci/.deno/bin/deno lint`; review the formatting diff before committing and rerun all four gates after formatting.
+- [x] 9.4 Run `openspec validate add-live-pagination-and-release-notes --strict`, inspect `git diff --check`, audit the final diff for unrelated files/generated artifacts/secrets/competitor copy, and commit the verified implementation with an English commit message.
 
 ## Task 10: Version 0.1.3 and plain-language release preparation
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it } from "vitest";
-import type { Editor } from "@tiptap/core";
+import type { Content, Editor } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { exportDocx } from "@tesina/docx-export";
 import { strFromU8, unzipSync } from "fflate";
@@ -16,6 +16,7 @@ import type {
 } from "./measure.ts";
 import { createPaginationMeasurer } from "./measure.ts";
 import type {
+  MeasuredFragment,
   PaginationInput,
   PaginationPlan,
   PaginationReason,
@@ -163,13 +164,15 @@ function deferredMeasurement(): {
   return { promise, resolve };
 }
 
-function createEditor(): { editor: Editor; element: HTMLElement } {
+function createEditor(
+  content?: Content,
+): { editor: Editor; element: HTMLElement } {
   const fixture = createLongDocumentFixtures().en;
   const element = document.createElement("div");
   document.body.append(element);
   const editor = createTesinaEditor({
     element,
-    content: fixture.content,
+    content: content ?? fixture.content,
     newlyCreated: true,
     citationEnv: {
       refsById: new Map(fixture.references.map((ref) => [ref.id, ref])),
@@ -952,16 +955,125 @@ describe("derived pagination extension", () => {
     }
   });
 
+  it("recalculates identical derived flow after authored JSON is saved and reopened", async () => {
+    const authoredContent: Content = {
+      type: "doc",
+      content: [
+        {
+          type: "sectionBody",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Archived opening paragraph" }],
+            },
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Archived continuation" }],
+            },
+          ],
+        },
+        {
+          type: "sectionAppendix",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text: "Archived appendix text" }],
+          }],
+        },
+      ],
+    };
+
+    const paginate = async (serialized: string) => {
+      const frames = new TestFrames();
+      const { editor } = createEditor(JSON.parse(serialized) as Content);
+      const measuredLine = (
+        id: string,
+        text: string,
+        height: number,
+        section: "body" | "appendix",
+        forcePageStart = false,
+      ): MeasuredFragment => {
+        const pos = positionOfText(editor.state.doc, text);
+        return {
+          id,
+          from: pos,
+          to: pos + text.length,
+          section,
+          kind: "line",
+          height,
+          breakBefore: { kind: "line", pos, section },
+          forcePageStart,
+        };
+      };
+      const measurer: PaginationMeasurer = {
+        read: ({ epoch }) =>
+          Promise.resolve({
+            status: "measured",
+            epoch,
+            fragments: [
+              measuredLine(
+                "archived-opening",
+                "Archived opening paragraph",
+                600,
+                "body",
+              ),
+              measuredLine(
+                "archived-continuation",
+                "Archived continuation",
+                300,
+                "body",
+              ),
+              measuredLine(
+                "archived-appendix",
+                "Archived appendix text",
+                120,
+                "appendix",
+                true,
+              ),
+            ],
+            emptySections: [],
+          }),
+        destroy: () => {},
+      };
+      try {
+        editor.registerPlugin(createPaginationPlugin(
+          { reason: "authored-content" },
+          {
+            createMeasurer: () => measurer,
+            requestFrame: frames.request,
+            cancelFrame: frames.cancel,
+          },
+        ));
+        await frames.flushAll();
+        const plan = paginationPluginKey.getState(editor.state)?.lastStablePlan;
+        expect(plan?.pageCount).toMatchObject({
+          authored: 3,
+          references: 0,
+          total: 3,
+        });
+        expect(JSON.stringify(editor.getJSON())).toBe(serialized);
+        return JSON.stringify(plan);
+      } finally {
+        editor.destroy();
+      }
+    };
+
+    const savedJson = JSON.stringify(authoredContent);
+    const beforeReopen = await paginate(savedJson);
+    const afterReopen = await paginate(savedJson);
+
+    expect(afterReopen).toBe(beforeReopen);
+    expect(savedJson).not.toMatch(
+      /"(?:pagination|pageStarts|pageGaps|pageCount|pageNumber)"/,
+    );
+  });
+
   it("numbers authored pages around derived references without changing JSON", async () => {
     const frames = new TestFrames();
     const { editor, element } = createEditor();
     const bodyPos = positionOfText(editor.state.doc, "Invented paragraph 1");
-    const appendixPos = positionOfText(
-      editor.state.doc,
-      "The appendix contains",
-    );
     const baselineJson = JSON.stringify(editor.getJSON());
     let referenceCount = 2;
+    let authoredPageCount = 2;
     const measurer: PaginationMeasurer = {
       read: ({ epoch }) => Promise.resolve(measured(epoch)),
       destroy: () => {},
@@ -975,28 +1087,64 @@ describe("derived pagination extension", () => {
         {
           createMeasurer: () => measurer,
           plan: (input) => {
-            const plan = stablePlan(input.epoch, appendixPos);
+            const currentBodyPos = positionOfText(
+              editor.state.doc,
+              "Invented paragraph 1",
+            );
+            const currentAppendixPos = positionOfText(
+              editor.state.doc,
+              "The appendix contains",
+            );
+            const plan = stablePlan(input.epoch, currentAppendixPos);
             const references = input.referencePageCount ?? 0;
-            return {
-              ...plan,
-              pageStarts: [
+            const pageStarts = authoredPageCount === 3
+              ? [
                 {
                   pageIndex: 0,
-                  pos: bodyPos,
-                  section: "body",
-                  kind: "section",
+                  pos: currentBodyPos,
+                  section: "body" as const,
+                  kind: "section" as const,
                 },
                 {
                   pageIndex: 1,
-                  pos: appendixPos,
-                  section: "appendix",
-                  kind: "section",
+                  pos: currentBodyPos + 3,
+                  section: "body" as const,
+                  kind: "line" as const,
                 },
-              ],
+                {
+                  pageIndex: 2,
+                  pos: currentAppendixPos,
+                  section: "appendix" as const,
+                  kind: "section" as const,
+                },
+              ]
+              : [
+                {
+                  pageIndex: 0,
+                  pos: currentBodyPos,
+                  section: "body" as const,
+                  kind: "section" as const,
+                },
+                {
+                  pageIndex: 1,
+                  pos: currentAppendixPos,
+                  section: "appendix" as const,
+                  kind: "section" as const,
+                },
+              ];
+            return {
+              ...plan,
+              pageStarts,
               pageCount: {
                 ...plan.pageCount,
+                authored: authoredPageCount,
                 references,
-                total: plan.pageCount.authored + references,
+                total: authoredPageCount + references,
+                bySection: {
+                  ...plan.pageCount.bySection,
+                  body: authoredPageCount - 1,
+                  appendix: 1,
+                },
               },
             };
           },
@@ -1029,6 +1177,30 @@ describe("derived pagination extension", () => {
         )].map((number) => number.textContent),
       ).toEqual(["2", "5"]);
       expect(JSON.stringify(editor.getJSON())).toBe(baselineJson);
+
+      await frames.flushAll();
+      expect(
+        [...element.querySelectorAll<HTMLElement>(
+          "[data-pagination-page-number]",
+        )].map((number) => number.textContent),
+      ).toEqual(["2", "4"]);
+
+      authoredPageCount = 3;
+      editor.commands.insertContentAt(bodyPos, "More authored text ");
+      await frames.flushAll();
+      expect(
+        [...element.querySelectorAll<HTMLElement>(
+          "[data-pagination-page-number]",
+        )].map((number) => number.textContent),
+      ).toEqual(["2", "3", "5"]);
+      expect(
+        paginationPluginKey.getState(editor.state)?.lastStablePlan?.pageCount,
+      ).toMatchObject({ authored: 3, references: 1, total: 4 });
+      const editedJson = JSON.stringify(editor.getJSON());
+      expect(editedJson).toContain("More authored text");
+      expect(editedJson).not.toMatch(
+        /"(?:pagination|pageStarts|pageGaps|pageCount|pageNumber)"/,
+      );
     } finally {
       editor.destroy();
     }

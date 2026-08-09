@@ -302,6 +302,45 @@ describe("editor preview round trip", () => {
     await unmount(component);
   });
 
+  it("opens the canonical installed notes from the editor without changing the essay", async () => {
+    const essay = essayWithBody("Canonical-note identity");
+    const before = structuredClone(essay);
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    const authoredJson = JSON.stringify(runtime.editors[0]!.getJSON());
+    const versionButton = document.querySelector<HTMLButtonElement>(
+      ".statusbar button[data-release-notes-version]",
+    )!;
+    expect(versionButton.type).toBe("button");
+    versionButton.focus();
+    versionButton.click();
+    flushSync();
+
+    const dialog = document.querySelector<HTMLElement>("[role='dialog']");
+    expect(dialog?.textContent).toContain(
+      `Tesina ${bundledReleaseNotes.version}`,
+    );
+    expect(dialog?.textContent).toContain(
+      "The editor now shows the paper as separate pages",
+    );
+    document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
+    flushSync();
+    expect(document.activeElement).toBe(versionButton);
+    expect(JSON.stringify(runtime.editors[0]!.getJSON())).toBe(authoredJson);
+    expect(essay).toEqual(before);
+    await unmount(component);
+  });
+
   it("opens mismatch-safe notes and returns focus without navigation or essay mutation", async () => {
     const releaseNotesController = createReleaseNotesController({
       bundled: bundledReleaseNotes,
@@ -430,26 +469,64 @@ describe("editor preview round trip", () => {
     flushSync();
     expect(pageStatus()).toBe(m.status_pages_many({ count: 4 }));
 
+    runtime.editors[0]!.commands.insertContentAt(2, "Page-growing edit ");
+    const editedJson = JSON.stringify(runtime.editors[0]!.getJSON());
+    expect(editedJson).toContain("Page-growing edit");
+    const expandedPlan: StablePaginationPlan = {
+      ...plan,
+      epoch: 3,
+      pageStarts: [
+        ...plan.pageStarts,
+        { pageIndex: 2, pos: 30, section: "body", kind: "line" },
+      ],
+      pageCount: {
+        authored: 3,
+        references: 1,
+        total: 4,
+        bySection: { abstract: 0, body: 3, appendix: 0, references: 1 },
+      },
+    };
     environment.onPageCount?.({
       status: "settling",
       epoch: 3,
-      reason: "font",
+      reason: "authored-content",
       pageCount: plan.pageCount,
       visiblePlan: plan,
       lastStablePlan: plan,
     });
     flushSync();
     expect(pageStatus()).toBe(m.status_pages_many({ count: 4 }));
+    environment.onPageCount?.({
+      status: "stable",
+      epoch: 3,
+      reason: "authored-content",
+      pageCount: expandedPlan.pageCount,
+      visiblePlan: expandedPlan,
+      lastStablePlan: expandedPlan,
+    });
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 5 }));
+
+    environment.onPageCount?.({
+      status: "settling",
+      epoch: 4,
+      reason: "font",
+      pageCount: expandedPlan.pageCount,
+      visiblePlan: expandedPlan,
+      lastStablePlan: expandedPlan,
+    });
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 5 }));
 
     const previewButton = document.querySelector<HTMLButtonElement>(
       ".tb-actions button:nth-child(3)",
     )!;
     previewButton.click();
     flushSync();
-    expect(pageStatus()).toBe(m.status_pages_many({ count: 4 }));
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 5 }));
     previewButton.click();
     flushSync();
-    expect(pageStatus()).toBe(m.status_pages_many({ count: 4 }));
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 5 }));
 
     const outer = document.querySelector<HTMLElement>(".paper-scale-outer");
     const inner = document.querySelector<HTMLElement>(".paper-scale-inner");

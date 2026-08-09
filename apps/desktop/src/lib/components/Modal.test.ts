@@ -2,7 +2,20 @@
 
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { overwriteGetLocale } from "$lib/paraglide/runtime";
 import ModalBehaviorHarness from "./ModalBehaviorHarness.test.svelte";
+
+interface DenoRuntime {
+  readTextFileSync(path: string): string;
+}
+
+const deno = (globalThis as typeof globalThis & { Deno: DenoRuntime }).Deno;
+const modalCss = deno.readTextFileSync(
+  "apps/desktop/src/lib/components/modal.css",
+);
+const markdownSource = deno.readTextFileSync(
+  "apps/desktop/src/lib/components/MarkdownContent.svelte",
+);
 
 let component: ReturnType<typeof mount> | null = null;
 
@@ -53,6 +66,7 @@ afterEach(async () => {
   if (component) await unmount(component);
   component = null;
   document.body.replaceChildren();
+  overwriteGetLocale(() => "es");
 });
 
 describe("shared modal accessibility", () => {
@@ -66,6 +80,49 @@ describe("shared modal accessibility", () => {
       Array.from(body.querySelectorAll("li"), (item) => item.textContent),
     ).toEqual(["Formatted item", "Another item"]);
     expect(body.textContent).not.toContain("# Changed");
+  });
+
+  it("rebuilds localized modal chrome without corrupting the Markdown structure", async () => {
+    overwriteGetLocale(() => "es");
+    let { dialog } = openHarness();
+    expect(dialog.getAttribute("aria-label")).toBe("Novedades");
+    expect(dialog.querySelector(".modal-close")?.getAttribute("aria-label"))
+      .toBe("Cerrar");
+    expect(dialog.querySelector(".btn-primary")?.textContent?.trim()).toBe(
+      "Entendido",
+    );
+    expect(dialog.querySelector("h4")?.textContent).toBe("Changed");
+    expect(dialog.querySelectorAll("li")).toHaveLength(2);
+
+    await unmount(component!);
+    component = null;
+    document.body.replaceChildren();
+    overwriteGetLocale(() => "en");
+    ({ dialog } = openHarness());
+    expect(dialog.getAttribute("aria-label")).toBe("What's new");
+    expect(dialog.querySelector(".modal-close")?.getAttribute("aria-label"))
+      .toBe("Close");
+    expect(dialog.querySelector(".btn-primary")?.textContent?.trim()).toBe(
+      "Got it",
+    );
+    expect(dialog.querySelector("h4")?.textContent).toBe("Changed");
+    expect(dialog.querySelectorAll("li")).toHaveLength(2);
+  });
+
+  it("keeps readable Markdown inside a width-bounded scrolling modal", () => {
+    openHarness();
+    const dialog = document.querySelector<HTMLElement>(".modal")!;
+    const body = dialog.querySelector<HTMLElement>(".modal-body")!;
+    const markdown = body.querySelector<HTMLElement>(".markdown-content")!;
+
+    expect(dialog.contains(markdown)).toBe(true);
+    expect(markdown.textContent).toContain("Formatted item");
+    expect(modalCss).toMatch(/width:\s*min\(460px,\s*100%\)/);
+    expect(modalCss).toMatch(/max-height:\s*calc\(100vh\s*-\s*40px\)/);
+    expect(modalCss).toMatch(/\.modal-body\s*\{[^}]*overflow-y:\s*auto/s);
+    expect(markdownSource).toMatch(
+      /\.markdown-content\s*\{[^}]*min-width:\s*0[^}]*overflow-wrap:\s*anywhere/s,
+    );
   });
 
   it("wraps Tab and Shift+Tab inside the release-note controls", () => {
