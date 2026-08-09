@@ -136,6 +136,9 @@ describe("APA editor table headers", () => {
     expect(css).toMatch(
       /\.apa-editor \.tiptap \.apa-table th,\s*\.apa-editor \.tiptap \.apa-table td\s*\{[^}]*border:\s*1px dashed #cdd2d8;/s,
     );
+    expect(css).toMatch(
+      /\[data-pagination-repeated-header-cell\]\s*\{[^}]*padding:\s*4px 8px;[^}]*border:\s*1px dashed #cdd2d8;[^}]*border-bottom:\s*1px solid var\(--fg\);[^}]*font-weight:\s*normal;[^}]*text-align:\s*center;/s,
+    );
   });
 });
 

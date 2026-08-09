@@ -227,6 +227,15 @@ interface NativeReferenceOverflowEvidence {
   canvasGapHeight: number;
 }
 
+interface NativeOversizedTableTextEvidence {
+  passed: boolean;
+  tableTitleSplitAcrossSheets: boolean;
+  tableNoteSplitAcrossSheets: boolean;
+  authoredPageCount: number;
+  paintedMarkers: number;
+  paintedIntersections: number;
+}
+
 async function measureNativeReferenceOverflowEvidence(
   host: HTMLElement,
   source: Reference,
@@ -429,6 +438,127 @@ async function measureNativeHardBreakEvidence(
     return evidence;
   } finally {
     measurer.destroy();
+    editor.destroy();
+    mount.remove();
+  }
+}
+
+async function measureNativeOversizedTableTextEvidence(
+  host: HTMLElement,
+): Promise<NativeOversizedTableTextEvidence> {
+  const mount = document.createElement("div");
+  mount.className = "page-stack";
+  mount.dataset["oversizedTableTextProof"] = "true";
+  mount.style.position = "absolute";
+  mount.style.left = "-10000px";
+  mount.style.top = "0";
+  host.append(mount);
+  const title = Array.from(
+    { length: 320 },
+    (_, index) => `Invented long table title segment ${index + 1}`,
+  ).join(" ");
+  const note = Array.from(
+    { length: 320 },
+    (_, index) => `Invented long table note segment ${index + 1}`,
+  ).join(" ");
+  const reports: PaginationStateReport[] = [];
+  const editor = createTesinaEditor({
+    element: mount,
+    content: {
+      type: "doc",
+      content: [{
+        type: "sectionBody",
+        content: [{
+          type: "apaTable",
+          content: [
+            {
+              type: "tableTitle",
+              content: [{ type: "text", text: title }],
+            },
+            {
+              type: "table",
+              content: [
+                {
+                  type: "tableRow",
+                  content: [{
+                    type: "tableHeader",
+                    content: [{
+                      type: "paragraph",
+                      content: [{ type: "text", text: "Invented header" }],
+                    }],
+                  }],
+                },
+                {
+                  type: "tableRow",
+                  content: [{
+                    type: "tableCell",
+                    content: [{
+                      type: "paragraph",
+                      content: [{ type: "text", text: "Invented cell" }],
+                    }],
+                  }],
+                },
+              ],
+            },
+            {
+              type: "tableNote",
+              content: [{ type: "text", text: note }],
+            },
+          ],
+        }],
+      }],
+    },
+    newlyCreated: true,
+    citationEnv: { refsById: new Map(), locale: "en" },
+    referenceEnv: { references: [], locale: "en", emptyLabel: "unused" },
+    paginationEnv: {
+      reason: "canonical-layout",
+      getReferencePageCount: () => 0,
+      onPageCount: (report) => reports.push(report),
+    },
+  });
+  const baselineJson = JSON.stringify(editor.getJSON());
+  try {
+    const stable = await waitForCurrentStableNativeReport(
+      editor,
+      reports,
+      "oversized table title and note stability",
+    );
+    const plan = stable.visiblePlan ?? stable.lastStablePlan;
+    if (!plan || !stable.pageCount) {
+      throw new Error("Oversized table text proof has no stable plan");
+    }
+    const titlePos = positionsOf(editor.state.doc, "tableTitle")[0]!;
+    const notePos = positionsOf(editor.state.doc, "tableNote")[0]!;
+    const titleNode = editor.state.doc.nodeAt(titlePos)!;
+    const noteNode = editor.state.doc.nodeAt(notePos)!;
+    const tableTitleSplitAcrossSheets = plan.pageStarts.some((start) =>
+      start.pos > titlePos && start.pos < titlePos + titleNode.nodeSize - 1
+    );
+    const tableNoteSplitAcrossSheets = plan.pageStarts.some((start) =>
+      start.pos > notePos && start.pos < notePos + noteNode.nodeSize - 1
+    );
+    await frame();
+    await frame();
+    const oversizedTableTextPaintedBandGeometry = capturePaintedBandGeometry(
+      editor,
+      "oversized table title and note stable painted band",
+      expectedPaintedBandCount(plan, 0),
+    );
+    const evidence: NativeOversizedTableTextEvidence = {
+      passed: tableTitleSplitAcrossSheets && tableNoteSplitAcrossSheets &&
+        oversizedTableTextPaintedBandGeometry.markers > 0 &&
+        oversizedTableTextPaintedBandGeometry.intersections === 0 &&
+        JSON.stringify(editor.getJSON()) === baselineJson,
+      tableTitleSplitAcrossSheets,
+      tableNoteSplitAcrossSheets,
+      authoredPageCount: stable.pageCount.authored,
+      paintedMarkers: oversizedTableTextPaintedBandGeometry.markers,
+      paintedIntersections: oversizedTableTextPaintedBandGeometry.intersections,
+    };
+    diagnostic("native-oversized-table-text-evidence", { ...evidence });
+    return evidence;
+  } finally {
     editor.destroy();
     mount.remove();
   }
@@ -1620,6 +1750,10 @@ async function runProof(): Promise<ProofResult> {
     const hardBreakEvidence = await measureNativeHardBreakEvidence(
       requireElement<HTMLElement>("#proof-editor"),
     );
+    const oversizedTableTextEvidence =
+      await measureNativeOversizedTableTextEvidence(
+        requireElement<HTMLElement>("#proof-editor"),
+      );
     const productionReferenceOverflow =
       await measureNativeReferenceOverflowEvidence(
         requireElement<HTMLElement>("#proof-editor"),
@@ -2227,6 +2361,24 @@ async function runProof(): Promise<ProofResult> {
     );
     const firstProductionPlan = firstProductionStable.visiblePlan ??
       firstProductionStable.lastStablePlan!;
+    const productionRepeatedHeaderCell = mount.querySelector<HTMLElement>(
+      "[data-pagination-repeated-header-cell]",
+    );
+    const productionRepeatedHeaderCellStyle = productionRepeatedHeaderCell
+      ? getComputedStyle(productionRepeatedHeaderCell)
+      : null;
+    const tableContinuationHeaderStyled =
+      productionRepeatedHeaderCellStyle !== null &&
+      productionRepeatedHeaderCellStyle.paddingTop === "4px" &&
+      productionRepeatedHeaderCellStyle.paddingRight === "8px" &&
+      productionRepeatedHeaderCellStyle.paddingBottom === "4px" &&
+      productionRepeatedHeaderCellStyle.paddingLeft === "8px" &&
+      productionRepeatedHeaderCellStyle.borderBottomWidth === "1px" &&
+      productionRepeatedHeaderCellStyle.borderBottomStyle === "solid" &&
+      productionRepeatedHeaderCellStyle.textAlign === "center" &&
+      ["400", "normal"].includes(
+        productionRepeatedHeaderCellStyle.fontWeight,
+      );
     await frame();
     await frame();
     const productionInitialPaintedBand = capturePaintedBandGeometry(
@@ -2771,6 +2923,7 @@ async function runProof(): Promise<ProofResult> {
             (columns, cell) => columns + cell.colSpan,
             0,
           ) === 3,
+      tableContinuationHeaderStyled,
       existingDecorationsNormalized,
       tableGapMeasurementsNormalized,
       authoredDeletionReflow: initialTrailingPlan.gaps.length === 1 &&
@@ -2827,6 +2980,7 @@ async function runProof(): Promise<ProofResult> {
       productionTableRowOverflowGeometry,
       productionReferenceOverflowGeometry: productionReferenceOverflow.passed,
       hardBreakOnlyLinesMeasured: hardBreakEvidence.passed,
+      oversizedTableTextPaintedBandGeometry: oversizedTableTextEvidence.passed,
       productionPageChromeInert,
       productionScaleInvariantCount,
       productionJsonIdentity,
@@ -2872,6 +3026,23 @@ async function runProof(): Promise<ProofResult> {
         trailingBreakMeasuredSpan: hardBreakEvidence.trailingMeasuredSpan,
         hardBreakOnlyVisualSpan: hardBreakEvidence.breakOnlyVisualSpan,
         hardBreakOnlyMeasuredSpan: hardBreakEvidence.breakOnlyMeasuredSpan,
+        oversizedTableTextAuthoredPages:
+          oversizedTableTextEvidence.authoredPageCount,
+        oversizedTableTextPaintedMarkers:
+          oversizedTableTextEvidence.paintedMarkers,
+        oversizedTableTextPaintedIntersections:
+          oversizedTableTextEvidence.paintedIntersections,
+        productionRepeatedHeaderPadding: productionRepeatedHeaderCellStyle
+          ? [
+            productionRepeatedHeaderCellStyle.paddingTop,
+            productionRepeatedHeaderCellStyle.paddingRight,
+            productionRepeatedHeaderCellStyle.paddingBottom,
+            productionRepeatedHeaderCellStyle.paddingLeft,
+          ].join(" ")
+          : "missing",
+        productionRepeatedHeaderBorderBottom: productionRepeatedHeaderCellStyle
+          ? `${productionRepeatedHeaderCellStyle.borderBottomWidth} ${productionRepeatedHeaderCellStyle.borderBottomStyle}`
+          : "missing",
         measuredFragments: initialMeasurement.fragments.length,
         measuredListLines:
           initialMeasurement.fragments.filter((fragment) =>

@@ -494,6 +494,19 @@
   text-align: center;
 }
 
+/* A continued table uses inert derived spans because inserting a second real
+   table header would mutate the authored ProseMirror table. Match the visible
+   cell box exactly so continuation sheets retain the APA header treatment. */
+.apa-editor .tiptap [data-pagination-repeated-header-cell] {
+  box-sizing: border-box;
+  padding: 4px 8px;
+  vertical-align: top;
+  border: 1px dashed #cdd2d8;
+  border-bottom: 1px solid var(--fg);
+  font-weight: normal;
+  text-align: center;
+}
+
 .apa-editor .tiptap .apa-table th p,
 .apa-editor .tiptap .apa-table td p {
   text-indent: 0;

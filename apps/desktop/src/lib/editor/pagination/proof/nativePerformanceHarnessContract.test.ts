@@ -112,7 +112,7 @@ describe("native performance harness wiring", () => {
       "async function waitForCurrentStableNativeReport",
     );
     expect(source.match(/await waitForCurrentStableNativeReport\(/g))
-      .toHaveLength(3);
+      .toHaveLength(4);
     expect(parityCapture).toContain("await waitForCurrentStableNativeReport(");
   });
 
@@ -152,6 +152,31 @@ describe("native performance harness wiring", () => {
     expect(source).toContain("productionReferenceOverflowContentReachable");
     expect(source).toMatch(
       /productionReferenceOverflowGeometry:\s*productionReferenceOverflow\.passed/,
+    );
+  });
+
+  it("proves oversized editable table text paginates without crossing painted bands", () => {
+    expect(source).toContain("measureNativeOversizedTableTextEvidence");
+    expect(source).toContain("native-oversized-table-text-evidence");
+    expect(source).toContain("oversizedTableTextPaintedBandGeometry");
+    expect(source).toMatch(
+      /capturePaintedBandGeometry\(\s*editor,\s*"oversized table title and note stable painted band"/,
+    );
+    expect(source).toContain("tableTitleSplitAcrossSheets");
+    expect(source).toContain("tableNoteSplitAcrossSheets");
+  });
+
+  it("checks real continuation-header cell presentation in both native engines", () => {
+    expect(source).toContain("tableContinuationHeaderStyled");
+    expect(source).toContain("productionRepeatedHeaderCellStyle");
+    expect(source).toMatch(
+      /productionRepeatedHeaderCellStyle\.paddingTop === "4px"/,
+    );
+    expect(source).toMatch(
+      /productionRepeatedHeaderCellStyle\.borderBottomStyle === "solid"/,
+    );
+    expect(source).toMatch(
+      /productionRepeatedHeaderCellStyle\.textAlign === "center"/,
     );
   });
 

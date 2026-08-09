@@ -8,6 +8,7 @@ import type {
   RepeatedTableHeader,
   SectionKind,
 } from "./types.ts";
+import { LETTER_PRINTABLE_HEIGHT } from "./geometry.ts";
 
 export interface MeasureRequest {
   epoch: number;
@@ -714,6 +715,7 @@ function textFragments(
   section: SectionKind,
   listItemPos: number | null,
   scale: number,
+  groupPrefix = "text",
 ): MeasuredFragment[] {
   const lines = lineMeasurements(view, element, pos + 1, scale);
   const ownerWindow = element.ownerDocument.defaultView;
@@ -725,7 +727,7 @@ function textFragments(
     )
     : 1;
   const groupId = listItemPos === null
-    ? `text:${pos}`
+    ? `${groupPrefix}:${pos}`
     : `list:${listItemPos}:text:${pos}`;
   const kind = listItemPos === null ? "line" as const : "listItem" as const;
   return lines.map((line, index) => {
@@ -746,6 +748,82 @@ function textFragments(
       lineGroup: { id: groupId, index, count: lines.length },
     };
   });
+}
+
+function tableTextFragments(
+  view: EditorView,
+  node: PMNode,
+  pos: number,
+  element: HTMLElement,
+  section: SectionKind,
+  scale: number,
+  totalHeight: number,
+): MeasuredFragment[] {
+  const typeName = node.type.name;
+  const keepWholeWithNext = typeName === "tableTitle";
+  if (totalHeight <= LETTER_PRINTABLE_HEIGHT) {
+    return [blockFragment(
+      `${typeName}:${pos}`,
+      pos,
+      node,
+      section,
+      "heading",
+      totalHeight,
+      keepWholeWithNext,
+    )];
+  }
+
+  const lines = textFragments(
+    view,
+    node,
+    pos,
+    element,
+    section,
+    null,
+    scale,
+    typeName,
+  );
+  const ownerWindow = element.ownerDocument.defaultView;
+  const style = ownerWindow?.getComputedStyle(element);
+  const beforeHeight = Math.max(
+    0,
+    (style ? cssNumber(style.marginTop) : 0) +
+      (typeName === "tableTitle" ? pseudoBlockHeight(element, scale) : 0),
+  );
+  const lineHeight = lines.reduce(
+    (total, fragment) =>
+      total +
+      (Number.isFinite(fragment.height) ? Math.max(0, fragment.height) : 0),
+    0,
+  );
+  const afterHeight = Math.max(0, totalHeight - beforeHeight - lineHeight);
+  const fragments: MeasuredFragment[] = [];
+  if (beforeHeight > 0) {
+    fragments.push(blockFragment(
+      `${typeName}:${pos}:before-lines`,
+      pos,
+      node,
+      section,
+      "heading",
+      beforeHeight,
+      true,
+    ));
+  }
+  fragments.push(...lines);
+  if (afterHeight > 0) {
+    const endPos = Math.max(pos, pos + node.nodeSize - 1);
+    fragments.push({
+      id: `${typeName}:${pos}:after-lines`,
+      from: endPos,
+      to: endPos,
+      section,
+      kind: "heading",
+      height: afterHeight,
+      breakBefore: { kind: "block", pos: endPos, section },
+      ...(keepWholeWithNext ? { keepWithNext: true } : {}),
+    });
+  }
+  return fragments;
 }
 
 const MARGIN_COLLAPSING_BLOCKS = new Set([
@@ -949,14 +1027,14 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
             tableElement && ownerWindow
           ? cssNumber(ownerWindow.getComputedStyle(tableElement).marginBottom)
           : 0;
-        sectionFragments.push(blockFragment(
-          `${node.type.name}:${pos}`,
-          pos,
+        sectionFragments.push(...tableTextFragments(
+          view,
           node,
+          pos,
+          element,
           section,
-          "heading",
+          scale,
           heightWithoutGaps(element, scale) + wrapperBottomMargin,
-          node.type.name === "tableTitle",
         ));
         return false;
       }

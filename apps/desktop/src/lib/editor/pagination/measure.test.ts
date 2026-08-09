@@ -735,6 +735,167 @@ describe("text line sampling", () => {
     }
   });
 
+  it("splits oversized editable table titles and notes at real browser line boundaries", () => {
+    const mount = document.createElement("div");
+    document.body.append(mount);
+    const titleText = "T".repeat(100);
+    const noteText = "N".repeat(100);
+    const editor = createTesinaEditor({
+      element: mount,
+      content: {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [{
+            type: "apaTable",
+            content: [
+              {
+                type: "tableTitle",
+                content: [{ type: "text", text: titleText }],
+              },
+              {
+                type: "table",
+                content: [{
+                  type: "tableRow",
+                  content: [{
+                    type: "tableCell",
+                    content: [{ type: "paragraph" }],
+                  }],
+                }],
+              },
+              {
+                type: "tableNote",
+                content: [{ type: "text", text: noteText }],
+              },
+            ],
+          }],
+        }],
+      },
+      newlyCreated: true,
+      citationEnv: { refsById: new Map(), locale: "en" },
+      referenceEnv: { references: [], locale: "en", emptyLabel: "unused" },
+      paginationEnv: null,
+    });
+    const positions = new Map<string, number>();
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "tableTitle" || node.type.name === "tableNote") {
+        positions.set(node.type.name, pos);
+      }
+      return true;
+    });
+    const titlePos = positions.get("tableTitle")!;
+    const notePos = positions.get("tableNote")!;
+    const title = editor.view.nodeDOM(titlePos) as HTMLElement;
+    const note = editor.view.nodeDOM(notePos) as HTMLElement;
+    const titleNode = title.firstChild!;
+    const noteNode = note.firstChild!;
+    vi.spyOn(title, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 100, 624, 1_000),
+    );
+    vi.spyOn(note, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 1_200, 624, 1_000),
+    );
+    let measuredNode: Node | null = null;
+    let endExclusive = 0;
+    const rangeSpy = vi.spyOn(document, "createRange").mockImplementation(
+      () =>
+        ({
+          setStart(node: Node) {
+            measuredNode = node;
+          },
+          setEnd(node: Node, offset: number) {
+            measuredNode = node;
+            endExclusive = offset;
+          },
+          getClientRects() {
+            const top = measuredNode === titleNode
+              ? 100
+              : measuredNode === noteNode
+              ? 1_200
+              : null;
+            if (top === null) return [] as unknown as DOMRectList;
+            return Array.from(
+              { length: Math.ceil(endExclusive / 2) },
+              (_, line) =>
+                new DOMRect(
+                  0,
+                  top + line * 20,
+                  Math.min(2, endExclusive - line * 2) * 8,
+                  16,
+                ),
+            ) as unknown as DOMRectList;
+          },
+        }) as unknown as Range,
+    );
+    const getComputedStyle = globalThis.getComputedStyle.bind(globalThis);
+    const styleSpy = vi.spyOn(globalThis, "getComputedStyle")
+      .mockImplementation(
+        (element, pseudoElement) =>
+          pseudoElement
+            ? {
+              display: "none",
+              content: "none",
+            } as CSSStyleDeclaration
+            : element === title || element === note
+            ? {
+              lineHeight: "20px",
+              fontSize: "16px",
+              marginTop: "0px",
+              marginBottom: "0px",
+              borderTopWidth: "0px",
+              borderBottomWidth: "0px",
+            } as CSSStyleDeclaration
+            : getComputedStyle(element),
+      );
+
+    try {
+      const snapshot = browserPaginationLayoutAdapter.readLayout(editor.view);
+      const titleLines = snapshot.fragments.filter((fragment) =>
+        fragment.lineGroup?.id === `tableTitle:${titlePos}`
+      );
+      const noteLines = snapshot.fragments.filter((fragment) =>
+        fragment.lineGroup?.id === `tableNote:${notePos}`
+      );
+      expect(titleLines).toHaveLength(50);
+      expect(noteLines).toHaveLength(50);
+      expect(titleLines.map((fragment) => fragment.breakBefore.pos)).toEqual(
+        Array.from(
+          { length: 50 },
+          (_, index) => editor.view.posAtDOM(titleNode, index * 2),
+        ),
+      );
+      expect(noteLines.map((fragment) => fragment.breakBefore.pos)).toEqual(
+        Array.from(
+          { length: 50 },
+          (_, index) => editor.view.posAtDOM(noteNode, index * 2),
+        ),
+      );
+
+      const plan = planPagination({
+        epoch: 1,
+        fragments: snapshot.fragments,
+        emptySections: snapshot.emptySections,
+      });
+      expect(plan.status).toBe("stable");
+      if (plan.status !== "stable") throw new Error("expected stable plan");
+      expect(
+        plan.pageStarts.some((start) =>
+          start.pos > titlePos && start.pos < titlePos + titleText.length
+        ),
+      ).toBe(true);
+      expect(
+        plan.pageStarts.some((start) =>
+          start.pos > notePos && start.pos < notePos + noteText.length
+        ),
+      ).toBe(true);
+    } finally {
+      styleSpy.mockRestore();
+      rangeSpy.mockRestore();
+      editor.destroy();
+      mount.remove();
+    }
+  });
+
   it("remeasures a painted atomic overflow from its reachable scroll extent", () => {
     const mount = document.createElement("div");
     document.body.append(mount);
