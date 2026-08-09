@@ -61,7 +61,11 @@
     const libraryPersistence = persistence.register(() =>
       library.flushPending()
     );
+    const settingsPersistence = persistence.register(() =>
+      uiLocale.flushPending()
+    );
     library.setPersistenceDirtyNotifier(libraryPersistence.markDirty);
+    uiLocale.setPersistenceDirtyNotifier(settingsPersistence.markDirty);
     let disposed = false;
     let unlisten: (() => void) | undefined;
 
@@ -74,6 +78,7 @@
         flushPending: async () => {
           await persistence.flushPending();
           await operations.awaitSafeShutdown();
+          await persistence.flushPending();
         },
         destroy: () => appWindow.destroy(),
         onError: (error) => {
@@ -94,7 +99,9 @@
       disposed = true;
       unlisten?.();
       library.setPersistenceDirtyNotifier(null);
+      uiLocale.setPersistenceDirtyNotifier(null);
       libraryPersistence.unregister();
+      settingsPersistence.unregister();
     };
   });
 

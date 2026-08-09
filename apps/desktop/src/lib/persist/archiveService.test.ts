@@ -135,7 +135,7 @@ describe("createLibraryArchiveService", () => {
     const harness = makeHarness();
     const service = createLibraryArchiveService(harness.deps);
     const packaged = await service.package();
-    const expected = await harness.deps.computeContentDigest(packaged.content);
+    const expected = await harness.deps.computeContentDigest(fixtureSnapshot());
     expect(packaged.contentDigest).toBe(expected);
   });
 

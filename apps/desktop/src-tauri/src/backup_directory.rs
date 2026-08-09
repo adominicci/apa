@@ -18,8 +18,8 @@ use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
 use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 pub const BACKUP_SUBFOLDER_NAME: &str = "Tesina Backups";
@@ -27,6 +27,7 @@ const DIRECTORY_FILE_NAME: &str = "backup-directory.json";
 const LEDGER_FILE_NAME: &str = "backup-ledger.json";
 const ARCHIVE_EXTENSION: &str = ".tesina";
 const MAX_FILE_NAME_LENGTH: usize = 120;
+const SELECTED_FOLDER_TIMEOUT: Duration = Duration::from_secs(30);
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -44,6 +45,7 @@ pub enum BackupErrorCode {
     InvalidFileName,
     NameTaken,
     HashMismatch,
+    Timeout,
     Io,
 }
 
@@ -171,9 +173,10 @@ struct Inner {
 }
 
 /// Plain core with no Tauri types; managed as Tauri state by `lib.rs`.
+#[derive(Clone)]
 pub struct BackupDirectoryCore {
     app_data_dir: PathBuf,
-    state: Mutex<Inner>,
+    state: Arc<Mutex<Inner>>,
 }
 
 impl BackupDirectoryCore {
@@ -189,10 +192,10 @@ impl BackupDirectoryCore {
         });
         Self {
             app_data_dir,
-            state: Mutex::new(Inner {
+            state: Arc::new(Mutex::new(Inner {
                 active,
                 pending: None,
-            }),
+            })),
         }
     }
 
@@ -820,12 +823,42 @@ fn civil_from_days(days_since_epoch: i64) -> (i64, u32, u32) {
 // Tauri command wrappers (thin; all logic lives in the core above)
 // ---------------------------------------------------------------------------
 
+async fn run_selected_folder<T, F>(operation: F) -> Result<T, BackupError>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, BackupError> + Send + 'static,
+{
+    run_selected_folder_with_timeout(SELECTED_FOLDER_TIMEOUT, operation).await
+}
+
+async fn run_selected_folder_with_timeout<T, F>(
+    timeout: Duration,
+    operation: F,
+) -> Result<T, BackupError>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, BackupError> + Send + 'static,
+{
+    match tokio::time::timeout(timeout, tauri::async_runtime::spawn_blocking(operation)).await {
+        Err(_) => Err(BackupError::new(
+            BackupErrorCode::Timeout,
+            "the selected backup folder did not respond before the timeout",
+        )),
+        Ok(Err(error)) => Err(BackupError::new(
+            BackupErrorCode::Io,
+            format!("selected-folder worker failed: {error}"),
+        )),
+        Ok(Ok(result)) => result,
+    }
+}
+
 #[tauri::command]
 pub async fn backup_begin_configuration(
     state: tauri::State<'_, BackupDirectoryCore>,
     path: String,
 ) -> Result<PendingConfiguration, BackupError> {
-    state.begin_configuration(&path)
+    let core = state.inner().clone();
+    run_selected_folder(move || core.begin_configuration(&path)).await
 }
 
 #[tauri::command]
@@ -834,21 +867,24 @@ pub async fn backup_write_test_archive(
     file_name: String,
     bytes: Vec<u8>,
 ) -> Result<String, BackupError> {
-    state.write_test_archive(&file_name, &bytes)
+    let core = state.inner().clone();
+    run_selected_folder(move || core.write_test_archive(&file_name, &bytes)).await
 }
 
 #[tauri::command]
 pub async fn backup_activate_configuration(
     state: tauri::State<'_, BackupDirectoryCore>,
 ) -> Result<ActiveConfiguration, BackupError> {
-    state.activate_configuration()
+    let core = state.inner().clone();
+    run_selected_folder(move || core.activate_configuration()).await
 }
 
 #[tauri::command]
 pub async fn backup_cancel_configuration(
     state: tauri::State<'_, BackupDirectoryCore>,
 ) -> Result<(), BackupError> {
-    state.cancel_configuration()
+    let core = state.inner().clone();
+    run_selected_folder(move || core.cancel_configuration()).await
 }
 
 #[tauri::command]
@@ -857,7 +893,8 @@ pub async fn backup_write_archive(
     file_name: String,
     bytes: Vec<u8>,
 ) -> Result<String, BackupError> {
-    state.write_archive(&file_name, &bytes)
+    let core = state.inner().clone();
+    run_selected_folder(move || core.write_archive(&file_name, &bytes)).await
 }
 
 #[tauri::command]
@@ -866,7 +903,8 @@ pub async fn backup_confirm_archive(
     file_name: String,
     expected_sha256: String,
 ) -> Result<(), BackupError> {
-    state.confirm_archive(&file_name, &expected_sha256)
+    let core = state.inner().clone();
+    run_selected_folder(move || core.confirm_archive(&file_name, &expected_sha256)).await
 }
 
 #[tauri::command]
@@ -874,14 +912,16 @@ pub async fn backup_read_archive(
     state: tauri::State<'_, BackupDirectoryCore>,
     file_name: String,
 ) -> Result<Vec<u8>, BackupError> {
-    state.read_archive(&file_name)
+    let core = state.inner().clone();
+    run_selected_folder(move || core.read_archive(&file_name)).await
 }
 
 #[tauri::command]
 pub async fn backup_list_archives(
     state: tauri::State<'_, BackupDirectoryCore>,
 ) -> Result<Vec<ArchiveListing>, BackupError> {
-    state.list_archives()
+    let core = state.inner().clone();
+    run_selected_folder(move || core.list_archives()).await
 }
 
 #[tauri::command]
@@ -890,7 +930,8 @@ pub async fn backup_remove_archive(
     file_name: String,
     expected_sha256: String,
 ) -> Result<(), BackupError> {
-    state.remove_archive(&file_name, &expected_sha256)
+    let core = state.inner().clone();
+    run_selected_folder(move || core.remove_archive(&file_name, &expected_sha256)).await
 }
 
 #[tauri::command]
@@ -904,7 +945,8 @@ pub async fn backup_ledger_entries(
 pub async fn backup_status(
     state: tauri::State<'_, BackupDirectoryCore>,
 ) -> Result<BackupStatus, BackupError> {
-    Ok(state.status())
+    let core = state.inner().clone();
+    run_selected_folder(move || Ok(core.status())).await
 }
 
 #[tauri::command]
@@ -922,6 +964,17 @@ pub async fn backup_disable(
 mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn selected_folder_work_times_out_instead_of_blocking_shutdown_forever() {
+        let error = run_selected_folder_with_timeout(Duration::from_millis(5), || {
+            std::thread::sleep(Duration::from_millis(50));
+            Ok(())
+        })
+        .await
+        .expect_err("hung provider work must be bounded");
+        assert_eq!(error.code, BackupErrorCode::Timeout);
+    }
 
     struct Fixture {
         _root: TempDir,

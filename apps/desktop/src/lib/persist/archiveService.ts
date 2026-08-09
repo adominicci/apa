@@ -35,7 +35,7 @@ export interface LibraryArchiveServiceDeps {
   /** Serializes maintenance operations (persistence.runMaintenance). */
   runMaintenance: <T>(fn: () => Promise<T>) => Promise<T>;
   /** Digest of a captured snapshot's content (design §9 semantic digest). */
-  computeContentDigest: (content: ArchiveContent) => Promise<string>;
+  computeContentDigest: (content: LibrarySnapshotContent) => Promise<string>;
   appVersion: string;
   now: () => string;
   uuid: () => string;
@@ -96,6 +96,7 @@ export function createLibraryArchiveService(
     options?: { backupSetId?: string },
   ): Promise<PackagedArchive> {
     const snapshot = await deps.captureSnapshot();
+    const contentDigest = await deps.computeContentDigest(snapshot);
     const content = assembleArchiveContent(snapshot);
     const bytes = await buildArchive(content, {
       now: deps.now,
@@ -106,7 +107,6 @@ export function createLibraryArchiveService(
     // is computed from the exact content that was archived, so a later live
     // edit can never be recorded as already backed up.
     await validateArchive(bytes, limits);
-    const contentDigest = await deps.computeContentDigest(content);
     return { bytes, contentDigest, content };
   }
 

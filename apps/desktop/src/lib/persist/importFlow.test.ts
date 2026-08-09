@@ -263,6 +263,29 @@ describe("import flow integration", () => {
     expect(await fs.list("backups/imports")).toHaveLength(1);
   });
 
+  it("removes staging when an additive target appears before journaling", async () => {
+    const fixture = figureHeavyLibraryFixture();
+    const fs = new MemoryAppData();
+    seedDestination(fs, fixture);
+    const deps = makeDeps(fs);
+    const preview = await previewImport(
+      await exportFixtureArchive(fixture),
+      deps,
+    );
+    const additive = preview.plan.operations.find((op) =>
+      op.kind === "writeAsset"
+    );
+    if (!additive || additive.kind !== "writeAsset") {
+      expect.unreachable("fixture must plan an additive asset");
+    }
+    const staleTransactionId = preview.plan.transactionId;
+    fs.files.set(additive.localPath, new TextEncoder().encode("appeared"));
+
+    await applyConfirmedImport(preview, deps);
+
+    expect(await fs.list(`imports/${staleTransactionId}`)).toEqual([]);
+  });
+
   it("asks for re-confirmation when the mid-flow change alters the plan", async () => {
     const fixture = figureHeavyLibraryFixture();
     const fs = new MemoryAppData();

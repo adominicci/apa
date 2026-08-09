@@ -150,6 +150,7 @@ describe("BackupStore scheduling", () => {
     harnessRef.clock = new Date(2026, 2, 5, 23, 59, 0);
     const sameDay = await harnessRef.store.runAutomatic();
     expect(sameDay).toEqual({ kind: "skipped", reason: "daily-limit" });
+    expect(harnessRef.store.nextDayScheduled).toBe(true);
     // Timezone day boundary: two minutes later it is the next LOCAL day.
     harnessRef.clock = new Date(2026, 2, 6, 0, 1, 0);
     const nextDay = await harnessRef.store.runAutomatic();

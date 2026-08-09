@@ -27,6 +27,7 @@ const defaultDependencies: UpdaterDependencies = {
   flushPending: async () => {
     await persistence.flushPending();
     await operations.awaitSafeShutdown();
+    await persistence.flushPending();
   },
   relaunch,
   storage: () => {

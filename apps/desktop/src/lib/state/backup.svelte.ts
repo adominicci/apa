@@ -89,7 +89,9 @@ export class BackupStore {
   followUpScheduled = $state(false);
   #deps: BackupStoreDeps;
   #debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  #nextDayTimer: ReturnType<typeof setTimeout> | undefined;
   #unsubscribe: (() => void) | null = null;
+  nextDayScheduled = $state(false);
 
   constructor(deps: BackupStoreDeps) {
     this.#deps = deps;
@@ -106,6 +108,9 @@ export class BackupStore {
     this.#unsubscribe?.();
     this.#unsubscribe = null;
     clearTimeout(this.#debounceTimer);
+    clearTimeout(this.#nextDayTimer);
+    this.#nextDayTimer = undefined;
+    this.nextDayScheduled = false;
   }
 
   /** Debounced automatic eligibility evaluation (design §9). */
@@ -118,6 +123,22 @@ export class BackupStore {
 
   runAutomatic(): Promise<BackupRunOutcome> {
     return this.#run(false);
+  }
+
+  #scheduleNextLocalDay(): void {
+    if (this.#nextDayTimer !== undefined) return;
+    const now = this.#deps.now();
+    const nextDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+    );
+    this.nextDayScheduled = true;
+    this.#nextDayTimer = setTimeout(() => {
+      this.#nextDayTimer = undefined;
+      this.nextDayScheduled = false;
+      void this.runAutomatic();
+    }, Math.max(1_000, nextDay.getTime() - now.getTime()));
   }
 
   /** Back up now: bypasses only the daily limit. */
@@ -147,6 +168,7 @@ export class BackupStore {
 
     const today = localDay(deps.now());
     if (!manual && deps.settings.backup?.lastAutoSuccessDay === today) {
+      this.#scheduleNextLocalDay();
       return { kind: "skipped", reason: "daily-limit" };
     }
 

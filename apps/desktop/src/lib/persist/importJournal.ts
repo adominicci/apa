@@ -203,76 +203,88 @@ export async function stageImport(
   const operations: JournalOp[] = [];
   let opIndex = 0;
 
-  for (const op of plan.operations) {
-    if (op.kind === "mergeLibrary") {
+  try {
+    for (const op of plan.operations) {
+      if (op.kind === "mergeLibrary") {
+        operations.push({
+          kind: "mergeLibrary",
+          opId: op.opId,
+          mergedSha256: await sha256Hex(canonicalJsonBytes(op.library)),
+        });
+        continue;
+      }
+      opIndex += 1;
+      const stagePath = `${txDir(plan.transactionId)}/stage/op-${opIndex}`;
+      const bytes = op.kind === "writeAsset"
+        ? await deps.readArchiveAsset(op.archivePath)
+        : canonicalJsonBytes(op.essay);
+      const sha256 = await sha256Hex(bytes);
+      if (op.kind === "writeAsset" && sha256 !== op.sha256) {
+        throw new ImportJournalError(
+          "import/stage-hash",
+          "staged asset bytes disagree with the plan",
+          op.archivePath,
+        );
+      }
+      await fs.writeBytes(stagePath, bytes);
+      const reread = await fs.readBytes(stagePath);
+      if (reread === null || (await sha256Hex(reread)) !== sha256) {
+        throw new ImportJournalError(
+          "import/stage-hash",
+          "a staged file failed reopen validation",
+          stagePath,
+        );
+      }
+      if (await fs.exists(op.localPath)) {
+        // Additive target must not exist; the plan is stale.
+        throw new ImportJournalError(
+          "import/stale-plan",
+          "a planned additive path already exists",
+          op.localPath,
+        );
+      }
       operations.push({
-        kind: "mergeLibrary",
+        kind: op.kind,
         opId: op.opId,
-        mergedSha256: await sha256Hex(canonicalJsonBytes(op.library)),
-      });
-      continue;
-    }
-    opIndex += 1;
-    const stagePath = `${txDir(plan.transactionId)}/stage/op-${opIndex}`;
-    const bytes = op.kind === "writeAsset"
-      ? await deps.readArchiveAsset(op.archivePath)
-      : canonicalJsonBytes(op.essay);
-    const sha256 = await sha256Hex(bytes);
-    if (op.kind === "writeAsset" && sha256 !== op.sha256) {
-      throw new ImportJournalError(
-        "import/stage-hash",
-        "staged asset bytes disagree with the plan",
-        op.archivePath,
-      );
-    }
-    await fs.writeBytes(stagePath, bytes);
-    const reread = await fs.readBytes(stagePath);
-    if (reread === null || (await sha256Hex(reread)) !== sha256) {
-      throw new ImportJournalError(
-        "import/stage-hash",
-        "a staged file failed reopen validation",
         stagePath,
-      );
+        finalPath: op.localPath,
+        sha256,
+        byteLength: bytes.length,
+      });
     }
-    if (await fs.exists(op.localPath)) {
-      // Additive target must not exist; the plan is stale.
-      throw new ImportJournalError(
-        "import/stale-plan",
-        "a planned additive path already exists",
-        op.localPath,
-      );
+
+    // Stage the merged library bytes next to the ops so apply and recovery
+    // can derive them from the journaled hash alone.
+    await fs.writeBytes(
+      `${txDir(plan.transactionId)}/stage/merged-library.json`,
+      canonicalJsonBytes(plan.mergedLibrary),
+    );
+
+    const rollback = await deps.createRollback(plan.transactionId);
+    const journal: ImportJournalV1 = {
+      schemaVersion: 1,
+      transactionId: plan.transactionId,
+      createdAt: deps.now(),
+      archiveSha256: deps.archiveSha256,
+      rollback,
+      previousLibrarySha256: deps.previousLibrarySha256,
+      operations,
+      completedOpIds: [],
+      status: "staged",
+    };
+    await persistJournal(fs, journal);
+    return journal;
+  } catch (error) {
+    // A stale additive destination can be detected after stage files exist but
+    // before any journal is returned. Nothing live has changed, so remove the
+    // unjournaled transaction rather than letting startup treat it as corrupt.
+    if (
+      error instanceof ImportJournalError && error.code === "import/stale-plan"
+    ) {
+      await fs.removeDir(txDir(plan.transactionId));
     }
-    operations.push({
-      kind: op.kind,
-      opId: op.opId,
-      stagePath,
-      finalPath: op.localPath,
-      sha256,
-      byteLength: bytes.length,
-    });
+    throw error;
   }
-
-  // Stage the merged library bytes next to the ops so apply and recovery
-  // can derive them from the journaled hash alone.
-  await fs.writeBytes(
-    `${txDir(plan.transactionId)}/stage/merged-library.json`,
-    canonicalJsonBytes(plan.mergedLibrary),
-  );
-
-  const rollback = await deps.createRollback(plan.transactionId);
-  const journal: ImportJournalV1 = {
-    schemaVersion: 1,
-    transactionId: plan.transactionId,
-    createdAt: deps.now(),
-    archiveSha256: deps.archiveSha256,
-    rollback,
-    previousLibrarySha256: deps.previousLibrarySha256,
-    operations,
-    completedOpIds: [],
-    status: "staged",
-  };
-  await persistJournal(fs, journal);
-  return journal;
 }
 
 export interface ApplyDeps {

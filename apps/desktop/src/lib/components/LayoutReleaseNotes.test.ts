@@ -35,6 +35,8 @@ vi.mock("$lib/state/uiLocale.svelte", () => ({
     current: "en",
     theme: "system",
     loaded: true,
+    flushPending: () => Promise.resolve(),
+    setPersistenceDirtyNotifier: vi.fn(),
   },
 }));
 
