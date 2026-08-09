@@ -10,6 +10,7 @@
   import { missingCitedRefs } from "$lib/model/reconcile";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { updater } from "$lib/state/updater.svelte";
+  import { runStartupSafetyPhase } from "$lib/state/startup";
   import {
     LatestLaunch,
     type LaunchValue,
@@ -99,7 +100,6 @@
     await Promise.all([
       reload ? library.reload() : library.load(),
       essays.loadIndex(),
-      uiLocale.load(),
     ]);
     booted = true;
     // Backup coordinator (task 10.6): starts only after recovery and the
@@ -123,7 +123,10 @@
 
   onMount(async () => {
     try {
-      await runRecoveryPhase();
+      await runStartupSafetyPhase({
+        loadUiSettings: () => uiLocale.load(),
+        runRecovery: runRecoveryPhase,
+      });
     } catch (err) {
       // Fail closed: an unexpected recovery failure means unfinished-import
       // state may exist that was neither resumed nor rolled back, so the

@@ -195,23 +195,47 @@ function jpegHeader(bytes: Uint8Array): ImageHeader {
 
 function gifHeader(bytes: Uint8Array, maxFrames: number): ImageHeader {
   const sig = [0x47, 0x49, 0x46, 0x38];
-  if (bytes.length < 13 || sig.some((b, i) => bytes[i] !== b)) fail("gif");
+  if (
+    bytes.length < 13 || sig.some((b, i) => bytes[i] !== b) ||
+    (bytes[4] !== 0x37 && bytes[4] !== 0x39) || bytes[5] !== 0x61
+  ) fail("gif");
   const width = u16le(bytes, 6);
   const height = u16le(bytes, 8);
+  if (width === 0 || height === 0) fail("gif/dimensions");
   const globalTable = bytes[10] & 0x80
     ? 3 * (1 << ((bytes[10] & 0x07) + 1))
     : 0;
   let at = 13 + globalTable;
+  if (at > bytes.length) fail("gif/global-table");
   let frames = 0;
+  let sawTrailer = false;
   while (at < bytes.length) {
     const block = bytes[at];
-    if (block === 0x3b) break; // trailer
+    if (block === 0x3b) {
+      sawTrailer = true;
+      break;
+    }
     if (block === 0x21) {
       // extension: label + sub-blocks
+      if (at + 2 > bytes.length) fail("gif/extension");
       at += 2;
-      while (at < bytes.length && bytes[at] !== 0) at += bytes[at] + 1;
+      while (at < bytes.length && bytes[at] !== 0) {
+        const end = at + bytes[at] + 1;
+        if (end > bytes.length) fail("gif/extension-data");
+        at = end;
+      }
+      if (at >= bytes.length) fail("gif/extension-end");
       at += 1;
     } else if (block === 0x2c) {
+      if (at + 10 > bytes.length) fail("gif/descriptor");
+      const left = u16le(bytes, at + 1);
+      const top = u16le(bytes, at + 3);
+      const frameWidth = u16le(bytes, at + 5);
+      const frameHeight = u16le(bytes, at + 7);
+      if (
+        frameWidth === 0 || frameHeight === 0 ||
+        left + frameWidth > width || top + frameHeight > height
+      ) fail("gif/frame-bounds");
       frames += 1;
       if (frames > maxFrames) {
         // Caller maps this to its limit error; stop scanning immediately.
@@ -221,23 +245,38 @@ function gifHeader(bytes: Uint8Array, maxFrames: number): ImageHeader {
         ? 3 * (1 << ((bytes[at + 9] & 0x07) + 1))
         : 0;
       at += 10 + localTable + 1; // descriptor + table + LZW code size
-      while (at < bytes.length && bytes[at] !== 0) at += bytes[at] + 1;
+      if (at > bytes.length) fail("gif/image-data");
+      while (at < bytes.length && bytes[at] !== 0) {
+        const end = at + bytes[at] + 1;
+        if (end > bytes.length) fail("gif/image-data");
+        at = end;
+      }
+      if (at >= bytes.length) fail("gif/image-end");
       at += 1;
     } else {
       fail("gif/block");
     }
   }
-  if (frames === 0) fail("gif/no-frames");
+  if (frames === 0 || !sawTrailer) fail("gif/incomplete");
   return { kind: "gif", width, height, frames };
 }
 
 function bmpHeader(bytes: Uint8Array): ImageHeader {
-  if (bytes.length < 26 || bytes[0] !== 0x42 || bytes[1] !== 0x4d) fail("bmp");
+  if (bytes.length < 54 || bytes[0] !== 0x42 || bytes[1] !== 0x4d) fail("bmp");
+  const fileSize = u32le(bytes, 2);
+  const pixelOffset = u32le(bytes, 10);
   const dibSize = u32le(bytes, 14);
-  if (dibSize < 40 || bytes.length < 14 + 12) fail("bmp/dib");
+  if (
+    dibSize < 40 || 14 + dibSize > bytes.length ||
+    fileSize !== bytes.length || pixelOffset < 14 + dibSize ||
+    pixelOffset >= fileSize
+  ) fail("bmp/dib");
   const width = u32le(bytes, 18);
   // Height may be negative (top-down); magnitude is the pixel height.
   const rawHeight = u32le(bytes, 22) | 0;
+  if (width === 0 || rawHeight === 0 || u16le(bytes, 26) !== 1) {
+    fail("bmp/dimensions");
+  }
   return {
     kind: "bmp",
     width,

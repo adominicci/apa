@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readImageHeader } from "./imageHeaders.ts";
-import { jpegBytes } from "./fixtures/images.ts";
+import { bmpBytes, gifBytes, jpegBytes } from "./fixtures/images.ts";
 
 function chunk(type: string, data: number[]): number[] {
   const length = data.length;
@@ -63,5 +63,21 @@ describe("readImageHeader JPEG", () => {
   it("rejects a JPEG that ends after SOF without scan data or EOI", () => {
     const sofOnly = jpegBytes(32, 24).slice(0, 39);
     expect(() => readImageHeader(sofOnly, "jpg", 1)).toThrow();
+  });
+});
+
+describe("readImageHeader GIF", () => {
+  it("rejects a frame descriptor outside the logical screen", () => {
+    const bytes = gifBytes(4, 4);
+    bytes[18] = 32;
+    bytes[19] = 0;
+    expect(() => readImageHeader(bytes, "gif", 100)).toThrow();
+  });
+});
+
+describe("readImageHeader BMP", () => {
+  it("rejects a truncated DIB header with no pixel data", () => {
+    expect(() => readImageHeader(bmpBytes(4, 4).slice(0, 26), "bmp", 1))
+      .toThrow();
   });
 });
