@@ -219,6 +219,12 @@ export function externalDialogFs() {
     async renameNoReplace(from: string, to: string) {
       await invoke("external_rename_no_replace", { from, to });
     },
+    async removeIfHashMatches(path: string, expectedSha256: string) {
+      await invoke("external_remove_if_hash_matches", {
+        path,
+        expectedSha256,
+      });
+    },
     async remove(path: string) {
       if (await exists(path)) await remove(path);
     },

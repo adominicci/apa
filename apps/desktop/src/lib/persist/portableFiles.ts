@@ -37,6 +37,8 @@ export interface ExternalFs {
   rename(from: string, to: string): Promise<void>;
   /** Fails when the destination already exists. */
   renameNoReplace(from: string, to: string): Promise<void>;
+  /** Atomically quarantines and deletes only bytes matching expectedSha256. */
+  removeIfHashMatches(path: string, expectedSha256: string): Promise<void>;
   remove(path: string): Promise<void>;
   /** Byte size, or null when the file does not exist. */
   statSize(path: string): Promise<number | null>;
@@ -208,7 +210,14 @@ export async function writeArchiveReplacing(
         destinationPath,
       );
     }
-    await abortable(signal, () => deps.fs.remove(record.previousPath));
+    await abortable(
+      signal,
+      () =>
+        deps.fs.removeIfHashMatches(
+          record.previousPath,
+          record.previousSha256,
+        ),
+    );
     await abortable(signal, () => journal.remove(record.id));
     return { path: destinationPath };
   } catch (error) {
@@ -294,7 +303,16 @@ export async function recoverReplacements(
     const destOk = await fileMatches(deps, destinationPath, record);
     if (destOk) {
       // New file fully installed: clear leftovers and close the record.
-      await removeIfExists(deps, previousPath);
+      if (await deps.fs.exists(previousPath)) {
+        try {
+          await deps.fs.removeIfHashMatches(
+            previousPath,
+            record.previousSha256,
+          );
+        } catch {
+          continue;
+        }
+      }
       await removeIfExists(deps, temporaryPath);
       await journal.remove(record.id);
       continue;
@@ -332,7 +350,16 @@ export async function recoverReplacements(
         // Keep the preserved previous file and journal for safe recovery.
         continue;
       }
-      await removeIfExists(deps, previousPath);
+      if (await deps.fs.exists(previousPath)) {
+        try {
+          await deps.fs.removeIfHashMatches(
+            previousPath,
+            record.previousSha256,
+          );
+        } catch {
+          continue;
+        }
+      }
       await journal.remove(record.id);
       continue;
     }
@@ -354,7 +381,14 @@ export async function recoverReplacements(
       if (
         (await deps.fs.sha256File(destinationPath)) === record.previousSha256
       ) {
-        await removeIfExists(deps, previousPath);
+        try {
+          await deps.fs.removeIfHashMatches(
+            previousPath,
+            record.previousSha256,
+          );
+        } catch {
+          continue;
+        }
         await journal.remove(record.id);
       }
       // An unexpected destination leaves both the preserved previous file

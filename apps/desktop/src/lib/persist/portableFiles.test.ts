@@ -85,6 +85,13 @@ class FakeFs implements ExternalFs {
     this.files.delete(from);
     return Promise.resolve();
   }
+  async removeIfHashMatches(path: string, expectedSha256: string) {
+    if ((await this.sha256File(path)) !== expectedSha256) {
+      throw new PortableFileError("fake/hash-mismatch", "changed bytes");
+    }
+    this.#tick(`removeIfHashMatches:${path}`);
+    this.files.delete(path);
+  }
   remove(path: string): Promise<void> {
     this.#tick(`remove:${path}`);
     this.files.delete(path);
@@ -372,6 +379,28 @@ describe("writeArchiveReplacing", () => {
     });
     expect(fs.files.get("/docs/lib.tesina")).toBe(OTHER_VALID);
     expect([...fs.files.values()]).toContain(OLD);
+    expect(journal.records.size).toBe(1);
+  });
+
+  it("does not delete preserved bytes replaced during final cleanup", async () => {
+    const fs = new FakeFs();
+    fs.files.set("/docs/lib.tesina", OLD);
+    const journal = new FakeJournal();
+    const originalRemove = fs.removeIfHashMatches.bind(fs);
+    fs.removeIfHashMatches = async (path, expectedSha256) => {
+      fs.files.set(path, CHANGED);
+      await originalRemove(path, expectedSha256);
+    };
+
+    await expect(
+      writeArchiveReplacing(
+        makeDeps(fs),
+        journal,
+        "/docs/lib.tesina",
+        GOOD,
+      ),
+    ).rejects.toMatchObject({ code: "fake/hash-mismatch" });
+    expect([...fs.files.values()]).toContain(CHANGED);
     expect(journal.records.size).toBe(1);
   });
 

@@ -67,7 +67,7 @@ function fail(detail: string): never {
   );
 }
 
-function pngHeader(bytes: Uint8Array): ImageHeader {
+function pngHeader(bytes: Uint8Array, maxFrames: number): ImageHeader {
   const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   if (bytes.length < 33 || sig.some((b, i) => bytes[i] !== b)) fail("png");
   // First chunk must be IHDR.
@@ -75,11 +75,32 @@ function pngHeader(bytes: Uint8Array): ImageHeader {
     bytes[12] !== 0x49 || bytes[13] !== 0x48 || bytes[14] !== 0x44 ||
     bytes[15] !== 0x52
   ) fail("png/ihdr");
+  let frames = 1;
+  let at = 8;
+  while (at + 12 <= bytes.length) {
+    const length = u32be(bytes, at);
+    const end = at + 12 + length;
+    if (end > bytes.length || end < at) fail("png/chunk");
+    const type = String.fromCharCode(
+      bytes[at + 4],
+      bytes[at + 5],
+      bytes[at + 6],
+      bytes[at + 7],
+    );
+    if (type === "acTL") {
+      if (length !== 8) fail("png/actl");
+      frames = u32be(bytes, at + 8);
+      if (frames === 0) fail("png/frames");
+      if (frames > maxFrames) break;
+    }
+    if (type === "IDAT" || type === "IEND") break;
+    at = end;
+  }
   return {
     kind: "png",
     width: u32be(bytes, 16),
     height: u32be(bytes, 20),
-    frames: 1,
+    frames,
   };
 }
 
@@ -183,7 +204,7 @@ export function readImageHeader(
   }
   switch (kind) {
     case "png":
-      return pngHeader(bytes);
+      return pngHeader(bytes, maxFrames);
     case "jpg":
       return jpegHeader(bytes);
     case "gif":

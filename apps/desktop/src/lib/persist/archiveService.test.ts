@@ -89,6 +89,7 @@ function makeHarness(): Harness {
           externalFiles.delete(from);
           return Promise.resolve();
         },
+        removeIfHashMatches: () => Promise.resolve(),
         remove: (p) => {
           externalFiles.delete(p);
           return Promise.resolve();

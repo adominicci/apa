@@ -452,9 +452,13 @@ impl BackupDirectoryCore {
         let mut inner = self.lock();
         if let Some(pending) = inner.pending.take() {
             if let Ok(subfolder) = resolve_subfolder(&pending.canonical_folder_path) {
-                for (file_name, _) in &pending.test_archives {
+                for (file_name, expected_sha256) in &pending.test_archives {
                     if validate_file_name(file_name).is_ok() {
-                        let _ = fs::remove_file(subfolder.join(file_name));
+                        let _ = quarantine_and_remove_archive(
+                            &subfolder.join(file_name),
+                            expected_sha256,
+                            |_| Ok(()),
+                        );
                     }
                 }
             }
@@ -1790,6 +1794,22 @@ mod tests {
         );
         assert!(!core.status().configured, "cancel must not configure");
         assert!(!fixture.app_data_dir.join(DIRECTORY_FILE_NAME).exists());
+    }
+
+    #[test]
+    fn cancel_keeps_a_test_archive_replaced_by_sync() {
+        let fixture = fixture();
+        let core = core(&fixture);
+        core.begin_configuration(fixture.selected_dir.to_str().unwrap())
+            .unwrap();
+        core.write_test_archive("Test Backup.tesina", b"owned test")
+            .unwrap();
+        let path = subfolder_of(&fixture.selected_dir).join("Test Backup.tesina");
+        fs::write(&path, b"synced replacement").unwrap();
+
+        core.cancel_configuration().unwrap();
+
+        assert_eq!(fs::read(path).unwrap(), b"synced replacement");
     }
 
     #[test]

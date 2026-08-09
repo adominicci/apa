@@ -1,0 +1,53 @@
+import { describe, expect, it } from "vitest";
+import { readImageHeader } from "./imageHeaders.ts";
+
+function chunk(type: string, data: number[]): number[] {
+  const length = data.length;
+  return [
+    (length >>> 24) & 0xff,
+    (length >>> 16) & 0xff,
+    (length >>> 8) & 0xff,
+    length & 0xff,
+    ...[...type].map((char) => char.charCodeAt(0)),
+    ...data,
+    0,
+    0,
+    0,
+    0,
+  ];
+}
+
+function animatedPng(frames: number): Uint8Array {
+  return new Uint8Array([
+    0x89,
+    0x50,
+    0x4e,
+    0x47,
+    0x0d,
+    0x0a,
+    0x1a,
+    0x0a,
+    ...chunk("IHDR", [0, 0, 0, 32, 0, 0, 0, 24, 8, 6, 0, 0, 0]),
+    ...chunk("acTL", [
+      (frames >>> 24) & 0xff,
+      (frames >>> 16) & 0xff,
+      (frames >>> 8) & 0xff,
+      frames & 0xff,
+      0,
+      0,
+      0,
+      0,
+    ]),
+    ...chunk("IDAT", []),
+  ]);
+}
+
+describe("readImageHeader APNG", () => {
+  it("reports the declared animation frame count", () => {
+    expect(readImageHeader(animatedPng(250), "png", 100).frames).toBe(250);
+  });
+
+  it("rejects a zero-frame animation control chunk", () => {
+    expect(() => readImageHeader(animatedPng(0), "png", 100)).toThrow();
+  });
+});
