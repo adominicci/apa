@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  countCausalStableReports,
   evaluateLivePagedGeometry,
   evaluateNativePaginationWorkload,
+  latestSettledNativeReport,
   type NativePaginationWorkloadResult,
   remainingNativeDeadlineMs,
   waitForNativeCondition,
@@ -124,6 +126,67 @@ describe("native pagination performance evidence", () => {
 });
 
 describe("native condition settlement", () => {
+  it("follows normal setup invalidations to the current stable epoch", () => {
+    const reports = [
+      { status: "settling" as const, epoch: 1 },
+      { status: "stable" as const, epoch: 2 },
+      { status: "stable" as const, epoch: 4 },
+    ];
+
+    expect(
+      latestSettledNativeReport(reports, { status: "stable", epoch: 4 }),
+    ).toBe(reports[2]);
+    expect(
+      latestSettledNativeReport(reports, { status: "settling", epoch: 5 }),
+    ).toBeUndefined();
+  });
+
+  it("accepts only a causal superseding operation epoch with its outcome", () => {
+    const reports = [
+      { status: "stable" as const, epoch: 4 },
+      { status: "settling" as const, epoch: 5 },
+      { status: "stable" as const, epoch: 6 },
+    ];
+
+    expect(
+      latestSettledNativeReport(
+        reports.slice(1),
+        { status: "stable", epoch: 6 },
+        5,
+        true,
+      ),
+    ).toBe(reports[2]);
+    expect(
+      latestSettledNativeReport(
+        reports.slice(1),
+        { status: "stable", epoch: 6 },
+        5,
+        false,
+      ),
+    ).toBeUndefined();
+    expect(
+      latestSettledNativeReport(
+        reports,
+        { status: "stable", epoch: 4 },
+        5,
+        true,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("counts distinct causal stable commits instead of hiding supersession", () => {
+    expect(countCausalStableReports([
+      { status: "stable", epoch: 4 },
+      { status: "stable", epoch: 5 },
+      { status: "stable", epoch: 6 },
+    ], 5)).toBe(2);
+
+    const result = passingResult(10);
+    result.operations.rapidTyping.endEpoch = 3;
+    result.operations.rapidTyping.stableCommits = 2;
+    expect(evaluateNativePaginationWorkload(result).passed).toBe(false);
+  });
+
   it("consumes one absolute deadline instead of resetting retry time", () => {
     expect(remainingNativeDeadlineMs(10_000, 1_250)).toBe(8_750);
     expect(remainingNativeDeadlineMs(10_000, 9_999)).toBe(1);
@@ -166,6 +229,13 @@ describe("native condition settlement", () => {
     )).rejects.toThrow(
       "Timed out waiting for stalled pagination after 5ms",
     );
+  });
+
+  it("accepts a stable operation superseded by a newer causal epoch", () => {
+    const result = passingResult(10);
+    result.operations.rapidTyping.endEpoch = 3;
+
+    expect(evaluateNativePaginationWorkload(result).passed).toBe(true);
   });
 });
 

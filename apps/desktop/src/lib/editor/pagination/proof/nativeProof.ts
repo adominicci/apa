@@ -43,8 +43,10 @@ import {
 import { inlineFlowVisualHeight } from "./nativeProofGeometry.ts";
 import { samePlannerFragmentInputs } from "./plannerInputEquality.ts";
 import {
+  countCausalStableReports,
   evaluateLivePagedGeometry,
   evaluateNativePaginationWorkload,
+  latestSettledNativeReport,
   type NativePaginationOperationResult,
   type NativePaginationWorkloadPages,
   type NativePaginationWorkloadResult,
@@ -294,21 +296,28 @@ async function captureNativePaginationOperation(
   description: string,
   timeoutMs: number,
   mutate: () => void,
+  outcomeSatisfied: () => boolean = () => true,
 ): Promise<CapturedNativeOperation> {
   const reportIndex = reports.length;
   const executedBefore = frames.executed;
   const startedAt = performance.now();
   mutate();
+  const authoredDoc = editor.state.doc;
   const targetEpoch = paginationPluginKey.getState(editor.state)?.epoch;
   if (targetEpoch === undefined) {
     throw new Error(`Pagination state disappeared during ${description}`);
   }
   await waitForNativeCondition(
-    `${description} to settle at epoch ${targetEpoch}`,
-    () =>
-      reports.some((report) =>
-        report.status === "stable" && report.epoch === targetEpoch
-      ),
+    `${description} to settle at or after epoch ${targetEpoch}`,
+    () => {
+      const current = paginationPluginKey.getState(editor.state);
+      return latestSettledNativeReport(
+        reports.slice(reportIndex),
+        current,
+        targetEpoch,
+        editor.state.doc.eq(authoredDoc) && outcomeSatisfied(),
+      ) !== undefined;
+    },
     {
       timeoutMs,
       yieldControl: async () => {
@@ -318,18 +327,18 @@ async function captureNativePaginationOperation(
     },
   );
   const operationReports = reports.slice(reportIndex);
-  const stable = operationReports.findLast((report) =>
-    report.status === "stable" && report.epoch === targetEpoch
+  const stable = latestSettledNativeReport(
+    operationReports,
+    paginationPluginKey.getState(editor.state),
+    targetEpoch,
+    editor.state.doc.eq(authoredDoc) && outcomeSatisfied(),
   );
   if (!stable) throw new Error(`${description} did not produce a stable plan`);
   return {
     result: {
       settlementMs: performance.now() - startedAt,
       paginationFrames: frames.executed - executedBefore,
-      stableCommits:
-        operationReports.filter((report) =>
-          report.status === "stable" && report.epoch === targetEpoch
-        ).length,
+      stableCommits: countCausalStableReports(operationReports, targetEpoch),
       fallbackCommits:
         operationReports.filter((report) => report.status === "fallback")
           .length,
@@ -368,14 +377,16 @@ async function waitForLatestStableReport(
   description: string,
   timeoutMs: number,
 ): Promise<PaginationStateReport> {
-  const epoch = paginationPluginKey.getState(editor.state)?.epoch;
-  if (epoch === undefined) throw new Error("Pagination plugin is not mounted");
+  let stable: PaginationStateReport | undefined;
   await waitForNativeCondition(
     description,
-    () =>
-      reports.some((report) =>
-        report.status === "stable" && report.epoch === epoch
-      ),
+    () => {
+      stable = latestSettledNativeReport(
+        reports,
+        paginationPluginKey.getState(editor.state),
+      );
+      return stable !== undefined;
+    },
     {
       timeoutMs,
       yieldControl: async () => {
@@ -384,9 +395,8 @@ async function waitForLatestStableReport(
       },
     },
   );
-  return reports.findLast((report) =>
-    report.status === "stable" && report.epoch === epoch
-  )!;
+  if (!stable) throw new Error(`${description} did not produce a stable plan`);
+  return stable;
 }
 
 async function runNativePerformanceWorkload(
@@ -631,6 +641,8 @@ async function runNativePerformanceWorkload(
         repaintReferenceDecoration(editor);
         invalidatePagination(editor, "references");
       },
+      () =>
+        mount.querySelectorAll(".ref-entry").length > referenceEntriesBefore,
     );
     const referenceEntriesAfter = mount.querySelectorAll(".ref-entry").length;
 
@@ -649,6 +661,9 @@ async function runNativePerformanceWorkload(
         shell.style.setProperty("--doc-font-size", "12pt");
         invalidatePagination(editor, "font");
       },
+      () =>
+        getComputedStyle(editor.view.dom).fontFamily !== fontFamilyBefore &&
+        getComputedStyle(editor.view.dom).fontSize === "16px",
     );
     const fontFamilyAfter = getComputedStyle(editor.view.dom).fontFamily;
 
@@ -706,7 +721,7 @@ async function runNativePerformanceWorkload(
         (count, operation) =>
           count + operation.reports.filter((report) =>
             report.status === "stable" &&
-            report.epoch !== operation.targetEpoch
+            report.epoch < operation.targetEpoch
           ).length,
         0,
       ),

@@ -90,6 +90,42 @@ export interface NativeConditionWaitOptions {
   yieldControl?: () => Promise<void>;
 }
 
+interface NativeSettlementState {
+  status: "settling" | "stable" | "fallback";
+  epoch: number;
+}
+
+/**
+ * Returns evidence only for the plugin's current stable epoch. Setup may follow
+ * normal readiness invalidations, while a measured mutation also supplies its
+ * first causal epoch and observable outcome.
+ */
+export function latestSettledNativeReport<T extends NativeSettlementState>(
+  reports: readonly T[],
+  current: NativeSettlementState | undefined,
+  minimumEpoch = Number.NEGATIVE_INFINITY,
+  outcomeSatisfied = true,
+): T | undefined {
+  if (
+    !outcomeSatisfied || current?.status !== "stable" ||
+    current.epoch < minimumEpoch
+  ) {
+    return undefined;
+  }
+  return reports.findLast((report) =>
+    report.status === "stable" && report.epoch === current.epoch
+  );
+}
+
+export function countCausalStableReports<T extends NativeSettlementState>(
+  reports: readonly T[],
+  minimumEpoch: number,
+): number {
+  return reports.filter((report) =>
+    report.status === "stable" && report.epoch >= minimumEpoch
+  ).length;
+}
+
 export function remainingNativeDeadlineMs(
   deadlineMs: number,
   nowMs = performance.now(),
@@ -211,7 +247,7 @@ export function evaluateNativePaginationWorkload(
       result.operations.scaleResize.settlementMs <= budget.resizeMs,
     stableOperationsCommittedOnce: stableOperations.every((operation) =>
       operation.stableCommits === 1 &&
-      operation.startEpoch === operation.endEpoch
+      operation.endEpoch >= operation.startEpoch
     ),
     noFallbackCommit: allOperations.every((operation) =>
       operation.fallbackCommits === 0
