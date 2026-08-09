@@ -3,6 +3,10 @@ use std::fs;
 use std::io;
 use std::io::ErrorKind;
 use std::io::Read;
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt as UnixMetadataExt;
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt as WindowsMetadataExt;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
@@ -16,6 +20,9 @@ fn copy_no_replace(from: &Path, to: &Path) -> Result<(), String> {
         .create_new(true)
         .open(to)
         .map_err(|error| format!("cannot create destination exclusively: {error}"))?;
+    let owned_metadata = destination
+        .metadata()
+        .map_err(|error| format!("cannot identify destination: {error}"))?;
     let result = io::copy(&mut source, &mut destination)
         .map_err(|error| format!("cannot copy temporary file: {error}"))
         .and_then(|_| {
@@ -25,9 +32,51 @@ fn copy_no_replace(from: &Path, to: &Path) -> Result<(), String> {
         });
     drop(destination);
     if result.is_err() {
-        let _ = fs::remove_file(to);
+        let _ = cleanup_created_file_with_hook(to, &owned_metadata, || Ok(()));
     }
     result
+}
+
+fn same_file_identity(left: &fs::Metadata, right: &fs::Metadata) -> bool {
+    #[cfg(unix)]
+    {
+        return left.dev() == right.dev() && left.ino() == right.ino();
+    }
+    #[cfg(windows)]
+    {
+        return left.volume_serial_number() == right.volume_serial_number()
+            && left.file_index() == right.file_index();
+    }
+    #[allow(unreachable_code)]
+    false
+}
+
+fn cleanup_created_file_with_hook<F>(
+    path: &Path,
+    owned_metadata: &fs::Metadata,
+    before_quarantine: F,
+) -> Result<(), String>
+where
+    F: FnOnce() -> Result<(), String>,
+{
+    before_quarantine()?;
+    if !path.exists() {
+        return Ok(());
+    }
+    let parent = path.parent().ok_or("created file has no parent")?;
+    let quarantine = parent.join(format!(".failed-{}", Uuid::new_v4()));
+    fs::rename(path, &quarantine)
+        .map_err(|error| format!("cannot quarantine incomplete destination: {error}"))?;
+    let current = fs::symlink_metadata(&quarantine)
+        .map_err(|error| format!("cannot identify quarantined destination: {error}"))?;
+    if same_file_identity(owned_metadata, &current) {
+        return fs::remove_file(&quarantine)
+            .map_err(|error| format!("cannot remove incomplete destination: {error}"));
+    }
+    if !path.exists() {
+        let _ = fs::rename(&quarantine, path);
+    }
+    Err("the incomplete destination pathname now belongs to another file".to_owned())
 }
 
 fn atomic_rename_no_replace(from: &Path, to: &Path) -> Result<(), String> {
@@ -200,6 +249,23 @@ mod tests {
         assert!(source.exists());
         assert!(copy_no_replace(&source, &destination).is_err());
         assert_eq!(fs::read(&destination).unwrap(), b"new");
+    }
+
+    #[test]
+    fn failed_copy_cleanup_preserves_a_replacement() {
+        let root = TempDir::new().unwrap();
+        let destination = root.path().join("Library.tesina");
+        fs::write(&destination, b"owned partial").unwrap();
+        let owned = fs::metadata(&destination).unwrap();
+
+        cleanup_created_file_with_hook(&destination, &owned, || {
+            fs::remove_file(&destination).unwrap();
+            fs::write(&destination, b"synced replacement").unwrap();
+            Ok(())
+        })
+        .expect_err("a replacement must not be deleted");
+
+        assert_eq!(fs::read(destination).unwrap(), b"synced replacement");
     }
 
     #[test]

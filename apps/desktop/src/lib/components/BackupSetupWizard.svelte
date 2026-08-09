@@ -67,6 +67,7 @@
   let choosing = $state(false);
   let consent = $state(false);
   let testing = $state(false);
+  let backing = $state(false);
   let testError = $state<string | null>(null);
   let activated = $state(false);
 
@@ -116,10 +117,23 @@
     step = "location";
   }
 
-  function goBack(): void {
-    if (testing) return;
+  async function goBack(): Promise<void> {
+    if (testing || backing) return;
     if (step === "location") step = "why";
-    else if (step === "privacy") step = "location";
+    else if (step === "privacy") {
+      backing = true;
+      try {
+        await io.cancel();
+      } catch {
+        // Best-effort cleanup; the old pending selection is no longer reused.
+      } finally {
+        pending = null;
+        consent = false;
+        testError = null;
+        step = "location";
+        backing = false;
+      }
+    }
     else if (step === "test") {
       testError = null;
       step = "privacy";
@@ -211,7 +225,11 @@
         {m.bk_cancel()}
       </button>
       {#if step !== "why"}
-        <button class="btn btn-secondary" disabled={testing} onclick={goBack}>
+        <button
+          class="btn btn-secondary"
+          disabled={testing || backing}
+          onclick={() => void goBack()}
+        >
           {m.bk_back()}
         </button>
       {/if}

@@ -17,6 +17,10 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
 use std::io::{ErrorKind, Read, Write};
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt as UnixMetadataExt;
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt as WindowsMetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -866,16 +870,65 @@ where
                 BackupError::io("cannot create archive file", &error)
             }
         })?;
+    let owned_metadata = file
+        .metadata()
+        .map_err(|error| BackupError::io("cannot identify archive file", &error))?;
     let result = write(&mut file).and_then(|()| {
         file.sync_all()
             .map_err(|error| BackupError::io("cannot sync archive bytes", &error))
     });
     drop(file);
     if result.is_err() {
-        fs::remove_file(final_path)
-            .map_err(|error| BackupError::io("cannot remove incomplete archive file", &error))?;
+        let _ = cleanup_created_file_with_hook(final_path, &owned_metadata, || Ok(()));
     }
     result
+}
+
+fn same_file_identity(left: &fs::Metadata, right: &fs::Metadata) -> bool {
+    #[cfg(unix)]
+    {
+        return left.dev() == right.dev() && left.ino() == right.ino();
+    }
+    #[cfg(windows)]
+    {
+        return left.volume_serial_number() == right.volume_serial_number()
+            && left.file_index() == right.file_index();
+    }
+    #[allow(unreachable_code)]
+    false
+}
+
+fn cleanup_created_file_with_hook<F>(
+    path: &Path,
+    owned_metadata: &fs::Metadata,
+    before_quarantine: F,
+) -> Result<(), BackupError>
+where
+    F: FnOnce() -> Result<(), BackupError>,
+{
+    before_quarantine()?;
+    if !path.exists() {
+        return Ok(());
+    }
+    let parent = path.parent().ok_or_else(|| {
+        BackupError::new(BackupErrorCode::Io, "the created archive has no parent")
+    })?;
+    let quarantine = parent.join(format!(".failed-{}", Uuid::new_v4()));
+    fs::rename(path, &quarantine)
+        .map_err(|error| BackupError::io("cannot quarantine incomplete archive", &error))?;
+    let current = fs::symlink_metadata(&quarantine)
+        .map_err(|error| BackupError::io("cannot identify quarantined archive", &error))?;
+    if same_file_identity(owned_metadata, &current) {
+        return fs::remove_file(&quarantine)
+            .map_err(|error| BackupError::io("cannot remove incomplete archive", &error));
+    }
+    if !path.exists() {
+        let _ = fs::rename(&quarantine, path);
+    }
+    Err(BackupError::new(
+        BackupErrorCode::Io,
+        "the incomplete archive pathname now belongs to another file",
+    ))
 }
 
 /// Atomic app-data JSON write: temporary sibling, fsync, rename over target.
@@ -1688,6 +1741,24 @@ mod tests {
 
         assert_eq!(error.code, BackupErrorCode::Io);
         assert!(!destination.exists());
+    }
+
+    #[test]
+    fn failed_copy_cleanup_preserves_a_replacement() {
+        let root = TempDir::new().unwrap();
+        let destination = root.path().join("Partial.tesina");
+        fs::write(&destination, b"owned partial").unwrap();
+        let owned = fs::metadata(&destination).unwrap();
+
+        let error = cleanup_created_file_with_hook(&destination, &owned, || {
+            fs::remove_file(&destination).unwrap();
+            fs::write(&destination, b"synced replacement").unwrap();
+            Ok(())
+        })
+        .expect_err("a replacement must not be deleted");
+
+        assert_eq!(error.code, BackupErrorCode::Io);
+        assert_eq!(fs::read(destination).unwrap(), b"synced replacement");
     }
 
     #[test]

@@ -263,6 +263,30 @@ describe("BackupSetupWizard", () => {
     expect(bodyText()).toContain(m.bk_success_title());
   });
 
+  it("cleans a failed test before backing out to choose another folder", async () => {
+    const io = fakeIo({
+      activate: vi.fn(() => Promise.reject({ code: "archive_invalid" })),
+    });
+    await advanceToTest(io);
+    document.querySelector<HTMLInputElement>('input[type="checkbox"]')!
+      .click();
+    buttonByText(m.bk_test_write())!.click();
+    await settle();
+
+    buttonByText(m.bk_back())!.click();
+    await settle();
+    buttonByText(m.bk_back())!.click();
+    await settle();
+
+    expect(io.cancel).toHaveBeenCalledOnce();
+    expect(bodyText()).toContain(m.bk_location_title());
+    buttonByText(m.bk_choose_folder())!.click();
+    await settle();
+    expect(io.cancel.mock.invocationCallOrder[0]).toBeLessThan(
+      io.begin.mock.invocationCallOrder[1],
+    );
+  });
+
   it("Choose another folder cleans up via cancel and restarts selection", async () => {
     const io = fakeIo({
       writeTest: vi.fn(() =>
