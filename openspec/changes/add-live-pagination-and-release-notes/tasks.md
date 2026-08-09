@@ -45,8 +45,8 @@
 - [x] 5.3 Add save/reopen tests for old and new schema-version 2 essays, asserting no schema bump, no hidden essays, no pagination fields, no duplicated text/references/assets, and exact authored-content identity.
 - [x] 5.4 Exercise measurement failure, missing figure assets, late font/image loads, oversize content, and superseded layout epochs; verify the last stable plan or continuous safe fallback remains editable, autosaves, previews, and exports.
 - [x] 5.5 Before integration, define a recorded responsiveness budget for supported hardware, then benchmark representative 10-, 25-, and 50-page fixtures during rapid typing, deletion, reference refresh, font change, and resize; require coalesced frame work, no stale-plan commits or visible oscillation, and no pagination work inside the authored input transaction.
-- [ ] 5.6 Run the same production-pagination fixtures through the macOS Swift WKWebView and Windows WebView2 CI harnesses and capture engine/runtime identity plus evidence for first paint, automatic body flow, paragraph continuation, tables, figures, equations, cursor/selection across pages, deletion reflow, scale invariance, accurate status count, and preview parity; separately smoke-test the packaged macOS Tauri app so engine-harness evidence is never presented as IPC, plugin, persistence, or installer proof.
-- [ ] 5.7 Commit the verified pagination resilience/performance evidence and tests with an English commit message.
+- [x] 5.6 Run the same production-pagination fixtures through the macOS Swift WKWebView and Windows WebView2 CI harnesses and capture engine/runtime identity plus evidence for first paint, automatic body flow, paragraph continuation, tables, figures, equations, cursor/selection across pages, deletion reflow, scale invariance, accurate status count, and preview parity; separately smoke-test the packaged macOS Tauri app so engine-harness evidence is never presented as IPC, plugin, persistence, or installer proof.
+- [x] 5.7 Commit the verified pagination resilience/performance evidence and tests with an English commit message.
 
 ## Task 6: Safe reusable Markdown renderer
 
