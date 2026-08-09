@@ -157,6 +157,37 @@ describe("visible native manual-proof contract", () => {
     expect(cargoManifest).toContain('windows-sys = { version = "=0.61.2"');
   });
 
+  it("drains the native event loop before injecting each acknowledged input stage", () => {
+    expect(nativeHost).toContain("struct PendingNativeInput<T>");
+    expect(nativeHost).toContain(
+      "let mut pending_native_input = PendingNativeInput::<Value>::default()",
+    );
+    const nativeInputMessage = nativeHost.slice(
+      nativeHost.indexOf('Some("native-input") =>'),
+      nativeHost.indexOf('Some("result") =>'),
+    );
+    expect(nativeInputMessage).toContain(
+      'pending_native_input.queue(envelope["payload"].clone())',
+    );
+    expect(nativeInputMessage).not.toContain("driver.advance");
+
+    const resultMessage = nativeHost.slice(
+      nativeHost.indexOf('Some("result") =>'),
+      nativeHost.indexOf("Event::MainEventsCleared =>"),
+    );
+    expect(resultMessage).toContain(
+      "pending_native_input.require_drained_for_result()",
+    );
+
+    const drainedEvents = nativeHost.slice(
+      nativeHost.indexOf("Event::MainEventsCleared =>"),
+      nativeHost.indexOf("Event::UserEvent(HostEvent::Deadline) =>"),
+    );
+    expect(drainedEvents).toContain("pending_native_input.take()");
+    expect(drainedEvents).toContain("driver.advance(&payload)");
+    expect(drainedEvents).not.toMatch(/sleep|dispatchEvent|execute_script/);
+  });
+
   it("wires the shared fail-closed cleanup executor into the native driver", () => {
     expect(nativeInputDriver).toContain("snapshot_clipboard");
     expect(nativeInputDriver).toContain("restore_clipboard_snapshot");

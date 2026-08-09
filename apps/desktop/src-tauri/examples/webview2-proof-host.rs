@@ -19,9 +19,44 @@ fn loopback_url(value: &str) -> bool {
     )
 }
 
+#[cfg(any(target_os = "windows", test))]
+struct PendingNativeInput<T> {
+    payload: Option<T>,
+}
+
+#[cfg(any(target_os = "windows", test))]
+impl<T> Default for PendingNativeInput<T> {
+    fn default() -> Self {
+        Self { payload: None }
+    }
+}
+
+#[cfg(any(target_os = "windows", test))]
+impl<T> PendingNativeInput<T> {
+    fn queue(&mut self, payload: T) -> Result<(), &'static str> {
+        if self.payload.is_some() {
+            return Err("native input IPC arrived before the prior stage drained");
+        }
+        self.payload = Some(payload);
+        Ok(())
+    }
+
+    fn take(&mut self) -> Option<T> {
+        self.payload.take()
+    }
+
+    fn require_drained_for_result(&self) -> Result<(), &'static str> {
+        if self.payload.is_some() {
+            Err("native input result arrived before the pending stage drained")
+        } else {
+            Ok(())
+        }
+    }
+}
+
 #[cfg(test)]
 mod loopback_tests {
-    use super::loopback_url;
+    use super::{loopback_url, PendingNativeInput};
 
     #[test]
     fn accepts_http_loopback_hosts() {
@@ -36,12 +71,29 @@ mod loopback_tests {
         assert!(!loopback_url("http://example.com/proof"));
         assert!(!loopback_url("http://localhost:@example.com/proof"));
     }
+
+    #[test]
+    fn pending_native_input_rejects_overlap_and_an_early_result() {
+        let mut pending = PendingNativeInput::default();
+        assert!(pending.queue("caret").is_ok());
+        assert_eq!(
+            pending.queue("dead-key"),
+            Err("native input IPC arrived before the prior stage drained")
+        );
+        assert_eq!(
+            pending.require_drained_for_result(),
+            Err("native input result arrived before the pending stage drained")
+        );
+        assert_eq!(pending.take(), Some("caret"));
+        assert!(pending.require_drained_for_result().is_ok());
+    }
 }
 
 #[cfg(target_os = "windows")]
 mod windows_host {
     use super::loopback_url;
     use super::windows_native_input::WindowsNativeInputDriver;
+    use super::PendingNativeInput;
     use serde_json::{json, Value};
     use std::{env, path::PathBuf, process, thread, time::Duration};
     use tao::{
@@ -168,6 +220,7 @@ mod windows_host {
         } else {
             None
         };
+        let mut pending_native_input = PendingNativeInput::<Value>::default();
 
         let deadline_proxy = proxy.clone();
         thread::spawn(move || {
@@ -196,7 +249,7 @@ mod windows_host {
                             eprintln!("[native-proof] javascript {}", envelope["payload"]);
                         }
                         Some("native-input") => {
-                            let Some(driver) = input_driver.as_mut() else {
+                            if input_driver.is_none() {
                                 settle_failure(
                                     control_flow,
                                     &mut input_driver,
@@ -204,12 +257,18 @@ mod windows_host {
                                     "native input IPC requires --drive-native-input",
                                 );
                                 return;
-                            };
-                            if let Err(error) = driver.advance(&envelope["payload"]) {
+                            }
+                            if let Err(error) =
+                                pending_native_input.queue(envelope["payload"].clone())
+                            {
                                 settle_failure(control_flow, &mut input_driver, 1, error);
                             }
                         }
                         Some("result") => {
+                            if let Err(error) = pending_native_input.require_drained_for_result() {
+                                settle_failure(control_flow, &mut input_driver, 1, error);
+                                return;
+                            }
                             let mut result = envelope["payload"].clone();
                             if let Some(driver) = input_driver.as_mut() {
                                 if result["passed"].as_bool() == Some(true)
@@ -260,6 +319,23 @@ mod windows_host {
                             1,
                             "unknown native proof IPC channel",
                         ),
+                    }
+                }
+                Event::MainEventsCleared => {
+                    let Some(payload) = pending_native_input.take() else {
+                        return;
+                    };
+                    let Some(driver) = input_driver.as_mut() else {
+                        settle_failure(
+                            control_flow,
+                            &mut input_driver,
+                            1,
+                            "pending native input requires --drive-native-input",
+                        );
+                        return;
+                    };
+                    if let Err(error) = driver.advance(&payload) {
+                        settle_failure(control_flow, &mut input_driver, 1, error);
                     }
                 }
                 Event::UserEvent(HostEvent::Deadline) => {
