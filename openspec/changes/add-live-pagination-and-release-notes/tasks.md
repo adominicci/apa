@@ -50,12 +50,12 @@
 
 ## Task 6: Safe reusable Markdown renderer
 
-- [ ] 6.1 Add exact desktop dependencies `marked@18.0.9` and `dompurify@3.4.13`, update the Deno lockfile, and extend dependency-license checks to assert the accepted MIT and Apache-2.0 licensing path.
-- [ ] 6.2 Create failing `MarkdownContent` tests for normalized heading levels beneath the modal title, paragraphs, strong/emphasis, ordered/unordered lists, inline code, malformed Markdown, and readable fallback for unsupported syntax.
-- [ ] 6.3 Add adversarial tests for raw HTML, scripts, event attributes, styles, SVG/MathML, iframes, embedded images/media, encoded `javascript:`, `data:`, `file:`, protocol-relative links, and safe HTTPS links.
-- [ ] 6.4 Implement `MarkdownContent.svelte` with Marked parsing, string-input DOMPurify sanitation, an explicit HTML-only tag/attribute allowlist, no styles/data attributes/resources, and delegated safe-link activation through `@tauri-apps/plugin-opener`.
-- [ ] 6.5 Replace the plain-text paragraph in `ReleaseNotesModal.svelte` with `MarkdownContent`, add semantic release-note typography that remains contained on narrow screens, and harden shared modal behavior so Tab/Shift+Tab stay contained, background content is inert to modal navigation, Escape/overlay behavior remains configured, and close restores the exact opener; regression-test other modal consumers.
-- [ ] 6.6 Run the Svelte MCP autofixer on both Markdown/release-note components, run their focused security/component tests, and commit the renderer checkpoint with an English commit message.
+- [x] 6.1 Add exact desktop dependencies `marked@18.0.9` and `dompurify@3.4.13`, update the Deno lockfile, and extend dependency-license checks to assert the accepted MIT and Apache-2.0 licensing path.
+- [x] 6.2 Create failing `MarkdownContent` tests for normalized heading levels beneath the modal title, paragraphs, strong/emphasis, ordered/unordered lists, inline code, malformed Markdown, and readable fallback for unsupported syntax.
+- [x] 6.3 Add adversarial tests for raw HTML, scripts, event attributes, styles, SVG/MathML, iframes, embedded images/media, encoded `javascript:`, `data:`, `file:`, protocol-relative links, and safe HTTPS links.
+- [x] 6.4 Implement `MarkdownContent.svelte` with Marked parsing, string-input DOMPurify sanitation, an explicit HTML-only tag/attribute allowlist, no styles/data attributes/resources, and delegated safe-link activation through `@tauri-apps/plugin-opener`.
+- [x] 6.5 Replace the plain-text paragraph in `ReleaseNotesModal.svelte` with `MarkdownContent`, add semantic release-note typography that remains contained on narrow screens, and harden shared modal behavior so Tab/Shift+Tab stay contained, background content is inert to modal navigation, Escape/overlay behavior remains configured, and close restores the exact opener; regression-test other modal consumers.
+- [x] 6.6 Run the Svelte MCP autofixer on both Markdown/release-note components, run their focused security/component tests, and commit the renderer checkpoint with an English commit message.
 
 ## Task 7: Canonical bundled notes and shared release-note controller
 

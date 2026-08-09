@@ -29,6 +29,8 @@
     "@tiptap/extension-table": "^3.6.5",
     "@tiptap/pm": "^3.6.5",
     "@tiptap/starter-kit": "^3.6.5",
+    "dompurify": "3.4.13",
+    "marked": "18.0.9",
     "pagedjs": "^0.4.3",
     "temml": "^0.12.0"
   },
