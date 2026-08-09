@@ -7,3 +7,8 @@ export const AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS = Object.freeze({
   expandedPaginationHost: 135_000,
   expandedPaginationOuter: 150_000,
 });
+
+export const NATIVE_EXPANDED_PROOF_BUDGET_MS = Object.freeze({
+  workloadSetupPerFixture: 8_000,
+  legacyAndParityHeadroom: 60_000,
+});

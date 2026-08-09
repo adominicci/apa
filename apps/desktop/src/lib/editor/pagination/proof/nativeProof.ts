@@ -19,6 +19,7 @@ import {
 } from "../measure.ts";
 import { calculatePaperScale } from "../paperScale.ts";
 import { composeDocumentPages } from "../pageComposition.ts";
+import { PAGINATION_RESPONSIVENESS_BUDGET } from "../performanceBudget.ts";
 import {
   createPaginationPlugin,
   invalidatePagination,
@@ -48,8 +49,13 @@ import {
   type NativePaginationWorkloadPages,
   type NativePaginationWorkloadResult,
   percentile95,
+  remainingNativeDeadlineMs,
+  waitForNativeCondition,
 } from "./nativePerformance.ts";
-import { AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS } from "./nativeProofDeadlines.ts";
+import {
+  AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS,
+  NATIVE_EXPANDED_PROOF_BUDGET_MS,
+} from "./nativeProofDeadlines.ts";
 import { startProofPageWatchdog } from "./proofPageWatchdog.ts";
 import "./nativeProof.css";
 
@@ -286,6 +292,7 @@ async function captureNativePaginationOperation(
   reports: PaginationStateReport[],
   frames: NativePaginationFrameLedger,
   description: string,
+  timeoutMs: number,
   mutate: () => void,
 ): Promise<CapturedNativeOperation> {
   const reportIndex = reports.length;
@@ -296,13 +303,19 @@ async function captureNativePaginationOperation(
   if (targetEpoch === undefined) {
     throw new Error(`Pagination state disappeared during ${description}`);
   }
-  await waitForCondition(
+  await waitForNativeCondition(
     `${description} to settle at epoch ${targetEpoch}`,
     () =>
       reports.some((report) =>
         report.status === "stable" && report.epoch === targetEpoch
       ),
-    240,
+    {
+      timeoutMs,
+      yieldControl: async () => {
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        await frame();
+      },
+    },
   );
   const operationReports = reports.slice(reportIndex);
   const stable = operationReports.findLast((report) =>
@@ -353,16 +366,23 @@ async function waitForLatestStableReport(
   editor: Editor,
   reports: PaginationStateReport[],
   description: string,
+  timeoutMs: number,
 ): Promise<PaginationStateReport> {
   const epoch = paginationPluginKey.getState(editor.state)?.epoch;
   if (epoch === undefined) throw new Error("Pagination plugin is not mounted");
-  await waitForCondition(
+  await waitForNativeCondition(
     description,
     () =>
       reports.some((report) =>
         report.status === "stable" && report.epoch === epoch
       ),
-    240,
+    {
+      timeoutMs,
+      yieldControl: async () => {
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        await frame();
+      },
+    },
   );
   return reports.findLast((report) =>
     report.status === "stable" && report.epoch === epoch
@@ -386,6 +406,9 @@ async function runNativePerformanceWorkload(
 
   const reports: PaginationStateReport[] = [];
   const frames = new NativePaginationFrameLedger();
+  const budget = PAGINATION_RESPONSIVENESS_BUDGET.workloads[targetPages];
+  const setupDeadline = performance.now() +
+    NATIVE_EXPANDED_PROOF_BUDGET_MS.workloadSetupPerFixture;
   let layoutReads = 0;
   let referencePageCount = 1;
   const referenceEnv: ReferenceDecorationEnv = {
@@ -435,6 +458,7 @@ async function runNativePerformanceWorkload(
       editor,
       reports,
       `${targetPages}-page native workload initial settlement`,
+      remainingNativeDeadlineMs(setupDeadline),
     );
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const authored = baseline.pageCount?.authored ?? 0;
@@ -474,6 +498,7 @@ async function runNativePerformanceWorkload(
         editor,
         reports,
         `${targetPages}-page native workload calibration`,
+        remainingNativeDeadlineMs(setupDeadline),
       );
     }
     const authoredPages = baseline.pageCount?.authored ?? 0;
@@ -491,6 +516,7 @@ async function runNativePerformanceWorkload(
       reports,
       frames,
       `${targetPages}-page rapid typing`,
+      budget.typingDeletionMs,
       () => {
         for (let index = 0; index < 20; index += 1) {
           const startedAt = performance.now();
@@ -510,6 +536,7 @@ async function runNativePerformanceWorkload(
       reports,
       frames,
       `${targetPages}-page deletion`,
+      budget.typingDeletionMs,
       () => {
         const readsBeforeDeletion = layoutReads;
         const startedAt = performance.now();
@@ -528,6 +555,7 @@ async function runNativePerformanceWorkload(
       reports,
       frames,
       `${targetPages}-page reference refresh`,
+      budget.referenceFontMs,
       () => {
         referenceEnv.references = fixture.references;
         repaintReferenceDecoration(editor);
@@ -542,6 +570,7 @@ async function runNativePerformanceWorkload(
       reports,
       frames,
       `${targetPages}-page selected-font change`,
+      budget.referenceFontMs,
       () => {
         shell.style.setProperty(
           "--doc-font",

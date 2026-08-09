@@ -84,6 +84,46 @@ export interface LivePagedGeometryResult {
   previewLineHeight: number;
 }
 
+export interface NativeConditionWaitOptions {
+  timeoutMs: number;
+  now?: () => number;
+  yieldControl?: () => Promise<void>;
+}
+
+export function remainingNativeDeadlineMs(
+  deadlineMs: number,
+  nowMs = performance.now(),
+): number {
+  return Math.max(0, deadlineMs - nowMs);
+}
+
+/**
+ * Waits on elapsed time rather than a frame count because embedded engines may
+ * deliver requestAnimationFrame callbacks faster than their timer/resource
+ * queues settle on CI hosts.
+ */
+export async function waitForNativeCondition(
+  description: string,
+  condition: () => boolean,
+  options: NativeConditionWaitOptions,
+): Promise<number> {
+  const now = options.now ?? (() => performance.now());
+  const yieldControl = options.yieldControl ??
+    (() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+  const startedAt = now();
+  let yields = 0;
+  while (!condition()) {
+    if (now() - startedAt >= options.timeoutMs) {
+      throw new Error(
+        `Timed out waiting for ${description} after ${options.timeoutMs}ms`,
+      );
+    }
+    await yieldControl();
+    yields += 1;
+  }
+  return yields;
+}
+
 function near(value: number, expected: number, tolerance = 0.5): boolean {
   return Math.abs(value - expected) < tolerance;
 }

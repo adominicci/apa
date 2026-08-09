@@ -3,6 +3,8 @@ import {
   evaluateLivePagedGeometry,
   evaluateNativePaginationWorkload,
   type NativePaginationWorkloadResult,
+  remainingNativeDeadlineMs,
+  waitForNativeCondition,
 } from "./nativePerformance.ts";
 
 function passingResult(
@@ -118,6 +120,52 @@ describe("native pagination performance evidence", () => {
         scaleResizeDidNotPaginate: false,
       },
     });
+  });
+});
+
+describe("native condition settlement", () => {
+  it("consumes one absolute deadline instead of resetting retry time", () => {
+    expect(remainingNativeDeadlineMs(8_000, 1_250)).toBe(6_750);
+    expect(remainingNativeDeadlineMs(8_000, 7_999)).toBe(1);
+    expect(remainingNativeDeadlineMs(8_000, 8_001)).toBe(0);
+  });
+
+  it("waits by elapsed time instead of exhausting a fast frame count", async () => {
+    let now = 0;
+    let yields = 0;
+
+    await expect(waitForNativeCondition(
+      "production pagination",
+      () => yields === 300,
+      {
+        timeoutMs: 100,
+        now: () => now,
+        yieldControl: () => {
+          yields += 1;
+          now += 0.1;
+          return Promise.resolve();
+        },
+      },
+    )).resolves.toBe(300);
+  });
+
+  it("fails closed when the elapsed-time budget expires", async () => {
+    let now = 0;
+
+    await expect(waitForNativeCondition(
+      "stalled pagination",
+      () => false,
+      {
+        timeoutMs: 5,
+        now: () => now,
+        yieldControl: () => {
+          now += 2;
+          return Promise.resolve();
+        },
+      },
+    )).rejects.toThrow(
+      "Timed out waiting for stalled pagination after 5ms",
+    );
   });
 });
 

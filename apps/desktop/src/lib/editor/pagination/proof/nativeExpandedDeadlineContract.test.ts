@@ -1,7 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS } from "./nativeProofDeadlines.ts";
+import { PAGINATION_RESPONSIVENESS_BUDGET } from "../performanceBudget.ts";
+import {
+  AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS,
+  NATIVE_EXPANDED_PROOF_BUDGET_MS,
+} from "./nativeProofDeadlines.ts";
 
 const proofDir = import.meta.dirname!;
 const [page, swiftHost, windowsHost, runner] = await Promise.all([
@@ -56,5 +60,29 @@ describe("expanded native pagination deadline policy", () => {
     expect(AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.outerNativeHostProcess).toBe(
       60_000,
     );
+  });
+
+  it("shares bounded workload setup pools inside the expanded page envelope", () => {
+    const workloadPages = [10, 25, 50] as const;
+    const operationCeilingMs = workloadPages.reduce((total, pages) => {
+      const budget = PAGINATION_RESPONSIVENESS_BUDGET.workloads[pages];
+      return total + budget.typingDeletionMs * 2 +
+        budget.referenceFontMs * 2 + budget.resizeMs;
+    }, 0);
+    const setupCeilingMs =
+      NATIVE_EXPANDED_PROOF_BUDGET_MS.workloadSetupPerFixture *
+      workloadPages.length;
+    const declaredCeilingMs = setupCeilingMs + operationCeilingMs +
+      NATIVE_EXPANDED_PROOF_BUDGET_MS.legacyAndParityHeadroom;
+
+    expect(operationCeilingMs).toBe(25_250);
+    expect(declaredCeilingMs).toBeLessThan(
+      AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationPage,
+    );
+    expect(page).toContain(
+      "const setupDeadline = performance.now() +\n    NATIVE_EXPANDED_PROOF_BUDGET_MS.workloadSetupPerFixture",
+    );
+    expect(page.match(/remainingNativeDeadlineMs\(setupDeadline\)/g))
+      .toHaveLength(2);
   });
 });
