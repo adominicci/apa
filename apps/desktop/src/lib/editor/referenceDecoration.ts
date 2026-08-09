@@ -94,6 +94,15 @@ function defaultPagePlan(env: ReferenceDecorationEnv): ReferencePagePlan {
   };
 }
 
+function verticalMargins(element: HTMLElement): number {
+  const style = element.ownerDocument.defaultView?.getComputedStyle(element);
+  if (!style) return 0;
+  return [style.marginTop, style.marginBottom].reduce((total, value) => {
+    const margin = Number.parseFloat(value);
+    return total + (Number.isFinite(margin) ? margin : 0);
+  }, 0);
+}
+
 export function createReferencePagesElement(
   env: ReferenceDecorationEnv,
   plan: ReferencePagePlan,
@@ -183,7 +192,7 @@ export function measureReferencePagesElement(
     height: measure(entry),
   }));
   return planReferencePages({
-    headingHeight: heading ? measure(heading) : 0,
+    headingHeight: heading ? measure(heading) + verticalMargins(heading) : 0,
     entries,
   });
 }

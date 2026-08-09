@@ -343,7 +343,7 @@ describe("derived pagination extension", () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
       expect(
-        continuationPageNumber!.compareDocumentPosition(continuationGap!) &
+        continuationGap!.compareDocumentPosition(continuationPageNumber!) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
     } finally {

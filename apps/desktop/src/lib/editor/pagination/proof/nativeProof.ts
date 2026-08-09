@@ -1812,6 +1812,25 @@ async function runProof(): Promise<ProofResult> {
     const productionPageChromeSequential = productionNumbers.map((number) =>
       Number(number.textContent)
     ).join(",") === expectedProductionNumbers.join(",");
+    const productionGapNumberPairs = productionComposition.pages.flatMap(
+      (page) => {
+        if (page.kind !== "authored") {
+          return [];
+        }
+        const gap = mount.querySelector<HTMLElement>(
+          `[data-pagination-pos="${page.pos}"]`,
+        );
+        const number = mount.querySelector<HTMLElement>(
+          `[data-pagination-page-key="${page.key}"]`,
+        );
+        return gap && number ? [{ gap, number }] : [];
+      },
+    );
+    const productionPageChromeAfterGaps = productionGapNumberPairs.length > 0 &&
+      productionGapNumberPairs.every(({ gap, number }) =>
+        (gap.compareDocumentPosition(number) &
+          Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+      );
     const productionPageChromeInert = productionNumbers.every((number) =>
       number.contentEditable === "false" &&
       number.getAttribute("aria-hidden") === "true" && number.tabIndex === -1
@@ -2210,7 +2229,8 @@ async function runProof(): Promise<ProofResult> {
         firstPlannedGap.width >= 815,
       productionPaginationStack: productionComposition.total ===
           firstProductionStable.pageCount!.total + 1 &&
-        productionPageChromeSequential && productionReferencesBeforeAppendix,
+        productionPageChromeSequential && productionPageChromeAfterGaps &&
+        productionReferencesBeforeAppendix,
       hardBreakOnlyLinesMeasured: hardBreakEvidence.passed,
       productionPageChromeInert,
       productionScaleInvariantCount,
@@ -2296,6 +2316,7 @@ async function runProof(): Promise<ProofResult> {
         productionStableFrames,
         productionScaledFrames,
         productionPageCount: productionComposition.total,
+        productionGapNumberPairs: productionGapNumberPairs.length,
         productionJsonIdentity: String(productionJsonIdentity),
         parityStableFrames,
         nativeRuntimeIdentity: JSON.stringify({

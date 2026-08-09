@@ -14,6 +14,7 @@ import {
   type PaginationLayoutAdapter,
   type TextLineProbe,
 } from "./measure.ts";
+import { planPagination } from "./plan.ts";
 
 function lineProbe(
   linesByOffset: readonly (number | null)[],
@@ -552,6 +553,178 @@ describe("text line sampling", () => {
             [...parent.childNodes].indexOf(element),
           );
         }),
+      );
+    } finally {
+      styleSpy.mockRestore();
+      rangeSpy.mockRestore();
+      editor.destroy();
+      mount.remove();
+    }
+  });
+
+  it("keeps widow groups separate for consecutive paragraphs in one list item", () => {
+    const mount = document.createElement("div");
+    document.body.append(mount);
+    const lineText = "abcdefghijabcdefghijabcdefghij";
+    const editor = createTesinaEditor({
+      element: mount,
+      content: {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Preface" }],
+            },
+            {
+              type: "bulletList",
+              content: [{
+                type: "listItem",
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [{ type: "text", text: lineText }],
+                  },
+                  {
+                    type: "paragraph",
+                    content: [{ type: "text", text: lineText }],
+                  },
+                ],
+              }],
+            },
+          ],
+        }],
+      },
+      newlyCreated: true,
+      citationEnv: { refsById: new Map(), locale: "en" },
+      referenceEnv: { references: [], locale: "en", emptyLabel: "unused" },
+      paginationEnv: null,
+    });
+    const paragraphPositions: number[] = [];
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "paragraph") paragraphPositions.push(pos);
+      return true;
+    });
+    const [prefacePos, firstListParagraphPos, secondListParagraphPos] =
+      paragraphPositions;
+    const preface = editor.view.nodeDOM(prefacePos!) as HTMLElement;
+    const firstListParagraph = editor.view.nodeDOM(
+      firstListParagraphPos!,
+    ) as HTMLElement;
+    const secondListParagraph = editor.view.nodeDOM(
+      secondListParagraphPos!,
+    ) as HTMLElement;
+    const prefaceText = preface.firstChild!;
+    const firstListText = firstListParagraph.firstChild!;
+    const secondListText = secondListParagraph.firstChild!;
+    const measurements = new Map<Node, { height: number; top: number }>([
+      [prefaceText, { height: 544, top: 100 }],
+      [firstListText, { height: 80, top: 644 }],
+      [secondListText, { height: 80, top: 884 }],
+    ]);
+    vi.spyOn(preface, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 100, 624, 544),
+    );
+    vi.spyOn(firstListParagraph, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 644, 624, 240),
+    );
+    vi.spyOn(secondListParagraph, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 884, 624, 240),
+    );
+    let measuredNode: Node | null = null;
+    let endExclusive = 0;
+    const rangeSpy = vi.spyOn(document, "createRange").mockImplementation(
+      () =>
+        ({
+          setStart(node: Node) {
+            measuredNode = node;
+          },
+          setEnd(node: Node, offset: number) {
+            measuredNode = node;
+            endExclusive = offset;
+          },
+          getClientRects() {
+            const measurement = measuredNode
+              ? measurements.get(measuredNode)
+              : undefined;
+            if (!measurement) return [] as unknown as DOMRectList;
+            if (measuredNode === prefaceText) {
+              return [
+                new DOMRect(0, measurement.top, 56, measurement.height),
+              ] as unknown as DOMRectList;
+            }
+            return Array.from(
+              { length: Math.ceil(endExclusive / 10) },
+              (_, line) =>
+                new DOMRect(
+                  0,
+                  measurement.top + line * measurement.height,
+                  Math.min(10, endExclusive - line * 10) * 8,
+                  measurement.height,
+                ),
+            ) as unknown as DOMRectList;
+          },
+        }) as unknown as Range,
+    );
+    const getComputedStyle = globalThis.getComputedStyle.bind(globalThis);
+    const styleSpy = vi.spyOn(globalThis, "getComputedStyle")
+      .mockImplementation(
+        (element, pseudoElement) =>
+          pseudoElement
+            ? {
+              display: "none",
+              content: "none",
+            } as CSSStyleDeclaration
+            : element === preface
+            ? {
+              lineHeight: "544px",
+              fontSize: "16px",
+              marginTop: "0px",
+              marginBottom: "0px",
+            } as CSSStyleDeclaration
+            : element === firstListParagraph ||
+                element === secondListParagraph
+            ? {
+              lineHeight: "80px",
+              fontSize: "16px",
+              marginTop: "0px",
+              marginBottom: "0px",
+            } as CSSStyleDeclaration
+            : getComputedStyle(element),
+      );
+
+    try {
+      const snapshot = browserPaginationLayoutAdapter.readLayout(editor.view);
+      const firstParagraphLines = snapshot.fragments.filter((fragment) =>
+        fragment.breakBefore.pos >= firstListParagraphPos! + 1 &&
+        fragment.breakBefore.pos <
+          firstListParagraphPos! + editor.state.doc.nodeAt(
+              firstListParagraphPos!,
+            )!.nodeSize
+      );
+      const secondParagraphLines = snapshot.fragments.filter((fragment) =>
+        fragment.breakBefore.pos >= secondListParagraphPos! + 1 &&
+        fragment.breakBefore.pos <
+          secondListParagraphPos! + editor.state.doc.nodeAt(
+              secondListParagraphPos!,
+            )!.nodeSize
+      );
+
+      expect(firstParagraphLines).toHaveLength(3);
+      expect(secondParagraphLines).toHaveLength(3);
+      expect(firstParagraphLines[0]!.lineGroup?.id).not.toBe(
+        secondParagraphLines[0]!.lineGroup?.id,
+      );
+      const plan = planPagination({
+        epoch: 1,
+        fragments: snapshot.fragments,
+        emptySections: snapshot.emptySections,
+      });
+      expect(plan.status).toBe("stable");
+      if (plan.status !== "stable") throw new Error("expected stable plan");
+      expect(plan.pageStarts[1]?.pos).toBe(
+        secondParagraphLines[0]!.breakBefore.pos,
       );
     } finally {
       styleSpy.mockRestore();

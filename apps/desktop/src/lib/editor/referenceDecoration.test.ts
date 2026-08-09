@@ -258,6 +258,40 @@ describe("live reference-page decoration", () => {
     expect(measureReferencePagesElement(root, env).pageCount).toBe(2);
   });
 
+  it("includes the reference heading margin in first-page planning", () => {
+    const env = {
+      references: [reference],
+      locale: "en" as const,
+      emptyLabel: "No references yet",
+    };
+    const root = createReferencePagesElement(
+      env,
+      {
+        pages: [{
+          index: 0,
+          entryKeys: [reference.id],
+          overflowKeys: [],
+        }],
+        pageCount: 1,
+      },
+      [3],
+      false,
+    );
+    const heading = root.querySelector<HTMLElement>(".ref-head")!;
+    const entry = root.querySelector<HTMLElement>("[data-reference-entry]")!;
+    heading.style.marginBottom = "16px";
+    heading.getBoundingClientRect = () => new DOMRect(0, 0, 624, 48);
+    entry.getBoundingClientRect = () => new DOMRect(0, 64, 624, 801);
+
+    expect(measureReferencePagesElement(root, env)).toEqual({
+      pages: [
+        { index: 0, entryKeys: [], overflowKeys: [] },
+        { index: 1, entryKeys: [reference.id], overflowKeys: [] },
+      ],
+      pageCount: 2,
+    });
+  });
+
   it("orders derived references before appendices without changing or splitting the document", () => {
     const element = document.createElement("div");
     document.body.append(element);

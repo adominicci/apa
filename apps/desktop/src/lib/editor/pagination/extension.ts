@@ -354,7 +354,7 @@ function decorationsFor(
         side: plan.pageCount.references > 0 &&
             page.key === firstAppendixPage?.key
           ? composition.referenceInsertion.side + 1
-          : -4,
+          : -2,
         key: `pagination-page-number:${page.key}:${page.pageNumber}`,
         stopEvent: () => true,
         ignoreSelection: true,

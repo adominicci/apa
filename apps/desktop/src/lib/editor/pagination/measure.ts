@@ -693,7 +693,9 @@ function textFragments(
       canonicalRect(element.getBoundingClientRect(), scale).height,
     )
     : 1;
-  const groupId = listItemPos === null ? `text:${pos}` : `list:${listItemPos}`;
+  const groupId = listItemPos === null
+    ? `text:${pos}`
+    : `list:${listItemPos}:text:${pos}`;
   const kind = listItemPos === null ? "line" as const : "listItem" as const;
   return lines.map((line, index) => {
     const next = lines[index + 1];
