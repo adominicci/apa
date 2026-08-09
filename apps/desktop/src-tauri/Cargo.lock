@@ -4254,6 +4254,7 @@ dependencies = [
 name = "tesina"
 version = "0.1.4"
 dependencies = [
+ "same-file",
  "serde",
  "serde_json",
  "sha2",

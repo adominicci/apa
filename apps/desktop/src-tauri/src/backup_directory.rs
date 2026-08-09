@@ -13,14 +13,11 @@
 //! Tauri types) plus thin `#[tauri::command]` wrappers so unit tests can run
 //! against temp directories without a Tauri runtime.
 
+use same_file::Handle as FileIdentity;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
 use std::io::{ErrorKind, Read, Write};
-#[cfg(unix)]
-use std::os::unix::fs::MetadataExt as UnixMetadataExt;
-#[cfg(windows)]
-use std::os::windows::fs::MetadataExt as WindowsMetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -870,8 +867,9 @@ where
                 BackupError::io("cannot create archive file", &error)
             }
         })?;
-    let owned_metadata = file
-        .metadata()
+    let owned_identity = file
+        .try_clone()
+        .and_then(FileIdentity::from_file)
         .map_err(|error| BackupError::io("cannot identify archive file", &error))?;
     let result = write(&mut file).and_then(|()| {
         file.sync_all()
@@ -879,28 +877,14 @@ where
     });
     drop(file);
     if result.is_err() {
-        let _ = cleanup_created_file_with_hook(final_path, &owned_metadata, || Ok(()));
+        let _ = cleanup_created_file_with_hook(final_path, &owned_identity, || Ok(()));
     }
     result
 }
 
-fn same_file_identity(left: &fs::Metadata, right: &fs::Metadata) -> bool {
-    #[cfg(unix)]
-    {
-        return left.dev() == right.dev() && left.ino() == right.ino();
-    }
-    #[cfg(windows)]
-    {
-        return left.volume_serial_number() == right.volume_serial_number()
-            && left.file_index() == right.file_index();
-    }
-    #[allow(unreachable_code)]
-    false
-}
-
 fn cleanup_created_file_with_hook<F>(
     path: &Path,
-    owned_metadata: &fs::Metadata,
+    owned_identity: &FileIdentity,
     before_quarantine: F,
 ) -> Result<(), BackupError>
 where
@@ -916,9 +900,9 @@ where
     let quarantine = parent.join(format!(".failed-{}", Uuid::new_v4()));
     fs::rename(path, &quarantine)
         .map_err(|error| BackupError::io("cannot quarantine incomplete archive", &error))?;
-    let current = fs::symlink_metadata(&quarantine)
+    let current = FileIdentity::from_path(&quarantine)
         .map_err(|error| BackupError::io("cannot identify quarantined archive", &error))?;
-    if same_file_identity(owned_metadata, &current) {
+    if owned_identity == &current {
         return fs::remove_file(&quarantine)
             .map_err(|error| BackupError::io("cannot remove incomplete archive", &error));
     }
@@ -1748,7 +1732,7 @@ mod tests {
         let root = TempDir::new().unwrap();
         let destination = root.path().join("Partial.tesina");
         fs::write(&destination, b"owned partial").unwrap();
-        let owned = fs::metadata(&destination).unwrap();
+        let owned = FileIdentity::from_path(&destination).unwrap();
 
         let error = cleanup_created_file_with_hook(&destination, &owned, || {
             fs::remove_file(&destination).unwrap();
