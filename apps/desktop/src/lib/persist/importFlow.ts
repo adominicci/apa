@@ -18,10 +18,15 @@ import {
 } from "$lib/portable/importPlan";
 import {
   applyImport,
+  discardStaleImport,
   type ImportFs,
   ImportJournalError,
+  type ImportJournalV1,
+  pruneCompletedRollbacks,
   stageImport,
 } from "./importJournal.ts";
+
+const COMPLETED_ROLLBACK_RETENTION = 3;
 
 export interface LocalStateCapture {
   local: LocalImportState;
@@ -173,6 +178,7 @@ export async function applyConfirmedImport(
 ): Promise<ImportApplyResult> {
   let current = confirmed;
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    let stagedJournal: ImportJournalV1 | null = null;
     try {
       await deps.runMaintenance(async () => {
         await deps.flushPending();
@@ -196,8 +202,13 @@ export async function applyConfirmedImport(
           archiveSha256: current.archiveSha256,
           previousLibrarySha256: current.previousLibrarySha256,
         });
+        stagedJournal = journal;
         onRecoverable?.();
         await applyImport(journal, { fs: deps.fs });
+        await pruneCompletedRollbacks({
+          fs: deps.fs,
+          keepCompleted: COMPLETED_ROLLBACK_RETENTION,
+        });
       });
       return {
         kind: "applied",
@@ -208,6 +219,11 @@ export async function applyConfirmedImport(
       const stale = error instanceof ImportJournalError &&
         error.code === "import/stale-plan";
       if (!stale || attempt === 1) throw error;
+      if (stagedJournal !== null) {
+        await deps.runMaintenance(() =>
+          discardStaleImport(stagedJournal!, { fs: deps.fs })
+        );
+      }
       // Replan against the current revision (amended spec).
       const replanned = await deps.runMaintenance(async () => {
         await deps.flushPending();

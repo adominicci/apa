@@ -397,6 +397,36 @@ export async function applyImport(
 }
 
 /**
+ * Retires a transaction that was fully staged but rejected as stale before
+ * its first live write. The rollback is hash-validated before either record
+ * is removed so corrupt recovery evidence remains available for diagnosis.
+ */
+export async function discardStaleImport(
+  journal: ImportJournalV1,
+  deps: { fs: ImportFs },
+): Promise<void> {
+  if (journal.status !== "staged" || journal.completedOpIds.length !== 0) {
+    throw new ImportJournalError(
+      "import/recovery-required",
+      "only an untouched staged import can be discarded",
+    );
+  }
+  const rollback = await deps.fs.readBytes(journal.rollback.relPath);
+  if (
+    rollback === null ||
+    (await sha256Hex(rollback)) !== journal.rollback.sha256
+  ) {
+    throw new ImportJournalError(
+      "import/recovery-required",
+      "the stale import rollback is missing or corrupted",
+      journal.rollback.relPath,
+    );
+  }
+  await deps.fs.removeDir(txDir(journal.transactionId));
+  await deps.fs.remove(journal.rollback.relPath);
+}
+
+/**
  * The merged library bytes come from the rollback-era staging: the journal
  * only records the hash, so the bytes must still be derivable. They are
  * stored as a staged file alongside the ops (written by stageMergedLibrary
@@ -448,6 +478,19 @@ async function rollbackTransaction(
   const { fs } = deps;
   let blocked: string | null = null;
 
+  const libraryOp = journal.operations.find(
+    (op): op is JournalLibraryOp => op.kind === "mergeLibrary",
+  );
+  const live = await liveLibrarySha(fs);
+  // Validate and read the recovery source before deleting any imported output.
+  // A corrupt rollback must leave the current live state completely untouched.
+  const previous = libraryOp && live === libraryOp.mergedSha256
+    ? await deps.readRollbackLibrary(
+      journal.rollback.relPath,
+      journal.rollback.sha256,
+    )
+    : null;
+
   for (const op of journal.operations) {
     if (op.kind === "mergeLibrary") continue;
     if (!(await fs.exists(op.finalPath))) continue;
@@ -462,15 +505,7 @@ async function rollbackTransaction(
     }
   }
 
-  const libraryOp = journal.operations.find(
-    (op): op is JournalLibraryOp => op.kind === "mergeLibrary",
-  );
-  const live = await liveLibrarySha(fs);
-  if (libraryOp && live === libraryOp.mergedSha256) {
-    const previous = await deps.readRollbackLibrary(
-      journal.rollback.relPath,
-      journal.rollback.sha256,
-    );
+  if (previous !== null) {
     await fs.writeBytes("library.json", previous);
   } else if (live !== journal.previousLibrarySha256 && live !== null) {
     // The library is neither plan-time, nor merged: do not guess.

@@ -105,6 +105,7 @@
       }];
       return;
     }
+    if (recoveryRequired !== null) return;
     await Promise.all([
       library.load(),
       essays.loadIndex(),

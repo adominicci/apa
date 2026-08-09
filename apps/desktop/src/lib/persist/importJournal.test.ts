@@ -282,6 +282,41 @@ describe("applyImport (tasks 6.3/6.4)", () => {
 });
 
 describe("rollback safety (task 6.5)", () => {
+  it("validates the rollback before removing any imported output", async () => {
+    const { fs, journal, recovery, finalPaths } = await makeScenario();
+    await applyImport(journal, { fs });
+    const installed = finalPaths[0];
+    expect(fs.files.has(installed)).toBe(true);
+
+    // Reopen the completed transaction as applying so recovery takes the
+    // rollback path, then corrupt the rollback archive itself.
+    const applying = { ...journal, status: "applying" as const };
+    const envelope = {
+      schemaVersion: 1,
+      payloadSha256: await sha256Hex(canonicalJsonBytes(applying)),
+      payload: applying,
+    };
+    fs.files.set(
+      `imports/${TX}/journal.json`,
+      canonicalJsonBytes(envelope),
+    );
+    fs.files.set(
+      `imports/${TX}/journal-copy.json`,
+      canonicalJsonBytes(envelope),
+    );
+    fs.files.set(
+      `backups/imports/${TX}.tesina`,
+      new TextEncoder().encode("corrupt"),
+    );
+    // Make resume impossible while leaving another imported output present
+    // for the rollback path to consider removing.
+    fs.files.delete(finalPaths[1]);
+
+    const outcomes = await recoverPendingImports(recovery);
+    expect(outcomes[0].kind).toBe("recovery-required");
+    expect(fs.files.has(installed)).toBe(true);
+  });
+
   it("preserves a final path whose bytes were changed after apply", async () => {
     const { fs, journal, recovery, finalPaths } = await makeScenario();
     // Apply half the operations, then simulate external modification.

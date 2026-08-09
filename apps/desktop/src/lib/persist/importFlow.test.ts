@@ -257,6 +257,10 @@ describe("import flow integration", () => {
         r.id === fixtureUuid(12, 1)
       ),
     ).toBe(true);
+    // The stale staged transaction and its rollback were retired before the
+    // equivalent replacement plan was staged.
+    expect(await fs.list("imports")).toHaveLength(1);
+    expect(await fs.list("backups/imports")).toHaveLength(1);
   });
 
   it("asks for re-confirmation when the mid-flow change alters the plan", async () => {
@@ -279,11 +283,30 @@ describe("import flow integration", () => {
 
     const result = await applyConfirmedImport(preview, deps);
     expect(result.kind).toBe("replan-needed");
+    // Re-confirmation must not leave an abandoned journal that blocks the
+    // next startup, nor its complete unencrypted rollback archive.
+    expect(await fs.list("imports")).toEqual([]);
+    expect(await fs.list("backups/imports")).toEqual([]);
     if (result.kind === "replan-needed") {
       expect(result.next.preview.references.conflicting).toBeGreaterThan(0);
       // Confirming the new preview applies cleanly.
       const applied = await applyConfirmedImport(result.next, deps);
       expect(applied.kind).toBe("applied");
     }
+  });
+
+  it("bounds completed rollback archives after successful imports", async () => {
+    const fixture = figureHeavyLibraryFixture();
+    const fs = new MemoryAppData();
+    const deps = makeDeps(fs);
+    const archive = await exportFixtureArchive(fixture);
+
+    for (let index = 0; index < 4; index += 1) {
+      const preview = await previewImport(archive, deps);
+      expect((await applyConfirmedImport(preview, deps)).kind).toBe("applied");
+    }
+
+    expect(await fs.list("imports")).toHaveLength(3);
+    expect(await fs.list("backups/imports")).toHaveLength(3);
   });
 });
