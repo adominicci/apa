@@ -10,6 +10,7 @@ import { createTesinaEditor } from "../../createEditor.ts";
 import { insertCitation } from "../../citation.ts";
 import {
   type ReferenceDecorationEnv,
+  refreshReferenceDecoration,
   repaintReferenceDecoration,
 } from "../../referenceDecoration.ts";
 import {
@@ -638,8 +639,7 @@ async function runNativePerformanceWorkload(
       budget.referenceFontMs,
       () => {
         referenceEnv.references = fixture.references;
-        repaintReferenceDecoration(editor);
-        invalidatePagination(editor, "references");
+        refreshReferenceDecoration(editor);
       },
       () =>
         mount.querySelectorAll(".ref-entry").length > referenceEntriesBefore,
