@@ -123,32 +123,74 @@ function pngHeader(bytes: Uint8Array, maxFrames: number): ImageHeader {
 function jpegHeader(bytes: Uint8Array): ImageHeader {
   if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) fail("jpg");
   let at = 2;
+  let dimensions: { width: number; height: number } | undefined;
+  let sawScanData = false;
   // Bounded marker scan: each iteration advances by the declared segment
   // length, and the loop is capped by the byte length itself.
-  while (at + 4 <= bytes.length) {
+  while (at + 2 <= bytes.length) {
     if (bytes[at] !== 0xff) fail("jpg/marker");
-    const marker = bytes[at + 1];
-    if (marker === 0xd8 || (marker >= 0xd0 && marker <= 0xd7)) {
-      at += 2;
+    let markerPrefix = at;
+    while (
+      markerPrefix + 1 < bytes.length && bytes[markerPrefix + 1] === 0xff
+    ) markerPrefix += 1;
+    if (markerPrefix + 1 >= bytes.length) fail("jpg/marker");
+    const marker = bytes[markerPrefix + 1];
+    const markerEnd = markerPrefix + 2;
+    if (marker === 0xd9) {
+      if (dimensions === undefined || !sawScanData) fail("jpg/incomplete");
+      return { kind: "jpg", ...dimensions, frames: 1 };
+    }
+    if (
+      marker === 0xd8 || marker === 0x01 ||
+      (marker >= 0xd0 && marker <= 0xd7)
+    ) {
+      at = markerEnd;
       continue;
     }
-    const length = u16be(bytes, at + 2);
-    if (length < 2) fail("jpg/segment");
+    if (markerEnd + 2 > bytes.length) fail("jpg/segment");
+    const length = u16be(bytes, markerEnd);
+    const segmentEnd = markerEnd + length;
+    if (length < 2 || segmentEnd > bytes.length) fail("jpg/segment");
     const isSof = (marker >= 0xc0 && marker <= 0xcf) && marker !== 0xc4 &&
       marker !== 0xc8 && marker !== 0xcc;
     if (isSof) {
-      if (at + 9 > bytes.length) fail("jpg/sof");
-      return {
-        kind: "jpg",
-        width: u16be(bytes, at + 7),
-        height: u16be(bytes, at + 5),
-        frames: 1,
+      if (length < 8) fail("jpg/sof");
+      dimensions = {
+        width: u16be(bytes, markerEnd + 5),
+        height: u16be(bytes, markerEnd + 3),
       };
     }
-    if (marker === 0xd9 || marker === 0xda) break;
-    at += 2 + length;
+    if (marker === 0xda) {
+      if (length < 6 || dimensions === undefined) fail("jpg/sos");
+      let scanAt = segmentEnd;
+      let currentScanHasData = false;
+      while (scanAt < bytes.length) {
+        if (bytes[scanAt] !== 0xff) {
+          currentScanHasData = true;
+          scanAt += 1;
+          continue;
+        }
+        if (scanAt + 1 >= bytes.length) fail("jpg/scan");
+        const next = bytes[scanAt + 1];
+        if (next === 0x00) {
+          currentScanHasData = true;
+          scanAt += 2;
+          continue;
+        }
+        if (next >= 0xd0 && next <= 0xd7) {
+          scanAt += 2;
+          continue;
+        }
+        sawScanData ||= currentScanHasData;
+        at = scanAt;
+        break;
+      }
+      if (scanAt >= bytes.length) fail("jpg/no-eoi");
+      continue;
+    }
+    at = segmentEnd;
   }
-  fail("jpg/no-sof");
+  fail("jpg/incomplete");
 }
 
 function gifHeader(bytes: Uint8Array, maxFrames: number): ImageHeader {

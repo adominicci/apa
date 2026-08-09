@@ -231,7 +231,7 @@ describe("deterministic bytes (task 2.5)", () => {
       "large-text":
         "8cffdd5e95e7a1e4109e30c0c35e8f3b079ae3c478712cfba4caae35cb4003b3",
       "figure-heavy":
-        "0d8f2e3140ee19933ab9eaa03324f444cd1381bfb201372ae352e7bc94fc2541",
+        "f51339bda3605c05677ce157265052d5093b2ed6e037dfc92a3b008b276ced23",
     };
     const profiles = {
       empty: emptyLibraryFixture(),

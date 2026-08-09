@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readImageHeader } from "./imageHeaders.ts";
+import { jpegBytes } from "./fixtures/images.ts";
 
 function chunk(type: string, data: number[]): number[] {
   const length = data.length;
@@ -55,5 +56,12 @@ describe("readImageHeader APNG", () => {
   it("rejects a PNG that ends after IHDR without image data or IEND", () => {
     const ihdrOnly = animatedPng(1).slice(0, 33);
     expect(() => readImageHeader(ihdrOnly, "png", 100)).toThrow();
+  });
+});
+
+describe("readImageHeader JPEG", () => {
+  it("rejects a JPEG that ends after SOF without scan data or EOI", () => {
+    const sofOnly = jpegBytes(32, 24).slice(0, 39);
+    expect(() => readImageHeader(sofOnly, "jpg", 1)).toThrow();
   });
 });

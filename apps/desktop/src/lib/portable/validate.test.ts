@@ -331,6 +331,20 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
     await expectCode(await rebuildArchive(files), "validate/library-schema");
   });
 
+  it("rejects duplicate reference ids in the shared library", async () => {
+    const files = await goldenFiles();
+    const library = JSON.parse(
+      new TextDecoder().decode(files.get("library.json")!),
+    );
+    library.references.push({
+      ...library.references[0],
+      title: "Conflicting duplicate reference",
+    });
+    files.set("library.json", canonicalJsonBytes(library));
+
+    await expectCode(await rebuildArchive(files), "validate/library-schema");
+  });
+
   it("rejects malformed snapshot references", async () => {
     const files = mutateEssay(await goldenFiles(), (essay) => {
       const references = essay.referencesSnapshot as Record<string, unknown>[];

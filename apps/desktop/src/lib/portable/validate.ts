@@ -285,8 +285,21 @@ function validateLibraryPayload(
       where,
     );
   }
+  const referenceIds = new Set<string>();
   for (const reference of lib.references) {
-    validateReferencePayload(reference, where, "validate/library-schema");
+    const validated = validateReferencePayload(
+      reference,
+      where,
+      "validate/library-schema",
+    );
+    if (referenceIds.has(validated.id)) {
+      throw new ValidateError(
+        "validate/library-schema",
+        "the shared library contains a duplicate reference id",
+        where,
+      );
+    }
+    referenceIds.add(validated.id);
   }
   const collections = lib.collections ?? [];
   for (const collection of collections) {
