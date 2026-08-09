@@ -387,8 +387,21 @@ function validateEssayPayload(
   if (essay.sourceEssayId !== undefined) {
     requireCanonicalId(essay.sourceEssayId, `${where}: sourceEssayId`);
   }
+  const snapshotIds = new Set<string>();
   for (const reference of essay.referencesSnapshot) {
-    validateReferencePayload(reference, where, "validate/essay-schema");
+    const validated = validateReferencePayload(
+      reference,
+      where,
+      "validate/essay-schema",
+    );
+    if (snapshotIds.has(validated.id)) {
+      throw new ValidateError(
+        "validate/essay-schema",
+        "an essay snapshot contains a duplicate reference id",
+        where,
+      );
+    }
+    snapshotIds.add(validated.id);
   }
   return essay as Essay;
 }
@@ -546,9 +559,28 @@ function walkProseMirrorNode(value: unknown, where: string): void {
   validateNodeChildren(node, where);
 }
 
+const MAX_EQUATION_LATEX_LENGTH = 4_096;
+const MAX_EQUATION_BRACE_DEPTH = 64;
+
 function validateEquationAttrs(value: unknown, where: string): void {
-  if (!isRecord(value) || typeof value.latex !== "string") {
+  if (
+    !isRecord(value) || typeof value.latex !== "string" ||
+    value.latex.length > MAX_EQUATION_LATEX_LENGTH
+  ) {
     throwEssayContent(where);
+  }
+  let braceDepth = 0;
+  for (let i = 0; i < value.latex.length; i += 1) {
+    if (value.latex[i] === "\\") {
+      i += 1;
+      continue;
+    }
+    if (value.latex[i] === "{") {
+      braceDepth += 1;
+      if (braceDepth > MAX_EQUATION_BRACE_DEPTH) throwEssayContent(where);
+    } else if (value.latex[i] === "}") {
+      braceDepth = Math.max(0, braceDepth - 1);
+    }
   }
 }
 

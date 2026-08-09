@@ -103,7 +103,7 @@ function pngHeader(bytes: Uint8Array, maxFrames: number): ImageHeader {
         };
       }
     }
-    if (type === "IDAT") sawImageData = true;
+    if (type === "IDAT" && length > 0) sawImageData = true;
     if (type === "IEND") {
       if (length !== 0) fail("png/iend");
       sawEnd = true;

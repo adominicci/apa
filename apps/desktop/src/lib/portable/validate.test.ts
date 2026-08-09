@@ -241,6 +241,38 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
     await expectCode(await rebuildArchive(files), "validate/essay-schema");
   });
 
+  it("rejects equation source beyond the rendering budget", async () => {
+    const files = mutateEssay(await goldenFiles(), (essay) => {
+      essay.content = {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [{
+            type: "apaEquation",
+            attrs: { latex: "x".repeat(4_097) },
+          }],
+        }],
+      };
+    });
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
+  it("rejects equation source beyond the nesting budget", async () => {
+    const files = mutateEssay(await goldenFiles(), (essay) => {
+      essay.content = {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [{
+            type: "apaEquation",
+            attrs: { latex: `${"{".repeat(65)}x${"}".repeat(65)}` },
+          }],
+        }],
+      };
+    });
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
   it("rejects unsafe table spans and malformed column widths", async () => {
     for (
       const attrs of [
@@ -353,6 +385,17 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
         type: "book",
         title: "Missing authors and date",
       };
+    });
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
+  it("rejects duplicate reference ids within one essay snapshot", async () => {
+    const files = mutateEssay(await goldenFiles(), (essay) => {
+      const references = essay.referencesSnapshot as Record<string, unknown>[];
+      references.push({
+        ...references[0],
+        title: "Conflicting duplicate snapshot reference",
+      });
     });
     await expectCode(await rebuildArchive(files), "validate/essay-schema");
   });

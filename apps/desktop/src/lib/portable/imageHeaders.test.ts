@@ -18,7 +18,10 @@ function chunk(type: string, data: number[]): number[] {
   ];
 }
 
-function animatedPng(frames: number): Uint8Array {
+function animatedPng(
+  frames: number,
+  imageData: number[] = [0x78, 0x9c, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01],
+): Uint8Array {
   return new Uint8Array([
     0x89,
     0x50,
@@ -39,7 +42,7 @@ function animatedPng(frames: number): Uint8Array {
       0,
       0,
     ]),
-    ...chunk("IDAT", []),
+    ...chunk("IDAT", imageData),
     ...chunk("IEND", []),
   ]);
 }
@@ -56,6 +59,10 @@ describe("readImageHeader APNG", () => {
   it("rejects a PNG that ends after IHDR without image data or IEND", () => {
     const ihdrOnly = animatedPng(1).slice(0, 33);
     expect(() => readImageHeader(ihdrOnly, "png", 100)).toThrow();
+  });
+
+  it("rejects a PNG whose IDAT chunks contain no encoded bytes", () => {
+    expect(() => readImageHeader(animatedPng(1, []), "png", 100)).toThrow();
   });
 });
 
