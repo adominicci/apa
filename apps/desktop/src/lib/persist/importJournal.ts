@@ -652,8 +652,8 @@ export async function pruneCompletedRollbacks(
     ) {
       await fs.remove(journal.rollback.relPath);
       removed.push(journal.rollback.relPath);
+      await fs.removeDir(txDir(journal.transactionId));
     }
-    await fs.removeDir(txDir(journal.transactionId));
   }
   return removed;
 }

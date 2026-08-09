@@ -449,4 +449,22 @@ describe("rollback retention (task 6.8)", () => {
     expect(done1.fs.files.has(`backups/imports/${tx2}.tesina`)).toBe(true);
     expect(done1.fs.files.has(`imports/${tx2}/journal.json`)).toBe(true);
   });
+
+  it("keeps the journal when a completed rollback cannot be validated", async () => {
+    const scenario = await makeScenario();
+    await applyImport(scenario.journal, { fs: scenario.fs });
+    scenario.fs.files.set(
+      scenario.journal.rollback.relPath,
+      new TextEncoder().encode("corrupted rollback"),
+    );
+
+    const removed = await pruneCompletedRollbacks({
+      fs: scenario.fs,
+      keepCompleted: 0,
+    });
+
+    expect(removed).toEqual([]);
+    expect(scenario.fs.files.has(scenario.journal.rollback.relPath)).toBe(true);
+    expect(scenario.fs.files.has(`imports/${TX}/journal.json`)).toBe(true);
+  });
 });

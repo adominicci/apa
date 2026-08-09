@@ -184,9 +184,28 @@ export async function planImport(
   const localReferencesById = new Map(
     local.library.references.map((r) => [r.id, r]),
   );
+  const archiveLibraryReferenceIds = new Set(
+    archive.library.references.map((reference) => reference.id),
+  );
+  const snapshotOnlyReferencesById = new Map<string, Reference>();
+  for (
+    const essay of [...archive.essays].sort((a, b) => a.id.localeCompare(b.id))
+  ) {
+    const cited = new Set(collectCitationRefIds(essay.content));
+    for (const snapshot of essay.referencesSnapshot) {
+      if (
+        cited.has(snapshot.id) &&
+        !archiveLibraryReferenceIds.has(snapshot.id) &&
+        !snapshotOnlyReferencesById.has(snapshot.id)
+      ) {
+        snapshotOnlyReferencesById.set(snapshot.id, snapshot);
+      }
+    }
+  }
   const usedReferenceIds = new Set([
     ...localReferencesById.keys(),
     ...archive.library.references.map((r) => r.id),
+    ...snapshotOnlyReferencesById.keys(),
   ]);
   const referenceIdMap = new Map<string, string>();
   const addedReferences: Reference[] = [];
@@ -206,6 +225,24 @@ export async function planImport(
     const newId = allocateId(usedReferenceIds, deps.newUuid);
     referenceIdMap.set(reference.id, newId);
     addedReferences.push({ ...reference, id: newId });
+    preview.references.conflicting += 1;
+  }
+  for (
+    const snapshot of [...snapshotOnlyReferencesById.values()].sort((a, b) =>
+      a.id.localeCompare(b.id)
+    )
+  ) {
+    const existing = localReferencesById.get(snapshot.id);
+    if (
+      existing === undefined ||
+      (await referenceDigest(existing)) === (await referenceDigest(snapshot))
+    ) {
+      continue;
+    }
+    referenceIdMap.set(
+      snapshot.id,
+      allocateId(usedReferenceIds, deps.newUuid),
+    );
     preview.references.conflicting += 1;
   }
 

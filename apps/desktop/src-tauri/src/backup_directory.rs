@@ -18,6 +18,7 @@ use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
 use std::io::{ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
@@ -179,6 +180,7 @@ struct Inner {
 pub struct BackupDirectoryCore {
     app_data_dir: PathBuf,
     state: Arc<Mutex<Inner>>,
+    configuration_epoch: Arc<AtomicU64>,
 }
 
 impl BackupDirectoryCore {
@@ -198,7 +200,73 @@ impl BackupDirectoryCore {
                 active,
                 pending: None,
             })),
+            configuration_epoch: Arc::new(AtomicU64::new(0)),
         }
+    }
+
+    fn configuration_epoch(&self) -> u64 {
+        self.configuration_epoch.load(Ordering::SeqCst)
+    }
+
+    fn invalidate_configuration_epoch(&self, expected: u64) -> bool {
+        self.configuration_epoch
+            .compare_exchange(
+                expected,
+                expected.wrapping_add(2),
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            )
+            .is_ok()
+    }
+
+    fn invalidate_current_configuration_epoch(&self) {
+        let mut current = self.configuration_epoch();
+        loop {
+            let next = if current % 2 == 0 {
+                current.wrapping_add(2)
+            } else {
+                current.wrapping_add(1)
+            };
+            match self.configuration_epoch.compare_exchange(
+                current,
+                next,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            ) {
+                Ok(_) => return,
+                Err(actual) => current = actual,
+            }
+        }
+    }
+
+    fn require_configuration_epoch(&self, expected: u64) -> Result<(), BackupError> {
+        if self.configuration_epoch() != expected {
+            return Err(BackupError::new(
+                BackupErrorCode::Timeout,
+                "the folder configuration operation expired",
+            ));
+        }
+        Ok(())
+    }
+
+    fn claim_configuration_commit(&self, expected: u64) -> Result<(), BackupError> {
+        if expected % 2 != 0
+            || self
+                .configuration_epoch
+                .compare_exchange(
+                    expected,
+                    expected.wrapping_add(1),
+                    Ordering::SeqCst,
+                    Ordering::SeqCst,
+                )
+                .is_err()
+        {
+            return Err(BackupError::new(
+                BackupErrorCode::Timeout,
+                "the folder configuration operation expired",
+            ));
+        }
+        Ok(())
     }
 
     // -- Configuration flow -------------------------------------------------
@@ -206,6 +274,7 @@ impl BackupDirectoryCore {
     /// Validates a picker-provided folder, creates the `Tesina Backups`
     /// subfolder, and stores it as the pending selection without persisting.
     pub fn begin_configuration(&self, path: &str) -> Result<PendingConfiguration, BackupError> {
+        self.invalidate_current_configuration_epoch();
         let selected = PathBuf::from(path);
         let metadata = fs::symlink_metadata(&selected)
             .map_err(|error| BackupError::io("selected folder is not accessible", &error))?;
@@ -236,8 +305,9 @@ impl BackupDirectoryCore {
             ));
         }
         let subfolder = canonical.join(BACKUP_SUBFOLDER_NAME);
-        fs::create_dir_all(&subfolder)
-            .map_err(|error| BackupError::io("cannot create the Tesina Backups subfolder", &error))?;
+        fs::create_dir_all(&subfolder).map_err(|error| {
+            BackupError::io("cannot create the Tesina Backups subfolder", &error)
+        })?;
         let subfolder = fs::canonicalize(&subfolder).map_err(|error| {
             BackupError::io("Tesina Backups subfolder cannot be canonicalized", &error)
         })?;
@@ -256,11 +326,7 @@ impl BackupDirectoryCore {
 
     /// Writes a test archive exclusively into the PENDING subfolder and
     /// records it for this pending session. Returns the archive's sha256.
-    pub fn write_test_archive(
-        &self,
-        file_name: &str,
-        bytes: &[u8],
-    ) -> Result<String, BackupError> {
+    pub fn write_test_archive(&self, file_name: &str, bytes: &[u8]) -> Result<String, BackupError> {
         validate_file_name(file_name)?;
         let mut inner = self.lock();
         let pending = inner.pending.as_mut().ok_or_else(|| {
@@ -272,7 +338,9 @@ impl BackupDirectoryCore {
         let subfolder = resolve_subfolder(&pending.canonical_folder_path)?;
         write_exclusive(&subfolder, file_name, bytes)?;
         let sha = sha256_hex(bytes);
-        pending.test_archives.push((file_name.to_owned(), sha.clone()));
+        pending
+            .test_archives
+            .push((file_name.to_owned(), sha.clone()));
         Ok(sha)
     }
 
@@ -280,7 +348,16 @@ impl BackupDirectoryCore {
     /// Generates a fresh `backupSetId`, atomically persists the authorization
     /// record, records the test archive(s) in the ledger, drops any previous
     /// active authorization (old files untouched), and clears pending.
-    pub fn activate_configuration(&self) -> Result<ActiveConfiguration, BackupError> {
+    #[cfg(test)]
+    fn activate_configuration(&self) -> Result<ActiveConfiguration, BackupError> {
+        self.activate_configuration_at_epoch(self.configuration_epoch())
+    }
+
+    fn activate_configuration_at_epoch(
+        &self,
+        epoch: u64,
+    ) -> Result<ActiveConfiguration, BackupError> {
+        self.require_configuration_epoch(epoch)?;
         let mut inner = self.lock();
         let pending = inner.pending.as_ref().ok_or_else(|| {
             BackupError::new(
@@ -313,11 +390,8 @@ impl BackupDirectoryCore {
                     "the test archive is not a regular file",
                 ));
             }
-            let current_sha256 = sha256_file_bounded(
-                &path,
-                "cannot reopen test archive",
-                MAX_ARCHIVE_BYTES,
-            )?;
+            let current_sha256 =
+                sha256_file_bounded(&path, "cannot reopen test archive", MAX_ARCHIVE_BYTES)?;
             if !current_sha256.eq_ignore_ascii_case(expected_sha256) {
                 return Err(BackupError::new(
                     BackupErrorCode::HashMismatch,
@@ -336,6 +410,7 @@ impl BackupDirectoryCore {
                 backup_set_id: backup_set_id.clone(),
             });
         }
+        self.claim_configuration_commit(epoch)?;
         // The ledger is non-authorizing metadata. Persist it first so any
         // failure leaves setup inactive; once the authorization record lands,
         // both durable halves already describe the same backup set.
@@ -356,6 +431,7 @@ impl BackupDirectoryCore {
     /// Clears the pending selection and removes ONLY the exact test file(s)
     /// this pending session wrote (best-effort; never touches other files).
     pub fn cancel_configuration(&self) -> Result<(), BackupError> {
+        self.invalidate_current_configuration_epoch();
         let mut inner = self.lock();
         if let Some(pending) = inner.pending.take() {
             if let Ok(subfolder) = resolve_subfolder(&pending.canonical_folder_path) {
@@ -473,7 +549,9 @@ impl BackupDirectoryCore {
         let file = fs::File::open(&path)
             .map_err(|error| BackupError::io("cannot read archive", &error))?;
         let mut bytes = Vec::with_capacity(
-            usize::try_from(metadata.len()).unwrap_or(max_bytes).min(max_bytes),
+            usize::try_from(metadata.len())
+                .unwrap_or(max_bytes)
+                .min(max_bytes),
         );
         file.take((max_bytes as u64).saturating_add(1))
             .read_to_end(&mut bytes)
@@ -548,23 +626,18 @@ impl BackupDirectoryCore {
                 "the removal candidate is not a regular file",
             ));
         }
-        let current = sha256_file_bounded(
-            &path,
-            "cannot read archive",
-            MAX_ARCHIVE_BYTES,
-        )?;
+        let current = sha256_file_bounded(&path, "cannot read archive", MAX_ARCHIVE_BYTES)?;
         if !current.eq_ignore_ascii_case(expected_sha256) {
             return Err(BackupError::new(
                 BackupErrorCode::HashMismatch,
                 "the file's current bytes do not match the recorded hash; nothing was deleted",
             ));
         }
-        fs::remove_file(&path)
-            .map_err(|error| BackupError::io("cannot remove archive", &error))?;
+        fs::remove_file(&path).map_err(|error| BackupError::io("cannot remove archive", &error))?;
         let mut ledger = load_ledger(&self.app_data_dir);
-        ledger
-            .entries
-            .retain(|entry| !(entry.file_name == file_name && entry.backup_set_id == backup_set_id));
+        ledger.entries.retain(|entry| {
+            !(entry.file_name == file_name && entry.backup_set_id == backup_set_id)
+        });
         write_json_atomic(&self.app_data_dir, LEDGER_FILE_NAME, &ledger)?;
         drop(inner);
         Ok(())
@@ -604,6 +677,7 @@ impl BackupDirectoryCore {
     /// The ledger file is retained: it only ever authorizes pruning of
     /// matching set ids, and a fresh set id never matches old entries.
     pub fn disable(&self) -> Result<(), BackupError> {
+        self.invalidate_current_configuration_epoch();
         let mut inner = self.lock();
         let record = self.app_data_dir.join(DIRECTORY_FILE_NAME);
         match fs::remove_file(&record) {
@@ -621,7 +695,9 @@ impl BackupDirectoryCore {
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
-        self.state.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 }
 
@@ -680,8 +756,12 @@ fn resolve_subfolder(stored_canonical_folder: &Path) -> Result<PathBuf, BackupEr
 /// Strict bare-file-name grammar: `^[A-Za-z0-9 ._-]+\.tesina$`, no path
 /// separators, no leading dot, at most 120 bytes.
 fn validate_file_name(file_name: &str) -> Result<(), BackupError> {
-    let invalid =
-        |detail: &str| Err(BackupError::new(BackupErrorCode::InvalidFileName, detail.to_owned()));
+    let invalid = |detail: &str| {
+        Err(BackupError::new(
+            BackupErrorCode::InvalidFileName,
+            detail.to_owned(),
+        ))
+    };
     if file_name.is_empty() {
         return invalid("file name is empty");
     }
@@ -797,16 +877,12 @@ fn write_json_atomic(
         match fs::rename(&tmp_path, &final_path) {
             Ok(()) => Ok(()),
             Err(_first) if cfg!(windows) && final_path.exists() => {
-                fs::remove_file(&final_path).map_err(|error| {
-                    BackupError::io("cannot replace existing record", &error)
-                })?;
-                fs::rename(&tmp_path, &final_path).map_err(|error| {
-                    BackupError::io("cannot install replacement record", &error)
-                })
+                fs::remove_file(&final_path)
+                    .map_err(|error| BackupError::io("cannot replace existing record", &error))?;
+                fs::rename(&tmp_path, &final_path)
+                    .map_err(|error| BackupError::io("cannot install replacement record", &error))
             }
-            Err(error) => {
-                Err(BackupError::io("cannot atomically replace record", &error))
-            }
+            Err(error) => Err(BackupError::io("cannot atomically replace record", &error)),
         }
     })();
     if result.is_err() {
@@ -952,6 +1028,45 @@ where
     }
 }
 
+async fn run_activation_with_timeout(
+    timeout: Duration,
+    core: BackupDirectoryCore,
+) -> Result<ActiveConfiguration, BackupError> {
+    let epoch = core.configuration_epoch();
+    let worker = core.clone();
+    let mut task =
+        tauri::async_runtime::spawn_blocking(move || worker.activate_configuration_at_epoch(epoch));
+    match tokio::time::timeout(timeout, &mut task).await {
+        Err(_) => {
+            if core.invalidate_configuration_epoch(epoch) {
+                return Err(BackupError::new(
+                    BackupErrorCode::Timeout,
+                    "the selected backup folder did not respond before the timeout",
+                ));
+            }
+            if core.configuration_epoch() == epoch.wrapping_add(1) {
+                match task.await {
+                    Err(error) => Err(BackupError::new(
+                        BackupErrorCode::Io,
+                        format!("selected-folder worker failed: {error}"),
+                    )),
+                    Ok(result) => result,
+                }
+            } else {
+                Err(BackupError::new(
+                    BackupErrorCode::Timeout,
+                    "the selected backup folder did not respond before the timeout",
+                ))
+            }
+        }
+        Ok(Err(error)) => Err(BackupError::new(
+            BackupErrorCode::Io,
+            format!("selected-folder worker failed: {error}"),
+        )),
+        Ok(Ok(result)) => result,
+    }
+}
+
 #[tauri::command]
 pub async fn backup_begin_configuration(
     state: tauri::State<'_, BackupDirectoryCore>,
@@ -977,7 +1092,7 @@ pub async fn backup_activate_configuration(
     state: tauri::State<'_, BackupDirectoryCore>,
 ) -> Result<ActiveConfiguration, BackupError> {
     let core = state.inner().clone();
-    run_selected_folder(move || core.activate_configuration()).await
+    run_activation_with_timeout(SELECTED_FOLDER_TIMEOUT, core).await
 }
 
 #[tauri::command]
@@ -1115,6 +1230,27 @@ mod tests {
         assert_eq!(error.code, BackupErrorCode::Timeout);
     }
 
+    #[tokio::test(flavor = "current_thread")]
+    async fn timed_out_activation_worker_cannot_commit_after_returning() {
+        let fixture = fixture();
+        let core = core(&fixture);
+        core.begin_configuration(fixture.selected_dir.to_str().unwrap())
+            .unwrap();
+        core.write_test_archive("Delayed.tesina", b"validated")
+            .unwrap();
+
+        let guard = core.state.lock().unwrap();
+        let error = run_activation_with_timeout(Duration::from_millis(5), core.clone())
+            .await
+            .expect_err("blocked activation must time out");
+        assert_eq!(error.code, BackupErrorCode::Timeout);
+        drop(guard);
+        tokio::time::sleep(Duration::from_millis(20)).await;
+
+        assert!(!fixture.app_data_dir.join(DIRECTORY_FILE_NAME).exists());
+        assert!(!core.status().configured);
+    }
+
     struct Fixture {
         _root: TempDir,
         app_data_dir: PathBuf,
@@ -1147,7 +1283,9 @@ mod tests {
     }
 
     fn subfolder_of(selected: &Path) -> PathBuf {
-        fs::canonicalize(selected).unwrap().join(BACKUP_SUBFOLDER_NAME)
+        fs::canonicalize(selected)
+            .unwrap()
+            .join(BACKUP_SUBFOLDER_NAME)
     }
 
     #[test]
@@ -1170,8 +1308,7 @@ mod tests {
         Uuid::parse_str(&active.backup_set_id).expect("uuid backup set id");
 
         let record = fixture.app_data_dir.join(DIRECTORY_FILE_NAME);
-        let json: serde_json::Value =
-            serde_json::from_slice(&fs::read(&record).unwrap()).unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&fs::read(&record).unwrap()).unwrap();
         assert_eq!(json["schemaVersion"], 1);
         assert_eq!(json["backupSetId"], active.backup_set_id.as_str());
         assert_eq!(
@@ -1181,7 +1318,10 @@ mod tests {
 
         let status = core.status();
         assert!(status.configured && status.folder_available);
-        assert_eq!(status.backup_set_id.as_deref(), Some(active.backup_set_id.as_str()));
+        assert_eq!(
+            status.backup_set_id.as_deref(),
+            Some(active.backup_set_id.as_str())
+        );
     }
 
     #[test]
@@ -1202,7 +1342,9 @@ mod tests {
         );
         assert!(status.folder_available);
         // The reloaded instance can operate on the restored authorization.
-        reloaded.write_archive("After Restart.tesina", b"x").unwrap();
+        reloaded
+            .write_archive("After Restart.tesina", b"x")
+            .unwrap();
     }
 
     #[test]
@@ -1288,7 +1430,10 @@ mod tests {
         assert_eq!(sha, sha256_hex(b"wizard bytes"));
 
         let path = subfolder_of(&fixture.selected_dir).join("Wizard Test.tesina");
-        assert!(path.is_file(), "test archive must land in pending subfolder");
+        assert!(
+            path.is_file(),
+            "test archive must land in pending subfolder"
+        );
         assert_eq!(
             core.read_test_archive("Wizard Test.tesina").unwrap(),
             b"wizard bytes"
@@ -1311,11 +1456,13 @@ mod tests {
         let fixture = fixture();
         let core = core(&fixture);
         configure(&core, &fixture.selected_dir);
-        core.write_archive("Active.tesina", b"active bytes").unwrap();
+        core.write_archive("Active.tesina", b"active bytes")
+            .unwrap();
 
         let replacement = fixture._root.path().join("ReplacementFolder");
         fs::create_dir_all(&replacement).unwrap();
-        core.begin_configuration(replacement.to_str().unwrap()).unwrap();
+        core.begin_configuration(replacement.to_str().unwrap())
+            .unwrap();
         core.write_test_archive("Pending.tesina", b"pending bytes")
             .unwrap();
 
@@ -1364,6 +1511,25 @@ mod tests {
     }
 
     #[test]
+    fn stale_activation_epoch_cannot_commit_configuration() {
+        let fixture = fixture();
+        let core = core(&fixture);
+        core.begin_configuration(fixture.selected_dir.to_str().unwrap())
+            .unwrap();
+        core.write_test_archive("Stale.tesina", b"validated")
+            .unwrap();
+        let epoch = core.configuration_epoch();
+        core.invalidate_configuration_epoch(epoch);
+
+        let error = core
+            .activate_configuration_at_epoch(epoch)
+            .expect_err("a timed-out activation must not commit later");
+        assert_eq!(error.code, BackupErrorCode::Timeout);
+        assert!(!fixture.app_data_dir.join(DIRECTORY_FILE_NAME).exists());
+        assert!(!core.status().configured);
+    }
+
+    #[test]
     fn cancel_removes_only_its_own_test_file() {
         let fixture = fixture();
         let core = core(&fixture);
@@ -1378,7 +1544,10 @@ mod tests {
         core.cancel_configuration().unwrap();
 
         let subfolder = subfolder_of(&fixture.selected_dir);
-        assert!(!subfolder.join("My Test.tesina").exists(), "own test removed");
+        assert!(
+            !subfolder.join("My Test.tesina").exists(),
+            "own test removed"
+        );
         assert_eq!(
             fs::read(subfolder.join("Other Device.tesina")).unwrap(),
             b"foreign",
@@ -1407,7 +1576,8 @@ mod tests {
         let core = core(&fixture);
         configure(&core, &fixture.selected_dir);
 
-        core.write_archive("Daily.tesina", b"original bytes").unwrap();
+        core.write_archive("Daily.tesina", b"original bytes")
+            .unwrap();
         let error = core
             .write_archive("Daily.tesina", b"different bytes")
             .expect_err("second write must collide");
@@ -1491,17 +1661,17 @@ mod tests {
 
         let overlong = format!("{}.tesina", "a".repeat(121));
         let rejected = [
-            "../evil.tesina",           // traversal
-            "a/b.tesina",               // separator
-            "a\\b.tesina",              // backslash separator
-            "no-extension",             // missing extension
-            ".hidden.tesina",           // leading dot
-            ".tesina",                  // empty stem
-            "",                         // empty
-            "nul\0byte.tesina",         // NUL
-            "café.tesina",              // non-ASCII
-            overlong.as_str(),          // length > 120
-            "tab\tname.tesina",         // control char
+            "../evil.tesina",   // traversal
+            "a/b.tesina",       // separator
+            "a\\b.tesina",      // backslash separator
+            "no-extension",     // missing extension
+            ".hidden.tesina",   // leading dot
+            ".tesina",          // empty stem
+            "",                 // empty
+            "nul\0byte.tesina", // NUL
+            "café.tesina",      // non-ASCII
+            overlong.as_str(),  // length > 120
+            "tab\tname.tesina", // control char
         ];
         for candidate in rejected {
             let error = core
@@ -1514,8 +1684,11 @@ mod tests {
             );
         }
         // A valid grammar-conforming name still works.
-        core.write_archive("Tesina Library - a1b2c3d4 - 2026-08-08T19-42-00Z.tesina", b"ok")
-            .unwrap();
+        core.write_archive(
+            "Tesina Library - a1b2c3d4 - 2026-08-08T19-42-00Z.tesina",
+            b"ok",
+        )
+        .unwrap();
     }
 
     #[test]
@@ -1539,7 +1712,10 @@ mod tests {
         let listings = core.list_archives().unwrap();
         let names: Vec<_> = listings.iter().map(|l| l.file_name.as_str()).collect();
         assert!(names.contains(&"Listed.tesina"));
-        assert!(names.contains(&"Test Backup.tesina"), "wizard test archive listed");
+        assert!(
+            names.contains(&"Test Backup.tesina"),
+            "wizard test archive listed"
+        );
         assert!(!names.contains(&"notes.txt"));
         assert!(!names.contains(&"nested-dir"));
         assert!(!names.contains(&"Inner.tesina"), "never recurse");
@@ -1556,14 +1732,18 @@ mod tests {
         let fixture = fixture();
         let core = core(&fixture);
         configure(&core, &fixture.selected_dir);
-        let sha = core.write_archive("Guarded.tesina", b"guarded bytes").unwrap();
+        let sha = core
+            .write_archive("Guarded.tesina", b"guarded bytes")
+            .unwrap();
         core.confirm_archive("Guarded.tesina", &sha).unwrap();
 
         let error = core
             .remove_archive("Guarded.tesina", &sha256_hex(b"some other bytes"))
             .expect_err("wrong hash must refuse deletion");
         assert_eq!(error.code, BackupErrorCode::HashMismatch);
-        assert!(subfolder_of(&fixture.selected_dir).join("Guarded.tesina").is_file());
+        assert!(subfolder_of(&fixture.selected_dir)
+            .join("Guarded.tesina")
+            .is_file());
         assert!(core
             .ledger_entries()
             .unwrap()
@@ -1580,7 +1760,9 @@ mod tests {
         core.confirm_archive("Old.tesina", &sha).unwrap();
 
         core.remove_archive("Old.tesina", &sha).unwrap();
-        assert!(!subfolder_of(&fixture.selected_dir).join("Old.tesina").exists());
+        assert!(!subfolder_of(&fixture.selected_dir)
+            .join("Old.tesina")
+            .exists());
         assert!(core
             .ledger_entries()
             .unwrap()
@@ -1644,8 +1826,13 @@ mod tests {
 
         core.disable().unwrap();
         assert!(!fixture.app_data_dir.join(DIRECTORY_FILE_NAME).exists());
-        assert!(fixture.app_data_dir.join(LEDGER_FILE_NAME).exists(), "ledger retained");
-        assert!(subfolder_of(&fixture.selected_dir).join("Kept.tesina").is_file());
+        assert!(
+            fixture.app_data_dir.join(LEDGER_FILE_NAME).exists(),
+            "ledger retained"
+        );
+        assert!(subfolder_of(&fixture.selected_dir)
+            .join("Kept.tesina")
+            .is_file());
         assert!(!core.status().configured);
         // Disabling twice stays idempotent.
         core.disable().unwrap();
@@ -1677,7 +1864,9 @@ mod tests {
         let fixture = fixture();
         let core_instance = core(&fixture);
         let first = configure(&core_instance, &fixture.selected_dir);
-        core_instance.write_archive("First Set.tesina", b"one").unwrap();
+        core_instance
+            .write_archive("First Set.tesina", b"one")
+            .unwrap();
         core_instance.disable().unwrap();
 
         // Re-enable into a second folder: fresh set id never matches old entries.
@@ -1692,7 +1881,9 @@ mod tests {
         assert!(entries
             .iter()
             .all(|entry| entry.backup_set_id == second.backup_set_id));
-        assert!(entries.iter().all(|entry| entry.file_name != "First Set.tesina"));
+        assert!(entries
+            .iter()
+            .all(|entry| entry.file_name != "First Set.tesina"));
 
         // Old entries are retained on disk (never authorize a fresh set id).
         let raw = load_ledger(&fixture.app_data_dir);

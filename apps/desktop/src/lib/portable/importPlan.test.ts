@@ -363,6 +363,31 @@ describe("planImport references", () => {
       conflicting: 0,
     });
   });
+
+  it("remaps a cited snapshot-only reference that collides with local content", async () => {
+    const localRef = reference(1, "Versión local editada");
+    const archivedRef = reference(1, "Versión preservada en el ensayo");
+    const imported = essayOf({
+      id: fixtureUuid(2, 8),
+      cites: [archivedRef.id],
+      snapshot: [archivedRef],
+    });
+    const plan = await planImport(
+      archiveOf({ essays: [imported] }),
+      localOf({ references: [localRef] }),
+      deps(),
+    );
+
+    const written = essayWrites(plan)[0].essay;
+    const remappedId = fixtureUuid(9, 1);
+    expect(collectCitationRefIds(written.content)).toEqual([remappedId]);
+    expect(written.referencesSnapshot).toEqual([{
+      ...archivedRef,
+      id: remappedId,
+    }]);
+    expect(plan.mergedLibrary.references).toEqual([localRef]);
+    expect(plan.preview.references.conflicting).toBe(1);
+  });
 });
 
 describe("planImport collections", () => {
