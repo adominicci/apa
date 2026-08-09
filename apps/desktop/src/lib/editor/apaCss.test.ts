@@ -93,6 +93,9 @@ describe("APA editor page-sheets", () => {
     expect(css).toMatch(
       /\.tesina-pagination-overflow-table\s*>\s*table\s*\{[^}]*table-layout:\s*fixed;[^}]*width:\s*100%;/s,
     );
+    expect(css).toMatch(
+      /\.sec-references\s+\.ref-entry\[data-reference-overflow="true"\]\s*\{[^}]*max-height:\s*864px;[^}]*overflow-y:\s*auto;[^}]*overflow-wrap:\s*anywhere;[^}]*outline:/s,
+    );
   });
 });
 

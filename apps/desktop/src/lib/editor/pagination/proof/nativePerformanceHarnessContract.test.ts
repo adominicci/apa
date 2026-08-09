@@ -127,6 +127,20 @@ describe("native performance harness wiring", () => {
     );
   });
 
+  it("proves oversized references stay bounded and fully reachable", () => {
+    expect(source).toContain("productionReferenceOverflowGeometry");
+    expect(source).toContain(
+      '[data-reference-overflow="true"]',
+    );
+    expect(source).toMatch(
+      /productionReferenceOverflowScrollHeight\s*>\s*productionReferenceOverflowClientHeight/,
+    );
+    expect(source).toContain("productionReferenceOverflowContentReachable");
+    expect(source).toMatch(
+      /productionReferenceOverflowGeometry:\s*productionReferenceOverflow\.passed/,
+    );
+  });
+
   it("preserves only the final stable parity editor for an opt-in visual sweep", () => {
     expect(source).toMatch(
       /const preserveStableEditor\s*=\s*new URLSearchParams\(location\.search\)\.get\("inspect"\) === "1";/,

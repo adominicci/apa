@@ -421,6 +421,37 @@ describe("planPagination", () => {
     ]);
   });
 
+  it("keeps a heading with the paragraph's required opening lines", () => {
+    const paragraphLine = (id: string, pos: number, index: number) =>
+      fragment(id, pos, 30, {
+        lineGroup: {
+          id: "opening-paragraph",
+          index,
+          count: 3,
+          minLinesAtTop: 2,
+          minLinesAtBottom: 2,
+        },
+      });
+    const plan = stablePlan({
+      epoch: 7,
+      fragments: [
+        fragment("preface", 1, 774),
+        fragment("heading", 20, 40, {
+          kind: "heading",
+          keepWithNext: true,
+        }),
+        paragraphLine("opening-1", 30, 0),
+        paragraphLine("opening-2", 40, 1),
+        paragraphLine("opening-3", 50, 2),
+      ],
+    });
+
+    expect(plan.pageStarts).toEqual([
+      { pageIndex: 0, pos: 1, section: "body", kind: "section" },
+      { pageIndex: 1, pos: 20, section: "body", kind: "block" },
+    ]);
+  });
+
   it("moves a complete table preamble chain with its first row", () => {
     const plan = stablePlan({
       epoch: 7,

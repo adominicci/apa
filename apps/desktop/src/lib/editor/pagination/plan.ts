@@ -72,6 +72,26 @@ function keptChainHeight(
     total += measuredHeight(next.height);
     cursor += 1;
   }
+
+  const openingLine = fragments[cursor];
+  if (
+    cursor > startIndex && openingLine?.lineGroup &&
+    isLineFragment(openingLine)
+  ) {
+    const requiredOpeningLines = Math.max(
+      1,
+      openingLine.lineGroup.minLinesAtBottom ?? DEFAULT_MIN_LINES,
+    );
+    for (
+      let lineOffset = 1;
+      lineOffset < requiredOpeningLines;
+      lineOffset += 1
+    ) {
+      const nextLine = fragments[cursor + lineOffset];
+      if (!sameLineGroup(openingLine, nextLine)) break;
+      total += measuredHeight(nextLine!.height);
+    }
+  }
   return total;
 }
 

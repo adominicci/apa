@@ -58,12 +58,28 @@ describe("planReferencePages", () => {
       headingHeight: 64,
       entries: [{ key: "long", height: 1200 }],
     })).toEqual({
-      pages: [{
-        index: 0,
-        entryKeys: ["long"],
-        overflowKeys: ["long"],
-      }],
-      pageCount: 1,
+      pages: [
+        { index: 0, entryKeys: [], overflowKeys: [] },
+        { index: 1, entryKeys: ["long"], overflowKeys: ["long"] },
+      ],
+      pageCount: 2,
+    });
+  });
+
+  it("places multiple oversize entries on separate bounded pages", () => {
+    expect(planReferencePages({
+      headingHeight: 64,
+      entries: [
+        { key: "long-a", height: 1200 },
+        { key: "long-b", height: 1000 },
+      ],
+    })).toEqual({
+      pages: [
+        { index: 0, entryKeys: [], overflowKeys: [] },
+        { index: 1, entryKeys: ["long-a"], overflowKeys: ["long-a"] },
+        { index: 2, entryKeys: ["long-b"], overflowKeys: ["long-b"] },
+      ],
+      pageCount: 3,
     });
   });
 

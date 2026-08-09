@@ -211,6 +211,15 @@
   text-indent: -0.5in;
 }
 
+.apa-editor .tiptap .sec-references .ref-entry[data-reference-overflow="true"] {
+  max-height: 864px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+  outline: 2px dashed var(--warn, #a65f00);
+  outline-offset: -2px;
+}
+
 .apa-editor .tiptap .sec-references .ref-empty {
   text-align: center;
   text-indent: 0;

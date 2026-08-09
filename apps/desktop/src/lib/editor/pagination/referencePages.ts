@@ -34,10 +34,7 @@ export function planReferencePages(input: {
     let page = pages.at(-1)!;
     const available = Math.max(0, PRINTABLE_HEIGHT - usedHeight);
 
-    if (
-      height > available && usedHeight > 0 &&
-      height <= PRINTABLE_HEIGHT
-    ) {
+    if (height > available && usedHeight > 0) {
       page = {
         index: pages.length,
         entryKeys: [],
@@ -51,7 +48,7 @@ export function planReferencePages(input: {
     if (height > Math.max(0, PRINTABLE_HEIGHT - usedHeight)) {
       page.overflowKeys.push(entry.key);
     }
-    usedHeight += height;
+    usedHeight += Math.min(height, PRINTABLE_HEIGHT);
   }
 
   return { pages, pageCount: pages.length };

@@ -1,6 +1,7 @@
 import type { Editor } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { TextSelection } from "@tiptap/pm/state";
+import type { Reference } from "@tesina/engine";
 import { createEmptyEssay } from "../../../model/essay.ts";
 import {
   renderEssayCss,
@@ -9,6 +10,7 @@ import {
 import { createTesinaEditor } from "../../createEditor.ts";
 import { insertCitation } from "../../citation.ts";
 import {
+  createReferencePagesElement,
   type ReferenceDecorationEnv,
   refreshReferenceDecoration,
   repaintReferenceDecoration,
@@ -21,6 +23,7 @@ import {
 import { calculatePaperScale } from "../paperScale.ts";
 import { composeDocumentPages } from "../pageComposition.ts";
 import { PAGINATION_RESPONSIVENESS_BUDGET } from "../performanceBudget.ts";
+import { planReferencePages } from "../referencePages.ts";
 import {
   createPaginationPlugin,
   invalidatePagination,
@@ -207,6 +210,96 @@ interface NativeHardBreakEvidence {
   trailingMeasuredSpan: number;
   breakOnlyVisualSpan: number;
   breakOnlyMeasuredSpan: number;
+}
+
+interface NativeReferenceOverflowEvidence {
+  passed: boolean;
+  pageCount: number;
+  height: number;
+  clientHeight: number;
+  scrollHeight: number;
+  overflowY: string;
+  outlineStyle: string;
+  contentReachable: boolean;
+}
+
+async function measureNativeReferenceOverflowEvidence(
+  host: HTMLElement,
+  source: Reference,
+): Promise<NativeReferenceOverflowEvidence> {
+  const wrapper = document.createElement("div");
+  wrapper.className = "apa-editor";
+  wrapper.style.position = "absolute";
+  wrapper.style.left = "-10000px";
+  wrapper.style.top = "0";
+  const root = document.createElement("div");
+  root.className = "tiptap";
+  wrapper.append(root);
+  host.append(wrapper);
+
+  try {
+    const reference: Reference = {
+      ...source,
+      id: "native-oversize-reference",
+      title: Array.from(
+        { length: 320 },
+        (_, index) => `Invented overflow reference segment ${index + 1}`,
+      ).join(" "),
+    };
+    const plan = planReferencePages({
+      headingHeight: 64,
+      entries: [{ key: reference.id, height: 1200 }],
+    });
+    root.append(
+      createReferencePagesElement(
+        {
+          references: [reference],
+          locale: "en",
+          emptyLabel: "unused",
+        },
+        plan,
+        [7, 8],
+        false,
+      ),
+    );
+    await frame();
+    await frame();
+
+    const overflow = root.querySelector<HTMLElement>(
+      '[data-reference-overflow="true"]',
+    );
+    if (!overflow) {
+      throw new Error("Native oversized-reference treatment is missing");
+    }
+    const style = getComputedStyle(overflow);
+    const rect = overflow.getBoundingClientRect();
+    const productionReferenceOverflowScrollHeight = overflow.scrollHeight;
+    const productionReferenceOverflowClientHeight = overflow.clientHeight;
+    overflow.scrollTop = productionReferenceOverflowScrollHeight;
+    const productionReferenceOverflowContentReachable = overflow.scrollTop > 0;
+    overflow.scrollTop = 0;
+    const evidence: NativeReferenceOverflowEvidence = {
+      passed: plan.pageCount === 2 &&
+        root.querySelectorAll("[data-reference-page-index]").length === 2 &&
+        rect.height <= 864.5 &&
+        productionReferenceOverflowScrollHeight >
+          productionReferenceOverflowClientHeight &&
+        productionReferenceOverflowContentReachable &&
+        style.overflowY === "auto" &&
+        style.outlineStyle === "dashed",
+      pageCount: plan.pageCount,
+      height: rect.height,
+      clientHeight: productionReferenceOverflowClientHeight,
+      scrollHeight: productionReferenceOverflowScrollHeight,
+      overflowY: style.overflowY,
+      outlineStyle: style.outlineStyle,
+      contentReachable: productionReferenceOverflowContentReachable,
+    };
+    diagnostic("native-reference-overflow-evidence", { ...evidence });
+    return evidence;
+  } finally {
+    wrapper.remove();
+  }
 }
 
 async function measureNativeHardBreakEvidence(
@@ -1474,6 +1567,11 @@ async function runProof(): Promise<ProofResult> {
     const hardBreakEvidence = await measureNativeHardBreakEvidence(
       requireElement<HTMLElement>("#proof-editor"),
     );
+    const productionReferenceOverflow =
+      await measureNativeReferenceOverflowEvidence(
+        requireElement<HTMLElement>("#proof-editor"),
+        fixture.references[0]!,
+      );
     const tableFragments = initialMeasurement.fragments.filter((fragment) =>
       fragment.kind === "tableRow"
     );
@@ -2668,6 +2766,7 @@ async function runProof(): Promise<ProofResult> {
         productionReferencesBeforeAppendix,
       productionAtomicOverflowGeometry,
       productionTableRowOverflowGeometry,
+      productionReferenceOverflowGeometry: productionReferenceOverflow.passed,
       hardBreakOnlyLinesMeasured: hardBreakEvidence.passed,
       productionPageChromeInert,
       productionScaleInvariantCount,
@@ -2798,6 +2897,19 @@ async function runProof(): Promise<ProofResult> {
           cell.tagName
         ).join(","),
         productionTableRowOverflowCellWidths: productionRowCellWidths.join(","),
+        productionReferenceOverflowPageCount:
+          productionReferenceOverflow.pageCount,
+        productionReferenceOverflowHeight: productionReferenceOverflow.height,
+        productionReferenceOverflowScrollHeight:
+          productionReferenceOverflow.scrollHeight,
+        productionReferenceOverflowClientHeight:
+          productionReferenceOverflow.clientHeight,
+        productionReferenceOverflowY: productionReferenceOverflow.overflowY,
+        productionReferenceOverflowOutlineStyle:
+          productionReferenceOverflow.outlineStyle,
+        productionReferenceOverflowContentReachable: String(
+          productionReferenceOverflow.contentReachable,
+        ),
         productionJsonIdentity: String(productionJsonIdentity),
         parityStableFrames,
         nativeRuntimeIdentity: JSON.stringify({
