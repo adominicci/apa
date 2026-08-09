@@ -87,8 +87,8 @@
 - [x] 10.2 Update all current-version statements in `README.md` and revise `AGENTS.md` where necessary so the canonical release contract reflects changelog-derived bundled notes and runtime/package-derived visible versions.
 - [x] 10.3 Move the completed items from `CHANGELOG.md` Unreleased into `## [0.1.3] - 2026-08-09` with plain-language notes explaining automatic Letter-page flow, formatted notes, and permanent version-button access without technical jargon or internal file names.
 - [x] 10.4 Update changelog comparison links and strengthen the release workflow/version contract to verify package, Tauri, Cargo/Cargo.lock, changelog, and bundled-note parity for 0.1.3; confirm the exact bundled Markdown equals both automatic/manual modal content and the release workflow body.
-- [ ] 10.5 Rerun the Svelte autofixer where version/copy changes touch Svelte, then rerun check, test, format, lint, strict OpenSpec validation, both native-engine CI harnesses, packaged-app smoke tests, and the scenario matrix.
-- [ ] 10.6 Commit the verified 0.1.3 release preparation with an English commit message.
+- [x] 10.5 Rerun the Svelte autofixer where version/copy changes touch Svelte, then rerun check, test, format, lint, strict OpenSpec validation, both native-engine CI harnesses, packaged-app smoke tests, and the scenario matrix.
+- [x] 10.6 Commit the verified 0.1.3 release preparation with an English commit message.
 
 ## Task 11: PR, independent review, and merge policy
 

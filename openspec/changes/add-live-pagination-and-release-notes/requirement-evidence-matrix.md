@@ -1,7 +1,7 @@
 # Requirement-to-evidence matrix
 
-Candidate audited: `c2d98f296eeca3e43bd1ab627c66b67e3fe9bdb8` before the
-Task 9 evidence-only test additions.
+Candidate audited: `bec1e6ece55e2cc2de5d6834ddeb179ea98b24b4` after the
+verified Task 10 native-input host correction.
 
 This matrix distinguishes implementation evidence from context and future
 release work. A `PASS` row has repeatable evidence in the current tree. A
@@ -10,21 +10,25 @@ evidence. A `PENDING` row belongs to a later approved task.
 
 ## Evidence boundaries
 
-- [CI run 31295571133](https://github.com/adominicci/apa/actions/runs/31295571133)
+- [CI run 31298188486](https://github.com/adominicci/apa/actions/runs/31298188486)
   is green at the audited exact SHA. Its
-  [WKWebView job](https://github.com/adominicci/apa/actions/runs/31295571133/job/93200003970)
+  [WKWebView job](https://github.com/adominicci/apa/actions/runs/31298188486/job/93206558407)
   and
-  [WebView2 job](https://github.com/adominicci/apa/actions/runs/31295571133/job/93200003956)
+  [WebView2 job](https://github.com/adominicci/apa/actions/runs/31298188486/job/93206558425)
   run the visible native proof with the production pagination measurer and
   extension. The Windows job also completes the strict trusted OS mouse,
-  clipboard, dead-key, and undo path. These jobs are embedded-engine evidence,
-  not packaged-app evidence.
-- [Installer run 31293366301](https://github.com/adominicci/apa/actions/runs/31293366301)
-  is green at earlier code SHA `64456fe`. Its
-  [macOS packaged smoke](https://github.com/adominicci/apa/actions/runs/31293366301/job/93194365934)
-  proves the bundle identifier, version metadata, launch, and three-second
-  liveness only. It explicitly does not prove editing, release-note
-  interaction, IPC/plugin persistence, or installer UX.
+  clipboard, dead-key `e` composition to exact `é`, and undo path: one Copy,
+  one Paste, one trusted Dead key, a one-character document delta, and exact
+  document/selection restoration after one Ctrl+Z. These jobs are
+  embedded-engine evidence, not packaged-app evidence.
+- [Installer run 31298196683](https://github.com/adominicci/apa/actions/runs/31298196683)
+  is green at the same audited SHA. The Windows job verifies the 0.1.3 MSI and
+  NSIS installer, the Ubuntu job verifies the 0.1.3 AppImage and Debian
+  package, and the
+  [macOS packaged smoke](https://github.com/adominicci/apa/actions/runs/31298196683/job/93206579107)
+  verifies the 0.1.3 app and universal DMG, bundle identifier, exact commit,
+  launch, and three-second liveness. It explicitly does not prove editing,
+  release-note interaction, IPC/plugin persistence, or installer UX.
 - DOCX evidence is generated and inspected by
   [`export.test.ts`](../../../packages/docx-export/test/export.test.ts).
 - The historical macOS manual-input result covered trusted composition,
@@ -104,8 +108,8 @@ evidence. A `PENDING` row belongs to a later approved task.
 | C-04 | The version is visible and clickable on the main page and editor bottom status bar | RN-11 through RN-16 | PASS |
 | C-05 | Both version controls show the same installed-version notes and can reopen them | Shared controller and canonical body evidence RN-08, RN-09, RN-15, RN-16 | PASS |
 | C-06 | Use the public academic editor only as functional pagination context | Fresh 2026-08-09 public-guide inspection recorded above; clean-room fixture provenance in [`longDocumentFixture.ts`](../../../apps/desktop/src/lib/editor/pagination/proof/longDocumentFixture.ts) | CONTEXT ONLY — never implementation evidence |
-| C-07 | Specify and track the change with OpenSpec | Proposal, design, both capability specs, this matrix, and [`tasks.md`](./tasks.md) | PASS through Task 9; strict validation rerun required before commit |
-| C-08 | Execute the approved Superpowers end-to-end flow with independent gap review | Task checkpoints, RED→GREEN tests, current independent pagination/release audits, and the final blocker review required after this matrix | PASS through Task 9 |
+| C-07 | Specify and track the change with OpenSpec | Proposal, design, both capability specs, this matrix, and [`tasks.md`](./tasks.md) | PASS through Task 10; strict validation green |
+| C-08 | Execute the approved Superpowers end-to-end flow with independent gap review | Task checkpoints, RED→GREEN tests, independent pagination/release audits, and the focused native-host correction review | PASS through Task 10; no Critical/Important findings |
 | C-09 | Keep implementation isolated in a worktree | Worktree `/Users/andresdominicci/Projects/apa/.worktrees/live-pagination-release-notes`, branch `features/live-pagination-release-notes`; containment/parity rechecked at every checkpoint | PASS |
 | C-10 | Test before launching the app for final manual testing | Automated Task 9 gates are the current owner; packaged interactive/manual launch is deliberately not claimed by the narrow smoke | PENDING — final packaged/manual gate is Task 12.3 after release preparation |
 | C-11 | Current-version notes are inspectable now; the next release gets synchronized plain-English notes/version | Current package `0.1.3` is bound byte-for-byte to its plain-English changelog body by `bundledReleaseNotes.test.ts`; `verify-release-version.test.ts` proves package, Tauri, Cargo, Cargo.lock, automatic/manual presentation, and workflow-body parity | PASS at local release-preparation scope; tag/artifact/publication evidence remains Tasks 11–12 |
@@ -123,10 +127,11 @@ evidence. A `PENDING` row belongs to a later approved task.
 3. Native buttons provide the platform Enter/Space activation contract and the
    real click/focus lifecycle is tested. A packaged OS-key walkthrough for both
    controls belongs to Task 12.3 and is not pre-claimed here.
-4. The packaged smoke proves only launch/metadata/liveness at an earlier code
+4. The packaged smoke proves only launch/metadata/liveness at the exact audited
    SHA. It is not evidence for pagination editing, Markdown, buttons,
    accessibility, offline notes, persistence, or installer UX.
-5. Version `0.1.3` and Cargo.lock/release-body enforcement are locally verified
-   in Task 10. Exact-SHA native/package reruns, PR/merge, app launch/manual
-   testing, tag, artifact inspection, publication, and updater verification
-   remain Tasks 10.5–12 and are not pre-claimed here.
+5. Version `0.1.3`, Cargo.lock/release-body enforcement, exact-SHA native
+   evidence, installer compilation, and the narrow packaged smoke are verified
+   in Task 10. PR/merge, interactive app testing, tag, release-artifact
+   inspection, publication, and public updater verification remain Tasks 11–12
+   and are not pre-claimed here.
