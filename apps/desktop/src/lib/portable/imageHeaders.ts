@@ -72,10 +72,13 @@ function pngHeader(bytes: Uint8Array, maxFrames: number): ImageHeader {
   if (bytes.length < 33 || sig.some((b, i) => bytes[i] !== b)) fail("png");
   // First chunk must be IHDR.
   if (
+    u32be(bytes, 8) !== 13 ||
     bytes[12] !== 0x49 || bytes[13] !== 0x48 || bytes[14] !== 0x44 ||
     bytes[15] !== 0x52
   ) fail("png/ihdr");
   let frames = 1;
+  let sawImageData = false;
+  let sawEnd = false;
   let at = 8;
   while (at + 12 <= bytes.length) {
     const length = u32be(bytes, at);
@@ -91,11 +94,24 @@ function pngHeader(bytes: Uint8Array, maxFrames: number): ImageHeader {
       if (length !== 8) fail("png/actl");
       frames = u32be(bytes, at + 8);
       if (frames === 0) fail("png/frames");
-      if (frames > maxFrames) break;
+      if (frames > maxFrames) {
+        return {
+          kind: "png",
+          width: u32be(bytes, 16),
+          height: u32be(bytes, 20),
+          frames,
+        };
+      }
     }
-    if (type === "IDAT" || type === "IEND") break;
+    if (type === "IDAT") sawImageData = true;
+    if (type === "IEND") {
+      if (length !== 0) fail("png/iend");
+      sawEnd = true;
+      break;
+    }
     at = end;
   }
+  if (!sawImageData || !sawEnd) fail("png/incomplete");
   return {
     kind: "png",
     width: u32be(bytes, 16),

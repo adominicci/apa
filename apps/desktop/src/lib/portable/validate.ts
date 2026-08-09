@@ -541,6 +541,7 @@ function validateEquationAttrs(value: unknown, where: string): void {
 
 const MAX_TABLE_SPAN = 1_000;
 const MAX_TABLE_COLUMN_WIDTH = 100_000;
+const MAX_TABLE_LOGICAL_SPAN_BUDGET = 10_000;
 
 function validateTableCellAttrs(value: unknown, where: string): void {
   if (value !== undefined && !isRecord(value)) throwEssayContent(where);
@@ -562,6 +563,22 @@ function validateTableCellAttrs(value: unknown, where: string): void {
       Number(width) > MAX_TABLE_COLUMN_WIDTH
     )
   ) throwEssayContent(where);
+}
+
+function validateTableLogicalSpanBudget(rows: unknown[], where: string): void {
+  let logicalSpans = 0;
+  for (const row of rows) {
+    const cells = isRecord(row) && Array.isArray(row.content)
+      ? row.content
+      : [];
+    for (const cell of cells) {
+      const attrs = isRecord(cell) && isRecord(cell.attrs) ? cell.attrs : {};
+      logicalSpans += Number(attrs.colspan ?? 1);
+      if (logicalSpans > MAX_TABLE_LOGICAL_SPAN_BUDGET) {
+        throwEssayContent(where);
+      }
+    }
+  }
 }
 
 function validateFigureImageAttrs(value: unknown, where: string): void {
@@ -675,6 +692,7 @@ function validateNodeChildren(
       break;
     case "table":
       valid = children.length > 0 && childTypes.every((t) => t === "tableRow");
+      if (valid) validateTableLogicalSpanBudget(children, where);
       break;
     case "tableRow":
       valid = children.length > 0 &&

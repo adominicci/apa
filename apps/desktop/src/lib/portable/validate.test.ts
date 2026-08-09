@@ -279,6 +279,35 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
     }
   });
 
+  it("rejects a table whose aggregate logical grid is too wide", async () => {
+    const cells = Array.from({ length: 11 }, () => ({
+      type: "tableCell",
+      attrs: { colspan: 1_000, rowspan: 1, colwidth: null },
+      content: [{ type: "paragraph" }],
+    }));
+    const files = mutateEssay(await goldenFiles(), (essay) => {
+      essay.content = {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [{
+            type: "apaTable",
+            content: [
+              { type: "tableTitle" },
+              {
+                type: "table",
+                content: [{ type: "tableRow", content: cells }],
+              },
+              { type: "tableNote" },
+            ],
+          }],
+        }],
+      };
+    });
+
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
   it("rejects a malformed shared library", async () => {
     const files = await goldenFiles();
     files.set(

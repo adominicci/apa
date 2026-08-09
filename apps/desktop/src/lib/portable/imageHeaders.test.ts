@@ -39,6 +39,7 @@ function animatedPng(frames: number): Uint8Array {
       0,
     ]),
     ...chunk("IDAT", []),
+    ...chunk("IEND", []),
   ]);
 }
 
@@ -49,5 +50,10 @@ describe("readImageHeader APNG", () => {
 
   it("rejects a zero-frame animation control chunk", () => {
     expect(() => readImageHeader(animatedPng(0), "png", 100)).toThrow();
+  });
+
+  it("rejects a PNG that ends after IHDR without image data or IEND", () => {
+    const ihdrOnly = animatedPng(1).slice(0, 33);
+    expect(() => readImageHeader(ihdrOnly, "png", 100)).toThrow();
   });
 });
