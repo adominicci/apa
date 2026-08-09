@@ -552,6 +552,43 @@ describe("planPagination", () => {
     });
   });
 
+  it("reserves the remaining body page before references when there is no appendix", () => {
+    const plan = stablePlan({
+      epoch: 11,
+      fragments: [fragment("body", 1, 600)],
+      referencePageCount: 1,
+      referenceInsertionPos: 20,
+    });
+
+    expect(plan.pageGaps).toContainEqual({
+      fragmentId: "derived-references",
+      pageIndex: 1,
+      pos: 20,
+      section: "references",
+      kind: "section",
+      height: LETTER_PRINTABLE_HEIGHT - 600 +
+        2 * LETTER_PAGE_MARGIN + visualPageGap,
+    });
+  });
+
+  it("reuses the authored appendix boundary instead of doubling its gap", () => {
+    const plan = stablePlan({
+      epoch: 11,
+      fragments: [
+        fragment("body", 1, 600),
+        fragment("appendix", 20, 120, {
+          section: "appendix",
+          forcePageStart: true,
+        }),
+      ],
+      referencePageCount: 2,
+      referenceInsertionPos: 20,
+    });
+
+    expect(plan.pageGaps.filter((gap) => gap.pos === 20)).toHaveLength(1);
+    expect(plan.pageGaps[0]?.section).toBe("appendix");
+  });
+
   it("accounts for all authored sections and derived reference pages", () => {
     const plan = stablePlan({
       epoch: 12,

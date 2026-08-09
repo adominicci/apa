@@ -14,6 +14,7 @@ import type {
   PaginationInput,
   PaginationPlan,
   PaginationReason,
+  PaginationStateReport,
   StablePaginationPlan,
 } from "./types.ts";
 import {
@@ -174,6 +175,7 @@ function createEditor(): { editor: Editor; element: HTMLElement } {
       locale: "en",
       emptyLabel: "unused",
     },
+    paginationEnv: null,
   });
   return { editor, element };
 }
@@ -181,6 +183,99 @@ function createEditor(): { editor: Editor; element: HTMLElement } {
 afterEach(() => document.body.replaceChildren());
 
 describe("derived pagination extension", () => {
+  it("reports settling, stable, and last-stable fallback lifecycle states", async () => {
+    const frames = new TestFrames();
+    const { editor } = createEditor();
+    const gapPos = positionOfText(editor.state.doc, "simulated round") + 8;
+    const reports: PaginationStateReport[] = [];
+    let failMeasurement = false;
+    const measurer: PaginationMeasurer = {
+      read: ({ epoch }) =>
+        failMeasurement
+          ? Promise.reject(new Error("layout unavailable"))
+          : Promise.resolve(measured(epoch)),
+      destroy: () => {},
+    };
+    try {
+      editor.registerPlugin(createPaginationPlugin(
+        {
+          reason: "authored-content",
+          onPageCount: (report) => reports.push(report),
+        },
+        {
+          createMeasurer: () => measurer,
+          plan: (input) => stablePlan(input.epoch, gapPos),
+          requestFrame: frames.request,
+          cancelFrame: frames.cancel,
+        },
+      ));
+
+      expect(reports).toEqual([expect.objectContaining({
+        status: "settling",
+        epoch: 1,
+        pageCount: null,
+        lastStablePlan: null,
+      })]);
+      await frames.flushAll();
+      expect(reports.at(-1)).toEqual(expect.objectContaining({
+        status: "stable",
+        epoch: 1,
+        pageCount: expect.objectContaining({ authored: 2 }),
+        lastStablePlan: expect.objectContaining({ epoch: 1 }),
+      }));
+
+      failMeasurement = true;
+      invalidatePagination(editor, "font");
+      expect(reports.at(-1)).toEqual(expect.objectContaining({
+        status: "settling",
+        epoch: 2,
+        reason: "font",
+        pageCount: expect.objectContaining({ authored: 2 }),
+        lastStablePlan: expect.objectContaining({ epoch: 1 }),
+      }));
+      await frames.flushAll();
+      expect(reports.at(-1)).toEqual(expect.objectContaining({
+        status: "fallback",
+        epoch: 2,
+        pageCount: expect.objectContaining({ authored: 2 }),
+        lastStablePlan: expect.objectContaining({ epoch: 1 }),
+      }));
+    } finally {
+      editor.destroy();
+    }
+  });
+
+  it("reports first-plan failure as fallback without an exact count", async () => {
+    const frames = new TestFrames();
+    const { editor } = createEditor();
+    const reports: PaginationStateReport[] = [];
+    try {
+      editor.registerPlugin(createPaginationPlugin(
+        {
+          reason: "canonical-layout",
+          onPageCount: (report) => reports.push(report),
+        },
+        {
+          createMeasurer: () => ({
+            read: () => Promise.reject(new Error("layout unavailable")),
+            destroy: () => {},
+          }),
+          requestFrame: frames.request,
+          cancelFrame: frames.cancel,
+        },
+      ));
+      await frames.flushAll();
+
+      expect(reports.at(-1)).toEqual(expect.objectContaining({
+        status: "fallback",
+        pageCount: null,
+        lastStablePlan: null,
+      }));
+    } finally {
+      editor.destroy();
+    }
+  });
+
   it("maps a stable plan through authored edits without entering JSON or undo history", async () => {
     const frames = new TestFrames();
     const { editor, element } = createEditor();
@@ -251,7 +346,11 @@ describe("derived pagination extension", () => {
       editor.registerPlugin(createPaginationPlugin(
         {
           reason: "authored-content",
-          onPageCount: (count) => pageCounts.push(count.authored),
+          onPageCount: (report) => {
+            if (report.status === "stable" && report.pageCount) {
+              pageCounts.push(report.pageCount.authored);
+            }
+          },
         },
         {
           createMeasurer: (options) => {
@@ -310,7 +409,11 @@ describe("derived pagination extension", () => {
       editor.registerPlugin(createPaginationPlugin(
         {
           reason: "authored-content",
-          onPageCount: (count) => pageCounts.push(count.authored),
+          onPageCount: (report) => {
+            if (report.status === "stable" && report.pageCount) {
+              pageCounts.push(report.pageCount.authored);
+            }
+          },
         },
         {
           createMeasurer: () => measurer,
@@ -410,7 +513,11 @@ describe("derived pagination extension", () => {
     editor.registerPlugin(createPaginationPlugin(
       {
         reason: "canonical-layout",
-        onPageCount: (count) => pageCounts.push(count.total),
+        onPageCount: (report) => {
+          if (report.status === "stable" && report.pageCount) {
+            pageCounts.push(report.pageCount.total);
+          }
+        },
       },
       {
         createMeasurer: () => measurer,
@@ -639,6 +746,88 @@ describe("derived pagination extension", () => {
       expect(widget.tabIndex).toBe(-1);
       expect(widget.textContent).toBe("");
       expect(widget.style.pointerEvents).toBe("none");
+    }
+  });
+
+  it("numbers authored pages around derived references without changing JSON", async () => {
+    const frames = new TestFrames();
+    const { editor, element } = createEditor();
+    const bodyPos = positionOfText(editor.state.doc, "Invented paragraph 1");
+    const appendixPos = positionOfText(
+      editor.state.doc,
+      "The appendix contains",
+    );
+    const baselineJson = JSON.stringify(editor.getJSON());
+    let referenceCount = 2;
+    const measurer: PaginationMeasurer = {
+      read: ({ epoch }) => Promise.resolve(measured(epoch)),
+      destroy: () => {},
+    };
+    try {
+      editor.registerPlugin(createPaginationPlugin(
+        {
+          reason: "authored-content",
+          getReferencePageCount: () => referenceCount,
+        },
+        {
+          createMeasurer: () => measurer,
+          plan: (input) => {
+            const plan = stablePlan(input.epoch, appendixPos);
+            const references = input.referencePageCount ?? 0;
+            return {
+              ...plan,
+              pageStarts: [
+                {
+                  pageIndex: 0,
+                  pos: bodyPos,
+                  section: "body",
+                  kind: "section",
+                },
+                {
+                  pageIndex: 1,
+                  pos: appendixPos,
+                  section: "appendix",
+                  kind: "section",
+                },
+              ],
+              pageCount: {
+                ...plan.pageCount,
+                references,
+                total: plan.pageCount.authored + references,
+              },
+            };
+          },
+          requestFrame: frames.request,
+          cancelFrame: frames.cancel,
+        },
+      ));
+      await frames.flushAll();
+
+      const numbers = [...element.querySelectorAll<HTMLElement>(
+        "[data-pagination-page-number]",
+      )];
+      expect(numbers.map((number) => number.textContent)).toEqual(["2", "5"]);
+      const references = element.querySelector("[data-reference-pages]");
+      expect(references).not.toBeNull();
+      expect(
+        references!.compareDocumentPosition(numbers[1]!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      for (const number of numbers) {
+        expect(number.contentEditable).toBe("false");
+        expect(number.getAttribute("aria-hidden")).toBe("true");
+        expect(number.tabIndex).toBe(-1);
+      }
+      referenceCount = 1;
+      invalidatePagination(editor, "references");
+      expect(
+        [...element.querySelectorAll<HTMLElement>(
+          "[data-pagination-page-number]",
+        )].map((number) => number.textContent),
+      ).toEqual(["2", "5"]);
+      expect(JSON.stringify(editor.getJSON())).toBe(baselineJson);
+    } finally {
+      editor.destroy();
     }
   });
 });

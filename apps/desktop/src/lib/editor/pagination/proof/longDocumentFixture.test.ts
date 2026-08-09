@@ -53,6 +53,7 @@ describe("long-document pagination proof fixtures", () => {
           locale,
           emptyLabel: "unused",
         },
+        paginationEnv: null,
       });
 
       try {

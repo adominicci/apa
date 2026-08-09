@@ -8,12 +8,14 @@ import {
   type PaginationMeasurerOptions,
 } from "./measure.ts";
 import { planPagination } from "./plan.ts";
+import { composeDocumentPages } from "./pageComposition.ts";
 import type {
   PaginationEnvironment,
   PaginationGap,
   PaginationInput,
   PaginationPlan,
   PaginationReason,
+  PaginationStateReport,
   StablePaginationPlan,
   TableRowStart,
 } from "./types.ts";
@@ -61,6 +63,18 @@ const DEFAULT_MAX_PASSES = 4;
 export const paginationPluginKey = new PluginKey<PaginationPluginState>(
   "tesinaPagination",
 );
+
+function referenceInsertionPosition(
+  doc: Parameters<typeof DecorationSet.create>[0],
+): number {
+  let position = 0;
+  for (let index = 0; index < doc.childCount; index += 1) {
+    const child = doc.child(index);
+    if (child.type.name === "sectionAppendix") return position;
+    position += child.nodeSize;
+  }
+  return doc.content.size;
+}
 
 function mapPlan(
   plan: StablePaginationPlan | null,
@@ -274,12 +288,30 @@ function gapKey(gap: PaginationGap, tableStart?: TableRowStart): string {
   ].join(":");
 }
 
+function createPageNumberElement(
+  ownerDocument: Document,
+  pageNumber: number,
+  key: string,
+): HTMLElement {
+  const number = ownerDocument.createElement("span");
+  number.className = "tesina-page-number";
+  number.dataset["paginationPageNumber"] = String(pageNumber);
+  number.dataset["paginationPageKey"] = key;
+  number.contentEditable = "false";
+  number.setAttribute("aria-hidden", "true");
+  number.tabIndex = -1;
+  number.style.pointerEvents = "none";
+  number.style.userSelect = "none";
+  number.textContent = String(pageNumber);
+  return number;
+}
+
 function decorationsFor(
   doc: Parameters<typeof DecorationSet.create>[0],
   plan: StablePaginationPlan | null,
 ): DecorationSet {
   if (!plan) return DecorationSet.empty;
-  const decorations = plan.pageGaps.flatMap((gap) => {
+  const gapDecorations = plan.pageGaps.flatMap((gap) => {
     if (gap.pos < 0 || gap.pos > doc.content.size) return [];
     const tableStart = gap.kind === "tableRow"
       ? plan.tableRowStarts.find((start) =>
@@ -292,14 +324,38 @@ function decorationsFor(
       (view) =>
         createPaginationGapElement(view.dom.ownerDocument, gap, tableStart),
       {
-        side: -1,
+        side: -3,
         key: gapKey(gap, tableStart),
         stopEvent: () => true,
         ignoreSelection: true,
       },
     )];
   });
-  return DecorationSet.create(doc, decorations);
+  const composition = composeDocumentPages({
+    authoredPageStarts: plan.pageStarts,
+    referencePageCount: plan.pageCount.references,
+    documentEnd: doc.content.size,
+  });
+  const numberDecorations = composition.pages.flatMap((page) => {
+    if (page.kind !== "authored") return [];
+    if (page.pos < 0 || page.pos > doc.content.size) return [];
+    return [Decoration.widget(
+      page.pos,
+      (view) =>
+        createPageNumberElement(
+          view.dom.ownerDocument,
+          page.pageNumber,
+          page.key,
+        ),
+      {
+        side: -4,
+        key: `pagination-page-number:${page.key}:${page.pageNumber}`,
+        stopEvent: () => true,
+        ignoreSelection: true,
+      },
+    )];
+  });
+  return DecorationSet.create(doc, [...numberDecorations, ...gapDecorations]);
 }
 
 function dispatchMeta(view: EditorView, meta: PaginationMeta): void {
@@ -320,6 +376,7 @@ class PaginationController {
   #readAbort: AbortController | null = null;
   #readInFlight = false;
   #destroyed = false;
+  #lastReportSignature: string | null = null;
 
   constructor(
     view: EditorView,
@@ -334,16 +391,42 @@ class PaginationController {
       onInvalidate: (reason) => this.invalidateFromMeasurement(reason),
     });
     const state = paginationPluginKey.getState(view.state);
-    if (state) this.scheduleRead(state.epoch);
+    if (state) {
+      this.report(state);
+      this.scheduleRead(state.epoch);
+    }
   }
 
   update(view: EditorView, previousState: EditorView["state"]): void {
     this.#view = view;
     const previous = paginationPluginKey.getState(previousState);
     const current = paginationPluginKey.getState(view.state);
+    if (current) this.report(current);
     if (current && current.epoch !== previous?.epoch) {
       this.restart(current.epoch);
     }
+  }
+
+  report(state: PaginationPluginState): void {
+    const report: PaginationStateReport = {
+      status: state.status,
+      epoch: state.epoch,
+      reason: state.reason,
+      pageCount: state.lastStablePlan?.pageCount ?? null,
+      visiblePlan: state.visiblePlan,
+      lastStablePlan: state.lastStablePlan,
+    };
+    const signature = JSON.stringify({
+      status: report.status,
+      epoch: report.epoch,
+      reason: report.reason,
+      pageCount: report.pageCount,
+      visibleEpoch: report.visiblePlan?.epoch ?? null,
+      lastStableEpoch: report.lastStablePlan?.epoch ?? null,
+    });
+    if (signature === this.#lastReportSignature) return;
+    this.#lastReportSignature = signature;
+    this.#environment.onPageCount?.(report);
   }
 
   invalidateFromMeasurement(reason: PaginationReason): void {
@@ -394,6 +477,10 @@ class PaginationController {
         latestEpoch: paginationPluginKey.getState(this.#view.state)?.epoch,
         fragments: measurement.fragments,
         emptySections: measurement.emptySections,
+        referencePageCount: this.#environment.getReferencePageCount?.(),
+        referenceInsertionPos: referenceInsertionPosition(
+          this.#view.state.doc,
+        ),
       });
       if (plan.status === "stable") this.schedulePlanWrite(epoch, plan);
     } catch {
@@ -428,7 +515,6 @@ class PaginationController {
         plan,
         signature,
       });
-      this.#environment.onPageCount?.(plan.pageCount);
       return;
     }
     if (nextPass >= this.#dependencies.maxPasses) {

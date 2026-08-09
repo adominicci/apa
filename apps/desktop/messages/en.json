@@ -356,6 +356,8 @@
   "fab_words": "{count} words",
   "status_pages_one": "1 pg.",
   "status_pages_many": "{count} pgs.",
+  "status_pages_pending": "Pages pending…",
+  "status_pages_unavailable": "Pages unavailable",
   "status_refs": "{count} references",
   "status_saved": "Saved",
   "refs_cited": "CITED",

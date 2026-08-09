@@ -38,15 +38,34 @@ describe("APA editor indentation", () => {
 });
 
 describe("APA editor page-sheets", () => {
-  it("renders each top-level section as its own US Letter page-sheet", () => {
+  it("uses fixed letter geometry for one continuous paginated editor", () => {
     expect(css).toMatch(
-      /\.apa-editor \.tiptap > \.sec\s*\{[^}]*background:\s*var\(--paper\);[^}]*aspect-ratio:\s*8\.5 \/ 11;[^}]*padding:\s*1in;/s,
+      /\.apa-editor \.paper-sheet\s*\{[^}]*width:\s*816px;[^}]*height:\s*1056px;[^}]*padding:\s*96px;/s,
     );
     expect(css).toMatch(
-      /\.apa-editor \.tiptap > \.sec \+ \.sec\s*\{[^}]*margin-top:/s,
+      /\.apa-editor \.tiptap\s*\{[^}]*width:\s*816px;[^}]*padding:\s*96px;[^}]*background:[^}]*repeating-linear-gradient[^}]*1056px[^}]*1084px/s,
     );
-    // Sections are separate pages now — no dashed in-sheet divider.
-    expect(css).not.toMatch(/\.sec \+ \.sec\s*\{[^}]*border-top:/s);
+    expect(css).toMatch(
+      /\.apa-editor \.tiptap > \.sec\s*\{[^}]*width:\s*624px;[^}]*background:\s*transparent;/s,
+    );
+    expect(css).not.toContain("aspect-ratio");
+    expect(css).not.toMatch(/width:\s*min\(/);
+    expect(css).not.toMatch(/\.tiptap > \.sec \+ \.sec\s*\{/);
+  });
+
+  it("keeps page chrome isolated from authored content and selection", () => {
+    expect(css).toMatch(
+      /\.tesina-page-number\s*\{[^}]*position:\s*absolute;[^}]*pointer-events:\s*none;[^}]*user-select:\s*none;/s,
+    );
+    expect(css).toMatch(
+      /\.apa-editor \.tiptap\s*\{[^}]*filter:\s*drop-shadow/s,
+    );
+    expect(css).toMatch(
+      /\.reference-page-stack\s*\{[^}]*display:\s*contents;/s,
+    );
+    expect(css).toMatch(
+      /\.sec-references\s*\{[^}]*height:\s*864px;[^}]*padding:\s*0;/s,
+    );
   });
 });
 

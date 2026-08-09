@@ -11,6 +11,8 @@ import {
   type ReferenceDecorationEnv,
 } from "./referenceDecoration.ts";
 import { ApaPresentationDecoration } from "./presentationDecoration.ts";
+import { createPaginationExtension } from "./pagination/extension.ts";
+import type { PaginationEnvironment } from "./pagination/types.ts";
 
 export interface CreateEditorArgs {
   element: HTMLElement;
@@ -22,6 +24,8 @@ export interface CreateEditorArgs {
   citationEnv: CitationEnv;
   /** Derived references page rendered as editor chrome before appendices. */
   referenceEnv: ReferenceDecorationEnv;
+  /** Explicitly null only for layout-free schema/unit fixtures. */
+  paginationEnv: PaginationEnvironment | null;
   onUpdate?: (docJson: unknown, words: number) => void;
   /** Opens the LaTeX dialog pre-filled with an equation's current LaTeX, from
    * its pencil menu. External callback threaded into the schema, same shape
@@ -48,6 +52,7 @@ export function createTesinaEditor(
     newlyCreated,
     citationEnv,
     referenceEnv,
+    paginationEnv,
     onUpdate,
     onEditEquation,
   }: CreateEditorArgs,
@@ -70,6 +75,7 @@ export function createTesinaEditor(
       createCitationExtension(citationEnv),
       ApaPresentationDecoration,
       createReferenceDecorationExtension(referenceEnv),
+      ...(paginationEnv ? [createPaginationExtension(paginationEnv)] : []),
     ],
     content: (content !== undefined
       ? ensureSectionedDoc(content)

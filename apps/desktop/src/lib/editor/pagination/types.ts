@@ -146,10 +146,20 @@ export type PaginationPlan = StablePaginationPlan | StalePaginationPlan;
 
 export interface PaginationEnvironment {
   reason: PaginationReason;
+  getReferencePageCount?: () => number;
   onPageCount?: PageCountCallback;
 }
 
-export type PageCountCallback = (pageCount: PaginationPageCount) => void;
+export interface PaginationStateReport {
+  status: "settling" | "stable" | "fallback";
+  epoch: number;
+  reason: PaginationReason;
+  pageCount: PaginationPageCount | null;
+  visiblePlan: StablePaginationPlan | null;
+  lastStablePlan: StablePaginationPlan | null;
+}
+
+export type PageCountCallback = (report: PaginationStateReport) => void;
 
 /** A top-level section that needs a visible sheet despite having no measured content. */
 export interface EmptySection {
@@ -163,4 +173,6 @@ export interface PaginationInput {
   fragments: readonly MeasuredFragment[];
   emptySections?: readonly EmptySection[];
   referencePageCount?: number;
+  /** Derived document position where generated references enter the flow. */
+  referenceInsertionPos?: number;
 }

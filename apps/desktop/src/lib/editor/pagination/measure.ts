@@ -65,8 +65,47 @@ interface LineMeasurement {
   pos: number;
 }
 
+interface LayoutRect {
+  top: number;
+  bottom: number;
+  width: number;
+  height: number;
+}
+
 const GAP_SELECTOR = "[data-pagination-gap], [data-pagination-proof-gap]";
 const LINE_TOLERANCE = 0.75;
+
+export function canonicalLayoutScale(
+  visualWidth: number,
+  layoutWidth: number,
+): number {
+  if (
+    !Number.isFinite(visualWidth) || visualWidth <= 0 ||
+    !Number.isFinite(layoutWidth) || layoutWidth <= 0
+  ) return 1;
+  const scale = visualWidth / layoutWidth;
+  return Number.isFinite(scale) && scale > 0 ? scale : 1;
+}
+
+export function canonicalLayoutLength(value: number, scale: number): number {
+  return Number.isFinite(scale) && scale > 0 ? value / scale : value;
+}
+
+function canonicalRect(rect: DOMRect, scale: number): LayoutRect {
+  return {
+    top: canonicalLayoutLength(rect.top, scale),
+    bottom: canonicalLayoutLength(rect.bottom, scale),
+    width: canonicalLayoutLength(rect.width, scale),
+    height: canonicalLayoutLength(rect.height, scale),
+  };
+}
+
+function browserLayoutScale(element: HTMLElement): number {
+  return canonicalLayoutScale(
+    element.getBoundingClientRect().width,
+    element.offsetWidth,
+  );
+}
 
 function staleResult(request: MeasureRequest): MeasurementResult {
   return {
@@ -214,18 +253,18 @@ function lineHeight(style: CSSStyleDeclaration, fallback: number): number {
   return fontSize > 0 ? fontSize * 1.2 : Math.max(1, fallback);
 }
 
-function paginationGaps(element: Element): DOMRect[] {
+function paginationGaps(element: Element, scale: number): LayoutRect[] {
   return [...element.querySelectorAll<HTMLElement>(GAP_SELECTOR)].map((gap) =>
-    gap.getBoundingClientRect()
+    canonicalRect(gap.getBoundingClientRect(), scale)
   );
 }
 
-function heightWithoutGaps(element: HTMLElement): number {
+function heightWithoutGaps(element: HTMLElement, scale: number): number {
   const ownerWindow = element.ownerDocument.defaultView;
-  if (!ownerWindow) return element.getBoundingClientRect().height;
-  const rect = element.getBoundingClientRect();
+  const rect = canonicalRect(element.getBoundingClientRect(), scale);
+  if (!ownerWindow) return rect.height;
   const style = ownerWindow.getComputedStyle(element);
-  const descendantGapHeight = paginationGaps(element).reduce(
+  const descendantGapHeight = paginationGaps(element, scale).reduce(
     (total, gap) => total + gap.height,
     0,
   );
@@ -236,7 +275,7 @@ function heightWithoutGaps(element: HTMLElement): number {
   );
 }
 
-function normalizedTop(top: number, gaps: readonly DOMRect[]): number {
+function normalizedTop(top: number, gaps: readonly LayoutRect[]): number {
   return top - gaps.reduce(
     (total, gap) =>
       gap.bottom <= top + LINE_TOLERANCE ? total + gap.height : total,
@@ -261,12 +300,13 @@ function lineMeasurements(
   view: EditorView,
   element: HTMLElement,
   fallbackPos: number,
+  scale: number,
 ): LineMeasurement[] {
   const ownerDocument = element.ownerDocument;
   const ownerWindow = ownerDocument.defaultView;
   const showText = ownerWindow?.NodeFilter.SHOW_TEXT ?? 4;
   const samples: LineSample[] = [];
-  const gaps = paginationGaps(element);
+  const gaps = paginationGaps(element, scale);
   const walker = ownerDocument.createTreeWalker(element, showText);
   for (let current = walker.nextNode(); current; current = walker.nextNode()) {
     if (current.parentElement?.closest(GAP_SELECTOR)) continue;
@@ -275,7 +315,7 @@ function lineMeasurements(
       const range = ownerDocument.createRange();
       range.setStart(current, offset);
       range.setEnd(current, offset + 1);
-      const rect = range.getBoundingClientRect();
+      const rect = canonicalRect(range.getBoundingClientRect(), scale);
       if (rect.width <= 0 || rect.height <= 0) continue;
       const top = normalizedTop(rect.top, gaps);
       samples.push({
@@ -304,7 +344,7 @@ function lineMeasurements(
   }
 
   if (lines.length === 0) {
-    const rect = element.getBoundingClientRect();
+    const rect = canonicalRect(element.getBoundingClientRect(), scale);
     const style = ownerWindow?.getComputedStyle(element);
     const height = style
       ? lineHeight(style, rect.height)
@@ -355,7 +395,7 @@ function ancestorPosition(
   return null;
 }
 
-function pseudoBlockHeight(element: HTMLElement): number {
+function pseudoBlockHeight(element: HTMLElement, scale: number): number {
   const ownerWindow = element.ownerDocument.defaultView;
   if (!ownerWindow) return 0;
   const style = ownerWindow.getComputedStyle(element, "::before");
@@ -374,11 +414,11 @@ function pseudoBlockHeight(element: HTMLElement): number {
   }
   const elementStyle = ownerWindow.getComputedStyle(element);
   const childStyle = ownerWindow.getComputedStyle(firstAuthoredChild);
-  const contentTop = element.getBoundingClientRect().top +
+  const contentTop = canonicalRect(element.getBoundingClientRect(), scale).top +
     cssNumber(elementStyle.borderTopWidth) + cssNumber(elementStyle.paddingTop);
   const childTop = normalizedTop(
-    firstAuthoredChild.getBoundingClientRect().top,
-    paginationGaps(element),
+    canonicalRect(firstAuthoredChild.getBoundingClientRect(), scale).top,
+    paginationGaps(element, scale),
   );
   const measured = childTop - contentTop - cssNumber(childStyle.marginTop);
   return Math.max(fallback, measured);
@@ -428,6 +468,7 @@ export function createNamedAtomicFragment(
 function repeatedTableHeader(
   parent: PMNode | null,
   rowElement: HTMLElement,
+  scale: number,
 ): RepeatedTableHeader | undefined {
   if (parent?.type.name !== "table" || parent.childCount < 2) return undefined;
   const headerRow = parent.firstChild;
@@ -447,7 +488,7 @@ function repeatedTableHeader(
   }
 
   return {
-    height: heightWithoutGaps(headerElement),
+    height: heightWithoutGaps(headerElement, scale),
     cells: Array.from({ length: headerRow.childCount }, (_, index) => {
       const cell = headerRow.child(index);
       const colSpan = Number(cell.attrs["colspan"]);
@@ -466,12 +507,16 @@ function textFragments(
   element: HTMLElement,
   section: SectionKind,
   listItemPos: number | null,
+  scale: number,
 ): MeasuredFragment[] {
-  const lines = lineMeasurements(view, element, pos + 1);
+  const lines = lineMeasurements(view, element, pos + 1, scale);
   const ownerWindow = element.ownerDocument.defaultView;
   const style = ownerWindow?.getComputedStyle(element);
   const fallbackLineHeight = style
-    ? lineHeight(style, element.getBoundingClientRect().height)
+    ? lineHeight(
+      style,
+      canonicalRect(element.getBoundingClientRect(), scale).height,
+    )
     : 1;
   const groupId = listItemPos === null ? `text:${pos}` : `list:${listItemPos}`;
   const kind = listItemPos === null ? "line" as const : "listItem" as const;
@@ -553,6 +598,7 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
   const fragments: MeasuredFragment[] = [];
   const emptySections: EmptySection[] = [];
   const doc = view.state.doc;
+  const scale = browserLayoutScale(view.dom);
 
   doc.forEach((sectionNode, sectionPos) => {
     const section = sectionKind(sectionNode);
@@ -560,7 +606,7 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
     const sectionFragments: MeasuredFragment[] = [];
     const sectionElement = elementAt(view, sectionPos);
     const generatedHeight = sectionElement
-      ? pseudoBlockHeight(sectionElement)
+      ? pseudoBlockHeight(sectionElement, scale)
       : 0;
     if (generatedHeight > 0) {
       sectionFragments.push({
@@ -610,12 +656,13 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
         const rowHeight = Array.from(tableElement.rows)
           .filter((row) => !row.matches(GAP_SELECTOR))
           .reduce(
-            (total, row) => total + row.getBoundingClientRect().height,
+            (total, row) =>
+              total + canonicalRect(row.getBoundingClientRect(), scale).height,
             0,
           );
         const tableChromeHeight = Math.max(
           0,
-          heightWithoutGaps(tableElement) - rowHeight,
+          heightWithoutGaps(tableElement, scale) - rowHeight,
         );
         if (tableChromeHeight > 0) {
           sectionFragments.push(blockFragment(
@@ -635,7 +682,7 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
         node,
         pos,
         section,
-        heightWithoutGaps(element),
+        heightWithoutGaps(element, scale),
       );
       if (namedAtomicFragment) {
         sectionFragments.push(namedAtomicFragment);
@@ -647,14 +694,14 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
         const columnCount = parent?.type.name === "table"
           ? TableMap.get(parent).width
           : node.childCount;
-        const repeatedHeader = repeatedTableHeader(parent, element);
+        const repeatedHeader = repeatedTableHeader(parent, element, scale);
         sectionFragments.push({
           id: `table:${tablePos}:row:${pos}`,
           from: pos,
           to: pos + node.nodeSize,
           section,
           kind: "tableRow",
-          height: heightWithoutGaps(element),
+          height: heightWithoutGaps(element, scale),
           breakBefore: { kind: "tableRow", pos, section },
           table: {
             tableId: `table:${tablePos}`,
@@ -678,7 +725,7 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
           node,
           section,
           "heading",
-          isRunIn ? 0 : heightWithoutGaps(element),
+          isRunIn ? 0 : heightWithoutGaps(element, scale),
           true,
         ));
         return false;
@@ -700,7 +747,7 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
           node,
           section,
           "heading",
-          heightWithoutGaps(element) + wrapperBottomMargin,
+          heightWithoutGaps(element, scale) + wrapperBottomMargin,
           node.type.name === "tableTitle",
         ));
         return false;
@@ -714,6 +761,7 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
           element,
           section,
           ancestorPosition(doc, pos, "listItem"),
+          scale,
         ));
         return false;
       }
@@ -725,7 +773,7 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
           node,
           section,
           "atomic",
-          heightWithoutGaps(element),
+          heightWithoutGaps(element, scale),
         ));
         return false;
       }

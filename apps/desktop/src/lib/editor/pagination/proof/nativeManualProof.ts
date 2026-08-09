@@ -510,6 +510,7 @@ async function prepare(): Promise<void> {
       locale: "en",
       emptyLabel: "unused",
     },
+    paginationEnv: null,
   });
   editor.registerPlugin(createDisposablePaginationProofPlugin());
   editor.on("transaction", inspectDrivenTransaction);

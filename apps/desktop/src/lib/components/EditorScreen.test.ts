@@ -16,6 +16,10 @@ import {
   type ReleaseNotesStorage,
 } from "$lib/update/releaseNotes";
 import EditorScreen from "./EditorScreen.svelte";
+import type {
+  PaginationEnvironment,
+  StablePaginationPlan,
+} from "$lib/editor/pagination/types";
 
 const runtime = vi.hoisted(() => ({
   editors: [] as TiptapEditor[],
@@ -23,6 +27,8 @@ const runtime = vi.hoisted(() => ({
   persistedDocs: [] as unknown[],
   libraryReferences: [] as Reference[],
   exportEssayToDocx: vi.fn(),
+  paginationEnvs: [] as PaginationEnvironment[],
+  paginationInvalidations: [] as string[],
 }));
 
 interface Deferred<T> {
@@ -65,9 +71,31 @@ vi.mock("$lib/editor/createEditor", async () => {
     createTesinaEditor(
       args: Parameters<typeof actual.createTesinaEditor>[0],
     ) {
-      const editor = actual.createTesinaEditor(args);
+      if (args.paginationEnv) runtime.paginationEnvs.push(args.paginationEnv);
+      const editor = actual.createTesinaEditor({
+        ...args,
+        // jsdom has no layout engine; the lifecycle contract is exercised by
+        // driving the captured production environment below.
+        paginationEnv: null,
+      });
       runtime.editors.push(editor);
       return editor;
+    },
+  };
+});
+
+vi.mock("$lib/editor/pagination/extension", async () => {
+  const actual = await vi.importActual<
+    typeof import("$lib/editor/pagination/extension")
+  >("$lib/editor/pagination/extension");
+  return {
+    ...actual,
+    invalidatePagination(
+      editor: Parameters<typeof actual.invalidatePagination>[0],
+      reason: Parameters<typeof actual.invalidatePagination>[1],
+    ) {
+      runtime.paginationInvalidations.push(reason);
+      return actual.invalidatePagination(editor, reason);
     },
   };
 });
@@ -228,10 +256,203 @@ afterEach(() => {
   runtime.libraryReferences = [];
   runtime.exportEssayToDocx.mockReset();
   runtime.exportEssayToDocx.mockResolvedValue({ status: "cancelled" });
+  runtime.paginationEnvs = [];
+  runtime.paginationInvalidations = [];
   document.body.replaceChildren();
 });
 
 describe("editor preview round trip", () => {
+  it("shows localized live pagination lifecycle without a words-based estimate", async () => {
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay: essayWithBody("Seed ".repeat(900)),
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+    await tick();
+
+    const pageStatus = () =>
+      document.querySelector<HTMLElement>("[data-live-page-status]")
+        ?.textContent?.trim();
+    expect(pageStatus()).toBe(m.status_pages_pending());
+    expect(pageStatus()).not.toBe(m.status_pages_many({ count: 4 }));
+
+    const environment = runtime.paginationEnvs[0]!;
+    environment.onPageCount?.({
+      status: "fallback",
+      epoch: 1,
+      reason: "canonical-layout",
+      pageCount: null,
+      visiblePlan: null,
+      lastStablePlan: null,
+    });
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_unavailable());
+
+    const plan: StablePaginationPlan = {
+      status: "stable",
+      epoch: 2,
+      pageStarts: [
+        { pageIndex: 0, pos: 1, section: "body", kind: "section" },
+        { pageIndex: 1, pos: 20, section: "body", kind: "line" },
+      ],
+      pageGaps: [],
+      tableRowStarts: [],
+      overflows: [],
+      pageCount: {
+        authored: 2,
+        references: 1,
+        total: 3,
+        bySection: { abstract: 0, body: 2, appendix: 0, references: 1 },
+      },
+    };
+    environment.onPageCount?.({
+      status: "stable",
+      epoch: 2,
+      reason: "authored-content",
+      pageCount: plan.pageCount,
+      visiblePlan: plan,
+      lastStablePlan: plan,
+    });
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 4 }));
+
+    environment.onPageCount?.({
+      status: "settling",
+      epoch: 3,
+      reason: "font",
+      pageCount: plan.pageCount,
+      visiblePlan: plan,
+      lastStablePlan: plan,
+    });
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 4 }));
+
+    const previewButton = document.querySelector<HTMLButtonElement>(
+      ".tb-actions button:nth-child(3)",
+    )!;
+    previewButton.click();
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 4 }));
+    previewButton.click();
+    flushSync();
+    expect(pageStatus()).toBe(m.status_pages_many({ count: 4 }));
+
+    const outer = document.querySelector<HTMLElement>(".paper-scale-outer");
+    const inner = document.querySelector<HTMLElement>(".paper-scale-inner");
+    expect(outer?.style.width).toBe("816px");
+    expect(inner?.style.width).toBe("816px");
+    expect(inner?.style.transform).toBe("scale(1)");
+    await unmount(component);
+  });
+
+  it("fits narrow and wide canvases without repaginating for panel or focus changes", async () => {
+    let availableWidth = 612;
+    const observerCallbacks: Array<() => void> = [];
+    const originalResizeObserver = globalThis.ResizeObserver;
+    const clientWidth = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "clientWidth",
+    );
+    const scrollHeight = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "scrollHeight",
+    );
+    class TestResizeObserver {
+      constructor(callback: ResizeObserverCallback) {
+        observerCallbacks.push(() => callback([], this));
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    Object.defineProperty(globalThis, "ResizeObserver", {
+      configurable: true,
+      value: TestResizeObserver,
+    });
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      get() {
+        return this.classList.contains("paper-fit-viewport")
+          ? availableWidth
+          : 0;
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+      configurable: true,
+      get() {
+        return this.classList.contains("paper-scale-inner") ? 2112 : 0;
+      },
+    });
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay: essayWithBody("Seed"),
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    try {
+      flushSync();
+      expect(
+        document.querySelector<HTMLElement>(".paper-scale-inner")?.style
+          .transform,
+      ).toBe("scale(0.75)");
+      expect(
+        document.querySelector<HTMLElement>(".paper-scale-outer")?.style
+          .height,
+      ).toBe("1584px");
+
+      availableWidth = 816;
+      document.querySelector<HTMLButtonElement>(
+        ".tb-actions button:nth-child(2)",
+      )!.click();
+      observerCallbacks.forEach((callback) => callback());
+      flushSync();
+      expect(
+        document.querySelector<HTMLElement>(".paper-scale-inner")?.style
+          .transform,
+      ).toBe("scale(1)");
+
+      document.querySelector<HTMLButtonElement>(
+        `.fm-btn[aria-label="${m.fab_focus()}"]`,
+      )!.click();
+      flushSync();
+      expect(runtime.paginationInvalidations).toEqual([]);
+    } finally {
+      await unmount(component);
+      if (originalResizeObserver) {
+        Object.defineProperty(globalThis, "ResizeObserver", {
+          configurable: true,
+          value: originalResizeObserver,
+        });
+      } else {
+        Reflect.deleteProperty(globalThis, "ResizeObserver");
+      }
+      if (clientWidth) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "clientWidth",
+          clientWidth,
+        );
+      }
+      if (scrollHeight) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "scrollHeight",
+          scrollHeight,
+        );
+      }
+    }
+  });
+
   it("suppresses only the pseudo body title for a matching authored H1", async () => {
     const essay = essayWithBody("Seed");
     essay.titlePage.title = "Legacy Body Title";

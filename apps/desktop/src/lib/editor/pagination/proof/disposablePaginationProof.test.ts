@@ -54,6 +54,7 @@ function createProofEditor(): { editor: Editor; element: HTMLElement } {
       locale: "en",
       emptyLabel: "unused",
     },
+    paginationEnv: null,
   });
   editor.registerPlugin(createDisposablePaginationProofPlugin());
   return { editor, element };

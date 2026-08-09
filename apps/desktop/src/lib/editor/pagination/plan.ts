@@ -276,6 +276,26 @@ export function planPagination(input: PaginationInput): PaginationPlan {
   for (const start of stablePageStarts) bySection[start.section] += 1;
   const authored = stablePageStarts.length;
   const references = referencePageCount(input.referencePageCount);
+  const hasAppendix = stablePageStarts.some((start) =>
+    start.section === "appendix"
+  );
+  if (
+    references > 0 && authored > 0 && !hasAppendix &&
+    Number.isFinite(input.referenceInsertionPos)
+  ) {
+    pageGaps.push({
+      fragmentId: "derived-references",
+      pageIndex: authored,
+      pos: Math.max(0, input.referenceInsertionPos ?? 0),
+      section: "references",
+      kind: "section",
+      height: Math.max(
+        0,
+        LETTER_PRINTABLE_HEIGHT - usedHeight +
+          2 * LETTER_PAGE_MARGIN + visualPageGap,
+      ),
+    });
+  }
 
   return {
     status: "stable",

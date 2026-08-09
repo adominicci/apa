@@ -34,6 +34,8 @@ body {
 #proof-shell {
   visibility: hidden;
   width: 864px;
+  padding: 24px;
+  box-sizing: border-box;
   margin: 0 auto;
 }
 
@@ -53,20 +55,8 @@ body {
   font: 11px/1.2 monospace;
 }
 
-.apa-editor {
-  padding: 24px;
-}
-
-.apa-editor .page-stack,
-.apa-editor .tiptap > .sec {
+.apa-editor .page-stack {
   width: 816px;
-}
-
-.apa-editor .tiptap > .sec {
-  aspect-ratio: auto;
-  min-height: 1056px;
-  padding: 96px;
-  border-radius: 0;
 }
 
 .apa-editor .tiptap {

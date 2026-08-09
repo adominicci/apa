@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { EditorView } from "@tiptap/pm/view";
 import type { PaginationReason } from "./types.ts";
 import {
+  canonicalLayoutLength,
+  canonicalLayoutScale,
   createNamedAtomicFragment,
   createPaginationMeasurer,
   type PaginationLayoutAdapter,
@@ -61,6 +63,13 @@ function adapterWithReadiness(
 }
 
 describe("pagination DOM measurement lifecycle", () => {
+  it("normalizes transformed browser geometry back to canonical CSS pixels", () => {
+    expect(canonicalLayoutScale(612, 816)).toBe(0.75);
+    expect(canonicalLayoutLength(18, 0.75)).toBe(24);
+    expect(canonicalLayoutScale(0, 816)).toBe(1);
+    expect(canonicalLayoutLength(24, Number.NaN)).toBe(24);
+  });
+
   it("recognizes the real apaEquation node name as a named atomic fragment", () => {
     const fragment = createNamedAtomicFragment(
       {

@@ -4,9 +4,17 @@ import { TextSelection } from "@tiptap/pm/state";
 import { createTesinaEditor } from "../../createEditor.ts";
 import { insertCitation } from "../../citation.ts";
 import {
+  type ReferenceDecorationEnv,
+  repaintReferenceDecoration,
+} from "../../referenceDecoration.ts";
+import {
   createPaginationMeasurer,
   type PaginationMeasurer,
 } from "../measure.ts";
+import { calculatePaperScale } from "../paperScale.ts";
+import { composeDocumentPages } from "../pageComposition.ts";
+import { invalidatePagination } from "../extension.ts";
+import type { PaginationStateReport } from "../types.ts";
 import { createLongDocumentFixtures } from "./longDocumentFixture.ts";
 import {
   createDisposablePaginationProofPlugin,
@@ -251,7 +259,9 @@ async function runProof(): Promise<ProofResult> {
       locale: "en",
       emptyLabel: "unused",
     },
+    paginationEnv: null,
   });
+  let productionEditor: Editor | undefined;
   diagnostic("editor-created");
   editor.registerPlugin(createDisposablePaginationProofPlugin());
   diagnostic("proof-plugin-registered");
@@ -816,6 +826,147 @@ async function runProof(): Promise<ProofResult> {
     );
     editor.off("update", replanTrailingFigure);
 
+    const derivedJsonIdentity =
+      JSON.stringify(editor.getJSON()) === initialJson;
+    paginationMeasurer.destroy();
+    paginationMeasurer = undefined;
+    editor.destroy();
+    mount.replaceChildren();
+
+    const productionReports: PaginationStateReport[] = [];
+    let productionReferenceCount = 1;
+    const productionReferenceEnv: ReferenceDecorationEnv = {
+      references: fixture.references,
+      locale: "en" as const,
+      emptyLabel: "unused",
+      onPageCountChange: (count: number) => {
+        productionReferenceCount = count;
+      },
+    };
+    const productionPaginationEnv = {
+      reason: "canonical-layout" as const,
+      getReferencePageCount: () => productionReferenceCount,
+      onPageCount: (report: PaginationStateReport) => {
+        productionReports.push(report);
+        const plan = report.visiblePlan ?? report.lastStablePlan;
+        if (!productionEditor || !plan || !report.pageCount) return;
+        const composition = composeDocumentPages({
+          authoredPageStarts: plan.pageStarts,
+          referencePageCount: report.pageCount.references,
+          documentEnd: productionEditor.state.doc.content.size,
+        });
+        productionReferenceEnv.pageNumbers = composition.pages
+          .filter((page) => page.kind === "references")
+          .map((page) => page.pageNumber);
+        repaintReferenceDecoration(productionEditor);
+      },
+    };
+    productionEditor = createTesinaEditor({
+      element: mount,
+      content: fixture.content,
+      newlyCreated: true,
+      citationEnv: {
+        refsById: new Map(
+          fixture.references.map((reference) => [reference.id, reference]),
+        ),
+        locale: "en",
+      },
+      referenceEnv: productionReferenceEnv,
+      paginationEnv: productionPaginationEnv,
+    });
+    const productionJson = JSON.stringify(productionEditor.getJSON());
+    const productionStableFrames = await waitForCondition(
+      "the production pagination and references stack to settle",
+      () =>
+        productionReports.some((report) => report.status === "stable") &&
+        !!mount.querySelector("[data-reference-page-number]") &&
+        !!mount.querySelector("[data-pagination-page-number]"),
+      240,
+    );
+    const firstProductionStable = productionReports.findLast((report) =>
+      report.status === "stable"
+    )!;
+    const firstProductionPlan = firstProductionStable.visiblePlan ??
+      firstProductionStable.lastStablePlan!;
+    const productionComposition = composeDocumentPages({
+      authoredPageStarts: firstProductionPlan.pageStarts,
+      referencePageCount: firstProductionStable.pageCount!.references,
+      documentEnd: productionEditor.state.doc.content.size,
+    });
+    const productionNumbers = [
+      ...mount.querySelectorAll<HTMLElement>(".tesina-page-number"),
+    ];
+    const expectedProductionNumbers = productionComposition.pages
+      .slice(1)
+      .map((page) => page.pageNumber);
+    const productionPageChromeSequential = productionNumbers.map((number) =>
+      Number(number.textContent)
+    ).join(",") === expectedProductionNumbers.join(",");
+    const productionPageChromeInert = productionNumbers.every((number) =>
+      number.contentEditable === "false" &&
+      number.getAttribute("aria-hidden") === "true" && number.tabIndex === -1
+    );
+    const productionReferences = mount.querySelector(
+      "[data-reference-pages]",
+    );
+    const productionAppendix = mount.querySelector("[data-sec='appendix']");
+    const productionReferencesBeforeAppendix = !!productionReferences &&
+      !!productionAppendix &&
+      (productionReferences.compareDocumentPosition(productionAppendix) &
+          Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
+    const proofEditor = requireElement<HTMLElement>("#proof-editor");
+    const unscaledEditorRect = productionEditor.view.dom
+      .getBoundingClientRect();
+    const scaledLayout = calculatePaperScale(612, proofEditor.scrollHeight);
+    proofEditor.style.transformOrigin = "top left";
+    proofEditor.style.transform = `scale(${scaledLayout.scale})`;
+    shell.style.width = `${scaledLayout.outerWidth + 48}px`;
+    shell.style.height = `${scaledLayout.outerHeight + 48}px`;
+    const scaledEpoch = firstProductionStable.epoch + 1;
+    invalidatePagination(productionEditor, "canonical-layout");
+    const productionScaledFrames = await waitForCondition(
+      "production pagination to settle under the compensated transform",
+      () =>
+        productionReports.some((report) =>
+          report.status === "stable" && report.epoch >= scaledEpoch
+        ),
+      240,
+    );
+    const scaledProductionStable = productionReports.findLast((report) =>
+      report.status === "stable" && report.epoch >= scaledEpoch
+    )!;
+    const scaledEditorRect = productionEditor.view.dom.getBoundingClientRect();
+    const productionTargetPos = positionsOf(
+      productionEditor.state.doc,
+      "paragraph",
+    ).at(-1)! + 1;
+    productionEditor.view.dispatch(
+      productionEditor.state.tr.setSelection(
+        TextSelection.create(productionEditor.state.doc, productionTargetPos),
+      ).scrollIntoView(),
+    );
+    await frame();
+    const scaledCaret = productionEditor.view.coordsAtPos(productionTargetPos);
+    const scaledHit = productionEditor.view.posAtCoords({
+      left: scaledCaret.left,
+      top: (scaledCaret.top + scaledCaret.bottom) / 2,
+    });
+    const transformedHitTesting = scaledHit !== null &&
+      Math.abs(scaledHit.pos - productionTargetPos) <= 1 &&
+      productionEditor.state.selection.head === productionTargetPos;
+    const productionScaleInvariantCount = JSON.stringify(
+      scaledProductionStable.pageCount,
+    ) === JSON.stringify(firstProductionStable.pageCount);
+    const observedVisualScale = scaledEditorRect.width /
+      unscaledEditorRect.width;
+    const visualScaleApplied = Math.abs(
+      observedVisualScale - scaledLayout.scale,
+    ) < 0.01;
+    const productionJsonIdentity =
+      JSON.stringify(productionEditor.getJSON()) ===
+        productionJson;
+
     const checks = {
       productionDomMapping: initialMeasurement.fragments.some((fragment) =>
         fragment.id.startsWith("section:") && fragment.kind === "heading" &&
@@ -847,7 +998,9 @@ async function runProof(): Promise<ProofResult> {
       tableContinuationHeaderMeasured:
         tableFragments[0]?.table?.repeatedHeader === undefined &&
         repeatedTableHeader !== undefined && repeatedTableHeader.height > 0 &&
-        repeatedTableHeader.cells.map((cell) => cell.text).join("|") ===
+        repeatedTableHeader.cells.map((cell) =>
+            cell.text
+          ).join("|") ===
           "Round|Cards|Envelopes" &&
         repeatedTableHeader.cells.reduce(
             (columns, cell) => columns + cell.colSpan,
@@ -876,7 +1029,7 @@ async function runProof(): Promise<ProofResult> {
         nativeInputUndoAccepted && nativeInputUndoRestored,
       conditionalFirstPaint,
       oneEditorView: document.querySelectorAll(".ProseMirror").length === 1,
-      derivedJsonIdentity: JSON.stringify(editor.getJSON()) === initialJson,
+      derivedJsonIdentity,
       lineLevelContinuation: lineGapInsideParagraph &&
         afterCaret.top - beforeCaret.bottom >= 170,
       caretAcrossGap: beforeCaret.top < firstPlannedGap.top &&
@@ -901,6 +1054,14 @@ async function runProof(): Promise<ProofResult> {
       stableFirstPaint: conditionalFirstPaint,
       visualGapIsReal: firstPlannedGap.height >= 179 &&
         firstPlannedGap.width >= 815,
+      productionPaginationStack: productionComposition.total ===
+          firstProductionStable.pageCount!.total + 1 &&
+        productionPageChromeSequential && productionReferencesBeforeAppendix,
+      productionPageChromeInert,
+      productionScaleInvariantCount,
+      productionJsonIdentity,
+      transformedHitTesting,
+      visualScaleApplied,
     };
     const passed = Object.values(checks).every(Boolean);
     return {
@@ -910,18 +1071,22 @@ async function runProof(): Promise<ProofResult> {
       metrics: {
         measuredParagraphLines: starts.length,
         measuredFragments: initialMeasurement.fragments.length,
-        measuredListLines: initialMeasurement.fragments.filter((fragment) =>
-          fragment.kind === "listItem"
-        ).length,
-        measuredTableRows: initialMeasurement.fragments.filter((fragment) =>
-          fragment.kind === "tableRow"
-        ).length,
-        measuredFigures: initialMeasurement.fragments.filter((fragment) =>
-          fragment.id.startsWith("figure:")
-        ).length,
-        measuredEquations: initialMeasurement.fragments.filter((fragment) =>
-          fragment.id.startsWith("apaEquation:")
-        ).length,
+        measuredListLines:
+          initialMeasurement.fragments.filter((fragment) =>
+            fragment.kind === "listItem"
+          ).length,
+        measuredTableRows:
+          initialMeasurement.fragments.filter((fragment) =>
+            fragment.kind === "tableRow"
+          ).length,
+        measuredFigures:
+          initialMeasurement.fragments.filter((fragment) =>
+            fragment.id.startsWith("figure:")
+          ).length,
+        measuredEquations:
+          initialMeasurement.fragments.filter((fragment) =>
+            fragment.id.startsWith("apaEquation:")
+          ).length,
         generatedHeadingVisualHeight,
         generatedHeadingMeasuredHeight,
         firstTableVisualHeight,
@@ -950,6 +1115,13 @@ async function runProof(): Promise<ProofResult> {
         scrollTargetTop: scrolledCaretCoords.top,
         scrollY: globalThis.scrollY,
         caretAfterTraversalTop: caretAfterTraversalCoords.top,
+        requestedVisualScale: scaledLayout.scale,
+        observedVisualScale,
+        scaledHitPosition: scaledHit?.pos ?? -1,
+        productionStableFrames,
+        productionScaledFrames,
+        productionPageCount: productionComposition.total,
+        productionJsonIdentity: String(productionJsonIdentity),
         nativeInputAccepted: String(nativeInputAccepted),
         nativeInputEventCount,
         nativeInputPosition,
@@ -987,6 +1159,7 @@ async function runProof(): Promise<ProofResult> {
     };
   } finally {
     paginationMeasurer?.destroy();
+    productionEditor?.destroy();
     editor.destroy();
   }
 }

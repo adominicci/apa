@@ -33,6 +33,16 @@
 
 <div class="apa-editor cover-sheet" data-doclang={language}>
   <article class="paper-sheet cover">
+    <span
+      class="tesina-page-number cover-page-number"
+      data-cover-page-number="1"
+      contenteditable="false"
+      aria-hidden="true"
+      tabindex="-1"
+      {@attach (number) => {
+        number.contentEditable = "false";
+      }}
+    >1</span>
     <button
       class="cover-form-btn"
       onclick={onOpenForm}
@@ -146,6 +156,14 @@
     background: var(--surface);
     color: var(--muted);
     cursor: pointer;
+  }
+
+  .cover-page-number {
+    position: absolute;
+    top: 48px;
+    right: 96px;
+    pointer-events: none;
+    user-select: none;
   }
 
   .cover-form-btn:hover {

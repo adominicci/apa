@@ -91,6 +91,7 @@ async function runNativeHost(
   const stdout = output.stdout.trim();
   const stderr = output.stderr.trim();
   if (emitResult && stdout) console.log(stdout);
+  if (!emitResult && output.code !== 0 && stdout) console.error(stdout);
   if (stderr) console.error(stderr);
   if (output.code !== 0) {
     throw new Error(`Native proof host exited with code ${output.code}`);

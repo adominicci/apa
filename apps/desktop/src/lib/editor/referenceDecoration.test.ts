@@ -5,6 +5,13 @@ import { TextSelection } from "@tiptap/pm/state";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import type { Reference } from "@tesina/engine";
 import { createTesinaEditor } from "./createEditor.ts";
+import {
+  createReferencePagesElement,
+  measureReferencePagesElement,
+  refreshReferenceDecoration,
+} from "./referenceDecoration.ts";
+import type { ReferenceDecorationEnv } from "./referenceDecoration.ts";
+import type { ReferencePagePlan } from "./pagination/referencePages.ts";
 
 const reference: Reference = {
   id: "ref-order",
@@ -64,6 +71,193 @@ function textPosition(doc: PMNode, needle: string): number {
 }
 
 describe("live reference-page decoration", () => {
+  it("commits only the latest measured reference count and repaginates after deletion", async () => {
+    const element = document.createElement("div");
+    document.body.append(element);
+    const secondReference = {
+      ...reference,
+      id: "ref-second",
+      title: "A second invented reference",
+    };
+    const frames = new Map<number, FrameRequestCallback>();
+    let nextFrame = 1;
+    const counts: number[] = [];
+    const referenceEnv: ReferenceDecorationEnv = {
+      references: [reference, secondReference],
+      locale: "en" as const,
+      emptyLabel: "No references yet",
+      measureElement: (node: HTMLElement) =>
+        node.classList.contains("ref-head") ? 64 : 600,
+      requestFrame: (callback: FrameRequestCallback) => {
+        const id = nextFrame++;
+        frames.set(id, callback);
+        return id;
+      },
+      cancelFrame: (id: number) => frames.delete(id),
+      onPageCountChange: (count: number) => counts.push(count),
+    };
+    const editor = createTesinaEditor({
+      element,
+      content: docJson,
+      newlyCreated: false,
+      citationEnv: {
+        refsById: new Map([
+          [reference.id, reference],
+          [secondReference.id, secondReference],
+        ]),
+        locale: "en",
+      },
+      referenceEnv,
+      paginationEnv: null,
+    });
+    const baselineJson = JSON.stringify(editor.getJSON());
+
+    async function flushFrames() {
+      await Promise.resolve();
+      await Promise.resolve();
+      while (frames.size > 0) {
+        const [id, callback] = frames.entries().next().value!;
+        frames.delete(id);
+        callback(performance.now());
+        await Promise.resolve();
+      }
+    }
+
+    try {
+      await flushFrames();
+      expect(referenceEnv.pagePlan?.pageCount).toBe(2);
+      expect(
+        element.querySelectorAll("[data-reference-page-index]"),
+      ).toHaveLength(2);
+      expect(counts).toEqual([2]);
+
+      referenceEnv.references = [reference];
+      refreshReferenceDecoration(editor);
+      await flushFrames();
+      expect(referenceEnv.pagePlan?.pageCount).toBe(1);
+      expect(
+        element.querySelectorAll("[data-reference-page-index]"),
+      ).toHaveLength(1);
+      expect(counts).toEqual([2, 1]);
+      expect(JSON.stringify(editor.getJSON())).toBe(baselineJson);
+    } finally {
+      editor.destroy();
+    }
+  });
+
+  it("renders measured reference pages with sequential inert page chrome", () => {
+    const env = {
+      references: [reference],
+      locale: "en" as const,
+      emptyLabel: "No references yet",
+    };
+    const plan: ReferencePagePlan = {
+      pages: [
+        { index: 0, entryKeys: [reference.id], overflowKeys: [] },
+        { index: 1, entryKeys: [], overflowKeys: [] },
+      ],
+      pageCount: 2,
+    };
+
+    const pages = createReferencePagesElement(env, plan, [3, 4], true);
+
+    expect(pages.dataset["referencePages"]).toBe("2");
+    expect(pages.dataset["hasFollowingAppendix"]).toBe("true");
+    expect(pages.querySelectorAll("[data-reference-sheet]")).toHaveLength(2);
+    expect(
+      [...pages.querySelectorAll<HTMLElement>("[data-reference-page-number]")]
+        .map((number) => number.textContent),
+    ).toEqual(["3", "4"]);
+    for (
+      const number of pages.querySelectorAll<HTMLElement>(
+        "[data-reference-page-number]",
+      )
+    ) {
+      expect(number.contentEditable).toBe("false");
+      expect(number.getAttribute("aria-hidden")).toBe("true");
+      expect(number.tabIndex).toBe(-1);
+    }
+    expect(pages.textContent).toContain("Rivera, A. (2024)");
+  });
+
+  it("measures canonical reference entries and produces a stable multi-page plan", () => {
+    const secondReference = {
+      ...reference,
+      id: "ref-second",
+      title: "A second invented reference",
+    };
+    const env = {
+      references: [reference, secondReference],
+      locale: "en" as const,
+      emptyLabel: "No references yet",
+      measureElement: (element: HTMLElement) =>
+        element.classList.contains("ref-head") ? 64 : 600,
+    };
+    const root = createReferencePagesElement(
+      env,
+      {
+        pages: [{
+          index: 0,
+          entryKeys: [reference.id, secondReference.id],
+          overflowKeys: [],
+        }],
+        pageCount: 1,
+      },
+      [3],
+      false,
+    );
+
+    expect(measureReferencePagesElement(root, env)).toEqual({
+      pages: [
+        { index: 0, entryKeys: [reference.id], overflowKeys: [] },
+        { index: 1, entryKeys: [secondReference.id], overflowKeys: [] },
+      ],
+      pageCount: 2,
+    });
+  });
+
+  it("normalizes visually scaled reference rectangles to canonical page metrics", () => {
+    const secondReference = {
+      ...reference,
+      id: "ref-second",
+      title: "A second invented reference",
+    };
+    const env = {
+      references: [reference, secondReference],
+      locale: "en" as const,
+      emptyLabel: "No references yet",
+    };
+    const root = createReferencePagesElement(
+      env,
+      {
+        pages: [{
+          index: 0,
+          entryKeys: [reference.id, secondReference.id],
+          overflowKeys: [],
+        }],
+        pageCount: 1,
+      },
+      [3],
+      false,
+    );
+    for (
+      const element of root.querySelectorAll<HTMLElement>(
+        ".ref-head, [data-reference-entry]",
+      )
+    ) {
+      Object.defineProperty(element, "offsetWidth", { value: 624 });
+      element.getBoundingClientRect = () =>
+        new DOMRect(
+          0,
+          0,
+          468,
+          element.classList.contains("ref-head") ? 48 : 322.5,
+        );
+    }
+
+    expect(measureReferencePagesElement(root, env).pageCount).toBe(2);
+  });
+
   it("orders derived references before appendices without changing or splitting the document", () => {
     const element = document.createElement("div");
     document.body.append(element);
@@ -82,6 +276,7 @@ describe("live reference-page decoration", () => {
           locale: "en",
         },
         referenceEnv,
+        paginationEnv: null,
       } as Parameters<typeof createTesinaEditor>[0],
     );
 
@@ -150,6 +345,7 @@ describe("live reference-page decoration", () => {
         locale: "en",
       },
       referenceEnv,
+      paginationEnv: null,
     });
 
     try {
@@ -229,6 +425,7 @@ describe("live reference-page decoration", () => {
         locale: "en",
         emptyLabel: "No references yet",
       },
+      paginationEnv: null,
     });
 
     try {
