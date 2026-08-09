@@ -178,10 +178,17 @@ export async function writeArchiveReplacing(
         destinationPath,
       );
     }
-    await abortable(signal, () => deps.fs.rename(tmp, destinationPath));
-    await deps.validate(
-      await abortable(signal, () => deps.fs.readFile(destinationPath)),
+    await abortable(
+      signal,
+      () => deps.fs.renameNoReplace(tmp, destinationPath),
     );
+    if (!(await fileMatches(deps, destinationPath, record))) {
+      throw new PortableFileError(
+        "portable/replacement-recovery-required",
+        "the installed destination changed before it could be verified",
+        destinationPath,
+      );
+    }
     await abortable(signal, () => deps.fs.remove(record.previousPath));
     await abortable(signal, () => journal.remove(record.id));
     return { path: destinationPath };
@@ -294,7 +301,13 @@ export async function recoverReplacements(
         await deps.fs.rename(destinationPath, previousPath);
         if (!(await previousMatches(deps, record))) continue;
       }
-      await deps.fs.rename(temporaryPath, destinationPath);
+      try {
+        await deps.fs.renameNoReplace(temporaryPath, destinationPath);
+      } catch {
+        // A destination appeared after preservation. It belongs to another
+        // writer; retain every journaled candidate and do not replace it.
+        continue;
+      }
       if (!(await fileMatches(deps, destinationPath, record))) {
         // A sync provider may alter the installed path during the rename.
         // Keep the preserved previous file and journal for safe recovery.

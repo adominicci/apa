@@ -115,6 +115,7 @@ class FakeJournal implements ReplacementJournal {
 const GOOD = new TextEncoder().encode("valid-archive");
 const OLD = new TextEncoder().encode("previous-archive");
 const CHANGED = new TextEncoder().encode("provider-changed");
+const OTHER_VALID = new TextEncoder().encode("valid-provider-swap");
 
 function makeDeps(fs: FakeFs): WriteDeps {
   let n = 0;
@@ -292,6 +293,55 @@ describe("writeArchiveReplacing", () => {
     expect([...fs.files.values()]).toContain(CHANGED);
   });
 
+  it("does not replace a destination recreated after preservation", async () => {
+    const fs = new FakeFs();
+    fs.files.set("/docs/lib.tesina", OLD);
+    const journal = new FakeJournal();
+    const originalNoReplace = fs.renameNoReplace.bind(fs);
+    fs.renameNoReplace = (from, to) => {
+      if (to === "/docs/lib.tesina") fs.files.set(to, CHANGED);
+      return originalNoReplace(from, to);
+    };
+
+    await expect(
+      writeArchiveReplacing(
+        makeDeps(fs),
+        journal,
+        "/docs/lib.tesina",
+        GOOD,
+      ),
+    ).rejects.toThrow();
+    expect(fs.files.get("/docs/lib.tesina")).toBe(CHANGED);
+    expect([...fs.files.values()]).toContain(OLD);
+    expect([...fs.files.values()]).toContain(GOOD);
+    expect(journal.records.size).toBe(1);
+  });
+
+  it("keeps recovery evidence when a valid archive is swapped in after install", async () => {
+    const fs = new FakeFs();
+    fs.files.set("/docs/lib.tesina", OLD);
+    const journal = new FakeJournal();
+    const originalNoReplace = fs.renameNoReplace.bind(fs);
+    fs.renameNoReplace = async (from, to) => {
+      await originalNoReplace(from, to);
+      if (to === "/docs/lib.tesina") fs.files.set(to, OTHER_VALID);
+    };
+
+    await expect(
+      writeArchiveReplacing(
+        makeDeps(fs),
+        journal,
+        "/docs/lib.tesina",
+        GOOD,
+      ),
+    ).rejects.toMatchObject({
+      code: "portable/replacement-recovery-required",
+    });
+    expect(fs.files.get("/docs/lib.tesina")).toBe(OTHER_VALID);
+    expect([...fs.files.values()]).toContain(OLD);
+    expect(journal.records.size).toBe(1);
+  });
+
   it("preserves the previous destination when the write fails", async () => {
     const fs = new FakeFs();
     fs.files.set("/docs/lib.tesina", OLD);
@@ -306,7 +356,7 @@ describe("writeArchiveReplacing", () => {
 
   it("recovers a crash at every journaled boundary without losing both files", async () => {
     // The journaled fallback performs ops: write tmp, rename dest->prev,
-    // rename tmp->dest, remove prev. Inject a crash at each and recover.
+    // no-replace tmp->dest, remove prev. Inject a crash at each and recover.
     for (let failAt = 1; failAt <= 4; failAt += 1) {
       const fs = new FakeFs();
       fs.renameReplaces = false;
@@ -370,9 +420,9 @@ describe("writeArchiveReplacing", () => {
     await journal.save(record);
     fs.files.set(record.temporaryPath, GOOD);
     fs.files.set(record.previousPath, OLD);
-    const originalRename = fs.rename.bind(fs);
-    fs.rename = async (from, to) => {
-      await originalRename(from, to);
+    const originalNoReplace = fs.renameNoReplace.bind(fs);
+    fs.renameNoReplace = async (from, to) => {
+      await originalNoReplace(from, to);
       if (to === record.destinationPath) {
         fs.files.set(to, new TextEncoder().encode("sync-truncated"));
       }
