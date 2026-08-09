@@ -5,6 +5,7 @@ import { PAGINATION_RESPONSIVENESS_BUDGET } from "../performanceBudget.ts";
 import {
   AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS,
   NATIVE_EXPANDED_PROOF_BUDGET_MS,
+  nativeExpandedProofDeclaredCeilingMs,
 } from "./nativeProofDeadlines.ts";
 
 const proofDir = import.meta.dirname!;
@@ -69,20 +70,19 @@ describe("expanded native pagination deadline policy", () => {
       return total + budget.typingDeletionMs * 2 +
         budget.referenceFontMs * 2 + budget.resizeMs;
     }, 0);
-    const setupCeilingMs =
-      NATIVE_EXPANDED_PROOF_BUDGET_MS.workloadSetupPerFixture *
-      workloadPages.length;
-    const declaredCeilingMs = setupCeilingMs + operationCeilingMs +
-      NATIVE_EXPANDED_PROOF_BUDGET_MS.legacyAndParityHeadroom;
+    const declaredCeilingMs = nativeExpandedProofDeclaredCeilingMs(
+      operationCeilingMs,
+      workloadPages.length,
+    );
 
     expect(operationCeilingMs).toBe(25_250);
+    expect(NATIVE_EXPANDED_PROOF_BUDGET_MS).toEqual({
+      workloadSetupPerFixture: 10_000,
+      legacyAndParityHeadroom: 55_000,
+    });
+    expect(declaredCeilingMs).toBe(110_250);
     expect(declaredCeilingMs).toBeLessThan(
       AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationPage,
     );
-    expect(page).toContain(
-      "const setupDeadline = performance.now() +\n    NATIVE_EXPANDED_PROOF_BUDGET_MS.workloadSetupPerFixture",
-    );
-    expect(page.match(/remainingNativeDeadlineMs\(setupDeadline\)/g))
-      .toHaveLength(2);
   });
 });

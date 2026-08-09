@@ -410,6 +410,9 @@ async function runNativePerformanceWorkload(
   const setupDeadline = performance.now() +
     NATIVE_EXPANDED_PROOF_BUDGET_MS.workloadSetupPerFixture;
   let layoutReads = 0;
+  let layoutReadsCompleted = 0;
+  let layoutReadsInFlight = 0;
+  const layoutReadHistory: Array<Record<string, unknown>> = [];
   let referencePageCount = 1;
   const referenceEnv: ReferenceDecorationEnv = {
     references: fixture.references.slice(0, 1),
@@ -435,9 +438,32 @@ async function runNativePerformanceWorkload(
   ): PaginationMeasurer => {
     const productionMeasurer = createPaginationMeasurer(options);
     return {
-      read: (request) => {
+      read: async (request) => {
         layoutReads += 1;
-        return productionMeasurer.read(request);
+        layoutReadsInFlight += 1;
+        const startedAt = performance.now();
+        try {
+          const result = await productionMeasurer.read(request);
+          layoutReadsCompleted += 1;
+          layoutReadHistory.push({
+            epoch: request.epoch,
+            durationMs: performance.now() - startedAt,
+            status: result.status,
+            fragments: result.status === "measured"
+              ? result.fragments.length
+              : undefined,
+          });
+          return result;
+        } catch (error) {
+          layoutReadHistory.push({
+            epoch: request.epoch,
+            durationMs: performance.now() - startedAt,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          throw error;
+        } finally {
+          layoutReadsInFlight -= 1;
+        }
       },
       destroy: () => productionMeasurer.destroy(),
     };
@@ -454,11 +480,58 @@ async function runNativePerformanceWorkload(
       cancelFrame: frames.cancel,
     }));
 
-    let baseline = await waitForLatestStableReport(
-      editor,
-      reports,
+    const waitForWorkloadSetup = async (description: string) => {
+      const expectedEpoch = paginationPluginKey.getState(editor.state)?.epoch;
+      try {
+        return await waitForLatestStableReport(
+          editor,
+          reports,
+          description,
+          remainingNativeDeadlineMs(setupDeadline),
+        );
+      } catch (error) {
+        const current = paginationPluginKey.getState(editor.state);
+        const images = [...mount.querySelectorAll<HTMLImageElement>("img")];
+        diagnostic("native-performance-setup-timeout", {
+          targetPages,
+          description,
+          expectedEpoch,
+          currentEpoch: current?.epoch,
+          superseded: current?.epoch !== expectedEpoch,
+          pluginState: current
+            ? {
+              status: current.status,
+              epoch: current.epoch,
+              pass: current.pass,
+              reason: current.reason,
+              hasCandidate: current.candidateSignature !== null,
+              hasStablePlan: current.lastStablePlan !== null,
+            }
+            : null,
+          reportTrail: reports.slice(-12).map((report) => ({
+            status: report.status,
+            epoch: report.epoch,
+            reason: report.reason,
+            pageCount: report.pageCount,
+          })),
+          layoutReads,
+          layoutReadsCompleted,
+          layoutReadsInFlight,
+          layoutReadHistory: layoutReadHistory.slice(-8),
+          fontStatus: document.fonts?.status ?? "unavailable",
+          imageCount: images.length,
+          pendingImageCount: images.filter((image) => !image.complete).length,
+          referencePageCount,
+          referenceEntries: mount.querySelectorAll(".ref-entry").length,
+          remainingSetupMs: remainingNativeDeadlineMs(setupDeadline),
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
+    };
+
+    let baseline = await waitForWorkloadSetup(
       `${targetPages}-page native workload initial settlement`,
-      remainingNativeDeadlineMs(setupDeadline),
     );
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const authored = baseline.pageCount?.authored ?? 0;
@@ -494,11 +567,8 @@ async function runNativePerformanceWorkload(
           ),
         );
       }
-      baseline = await waitForLatestStableReport(
-        editor,
-        reports,
+      baseline = await waitForWorkloadSetup(
         `${targetPages}-page native workload calibration`,
-        remainingNativeDeadlineMs(setupDeadline),
       );
     }
     const authoredPages = baseline.pageCount?.authored ?? 0;

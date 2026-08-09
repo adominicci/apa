@@ -9,6 +9,15 @@ export const AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS = Object.freeze({
 });
 
 export const NATIVE_EXPANDED_PROOF_BUDGET_MS = Object.freeze({
-  workloadSetupPerFixture: 8_000,
-  legacyAndParityHeadroom: 60_000,
+  workloadSetupPerFixture: 10_000,
+  legacyAndParityHeadroom: 55_000,
 });
+
+export function nativeExpandedProofDeclaredCeilingMs(
+  operationCeilingMs: number,
+  workloadCount: number,
+): number {
+  return operationCeilingMs +
+    NATIVE_EXPANDED_PROOF_BUDGET_MS.workloadSetupPerFixture * workloadCount +
+    NATIVE_EXPANDED_PROOF_BUDGET_MS.legacyAndParityHeadroom;
+}

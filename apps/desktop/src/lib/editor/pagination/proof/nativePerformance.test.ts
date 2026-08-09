@@ -125,9 +125,9 @@ describe("native pagination performance evidence", () => {
 
 describe("native condition settlement", () => {
   it("consumes one absolute deadline instead of resetting retry time", () => {
-    expect(remainingNativeDeadlineMs(8_000, 1_250)).toBe(6_750);
-    expect(remainingNativeDeadlineMs(8_000, 7_999)).toBe(1);
-    expect(remainingNativeDeadlineMs(8_000, 8_001)).toBe(0);
+    expect(remainingNativeDeadlineMs(10_000, 1_250)).toBe(8_750);
+    expect(remainingNativeDeadlineMs(10_000, 9_999)).toBe(1);
+    expect(remainingNativeDeadlineMs(10_000, 10_001)).toBe(0);
   });
 
   it("waits by elapsed time instead of exhausting a fast frame count", async () => {
