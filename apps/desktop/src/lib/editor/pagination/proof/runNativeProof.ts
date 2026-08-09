@@ -9,11 +9,11 @@ import { cleanupProofRun } from "./proofRunCleanup.ts";
 import { runProofLifecycle } from "./proofLifecycle.ts";
 import { waitForProofOrigin } from "./proofOrigin.ts";
 import {
-  AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS,
   nativeHostCommand,
   type NativeHostMode,
   windowsHostBuildProcessOptions,
 } from "./nativeHostCommand.ts";
+import { AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS } from "./nativeProofDeadlines.ts";
 import { nativeProofPhases } from "./nativeProofPhases.ts";
 import { nativeHostRuntimeIdentity } from "./nativeHostRuntimeIdentity.ts";
 
@@ -21,7 +21,11 @@ const proofDir = dirname(fileURLToPath(import.meta.url));
 console.log(
   "NATIVE_HOST_RUNTIME",
   JSON.stringify(
-    nativeHostRuntimeIdentity(process.env["GITHUB_SHA"] ?? "local"),
+    nativeHostRuntimeIdentity(
+      process.env["TESINA_PROOF_COMMIT_SHA"] ??
+        process.env["GITHUB_SHA"] ??
+        "local",
+    ),
   ),
 );
 const tauriDir = resolve(proofDir, "../../../../../src-tauri");

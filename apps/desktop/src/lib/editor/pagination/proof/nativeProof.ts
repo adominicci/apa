@@ -49,7 +49,7 @@ import {
   type NativePaginationWorkloadResult,
   percentile95,
 } from "./nativePerformance.ts";
-import { AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS } from "./nativeHostCommand.ts";
+import { AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS } from "./nativeProofDeadlines.ts";
 import { startProofPageWatchdog } from "./proofPageWatchdog.ts";
 import "./nativeProof.css";
 

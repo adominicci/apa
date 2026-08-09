@@ -1,10 +1,10 @@
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS,
   nativeHostCommand,
   windowsHostBuildProcessOptions,
 } from "./nativeHostCommand.ts";
+import { AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS } from "./nativeProofDeadlines.ts";
 
 const inputs = {
   proofDir: "/proof",

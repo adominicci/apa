@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS } from "./nativeHostCommand.ts";
+import { AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS } from "./nativeProofDeadlines.ts";
 
 const proofDir = import.meta.dirname!;
 const [page, swiftHost, windowsHost, runner] = await Promise.all([
@@ -27,6 +27,8 @@ describe("expanded native pagination deadline policy", () => {
     expect(page).toContain(
       "AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationPage",
     );
+    expect(page).toContain('from "./nativeProofDeadlines.ts"');
+    expect(page).not.toContain('from "./nativeHostCommand.ts"');
     expect(swiftHost).toMatch(
       /url\.lastPathComponent == "nativeProof\.html"\s*\?\s*135\s*:\s*45/,
     );
