@@ -66,6 +66,20 @@ interface LineMeasurement {
   pos: number;
 }
 
+export interface TextLineProbeRect {
+  top: number;
+  bottom: number;
+  width: number;
+  height: number;
+}
+
+/** Browser-backed text-node geometry used to locate exact wrapped line starts. */
+export interface TextLineProbe {
+  length: number;
+  rects(endExclusive: number): readonly TextLineProbeRect[];
+  positionAt(offset: number): number;
+}
+
 interface LayoutRect {
   top: number;
   bottom: number;
@@ -319,32 +333,82 @@ function mapDomPosition(
   }
 }
 
-function lineMeasurements(
-  view: EditorView,
-  element: HTMLElement,
-  fallbackPos: number,
-  scale: number,
+function visibleProbeRects(
+  probe: TextLineProbe,
+  endExclusive: number,
+): TextLineProbeRect[] {
+  return probe.rects(endExclusive).filter((rect) =>
+    rect.width > 0 && rect.height > 0
+  );
+}
+
+function distinctProbeLines(
+  rects: readonly TextLineProbeRect[],
+): TextLineProbeRect[] {
+  const lines: TextLineProbeRect[] = [];
+  for (const rect of rects) {
+    const line = lines.find((entry) =>
+      Math.abs(entry.top - rect.top) <= LINE_TOLERANCE
+    );
+    if (line) {
+      line.bottom = Math.max(line.bottom, rect.bottom);
+      line.width += rect.width;
+    } else {
+      lines.push({ ...rect });
+    }
+  }
+  return lines.sort((left, right) => left.top - right.top);
+}
+
+function firstVisibleOffsetForLine(
+  probe: TextLineProbe,
+  lineTop: number,
+  prefixCache: Map<number, readonly TextLineProbeRect[]>,
+): number {
+  let low = 1;
+  let high = probe.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    let rects = prefixCache.get(middle);
+    if (!rects) {
+      rects = visibleProbeRects(probe, middle);
+      prefixCache.set(middle, rects);
+    }
+    const lastTop = rects.at(-1)?.top;
+    if (lastTop === undefined || lastTop < lineTop - LINE_TOLERANCE) {
+      low = middle + 1;
+    } else {
+      high = middle;
+    }
+  }
+  return Math.max(0, low - 1);
+}
+
+/**
+ * Enumerates each text node once, then locates only the first visible
+ * character on each wrapped line with cached binary prefix probes.
+ */
+export function measureTextLineSamples(
+  probes: readonly TextLineProbe[],
 ): LineMeasurement[] {
-  const ownerDocument = element.ownerDocument;
-  const ownerWindow = ownerDocument.defaultView;
-  const showText = ownerWindow?.NodeFilter.SHOW_TEXT ?? 4;
   const samples: LineSample[] = [];
-  const gaps = paginationGaps(element, scale);
-  const walker = ownerDocument.createTreeWalker(element, showText);
-  for (let current = walker.nextNode(); current; current = walker.nextNode()) {
-    if (current.parentElement?.closest(GAP_SELECTOR)) continue;
-    const value = current.nodeValue ?? "";
-    for (let offset = 0; offset < value.length; offset += 1) {
-      const range = ownerDocument.createRange();
-      range.setStart(current, offset);
-      range.setEnd(current, offset + 1);
-      const rect = canonicalRect(range.getBoundingClientRect(), scale);
-      if (rect.width <= 0 || rect.height <= 0) continue;
-      const top = normalizedTop(rect.top, gaps);
+  for (const probe of probes) {
+    if (probe.length <= 0) continue;
+    const fullRects = visibleProbeRects(probe, probe.length);
+    const lines = distinctProbeLines(fullRects);
+    const prefixCache = new Map<number, readonly TextLineProbeRect[]>([
+      [probe.length, fullRects],
+    ]);
+    for (const line of lines) {
+      const offset = firstVisibleOffsetForLine(
+        probe,
+        line.top,
+        prefixCache,
+      );
       samples.push({
-        top,
-        bottom: top + rect.height,
-        pos: mapDomPosition(view, current, offset, fallbackPos + offset),
+        top: line.top,
+        bottom: line.bottom,
+        pos: probe.positionAt(offset),
       });
     }
   }
@@ -365,6 +429,48 @@ function lineMeasurements(
       lines.push({ ...sample });
     }
   }
+  return lines;
+}
+
+function lineMeasurements(
+  view: EditorView,
+  element: HTMLElement,
+  fallbackPos: number,
+  scale: number,
+): LineMeasurement[] {
+  const ownerDocument = element.ownerDocument;
+  const ownerWindow = ownerDocument.defaultView;
+  const showText = ownerWindow?.NodeFilter.SHOW_TEXT ?? 4;
+  const gaps = paginationGaps(element, scale);
+  const probes: TextLineProbe[] = [];
+  const walker = ownerDocument.createTreeWalker(element, showText);
+  for (let current = walker.nextNode(); current; current = walker.nextNode()) {
+    if (current.parentElement?.closest(GAP_SELECTOR)) continue;
+    const value = current.nodeValue ?? "";
+    if (value.length === 0) continue;
+    probes.push({
+      length: value.length,
+      rects(endExclusive) {
+        const range = ownerDocument.createRange();
+        range.setStart(current, 0);
+        range.setEnd(current, Math.min(value.length, endExclusive));
+        return [...range.getClientRects()].map((browserRect) => {
+          const rect = canonicalRect(browserRect, scale);
+          const top = normalizedTop(rect.top, gaps);
+          return {
+            top,
+            bottom: top + rect.height,
+            width: rect.width,
+            height: rect.height,
+          };
+        });
+      },
+      positionAt(offset) {
+        return mapDomPosition(view, current, offset, fallbackPos + offset);
+      },
+    });
+  }
+  const lines = measureTextLineSamples(probes);
 
   if (lines.length === 0) {
     const rect = canonicalRect(element.getBoundingClientRect(), scale);

@@ -349,10 +349,23 @@ describe("derived pagination extension", () => {
         element.querySelector<HTMLElement>("[data-pagination-gap]")?.dataset
           .paginationPos,
       ).toBe(String(initialGapPos));
+      const paintedGap = element.querySelector<HTMLElement>(
+        "[data-pagination-gap]",
+      );
+      const paintedPageNumber = element.querySelector<HTMLElement>(
+        "[data-pagination-page-number]",
+      );
+      expect(paintedGap).not.toBeNull();
+      expect(paintedPageNumber).not.toBeNull();
 
       const editPos = initialGapPos - 2;
       plannedGapPos += 1;
       editor.view.dispatch(editor.state.tr.insertText("X", editPos));
+
+      expect(element.querySelector("[data-pagination-gap]")).toBe(paintedGap);
+      expect(element.querySelector("[data-pagination-page-number]")).toBe(
+        paintedPageNumber,
+      );
       await frames.flushAll();
 
       expect(JSON.stringify(editor.getJSON())).not.toBe(baselineJson);

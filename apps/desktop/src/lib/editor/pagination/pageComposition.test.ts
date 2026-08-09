@@ -20,7 +20,7 @@ describe("composeDocumentPages", () => {
     expect(composition.pages).toEqual([
       { key: "cover", kind: "cover", pageNumber: 1 },
       {
-        key: "authored:0:body:1",
+        key: "authored:0:body",
         kind: "authored",
         pageNumber: 2,
         authoredPageIndex: 0,
@@ -35,6 +35,20 @@ describe("composeDocumentPages", () => {
       },
     ]);
     expect(composition.total).toBe(3);
+  });
+
+  it("keeps authored widget identity when an edit maps its position", () => {
+    const before = composeDocumentPages({
+      authoredPageStarts: [start(0, 80, "body")],
+      referencePageCount: 1,
+    });
+    const after = composeDocumentPages({
+      authoredPageStarts: [start(0, 81, "body")],
+      referencePageCount: 1,
+    });
+
+    expect(before.pages[1]?.key).toBe(after.pages[1]?.key);
+    expect(before.pages[1]).not.toEqual(after.pages[1]);
   });
 
   it("keeps optional abstract and multi-page body before references", () => {

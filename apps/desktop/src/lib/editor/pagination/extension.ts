@@ -280,7 +280,7 @@ function gapKey(gap: PaginationGap, tableStart?: TableRowStart): string {
   return [
     "pagination-gap",
     gap.kind,
-    gap.pos,
+    gap.fragmentId,
     gap.pageIndex,
     rounded(gap.height),
     tableStart?.columnCount ?? "",

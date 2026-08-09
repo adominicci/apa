@@ -75,7 +75,7 @@ export function composeDocumentPages(
       }
       const { start } = source;
       return {
-        key: `authored:${start.pageIndex}:${start.section}:${start.pos}`,
+        key: `authored:${start.pageIndex}:${start.section}`,
         kind: "authored",
         pageNumber,
         authoredPageIndex: start.pageIndex,

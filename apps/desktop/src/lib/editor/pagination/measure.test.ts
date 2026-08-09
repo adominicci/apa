@@ -1,13 +1,52 @@
+// @vitest-environment jsdom
+
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { EditorView } from "@tiptap/pm/view";
+import { createTesinaEditor } from "../createEditor.ts";
 import type { PaginationReason } from "./types.ts";
 import {
+  browserPaginationLayoutAdapter,
   canonicalLayoutLength,
   canonicalLayoutScale,
   createNamedAtomicFragment,
   createPaginationMeasurer,
+  measureTextLineSamples,
   type PaginationLayoutAdapter,
+  type TextLineProbe,
 } from "./measure.ts";
+
+function lineProbe(
+  linesByOffset: readonly (number | null)[],
+  positionBase: number,
+  topBase = 100,
+): TextLineProbe & { calls: number } {
+  return {
+    length: linesByOffset.length,
+    calls: 0,
+    rects(endExclusive) {
+      this.calls += 1;
+      const lines = new Map<number, number>();
+      for (
+        let offset = 0;
+        offset < Math.min(endExclusive, linesByOffset.length);
+        offset += 1
+      ) {
+        const line = linesByOffset[offset];
+        if (line === null || line === undefined) continue;
+        lines.set(line, (lines.get(line) ?? 0) + 1);
+      }
+      return [...lines].map(([line, characters]) => ({
+        top: topBase + line * 20,
+        bottom: topBase + line * 20 + 16,
+        width: characters * 8,
+        height: 16,
+      }));
+    },
+    positionAt(offset) {
+      return positionBase + offset;
+    },
+  };
+}
 
 function deferred(): { promise: Promise<void>; resolve(): void } {
   let resolve!: () => void;
@@ -184,5 +223,136 @@ describe("pagination DOM measurement lifecycle", () => {
     adapter.invalidate?.("canonical-layout");
     expect(adapter.observing).toBe(false);
     expect(invalidations).toEqual(["asset"]);
+  });
+});
+
+describe("text line sampling", () => {
+  it("preserves exact line-start positions across marked text nodes and whitespace", () => {
+    const plain = lineProbe([0, 0, 1, 1], 10);
+    const marked = lineProbe([0, null, 1, 1, null, 2], 20);
+
+    expect(measureTextLineSamples([plain, marked])).toEqual([
+      { top: 100, bottom: 116, pos: 10 },
+      { top: 120, bottom: 136, pos: 12 },
+      { top: 140, bottom: 156, pos: 25 },
+    ]);
+  });
+
+  it("uses normalized scaled and gap-free geometry supplied by the browser probe", () => {
+    const transformedAndNormalized = lineProbe([0, 0, 1], 40, 24);
+
+    expect(measureTextLineSamples([transformedAndNormalized])).toEqual([
+      { top: 24, bottom: 40, pos: 40 },
+      { top: 44, bottom: 60, pos: 42 },
+    ]);
+  });
+
+  it("reduces 2,251 character probes to the line-count logarithmic bound", () => {
+    const characters = 2_251;
+    const visualLines = 50;
+    const probe = lineProbe(
+      Array.from(
+        { length: characters },
+        (_, offset) =>
+          Math.min(
+            visualLines - 1,
+            Math.floor(offset * visualLines / characters),
+          ),
+      ),
+      2,
+    );
+
+    const lines = measureTextLineSamples([probe]);
+
+    expect(lines).toHaveLength(visualLines);
+    expect(probe.calls).toBeLessThan(700);
+    expect(probe.calls).toBeLessThan(characters / 3);
+  });
+
+  it("routes production browser measurement through bounded line probes", () => {
+    const mount = document.createElement("div");
+    document.body.append(mount);
+    const text = "x".repeat(120);
+    const editor = createTesinaEditor({
+      element: mount,
+      content: {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [{
+            type: "paragraph",
+            content: [{ type: "text", text }],
+          }],
+        }],
+      },
+      newlyCreated: true,
+      citationEnv: { refsById: new Map(), locale: "en" },
+      referenceEnv: { references: [], locale: "en", emptyLabel: "unused" },
+      paginationEnv: null,
+    });
+    const paragraphPos = 1;
+    const paragraph = editor.view.nodeDOM(paragraphPos) as HTMLElement;
+    const textNode = paragraph.firstChild!;
+    vi.spyOn(paragraph, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 100, 624, 60),
+    );
+    let rangeCalls = 0;
+    const rangeSpy = vi.spyOn(document, "createRange").mockImplementation(
+      () => {
+        let endExclusive = 0;
+        return {
+          setStart(node: Node) {
+            expect(node).toBe(textNode);
+          },
+          setEnd(node: Node, offset: number) {
+            expect(node).toBe(textNode);
+            endExclusive = offset;
+          },
+          getClientRects() {
+            rangeCalls += 1;
+            return Array.from(
+              { length: Math.ceil(endExclusive / 40) },
+              (_, line) =>
+                new DOMRect(
+                  0,
+                  100 + line * 20,
+                  Math.min(40, endExclusive - line * 40) * 8,
+                  16,
+                ),
+            ) as unknown as DOMRectList;
+          },
+        } as unknown as Range;
+      },
+    );
+    const getComputedStyle = globalThis.getComputedStyle.bind(globalThis);
+    const styleSpy = vi.spyOn(globalThis, "getComputedStyle")
+      .mockImplementation(
+        (element, pseudoElement) =>
+          pseudoElement
+            ? {
+              display: "none",
+              content: "none",
+            } as CSSStyleDeclaration
+            : getComputedStyle(element),
+      );
+
+    try {
+      const snapshot = browserPaginationLayoutAdapter.readLayout(editor.view);
+      const lines = snapshot.fragments.filter((fragment) =>
+        fragment.lineGroup?.id === `text:${paragraphPos}`
+      );
+
+      expect(lines.map((line) => line.breakBefore.pos)).toEqual([
+        editor.view.posAtDOM(textNode, 0),
+        editor.view.posAtDOM(textNode, 40),
+        editor.view.posAtDOM(textNode, 80),
+      ]);
+      expect(rangeCalls).toBeLessThan(30);
+    } finally {
+      styleSpy.mockRestore();
+      rangeSpy.mockRestore();
+      editor.destroy();
+      mount.remove();
+    }
   });
 });
