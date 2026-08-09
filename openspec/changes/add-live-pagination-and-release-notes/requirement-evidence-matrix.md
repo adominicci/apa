@@ -1,7 +1,7 @@
 # Requirement-to-evidence matrix
 
-Candidate audited: `bec1e6ece55e2cc2de5d6834ddeb179ea98b24b4` after the
-verified Task 10 native-input host correction.
+Candidate audited: `cd6b695f5b57cb832936e226057cc41e0998965e` after the
+verified pagination-boundary and wrapped-heading corrections.
 
 This matrix distinguishes implementation evidence from context and future
 release work. A `PASS` row has repeatable evidence in the current tree. A
@@ -10,25 +10,35 @@ evidence. A `PENDING` row belongs to a later approved task.
 
 ## Evidence boundaries
 
-- [CI run 31298188486](https://github.com/adominicci/apa/actions/runs/31298188486)
+- [CI run 31317794308](https://github.com/adominicci/apa/actions/runs/31317794308)
   is green at the audited exact SHA. Its
-  [WKWebView job](https://github.com/adominicci/apa/actions/runs/31298188486/job/93206558407)
+  [WKWebView job](https://github.com/adominicci/apa/actions/runs/31317794308/job/93255747132)
   and
-  [WebView2 job](https://github.com/adominicci/apa/actions/runs/31298188486/job/93206558425)
+  [WebView2 job](https://github.com/adominicci/apa/actions/runs/31317794308/job/93255747084)
   run the visible native proof with the production pagination measurer and
-  extension. The Windows job also completes the strict trusted OS mouse,
+  extension. Both engines require every positive-area authored text rectangle
+  to avoid every real painted page-band marker across production, scale,
+  parity, performance, reference, overflow, and oversized editable-text
+  states. The Windows job also completes the strict trusted OS mouse,
   clipboard, dead-key `e` composition to exact `é`, and undo path: one Copy,
   one Paste, one trusted Dead key, a one-character document delta, and exact
   document/selection restoration after one Ctrl+Z. These jobs are
   embedded-engine evidence, not packaged-app evidence.
 - [Installer run 31298196683](https://github.com/adominicci/apa/actions/runs/31298196683)
-  is green at the same audited SHA. The Windows job verifies the 0.1.3 MSI and
+  is the earlier green Task 10 packaging checkpoint at `bec1e6e`, not the
+  current pagination candidate. The Windows job verifies the 0.1.3 MSI and
   NSIS installer, the Ubuntu job verifies the 0.1.3 AppImage and Debian
   package, and the
   [macOS packaged smoke](https://github.com/adominicci/apa/actions/runs/31298196683/job/93206579107)
   verifies the 0.1.3 app and universal DMG, bundle identifier, exact commit,
   launch, and three-second liveness. It explicitly does not prove editing,
   release-note interaction, IPC/plugin persistence, or installer UX.
+- A local Chromium/in-app-browser inspection of the current implementation
+  started at the first visible sheet and paused at every derived gray page
+  band. All four boundaries were visually clear; the live DOM oracle examined
+  60 positive-area authored text rectangles and found zero intersections.
+  This is additional manual visual evidence, not a substitute for the current
+  WKWebView/WebView2 jobs.
 - DOCX evidence is generated and inspected by
   [`export.test.ts`](../../../packages/docx-export/test/export.test.ts).
 - The historical macOS manual-input result covered trusted composition,
@@ -46,7 +56,7 @@ evidence. A `PENDING` row belongs to a later approved task.
 
 | ID | OpenSpec scenario | Exact evidence | Status |
 |---|---|---|---|
-| LP-01 | Body grows beyond one page | [`plan.test.ts`](../../../apps/desktop/src/lib/editor/pagination/plan.test.ts), “starts a second page at the first overflowing line”; current WKWebView/WebView2 `productionPaginationStack`, `lineLevelContinuation`, `visualGapIsReal`, and `livePagedLetterGeometry` checks | PASS |
+| LP-01 | Body grows beyond one page | [`plan.test.ts`](../../../apps/desktop/src/lib/editor/pagination/plan.test.ts), “starts a second page at the first overflowing line”; current WKWebView/WebView2 `productionPaginationStack`, `lineLevelContinuation`, `visualGapIsReal`, and `livePagedLetterGeometry` checks; every native stable-state painted band has positive marker coverage and zero authored-text intersections | PASS |
 | LP-02 | Content is removed | [`plan.test.ts`](../../../apps/desktop/src/lib/editor/pagination/plan.test.ts), “reflows backward and removes an unnecessary trailing page after deletion”; both native jobs prove authored deletion reflow and trailing-page removal | PASS |
 | LP-03 | New paper opens with cover, body, and empty references pages | [`pageComposition.test.ts`](../../../apps/desktop/src/lib/editor/pagination/pageComposition.test.ts), “numbers cover, authored pages, and one empty references page in order”; [`CoverSheet.test.ts`](../../../apps/desktop/src/lib/components/CoverSheet.test.ts); [`referencePages.test.ts`](../../../apps/desktop/src/lib/editor/pagination/referencePages.test.ts) | PASS — combined creation primitives; no packaged creation walkthrough yet |
 | LP-04 | Paginated essay is saved and reopened | [`essays.svelte.test.ts`](../../../apps/desktop/src/lib/state/essays.svelte.test.ts), “reopens old and current schema-version 2 papers without pagination drift”; [`extension.test.ts`](../../../apps/desktop/src/lib/editor/pagination/extension.test.ts), “recalculates identical derived flow after authored JSON is saved and reopened” | PASS — persistence identity plus recalculated derived flow |
@@ -55,11 +65,11 @@ evidence. A `PENDING` row belongs to a later approved task.
 | LP-07 | Long body precedes references | [`pageComposition.test.ts`](../../../apps/desktop/src/lib/editor/pagination/pageComposition.test.ts), “keeps optional abstract and multi-page body before references”; current native parity section order includes body continuations before references | PASS |
 | LP-08 | Long appendix flows, then the next appendix starts | [`plan.test.ts`](../../../apps/desktop/src/lib/editor/pagination/plan.test.ts), “derives every continuation page of one long appendix before the next appendix”; [`pageComposition.test.ts`](../../../apps/desktop/src/lib/editor/pagination/pageComposition.test.ts) keeps all reference pages before every appendix page | PASS |
 | LP-09 | References change | [`referenceDecoration.test.ts`](../../../apps/desktop/src/lib/editor/referenceDecoration.test.ts), “commits only the latest measured reference count and repaginates after deletion”; [`extension.test.ts`](../../../apps/desktop/src/lib/editor/pagination/extension.test.ts) now settles and asserts the changed later page number; current native reference-refresh operation passes | PASS |
-| LP-10 | Paragraph crosses a page boundary | [`plan.test.ts`](../../../apps/desktop/src/lib/editor/pagination/plan.test.ts), two-line widow/orphan cases; both native jobs prove line-level continuation | PASS |
-| LP-11 | Heading approaches a boundary | [`plan.test.ts`](../../../apps/desktop/src/lib/editor/pagination/plan.test.ts), “moves a heading with its first following line”; native proof covers run-in heading geometry | PASS |
+| LP-10 | Paragraph crosses a page boundary | [`plan.test.ts`](../../../apps/desktop/src/lib/editor/pagination/plan.test.ts), two-line widow/orphan cases; both native jobs prove line-level continuation and zero intersection between every positive-area authored text rect and every painted page band | PASS |
+| LP-11 | Heading approaches a boundary | [`plan.test.ts`](../../../apps/desktop/src/lib/editor/pagination/plan.test.ts), “moves a heading with its first following line”; [`measure.test.ts`](../../../apps/desktop/src/lib/editor/pagination/measure.test.ts) covers normal block headings, oversized block headings, wrapped H4/H5 run-in heading-only lines, terminal-line keep behavior, and shared gap-normalized coordinates; both native engines require oversized block and run-in headings to split at real authored line positions with zero painted-band intersections | PASS |
 | LP-12 | Figure or equation does not fit | [`plan.test.ts`](../../../apps/desktop/src/lib/editor/pagination/plan.test.ts), atomic movement; [`measure.test.ts`](../../../apps/desktop/src/lib/editor/pagination/measure.test.ts), production figure/equation measurement; both native jobs prove figure movement and equation measurement | PASS |
-| LP-13 | Table crosses a boundary | [`plan.test.ts`](../../../apps/desktop/src/lib/editor/pagination/plan.test.ts), whole-row boundary and repeated-header cases; [`extension.test.ts`](../../../apps/desktop/src/lib/editor/pagination/extension.test.ts), valid table-row gap; both native jobs prove the table continuation path | PASS |
-| LP-14 | Content is taller than one printable page | [`plan.test.ts`](../../../apps/desktop/src/lib/editor/pagination/plan.test.ts) proves one bounded overflow record, forward progress, and deterministic following-page spacing for atomic blocks and rows; fallback/editability coverage is in [`extension.test.ts`](../../../apps/desktop/src/lib/editor/pagination/extension.test.ts) | LIMITED — bounded stable treatment is proved, but no distinct painted overflow indicator is asserted |
+| LP-13 | Table crosses a boundary | [`plan.test.ts`](../../../apps/desktop/src/lib/editor/pagination/plan.test.ts), whole-row boundary, complete preamble keep-chain, and repeated-header cases; [`measure.test.ts`](../../../apps/desktop/src/lib/editor/pagination/measure.test.ts) splits oversized editable titles/notes by real lines; [`extension.test.ts`](../../../apps/desktop/src/lib/editor/pagination/extension.test.ts) proves valid row gaps and styled inert repeated headers; both native jobs prove title, note, row-overflow, repeated-header, and zero-intersection geometry | PASS |
+| LP-14 | Content is taller than one printable page | [`plan.test.ts`](../../../apps/desktop/src/lib/editor/pagination/plan.test.ts) proves bounded overflow records, repeated-header-aware row limits, forward progress, and deterministic following-page spacing; [`extension.test.ts`](../../../apps/desktop/src/lib/editor/pagination/extension.test.ts) paints the exact authored atomic/row nodes as bounded outlined local scrollers without changing JSON; [`referencePages.test.ts`](../../../apps/desktop/src/lib/editor/pagination/referencePages.test.ts) and native proof cover independently bounded oversized references; both native engines require reachable content, bounded geometry, following-sheet separation, and zero painted-band intersections | PASS |
 | LP-15 | User types across a boundary | [`extension.test.ts`](../../../apps/desktop/src/lib/editor/pagination/extension.test.ts), authored transaction mapping without history/JSON; both native jobs prove caret/input traversal and formatting across the gap | PASS |
 | LP-16 | User selects across pages | Gap widgets are non-editable and selection-ignored in [`extension.test.ts`](../../../apps/desktop/src/lib/editor/pagination/extension.test.ts); native drag selection and script selection cross a real gap | PASS |
 | LP-17 | User undoes a pagination-changing edit | [`disposablePaginationProof.test.ts`](../../../apps/desktop/src/lib/editor/pagination/proof/disposablePaginationProof.test.ts) proves one-step authored undo; current Windows native job proves exact OS-input edit plus one real Ctrl+Z restores document and selection identity | PASS |
@@ -108,8 +118,8 @@ evidence. A `PENDING` row belongs to a later approved task.
 | C-04 | The version is visible and clickable on the main page and editor bottom status bar | RN-11 through RN-16 | PASS |
 | C-05 | Both version controls show the same installed-version notes and can reopen them | Shared controller and canonical body evidence RN-08, RN-09, RN-15, RN-16 | PASS |
 | C-06 | Use the public academic editor only as functional pagination context | Fresh 2026-08-09 public-guide inspection recorded above; clean-room fixture provenance in [`longDocumentFixture.ts`](../../../apps/desktop/src/lib/editor/pagination/proof/longDocumentFixture.ts) | CONTEXT ONLY — never implementation evidence |
-| C-07 | Specify and track the change with OpenSpec | Proposal, design, both capability specs, this matrix, and [`tasks.md`](./tasks.md) | PASS through Task 10; strict validation green |
-| C-08 | Execute the approved Superpowers end-to-end flow with independent gap review | Task checkpoints, RED→GREEN tests, independent pagination/release audits, and the focused native-host correction review | PASS through Task 10; no Critical/Important findings |
+| C-07 | Specify and track the change with OpenSpec | Proposal, design, both capability specs, this matrix, and [`tasks.md`](./tasks.md) | PASS through Task 11 review closeout; strict validation green |
+| C-08 | Execute the approved Superpowers end-to-end flow with independent gap review | Task checkpoints, RED→GREEN tests, independent pagination/release audits, focused native-host correction review, screenshot-blocker diagnosis, slow browser sweep, and exact-head Codex review | PASS through Task 11 review closeout; no unresolved Critical/Important findings |
 | C-09 | Keep implementation isolated in a worktree | Worktree `/Users/andresdominicci/Projects/apa/.worktrees/live-pagination-release-notes`, branch `features/live-pagination-release-notes`; containment/parity rechecked at every checkpoint | PASS |
 | C-10 | Test before launching the app for final manual testing | Automated Task 9 gates are the current owner; packaged interactive/manual launch is deliberately not claimed by the narrow smoke | PENDING — final packaged/manual gate is Task 12.3 after release preparation |
 | C-11 | Current-version notes are inspectable now; the next release gets synchronized plain-English notes/version | Current package `0.1.3` is bound byte-for-byte to its plain-English changelog body by `bundledReleaseNotes.test.ts`; `verify-release-version.test.ts` proves package, Tauri, Cargo, Cargo.lock, automatic/manual presentation, and workflow-body parity | PASS at local release-preparation scope; tag/artifact/publication evidence remains Tasks 11–12 |
@@ -117,21 +127,19 @@ evidence. A `PENDING` row belongs to a later approved task.
 
 ## Honest residual boundaries
 
-1. The planner records and bounds oversize atomic/table-row overflow and the
-   native proof remains editable and finite, but there is no separate painted
-   warning/indicator assertion. LP-14 is intentionally `LIMITED`.
-2. Page chrome is structurally excluded from editing, selection, authored JSON,
+1. Page chrome is structurally excluded from editing, selection, authored JSON,
    and accessibility exposure, and copy-across-gap evidence is green. A current
    VoiceOver/NVDA traversal and packaged page-number Copy remain useful
    additional manual evidence rather than scenario blockers.
-3. Native buttons provide the platform Enter/Space activation contract and the
+2. Native buttons provide the platform Enter/Space activation contract and the
    real click/focus lifecycle is tested. A packaged OS-key walkthrough for both
    controls belongs to Task 12.3 and is not pre-claimed here.
-4. The packaged smoke proves only launch/metadata/liveness at the exact audited
-   SHA. It is not evidence for pagination editing, Markdown, buttons,
+3. The packaged smoke proves only launch/metadata/liveness at the earlier Task
+   10 packaging SHA. It is not evidence for the current pagination candidate,
+   pagination editing, Markdown, buttons,
    accessibility, offline notes, persistence, or installer UX.
-5. Version `0.1.3`, Cargo.lock/release-body enforcement, exact-SHA native
-   evidence, installer compilation, and the narrow packaged smoke are verified
-   in Task 10. PR/merge, interactive app testing, tag, release-artifact
-   inspection, publication, and public updater verification remain Tasks 11–12
-   and are not pre-claimed here.
+4. Version `0.1.3`, Cargo.lock/release-body enforcement, current exact-SHA
+   native evidence, earlier installer compilation, and the narrow packaged
+   smoke are verified. Merge, current-main installer verification, packaged
+   interactive app testing, tag, release-artifact inspection, publication, and
+   public updater verification remain Tasks 11–12 and are not pre-claimed here.

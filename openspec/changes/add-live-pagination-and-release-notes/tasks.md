@@ -92,10 +92,10 @@
 
 ## Task 11: PR, independent review, and merge policy
 
-- [ ] 11.1 Fetch origin; merge `origin/main` into local `main`; if `origin/dev` and local `dev` exist at execution time, merge `origin/dev` into local `dev`; inspect and resolve conflicts before rebasing/merging the feature branch as appropriate.
-- [ ] 11.2 Push `features/live-pagination-release-notes` and create the PR against `dev` only if `dev` exists at that time, otherwise against `main`; include the OpenSpec change, scenario matrix, local gates, native evidence, data-safety proof, and release plan in the English PR description.
-- [ ] 11.3 Add exactly the required `@greptile review` PR comment, wait for checks/review, validate findings technically, reply in English, resolve only addressed threads, and rerun affected plus full gates after fixes.
-- [ ] 11.4 Confirm the final PR diff contains no unrelated portable-backup worktree changes, no generated native-engine harness artifacts or downloaded browser bundles, no forbidden competitor material, and no unexpected dependency/license changes.
+- [x] 11.1 Fetch origin; merge `origin/main` into local `main`; if `origin/dev` and local `dev` exist at execution time, merge `origin/dev` into local `dev`; inspect and resolve conflicts before rebasing/merging the feature branch as appropriate.
+- [x] 11.2 Push `features/live-pagination-release-notes` and create the PR against `dev` only if `dev` exists at that time, otherwise against `main`; include the OpenSpec change, scenario matrix, local gates, native evidence, data-safety proof, and release plan in the English PR description.
+- [x] 11.3 Add exactly the required `@greptile review` PR comment, wait for checks/review, validate findings technically, reply in English, resolve only addressed threads, and rerun affected plus full gates after fixes.
+- [x] 11.4 Confirm the final PR diff contains no unrelated portable-backup worktree changes, no generated native-engine harness artifacts or downloaded browser bundles, no forbidden competitor material, and no unexpected dependency/license changes.
 - [ ] 11.5 Merge the feature PR only after required checks and review are green, then sync its base branch and verify local/remote commit parity without closing or deleting `main` or `dev`.
 - [ ] 11.6 If the feature PR merged into `dev`, create the required reviewed `dev` to `main` promotion PR, add the required `@greptile review` comment, resolve only validated feedback, merge only when green, and then sync both protected branches. If the feature PR merged directly into `main`, record that no promotion PR was needed.
 - [ ] 11.7 Before tagging, require green `main` CI including the macOS WKWebView and Windows WebView2 harness jobs, plus the existing macOS, Windows, and Linux installer-build verification for the exact merged `main` commit.
