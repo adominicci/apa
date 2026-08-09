@@ -6,7 +6,11 @@ import {
   readPendingReleaseNotes,
   savePendingReleaseNotes,
 } from "$lib/update/releaseNotes";
+import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import LayoutReleaseNotesHarness from "./LayoutReleaseNotesHarness.test.svelte";
+
+const canonicalNotesExcerpt =
+  "Essays now flow automatically from one US Letter page to the next";
 
 const runtime = vi.hoisted(() => ({
   getVersion: vi.fn<() => Promise<string>>(),
@@ -76,7 +80,7 @@ describe("update and release-note precedence", () => {
     const version = deferred<string>();
     runtime.getVersion.mockReturnValue(version.promise);
     savePendingReleaseNotes(localStorage, {
-      version: "0.1.2",
+      version: bundledReleaseNotes.version,
       body: "<script>Updater body must never render</script>",
     });
 
@@ -89,14 +93,14 @@ describe("update and release-note precedence", () => {
     expect(document.documentElement.dataset.theme).toBe("light");
     expect(document.querySelector(".update-banner")).toBeNull();
 
-    version.resolve("0.1.2");
+    version.resolve(bundledReleaseNotes.version);
     await tick();
     flushSync();
 
     expect(document.querySelector("[role='dialog']")).not.toBeNull();
     expect(document.querySelector(".update-banner")).toBeNull();
     expect(document.querySelector(".markdown-content")?.textContent).toContain(
-      "The editor now shows the paper as separate pages",
+      canonicalNotesExcerpt,
     );
     expect(document.body.textContent).not.toContain(
       "Updater body must never render",
@@ -104,9 +108,9 @@ describe("update and release-note precedence", () => {
   });
 
   it("preserves a newer marker on dismissal before exposing the updater", async () => {
-    runtime.getVersion.mockResolvedValue("0.1.2");
+    runtime.getVersion.mockResolvedValue(bundledReleaseNotes.version);
     savePendingReleaseNotes(localStorage, {
-      version: "0.1.2",
+      version: bundledReleaseNotes.version,
       body: "Displayed update notes",
     });
     component = mount(LayoutReleaseNotesHarness, { target: document.body });
@@ -137,7 +141,7 @@ describe("update and release-note precedence", () => {
         document.querySelector<HTMLButtonElement>(
           "[data-open-installed-notes]",
         )?.textContent,
-      ).toContain("v0.1.2");
+      ).toContain(`v${bundledReleaseNotes.version}`);
       expect(document.querySelector(".update-banner")).not.toBeNull();
     });
 
@@ -148,7 +152,7 @@ describe("update and release-note precedence", () => {
 
     expect(document.querySelector("[role='dialog']")).not.toBeNull();
     expect(document.querySelector(".markdown-content")?.textContent).toContain(
-      "The editor now shows the paper as separate pages",
+      canonicalNotesExcerpt,
     );
     expect(document.querySelector(".update-banner")).toBeNull();
   });
@@ -157,7 +161,7 @@ describe("update and release-note precedence", () => {
     const version = deferred<string>();
     runtime.getVersion.mockReturnValue(version.promise);
     savePendingReleaseNotes(localStorage, {
-      version: "0.1.2",
+      version: bundledReleaseNotes.version,
       body: "Updater body",
     });
     component = mount(LayoutReleaseNotesHarness, { target: document.body });
@@ -170,7 +174,7 @@ describe("update and release-note precedence", () => {
     flushSync();
 
     expect(document.querySelector(".markdown-content")?.textContent).toContain(
-      "The editor now shows the paper as separate pages",
+      canonicalNotesExcerpt,
     );
     expect(document.body.textContent).not.toContain("Updater body");
     expect(document.querySelector(".update-banner")).toBeNull();
@@ -187,11 +191,13 @@ describe("update and release-note precedence", () => {
     document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
     flushSync();
     expect(document.querySelector(".update-banner")).not.toBeNull();
-    expect(readPendingReleaseNotes(localStorage)?.version).toBe("0.1.2");
+    expect(readPendingReleaseNotes(localStorage)?.version).toBe(
+      bundledReleaseNotes.version,
+    );
   });
 
   it("ignores stale markers and exposes the updater after resolution", async () => {
-    runtime.getVersion.mockResolvedValue("0.1.2");
+    runtime.getVersion.mockResolvedValue(bundledReleaseNotes.version);
     savePendingReleaseNotes(localStorage, {
       version: "0.1.1",
       body: "Stale updater body",
@@ -229,6 +235,6 @@ describe("update and release-note precedence", () => {
       "Release notes are not available for this installed version.",
     );
     expect(document.querySelector(".markdown-content")?.textContent).not
-      .toContain("The editor now shows the paper as separate pages");
+      .toContain(canonicalNotesExcerpt);
   });
 });

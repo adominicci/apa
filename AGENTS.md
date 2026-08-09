@@ -29,7 +29,9 @@ functional clone of Essayist — never copy its name, code, text, or assets.
 - Move the completed items from `CHANGELOG.md` under `Unreleased` into a dated
   section for the new version. Release notes must explain what users will
   notice in plain English. Do not use technical jargon, internal file names, or
-  implementation details.
+  implementation details. That changelog section is the only release-note
+  source: both the desktop bundle and release workflow extract the same
+  Markdown from it; never maintain a duplicate release-note body.
 - A change is not finished when its PR reaches `main`. Tag that exact `main`
   commit with the matching `v` version, let the release workflow create its
   draft, verify the updater files, and publish the release so users can receive

@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import type { BundledReleaseNotes } from "./bundledReleaseNotes.ts";
+import {
+  type BundledReleaseNotes,
+  bundledReleaseNotes,
+} from "./bundledReleaseNotes.ts";
 import {
   createReleaseNotesController,
   type ReleaseNotesController,
@@ -44,6 +47,40 @@ function controller(
 }
 
 describe("release notes controller", () => {
+  it("uses the exact canonical 0.1.3 Markdown for automatic and manual presentation", async () => {
+    expect(bundledReleaseNotes.version).toBe("0.1.3");
+    const storage = new MemoryStorage();
+    savePendingReleaseNotes(storage, {
+      version: bundledReleaseNotes.version,
+      body: "Legacy updater body must not replace canonical notes.",
+    });
+    const notes = createReleaseNotesController({
+      bundled: bundledReleaseNotes,
+      getRuntimeVersion: () => Promise.resolve(bundledReleaseNotes.version),
+      getStorage: () => storage,
+      unavailableBody: () => "Release notes unavailable.",
+    });
+    notes.setUiReady(true);
+    await notes.resolveRuntimeVersion();
+
+    expect(notes.presentation).toEqual({
+      kind: "automatic",
+      version: "0.1.3",
+      body: bundledReleaseNotes.body,
+    });
+    const automaticBody = notes.presentation?.body;
+
+    notes.dismiss();
+    notes.openInstalledNotes();
+
+    expect(notes.presentation).toEqual({
+      kind: "manual",
+      version: "0.1.3",
+      body: automaticBody,
+    });
+    expect(notes.presentation?.body).toBe(bundledReleaseNotes.body);
+  });
+
   it("starts with the packaged version and resolves the runtime version once", async () => {
     const getRuntimeVersion = vi.fn().mockResolvedValue("0.2.0");
     const notes = controller(getRuntimeVersion);

@@ -143,9 +143,21 @@ describe("release workflow contract", () => {
     expect(releaseWorkflow).toContain(
       "releaseBody: ${{ steps.release-notes.outputs.body }}",
     );
-    expect(releaseWorkflow).toContain("scripts/extract-release-notes.ts");
     expect(releaseWorkflow).toContain("scripts/verify-release-version.ts");
+    expect(releaseWorkflow).toContain("apps/desktop/src-tauri/Cargo.lock");
+    expect(releaseWorkflow).not.toContain("scripts/extract-release-notes.ts");
     expect(releaseWorkflow).toContain("scripts/verify-release-draft.ts");
+  });
+
+  it("terminates the exact verifier-produced Markdown before the output delimiter", () => {
+    const run = stringField(
+      workflowStep("Verify version and extract release notes"),
+      "run",
+    );
+
+    expect(run).toMatch(
+      /cat "\$notes_path"\n\s+printf '\\n%s\\n' "\$delimiter"/,
+    );
   });
 
   it("references only the documented updater secrets", () => {

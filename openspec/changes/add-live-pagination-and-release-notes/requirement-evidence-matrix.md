@@ -108,7 +108,7 @@ evidence. A `PENDING` row belongs to a later approved task.
 | C-08 | Execute the approved Superpowers end-to-end flow with independent gap review | Task checkpoints, RED→GREEN tests, current independent pagination/release audits, and the final blocker review required after this matrix | PASS through Task 9 |
 | C-09 | Keep implementation isolated in a worktree | Worktree `/Users/andresdominicci/Projects/apa/.worktrees/live-pagination-release-notes`, branch `features/live-pagination-release-notes`; containment/parity rechecked at every checkpoint | PASS |
 | C-10 | Test before launching the app for final manual testing | Automated Task 9 gates are the current owner; packaged interactive/manual launch is deliberately not claimed by the narrow smoke | PENDING — final packaged/manual gate is Task 12.3 after release preparation |
-| C-11 | Current-version notes are inspectable now; the next release gets synchronized plain-English notes/version | Current package `0.1.2` is bound to its changelog body by `bundledReleaseNotes.test.ts`; `0.1.3` metadata/body/Cargo.lock parity is owned by Tasks 10.1–10.4 | CURRENT PASS; NEXT RELEASE PENDING |
+| C-11 | Current-version notes are inspectable now; the next release gets synchronized plain-English notes/version | Current package `0.1.3` is bound byte-for-byte to its plain-English changelog body by `bundledReleaseNotes.test.ts`; `verify-release-version.test.ts` proves package, Tauri, Cargo, Cargo.lock, automatic/manual presentation, and workflow-body parity | PASS at local release-preparation scope; tag/artifact/publication evidence remains Tasks 11–12 |
 | C-12 | Do not pause for platform-specific composition-event parity | Windows requires the real composed `é`, authored identity, and exact undo while composition counts are diagnostic; macOS retains trusted composition evidence, as specified in [`tasks.md`](./tasks.md) 3.7 and enforced by current native tests | PASS |
 
 ## Honest residual boundaries
@@ -126,7 +126,7 @@ evidence. A `PENDING` row belongs to a later approved task.
 4. The packaged smoke proves only launch/metadata/liveness at an earlier code
    SHA. It is not evidence for pagination editing, Markdown, buttons,
    accessibility, offline notes, persistence, or installer UX.
-5. Version `0.1.3`, Cargo.lock/release-body enforcement, PR/merge, final exact-SHA
-   native/package reruns, app launch/manual testing, tag, artifact inspection,
-   publication, and updater verification remain Tasks 10–12. Task 9 does not
-   pre-claim them.
+5. Version `0.1.3` and Cargo.lock/release-body enforcement are locally verified
+   in Task 10. Exact-SHA native/package reruns, PR/merge, app launch/manual
+   testing, tag, artifact inspection, publication, and updater verification
+   remain Tasks 10.5–12 and are not pre-claimed here.

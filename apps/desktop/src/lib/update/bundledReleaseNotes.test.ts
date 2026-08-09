@@ -7,12 +7,20 @@ import {
 
 describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
+    const expectedNotes = `### Changed
+
+- Essays now flow automatically from one US Letter page to the next while you
+  write, with the title page, body, references, and appendices staying in order.
+- Release notes now show formatted headings and lists while unsafe links and
+  embedded content remain blocked.
+- The installed version is always available on the home screen and in the
+  editor status bar, where it can reopen that version's release notes at any
+  time.`;
+
+    expect(bundledReleaseNotes.version).toBe("0.1.3");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
-    expect(bundledReleaseNotes.body).toContain("### Changed");
-    expect(bundledReleaseNotes.body).toContain(
-      "The editor now shows the paper as separate pages",
-    );
-    expect(bundledReleaseNotes.body).not.toContain("## [0.1.1]");
+    expect(bundledReleaseNotes.body).toBe(expectedNotes);
+    expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");
   });
 
   it("fails when the packaged version has no matching changelog section", () => {

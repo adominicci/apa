@@ -331,7 +331,7 @@ describe("editor preview round trip", () => {
       `Tesina ${bundledReleaseNotes.version}`,
     );
     expect(dialog?.textContent).toContain(
-      "The editor now shows the paper as separate pages",
+      "Essays now flow automatically from one US Letter page to the next",
     );
     document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
     flushSync();
@@ -385,7 +385,7 @@ describe("editor preview round trip", () => {
       "Las notas no están disponibles para esta versión.",
     );
     expect(dialog?.textContent).not.toContain(
-      "The editor now shows the paper as separate pages",
+      "Essays now flow automatically from one US Letter page to the next",
     );
     globalThis.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),

@@ -5,6 +5,18 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-08-09
+
+### Changed
+
+- Essays now flow automatically from one US Letter page to the next while you
+  write, with the title page, body, references, and appendices staying in order.
+- Release notes now show formatted headings and lists while unsafe links and
+  embedded content remain blocked.
+- The installed version is always available on the home screen and in the
+  editor status bar, where it can reopen that version's release notes at any
+  time.
+
 ## [0.1.2] - 2026-08-08
 
 ### Changed
@@ -57,7 +69,8 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/apa/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/adominicci/apa/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/adominicci/apa/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/adominicci/apa/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/adominicci/apa/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/adominicci/apa/releases/tag/v0.1.0
