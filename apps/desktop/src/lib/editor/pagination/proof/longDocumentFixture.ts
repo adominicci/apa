@@ -367,3 +367,26 @@ export function createLongDocumentFixtures(): Readonly<
 > {
   return { en: fixture("en"), es: fixture("es") };
 }
+
+/** Stable text/list subset used for exact live-editor versus Paged.js parity. */
+export function createStablePaginationParityFixture(
+  locale: DocLocale,
+): LongDocumentFixture {
+  const source = fixture(locale);
+  const content = structuredClone(source.content) as {
+    content?: Array<{ type?: string; content?: unknown[] }>;
+  };
+  for (const section of content.content ?? []) {
+    section.content = (section.content ?? []).filter((node) => {
+      const type = (node as { type?: string }).type;
+      return type !== "apaTable" && type !== "figure" &&
+        type !== "apaEquation";
+    });
+  }
+  return {
+    ...source,
+    content,
+    references: source.references.slice(0, 1),
+    atomicHeights: {},
+  };
+}

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { EditorView } from "@tiptap/pm/view";
 import type { PaginationReason } from "./types.ts";
 import {
@@ -63,6 +63,32 @@ function adapterWithReadiness(
 }
 
 describe("pagination DOM measurement lifecycle", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("fails a permanently stalled font or image readiness wait on a fixed deadline", async () => {
+    vi.useFakeTimers();
+    const adapter = adapterWithReadiness(new Promise<void>(() => {}));
+    const measurer = createPaginationMeasurer({
+      view: fakeView(),
+      adapter,
+      onInvalidate: () => {},
+      readinessTimeoutMs: 25,
+    });
+    const pending = measurer.read({
+      epoch: 1,
+      signal: new AbortController().signal,
+      latestEpoch: () => 1,
+    });
+
+    const rejection = expect(pending).rejects.toThrow(
+      "Pagination layout inputs did not become ready within 25ms",
+    );
+    await vi.advanceTimersByTimeAsync(25);
+    await rejection;
+    expect(adapter.reads).toBe(0);
+    measurer.destroy();
+  });
+
   it("normalizes transformed browser geometry back to canonical CSS pixels", () => {
     expect(canonicalLayoutScale(612, 816)).toBe(0.75);
     expect(canonicalLayoutLength(18, 0.75)).toBe(24);

@@ -55,6 +55,14 @@ body {
   font: 11px/1.2 monospace;
 }
 
+#proof-preview {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  width: 816px;
+  visibility: hidden;
+}
+
 .apa-editor .page-stack {
   width: 816px;
 }

@@ -58,6 +58,7 @@ mod windows_host {
     };
 
     const AUTOMATED_HOST_DEADLINE: Duration = Duration::from_secs(45);
+    const EXPANDED_PAGINATION_HOST_DEADLINE: Duration = Duration::from_secs(135);
     const MANUAL_HOST_DEADLINE: Duration = Duration::from_secs(300);
 
     enum HostEvent {
@@ -113,6 +114,8 @@ mod windows_host {
             AUTOMATED_HOST_DEADLINE
         } else if url.contains("/nativeManualProof.html") {
             MANUAL_HOST_DEADLINE
+        } else if parsed_url.path() == "/nativeProof.html" {
+            EXPANDED_PAGINATION_HOST_DEADLINE
         } else {
             AUTOMATED_HOST_DEADLINE
         };

@@ -15,8 +15,15 @@ import {
   windowsHostBuildProcessOptions,
 } from "./nativeHostCommand.ts";
 import { nativeProofPhases } from "./nativeProofPhases.ts";
+import { nativeHostRuntimeIdentity } from "./nativeHostRuntimeIdentity.ts";
 
 const proofDir = dirname(fileURLToPath(import.meta.url));
+console.log(
+  "NATIVE_HOST_RUNTIME",
+  JSON.stringify(
+    nativeHostRuntimeIdentity(process.env["GITHUB_SHA"] ?? "local"),
+  ),
+);
 const tauriDir = resolve(proofDir, "../../../../../src-tauri");
 const proofDirectories: string[] = [];
 let outputDir = "";
@@ -86,7 +93,11 @@ async function runNativeHost(
   const output = await executeBoundedProcess(
     host.command,
     host.args,
-    { timeoutMs: AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.outerNativeHostProcess },
+    {
+      timeoutMs: url.pathname === "/nativeProof.html"
+        ? AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationOuter
+        : AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.outerNativeHostProcess,
+    },
   );
   const stdout = output.stdout.trim();
   const stderr = output.stderr.trim();
@@ -117,6 +128,7 @@ await runProofLifecycle(async () => {
     configFile: false,
     base: "./",
     logLevel: "error",
+    resolve: { alias: { $lib: resolve(proofDir, "../../..") } },
     build: {
       outDir: outputDir,
       emptyOutDir: true,

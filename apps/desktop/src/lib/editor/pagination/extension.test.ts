@@ -3,6 +3,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { Editor } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
+import { exportDocx } from "@tesina/docx-export";
+import { strFromU8, unzipSync } from "fflate";
+import { createEmptyEssay } from "$lib/model/essay";
+import { renderEssayHtml } from "$lib/preview/renderEssayHtml.ts";
 import { createTesinaEditor } from "../createEditor.ts";
 import type {
   MeasurementResult,
@@ -10,6 +14,7 @@ import type {
   PaginationMeasurer,
   PaginationMeasurerOptions,
 } from "./measure.ts";
+import { createPaginationMeasurer } from "./measure.ts";
 import type {
   PaginationInput,
   PaginationPlan,
@@ -180,6 +185,45 @@ function createEditor(): { editor: Editor; element: HTMLElement } {
   return { editor, element };
 }
 
+function contentWithFigureAsset(content: unknown, src: string): unknown {
+  const authored = structuredClone(content);
+  let replaced = false;
+  const visit = (value: unknown): void => {
+    if (!value || typeof value !== "object") return;
+    const node = value as {
+      type?: string;
+      attrs?: Record<string, unknown>;
+      content?: unknown[];
+    };
+    if (!replaced && node.type === "figureImage") {
+      node.attrs = { ...node.attrs, src };
+      replaced = true;
+    }
+    for (const child of node.content ?? []) visit(child);
+  };
+  visit(authored);
+  if (!replaced) throw new Error("Fixture has no figure image");
+  return authored;
+}
+
+async function flushUntilStatus(
+  editor: Editor,
+  frames: TestFrames,
+  status: "stable" | "fallback",
+  attempts = 8,
+): Promise<void> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (paginationPluginKey.getState(editor.state)?.status === status) return;
+    if (frames.callbacks.size > 0) await frames.flushOne();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+  }
+  throw new Error(
+    `Pagination did not reach ${status}; got ${
+      paginationPluginKey.getState(editor.state)?.status
+    }`,
+  );
+}
+
 afterEach(() => document.body.replaceChildren());
 
 describe("derived pagination extension", () => {
@@ -318,6 +362,60 @@ describe("derived pagination extension", () => {
       ).toBe(initialGapPos + 1);
       expect(editor.commands.undo()).toBe(true);
       expect(JSON.stringify(editor.getJSON())).toBe(baselineJson);
+    } finally {
+      editor.destroy();
+    }
+  });
+
+  it("exports authored JSON without serializing a painted live page gap", async () => {
+    const frames = new TestFrames();
+    const fixture = createLongDocumentFixtures().en;
+    const { editor, element } = createEditor();
+    const gapPos = positionOfText(editor.state.doc, "simulated round") + 8;
+    try {
+      editor.registerPlugin(createPaginationPlugin(
+        { reason: "authored-content" },
+        {
+          createMeasurer: () => ({
+            read: ({ epoch }) => Promise.resolve(measured(epoch)),
+            destroy: () => {},
+          }),
+          plan: (input) => stablePlan(input.epoch, gapPos),
+          requestFrame: frames.request,
+          cancelFrame: frames.cancel,
+        },
+      ));
+      await frames.flushAll();
+      expect(element.querySelectorAll("[data-pagination-gap]")).toHaveLength(
+        1,
+      );
+
+      const bytes = await exportDocx({
+        content: editor.getJSON(),
+        settings: {
+          documentLanguage: "en",
+          variant: "student",
+          font: "times-new-roman-12",
+          paperSize: "us-letter",
+        },
+        titlePage: {
+          title: "Fallback proof paper",
+          authors: [],
+          affiliations: [],
+        },
+        references: fixture.references,
+        images: {},
+      });
+      const files = unzipSync(bytes);
+      const documentXml = strFromU8(files["word/document.xml"]!);
+      expect(documentXml).not.toMatch(/<w:br[^>]*w:type="page"/);
+      expect(documentXml.match(/<w:pageBreakBefore\/>/g)).toHaveLength(4);
+      expect(documentXml).toContain(
+        '<w:pgSz w:w="12240" w:h="15840" w:orient="portrait"/>',
+      );
+      expect(documentXml).toContain(
+        '<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"',
+      );
     } finally {
       editor.destroy();
     }
@@ -491,6 +589,98 @@ describe("derived pagination extension", () => {
       expect(element.querySelector("[data-pagination-gap]")).toBeNull();
       editor.view.dispatch(editor.state.tr.insertText("X", editPos));
       expect(editor.state.doc.textBetween(editPos, editPos + 1)).toBe("X");
+    } finally {
+      editor.destroy();
+    }
+  });
+
+  it("keeps fallback edits available to autosave, preview, and export with a missing asset", async () => {
+    const frames = new TestFrames();
+    const fixture = createLongDocumentFixtures().en;
+    const missingAsset = "essays/assets/missing-proof-figure.png";
+    const content = contentWithFigureAsset(fixture.content, missingAsset);
+    const element = document.createElement("div");
+    document.body.append(element);
+    let autosaveContent: unknown;
+    const editor = createTesinaEditor({
+      element,
+      content,
+      newlyCreated: true,
+      citationEnv: {
+        refsById: new Map(fixture.references.map((ref) => [ref.id, ref])),
+        locale: "en",
+      },
+      referenceEnv: {
+        references: fixture.references,
+        locale: "en",
+        emptyLabel: "unused",
+      },
+      paginationEnv: null,
+      onUpdate: (docJson) => autosaveContent = structuredClone(docJson),
+    });
+    const editPos = positionOfText(editor.state.doc, "simulated round") + 2;
+    const image = element.querySelector<HTMLImageElement>("img.fig-img")!;
+    let assetReady = false;
+    Object.defineProperty(image, "complete", {
+      configurable: true,
+      get: () => assetReady,
+    });
+    try {
+      editor.registerPlugin(createPaginationPlugin(
+        { reason: "asset" },
+        {
+          createMeasurer: (options) =>
+            createPaginationMeasurer({
+              ...options,
+              readinessTimeoutMs: 25,
+            }),
+          requestFrame: frames.request,
+          cancelFrame: frames.cancel,
+        },
+      ));
+      await flushUntilStatus(editor, frames, "fallback");
+      expect(paginationPluginKey.getState(editor.state)?.status).toBe(
+        "fallback",
+      );
+
+      editor.view.dispatch(editor.state.tr.insertText("X", editPos));
+      expect(autosaveContent).toEqual(editor.getJSON());
+      await flushUntilStatus(editor, frames, "fallback");
+
+      expect(paginationPluginKey.getState(editor.state)?.status).toBe(
+        "fallback",
+      );
+      expect(JSON.stringify(autosaveContent)).toContain(missingAsset);
+
+      const essay = createEmptyEssay("en", "2026-08-08T12:00:00.000Z");
+      essay.titlePage.title = "Fallback proof paper";
+      essay.content = autosaveContent;
+      essay.referencesSnapshot = fixture.references;
+      expect(JSON.stringify(essay)).not.toMatch(
+        /"(?:pagination|pageStarts|pageGaps|pageCount|pageNumber)"/,
+      );
+
+      const preview = renderEssayHtml(
+        essay,
+        essay.content,
+        fixture.references,
+      );
+      expect(preview).toContain("X");
+      expect(preview).toContain('class="apa-figure"');
+      expect(preview).not.toContain(missingAsset);
+
+      const bytes = await exportDocx({
+        content: essay.content,
+        settings: essay.settings,
+        titlePage: essay.titlePage,
+        references: fixture.references,
+        images: {},
+      });
+      expect([...bytes.slice(0, 4)]).toEqual([80, 75, 3, 4]);
+
+      assetReady = true;
+      image.dispatchEvent(new Event("load"));
+      expect(frames.callbacks.size).toBe(1);
     } finally {
       editor.destroy();
     }

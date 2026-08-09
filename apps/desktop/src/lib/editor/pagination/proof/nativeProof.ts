@@ -1,6 +1,11 @@
 import type { Editor } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { TextSelection } from "@tiptap/pm/state";
+import { createEmptyEssay } from "../../../model/essay.ts";
+import {
+  renderEssayCss,
+  renderEssayHtml,
+} from "../../../preview/renderEssayHtml.ts";
 import { createTesinaEditor } from "../../createEditor.ts";
 import { insertCitation } from "../../citation.ts";
 import {
@@ -10,12 +15,20 @@ import {
 import {
   createPaginationMeasurer,
   type PaginationMeasurer,
+  type PaginationMeasurerOptions,
 } from "../measure.ts";
 import { calculatePaperScale } from "../paperScale.ts";
 import { composeDocumentPages } from "../pageComposition.ts";
-import { invalidatePagination } from "../extension.ts";
+import {
+  createPaginationPlugin,
+  invalidatePagination,
+  paginationPluginKey,
+} from "../extension.ts";
 import type { PaginationStateReport } from "../types.ts";
-import { createLongDocumentFixtures } from "./longDocumentFixture.ts";
+import {
+  createLongDocumentFixtures,
+  createStablePaginationParityFixture,
+} from "./longDocumentFixture.ts";
 import {
   createDisposablePaginationProofPlugin,
   disposablePaginationProofKey,
@@ -28,6 +41,15 @@ import {
 } from "./nativeBridge.ts";
 import { inlineFlowVisualHeight } from "./nativeProofGeometry.ts";
 import { samePlannerFragmentInputs } from "./plannerInputEquality.ts";
+import {
+  evaluateLivePagedGeometry,
+  evaluateNativePaginationWorkload,
+  type NativePaginationOperationResult,
+  type NativePaginationWorkloadPages,
+  type NativePaginationWorkloadResult,
+  percentile95,
+} from "./nativePerformance.ts";
+import { AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS } from "./nativeHostCommand.ts";
 import { startProofPageWatchdog } from "./proofPageWatchdog.ts";
 import "./nativeProof.css";
 
@@ -222,6 +244,398 @@ async function waitForStableMeasurement(
   throw new Error(`${description} did not stabilize`);
 }
 
+class NativePaginationFrameLedger {
+  readonly #nativeRequest = globalThis.requestAnimationFrame.bind(globalThis);
+  readonly #nativeCancel = globalThis.cancelAnimationFrame.bind(globalThis);
+  readonly #pending = new Set<number>();
+  executed = 0;
+  maxPending = 0;
+
+  request = (callback: FrameRequestCallback): number => {
+    let handle = 0;
+    handle = this.#nativeRequest((timestamp) => {
+      this.#pending.delete(handle);
+      this.executed += 1;
+      callback(timestamp);
+    });
+    this.#pending.add(handle);
+    this.maxPending = Math.max(this.maxPending, this.#pending.size);
+    return handle;
+  };
+
+  cancel = (handle: number): void => {
+    this.#pending.delete(handle);
+    this.#nativeCancel(handle);
+  };
+}
+
+interface CapturedNativeOperation {
+  result: NativePaginationOperationResult;
+  reports: PaginationStateReport[];
+  targetEpoch: number;
+}
+
+function latestStableReport(
+  reports: readonly PaginationStateReport[],
+): PaginationStateReport | undefined {
+  return reports.findLast((report) => report.status === "stable");
+}
+
+async function captureNativePaginationOperation(
+  editor: Editor,
+  reports: PaginationStateReport[],
+  frames: NativePaginationFrameLedger,
+  description: string,
+  mutate: () => void,
+): Promise<CapturedNativeOperation> {
+  const reportIndex = reports.length;
+  const executedBefore = frames.executed;
+  const startedAt = performance.now();
+  mutate();
+  const targetEpoch = paginationPluginKey.getState(editor.state)?.epoch;
+  if (targetEpoch === undefined) {
+    throw new Error(`Pagination state disappeared during ${description}`);
+  }
+  await waitForCondition(
+    `${description} to settle at epoch ${targetEpoch}`,
+    () =>
+      reports.some((report) =>
+        report.status === "stable" && report.epoch === targetEpoch
+      ),
+    240,
+  );
+  const operationReports = reports.slice(reportIndex);
+  const stable = operationReports.findLast((report) =>
+    report.status === "stable" && report.epoch === targetEpoch
+  );
+  if (!stable) throw new Error(`${description} did not produce a stable plan`);
+  return {
+    result: {
+      settlementMs: performance.now() - startedAt,
+      paginationFrames: frames.executed - executedBefore,
+      stableCommits:
+        operationReports.filter((report) =>
+          report.status === "stable" && report.epoch === targetEpoch
+        ).length,
+      fallbackCommits:
+        operationReports.filter((report) => report.status === "fallback")
+          .length,
+      startEpoch: targetEpoch,
+      endEpoch: stable.epoch,
+    },
+    reports: operationReports,
+    targetEpoch,
+  };
+}
+
+function workloadParagraphText(index: number): string {
+  const sentence =
+    `Rendered workload paragraph ${index} records an invented sequence of ` +
+    "archive cards, envelope labels, rainfall tallies, volunteer checks, " +
+    "and review notes so native pagination has realistic prose to wrap.";
+  return `${sentence} ${sentence}`;
+}
+
+function renderedWorkloadContent(targetPages: NativePaginationWorkloadPages) {
+  return {
+    type: "doc",
+    content: [{
+      type: "sectionBody",
+      content: Array.from({ length: targetPages * 9 }, (_, index) => ({
+        type: "paragraph",
+        content: [{ type: "text", text: workloadParagraphText(index + 1) }],
+      })),
+    }],
+  };
+}
+
+async function waitForLatestStableReport(
+  editor: Editor,
+  reports: PaginationStateReport[],
+  description: string,
+): Promise<PaginationStateReport> {
+  const epoch = paginationPluginKey.getState(editor.state)?.epoch;
+  if (epoch === undefined) throw new Error("Pagination plugin is not mounted");
+  await waitForCondition(
+    description,
+    () =>
+      reports.some((report) =>
+        report.status === "stable" && report.epoch === epoch
+      ),
+    240,
+  );
+  return reports.findLast((report) =>
+    report.status === "stable" && report.epoch === epoch
+  )!;
+}
+
+async function runNativePerformanceWorkload(
+  targetPages: NativePaginationWorkloadPages,
+  mount: HTMLElement,
+  shell: HTMLElement,
+  proofEditor: HTMLElement,
+  fixture: ReturnType<typeof createLongDocumentFixtures>["en"],
+): Promise<NativePaginationWorkloadResult> {
+  mount.replaceChildren();
+  shell.style.setProperty(
+    "--doc-font",
+    'Georgia, "Times New Roman", serif',
+  );
+  shell.style.setProperty("--doc-font-size", "11pt");
+  proofEditor.style.transform = "";
+
+  const reports: PaginationStateReport[] = [];
+  const frames = new NativePaginationFrameLedger();
+  let layoutReads = 0;
+  let referencePageCount = 1;
+  const referenceEnv: ReferenceDecorationEnv = {
+    references: fixture.references.slice(0, 1),
+    locale: "en",
+    emptyLabel: "unused",
+    onPageCountChange: (count: number) => referencePageCount = count,
+  };
+  const editor = createTesinaEditor({
+    element: mount,
+    content: renderedWorkloadContent(targetPages),
+    newlyCreated: true,
+    citationEnv: {
+      refsById: new Map(
+        fixture.references.map((reference) => [reference.id, reference]),
+      ),
+      locale: "en",
+    },
+    referenceEnv,
+    paginationEnv: null,
+  });
+  const createMeasuredLayout = (
+    options: PaginationMeasurerOptions,
+  ): PaginationMeasurer => {
+    const productionMeasurer = createPaginationMeasurer(options);
+    return {
+      read: (request) => {
+        layoutReads += 1;
+        return productionMeasurer.read(request);
+      },
+      destroy: () => productionMeasurer.destroy(),
+    };
+  };
+
+  try {
+    editor.registerPlugin(createPaginationPlugin({
+      reason: "canonical-layout",
+      getReferencePageCount: () => referencePageCount,
+      onPageCount: (report) => reports.push(report),
+    }, {
+      createMeasurer: createMeasuredLayout,
+      requestFrame: frames.request,
+      cancelFrame: frames.cancel,
+    }));
+
+    let baseline = await waitForLatestStableReport(
+      editor,
+      reports,
+      `${targetPages}-page native workload initial settlement`,
+    );
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const authored = baseline.pageCount?.authored ?? 0;
+      if (authored === targetPages) break;
+      const plan = baseline.visiblePlan ?? baseline.lastStablePlan;
+      if (!plan) throw new Error("Native workload has no stable plan");
+      if (authored > targetPages) {
+        const cutoff = plan.pageStarts[targetPages]?.pos;
+        const documentEnd = editor.state.doc.content.size - 1;
+        if (cutoff === undefined || cutoff >= documentEnd) {
+          throw new Error(
+            `Cannot trim ${authored} authored pages to ${targetPages}`,
+          );
+        }
+        editor.view.dispatch(editor.state.tr.delete(cutoff, documentEnd));
+      } else {
+        const paragraphType = editor.schema.nodes["paragraph"];
+        if (!paragraphType) throw new Error("Paragraph schema is unavailable");
+        const additional = Array.from(
+          { length: (targetPages - authored) * 9 },
+          (_, index) =>
+            paragraphType.create(
+              null,
+              editor.schema.text(
+                workloadParagraphText(editor.state.doc.childCount + index),
+              ),
+            ),
+        );
+        editor.view.dispatch(
+          editor.state.tr.insert(
+            editor.state.doc.content.size - 1,
+            additional,
+          ),
+        );
+      }
+      baseline = await waitForLatestStableReport(
+        editor,
+        reports,
+        `${targetPages}-page native workload calibration`,
+      );
+    }
+    const authoredPages = baseline.pageCount?.authored ?? 0;
+    if (authoredPages !== targetPages) {
+      throw new Error(
+        `Native workload calibrated to ${authoredPages}, expected ${targetPages}`,
+      );
+    }
+
+    const firstParagraph = positionsOf(editor.state.doc, "paragraph")[0]! + 1;
+    const inputDurationsMs: number[] = [];
+    const readsBeforeInput = layoutReads;
+    const rapidTyping = await captureNativePaginationOperation(
+      editor,
+      reports,
+      frames,
+      `${targetPages}-page rapid typing`,
+      () => {
+        for (let index = 0; index < 20; index += 1) {
+          const startedAt = performance.now();
+          editor.view.dispatch(
+            editor.state.tr.insertText("x", firstParagraph),
+          );
+          inputDurationsMs.push(performance.now() - startedAt);
+        }
+      },
+    );
+    const readsDuringInput = layoutReads - readsBeforeInput;
+
+    let deletionInputMs = 0;
+    let deletionReadsDuringInput = 0;
+    const deletion = await captureNativePaginationOperation(
+      editor,
+      reports,
+      frames,
+      `${targetPages}-page deletion`,
+      () => {
+        const readsBeforeDeletion = layoutReads;
+        const startedAt = performance.now();
+        editor.view.dispatch(
+          editor.state.tr.delete(firstParagraph, firstParagraph + 20),
+        );
+        deletionInputMs = performance.now() - startedAt;
+        deletionReadsDuringInput = layoutReads - readsBeforeDeletion;
+      },
+    );
+    inputDurationsMs.push(deletionInputMs);
+
+    const referenceEntriesBefore = mount.querySelectorAll(".ref-entry").length;
+    const referenceRefresh = await captureNativePaginationOperation(
+      editor,
+      reports,
+      frames,
+      `${targetPages}-page reference refresh`,
+      () => {
+        referenceEnv.references = fixture.references;
+        repaintReferenceDecoration(editor);
+        invalidatePagination(editor, "references");
+      },
+    );
+    const referenceEntriesAfter = mount.querySelectorAll(".ref-entry").length;
+
+    const fontFamilyBefore = getComputedStyle(editor.view.dom).fontFamily;
+    const fontChange = await captureNativePaginationOperation(
+      editor,
+      reports,
+      frames,
+      `${targetPages}-page selected-font change`,
+      () => {
+        shell.style.setProperty(
+          "--doc-font",
+          '"Times New Roman", Times, Georgia, serif',
+        );
+        shell.style.setProperty("--doc-font-size", "12pt");
+        invalidatePagination(editor, "font");
+      },
+    );
+    const fontFamilyAfter = getComputedStyle(editor.view.dom).fontFamily;
+
+    const resizeReportIndex = reports.length;
+    const resizeFramesBefore = frames.executed;
+    const resizeEpoch = paginationPluginKey.getState(editor.state)?.epoch ?? -1;
+    const scaleBefore = editor.view.dom.getBoundingClientRect().width /
+      editor.view.dom.offsetWidth;
+    const resizeStartedAt = performance.now();
+    const scaledLayout = calculatePaperScale(612, proofEditor.scrollHeight);
+    proofEditor.style.transformOrigin = "top left";
+    proofEditor.style.transform = `scale(${scaledLayout.scale})`;
+    await frame();
+    await frame();
+    await frame();
+    const scaleAfter = editor.view.dom.getBoundingClientRect().width /
+      editor.view.dom.offsetWidth;
+    const resizeEndEpoch = paginationPluginKey.getState(editor.state)?.epoch ??
+      -1;
+    const resizeReports = reports.slice(resizeReportIndex);
+    const scaleResize: NativePaginationOperationResult = {
+      settlementMs: performance.now() - resizeStartedAt,
+      paginationFrames: frames.executed - resizeFramesBefore,
+      stableCommits: resizeReports.filter((report) =>
+        report.status === "stable"
+      ).length,
+      fallbackCommits: resizeReports.filter((report) =>
+        report.status === "fallback"
+      ).length,
+      startEpoch: resizeEpoch,
+      endEpoch: resizeEndEpoch,
+    };
+
+    const capturedOperations = [
+      rapidTyping,
+      deletion,
+      referenceRefresh,
+      fontChange,
+    ];
+    const stableEpochCounts = new Map<number, number>();
+    for (const report of reports) {
+      if (report.status !== "stable") continue;
+      stableEpochCounts.set(
+        report.epoch,
+        (stableEpochCounts.get(report.epoch) ?? 0) + 1,
+      );
+    }
+    return {
+      targetPages,
+      authoredPages,
+      inputDurationsMs,
+      maxPendingFrames: frames.maxPending,
+      readsDuringInput: readsDuringInput + deletionReadsDuringInput,
+      staleStableCommits: capturedOperations.reduce(
+        (count, operation) =>
+          count + operation.reports.filter((report) =>
+            report.status === "stable" &&
+            report.epoch !== operation.targetEpoch
+          ).length,
+        0,
+      ),
+      duplicateStableEpochs: [...stableEpochCounts.values()].reduce(
+        (count, occurrences) => count + Math.max(0, occurrences - 1),
+        0,
+      ),
+      referenceEntriesBefore,
+      referenceEntriesAfter,
+      fontFamilyBefore,
+      fontFamilyAfter,
+      scaleBefore,
+      scaleAfter,
+      operations: {
+        rapidTyping: rapidTyping.result,
+        deletion: deletion.result,
+        referenceRefresh: referenceRefresh.result,
+        fontChange: fontChange.result,
+        scaleResize,
+      },
+    };
+  } finally {
+    proofEditor.style.transform = "";
+    editor.destroy();
+    mount.replaceChildren();
+  }
+}
+
 function domSelectionPosition(editor: Editor): number | null {
   const selection = document.getSelection();
   if (!selection?.focusNode) return null;
@@ -262,6 +676,7 @@ async function runProof(): Promise<ProofResult> {
     paginationEnv: null,
   });
   let productionEditor: Editor | undefined;
+  let parityEditor: Editor | undefined;
   diagnostic("editor-created");
   editor.registerPlugin(createDisposablePaginationProofPlugin());
   diagnostic("proof-plugin-registered");
@@ -967,6 +1382,252 @@ async function runProof(): Promise<ProofResult> {
       JSON.stringify(productionEditor.getJSON()) ===
         productionJson;
 
+    productionEditor.destroy();
+    productionEditor = undefined;
+    mount.replaceChildren();
+    proofEditor.style.transform = "";
+    shell.style.width = "864px";
+    shell.style.height = "";
+
+    const nativeWorkloads: NativePaginationWorkloadResult[] = [];
+    for (const targetPages of [10, 25, 50] as const) {
+      diagnostic("native-performance-workload-start", { targetPages });
+      const workload = await runNativePerformanceWorkload(
+        targetPages,
+        mount,
+        shell,
+        proofEditor,
+        fixture,
+      );
+      const evaluation = evaluateNativePaginationWorkload(workload);
+      diagnostic("native-performance-workload-complete", {
+        targetPages,
+        evaluation,
+        workload,
+      });
+      nativeWorkloads.push(workload);
+    }
+    const nativeWorkloadEvaluations = nativeWorkloads.map((workload) =>
+      evaluateNativePaginationWorkload(workload)
+    );
+
+    shell.style.setProperty(
+      "--doc-font",
+      '"Times New Roman", Times, Georgia, serif',
+    );
+    shell.style.setProperty("--doc-font-size", "12pt");
+    const parityFixture = createStablePaginationParityFixture("en");
+    const parityReports: PaginationStateReport[] = [];
+    let parityReferenceCount = 1;
+    const parityReferenceEnv: ReferenceDecorationEnv = {
+      references: parityFixture.references,
+      locale: "en",
+      emptyLabel: "unused",
+      onPageCountChange: (count: number) =>
+        parityReferenceCount = count,
+    };
+    const parityPaginationEnv = {
+      reason: "canonical-layout" as const,
+      getReferencePageCount: () => parityReferenceCount,
+      onPageCount: (report: PaginationStateReport) => {
+        parityReports.push(report);
+        const plan = report.visiblePlan ?? report.lastStablePlan;
+        if (!parityEditor || !plan || !report.pageCount) return;
+        const composition = composeDocumentPages({
+          authoredPageStarts: plan.pageStarts,
+          referencePageCount: report.pageCount.references,
+          documentEnd: parityEditor.state.doc.content.size,
+        });
+        parityReferenceEnv.pageNumbers = composition.pages
+          .filter((page) => page.kind === "references")
+          .map((page) => page.pageNumber);
+        repaintReferenceDecoration(parityEditor);
+      },
+    };
+    parityEditor = createTesinaEditor({
+      element: mount,
+      content: parityFixture.content,
+      newlyCreated: true,
+      citationEnv: {
+        refsById: new Map(
+          parityFixture.references.map((reference) => [
+            reference.id,
+            reference,
+          ]),
+        ),
+        locale: "en",
+      },
+      referenceEnv: parityReferenceEnv,
+      paginationEnv: parityPaginationEnv,
+    });
+    const parityStableFrames = await waitForCondition(
+      "the stable live/Paged parity fixture",
+      () => parityReports.some((report) => report.status === "stable"),
+      240,
+    );
+    const parityEssay = createEmptyEssay(
+      "en",
+      "2026-08-08T12:00:00.000Z",
+    );
+    parityEssay.titlePage.title =
+      "A Synthetic Archive Study of Community Seed Records, Seasonal Rainfall, Volunteer Checks, Envelope Labels, and Long-Term Planning Across Several Invented Coastal Districts";
+    parityEssay.content = parityFixture.content;
+    parityEssay.referencesSnapshot = parityFixture.references;
+    const previewContainer = requireElement<HTMLElement>("#proof-preview");
+    const { Previewer } = await import("pagedjs");
+    const captureParity = async (
+      font: "times-new-roman-12" | "georgia-11",
+      cssStack: string,
+      expectedFamily: string,
+      expectedSizePt: number,
+      invalidate: boolean,
+    ) => {
+      shell.style.setProperty("--doc-font", cssStack);
+      shell.style.setProperty("--doc-font-size", `${expectedSizePt}pt`);
+      parityEssay.settings.font = font;
+      if (invalidate) {
+        const targetEpoch =
+          (paginationPluginKey.getState(parityEditor!.state)?.epoch ?? 0) + 1;
+        invalidatePagination(parityEditor!, "font");
+        await waitForCondition(
+          `${expectedFamily} live pagination parity`,
+          () =>
+            parityReports.some((report) =>
+              report.status === "stable" && report.epoch >= targetEpoch
+            ),
+          240,
+        );
+      }
+      const stable = latestStableReport(parityReports);
+      const plan = stable?.visiblePlan ?? stable?.lastStablePlan;
+      if (!stable?.pageCount || !plan) {
+        throw new Error(`${expectedFamily} live parity plan is unavailable`);
+      }
+      const composition = composeDocumentPages({
+        authoredPageStarts: plan.pageStarts,
+        referencePageCount: stable.pageCount.references,
+        documentEnd: parityEditor!.state.doc.content.size,
+      });
+      previewContainer.replaceChildren();
+      const styleUrl = URL.createObjectURL(
+        new Blob([renderEssayCss(parityEssay.settings)], { type: "text/css" }),
+      );
+      let previewFlow: Awaited<
+        ReturnType<InstanceType<typeof Previewer>["preview"]>
+      >;
+      try {
+        previewFlow = await new Previewer().preview(
+          renderEssayHtml(
+            parityEssay,
+            parityFixture.content,
+            parityFixture.references,
+          ),
+          [styleUrl],
+          previewContainer,
+        );
+      } finally {
+        URL.revokeObjectURL(styleUrl);
+      }
+      const previewPages = [
+        ...previewContainer.querySelectorAll<HTMLElement>(".pagedjs_page"),
+      ];
+      const previewKinds = previewPages.map((page) => {
+        if (page.querySelector(".title-page")) return "cover";
+        if (page.querySelector("section.abstract")) return "abstract";
+        if (page.querySelector("section.body-sec")) return "body";
+        if (page.querySelector("section.references")) return "references";
+        if (page.querySelector("section.appendix")) return "appendix";
+        return "unknown";
+      });
+      const liveKinds = composition.pages.map((page) =>
+        page.kind === "authored" ? page.section : page.kind
+      );
+      const firstPreviewPage = previewPages[0];
+      const firstPreviewArea = firstPreviewPage?.querySelector<HTMLElement>(
+        ".pagedjs_area",
+      );
+      const previewBodyParagraph = previewContainer.querySelector<HTMLElement>(
+        "section.body-sec p",
+      );
+      const liveBodyParagraph = mount.querySelector<HTMLElement>(
+        "[data-sec='body'] p",
+      );
+      if (
+        !firstPreviewPage || !firstPreviewArea || !previewBodyParagraph ||
+        !liveBodyParagraph
+      ) {
+        throw new Error(`${expectedFamily} parity DOM is incomplete`);
+      }
+      const livePage = parityEditor!.view.dom;
+      const livePageRect = livePage.getBoundingClientRect();
+      const livePageStyle = getComputedStyle(livePage);
+      const previewPageRect = firstPreviewPage.getBoundingClientRect();
+      const previewAreaRect = firstPreviewArea.getBoundingClientRect();
+      const previewTextStyle = getComputedStyle(previewBodyParagraph);
+      const liveTextStyle = getComputedStyle(liveBodyParagraph);
+      const livePaddingTop = Number.parseFloat(livePageStyle.paddingTop);
+      const livePaddingRight = Number.parseFloat(livePageStyle.paddingRight);
+      const livePaddingBottom = Number.parseFloat(livePageStyle.paddingBottom);
+      const livePaddingLeft = Number.parseFloat(livePageStyle.paddingLeft);
+      const livePageMinHeight = Number.parseFloat(livePageStyle.minHeight);
+      const geometry = {
+        livePageWidth: livePageRect.width,
+        livePageMinHeight,
+        livePaddingTop,
+        livePaddingRight,
+        livePaddingBottom,
+        livePaddingLeft,
+        livePrintableWidth: livePageRect.width - livePaddingLeft -
+          livePaddingRight,
+        livePrintableHeight: livePageMinHeight - livePaddingTop -
+          livePaddingBottom,
+        previewPageWidth: previewPageRect.width,
+        previewPageHeight: previewPageRect.height,
+        previewMarginTop: previewAreaRect.top - previewPageRect.top,
+        previewMarginLeft: previewAreaRect.left - previewPageRect.left,
+        previewPrintableWidth: previewAreaRect.width,
+        previewPrintableHeight: previewAreaRect.height,
+        expectedFontFamily: expectedFamily,
+        expectedFontSizePt: expectedSizePt,
+        liveFontFamily: liveTextStyle.fontFamily,
+        previewFontFamily: previewTextStyle.fontFamily,
+        liveFontSize: Number.parseFloat(liveTextStyle.fontSize),
+        previewFontSize: Number.parseFloat(previewTextStyle.fontSize),
+        liveLineHeight: Number.parseFloat(liveTextStyle.lineHeight),
+        previewLineHeight: Number.parseFloat(previewTextStyle.lineHeight),
+      };
+      return {
+        pageParity: previewFlow.total === composition.total &&
+          previewPages.length === composition.total &&
+          previewKinds.join(",") === liveKinds.join(","),
+        geometry,
+        geometryEvaluation: evaluateLivePagedGeometry(geometry),
+        exactLiveStatusCount:
+          composition.total === stable.pageCount.total + 1 &&
+          mount.querySelectorAll(".tesina-page-number").length ===
+            composition.total - 1,
+        livePageCount: composition.total,
+        previewPageCount: previewFlow.total,
+        liveSections: liveKinds.join(","),
+        previewSections: previewKinds.join(","),
+      };
+    };
+
+    const timesParity = await captureParity(
+      "times-new-roman-12",
+      '"Times New Roman", Times, Georgia, serif',
+      "Times New Roman",
+      12,
+      false,
+    );
+    const georgiaParity = await captureParity(
+      "georgia-11",
+      'Georgia, "Times New Roman", serif',
+      "Georgia",
+      11,
+      true,
+    );
+
     const checks = {
       productionDomMapping: initialMeasurement.fragments.some((fragment) =>
         fragment.id.startsWith("section:") && fragment.kind === "heading" &&
@@ -998,9 +1659,7 @@ async function runProof(): Promise<ProofResult> {
       tableContinuationHeaderMeasured:
         tableFragments[0]?.table?.repeatedHeader === undefined &&
         repeatedTableHeader !== undefined && repeatedTableHeader.height > 0 &&
-        repeatedTableHeader.cells.map((cell) =>
-            cell.text
-          ).join("|") ===
+        repeatedTableHeader.cells.map((cell) => cell.text).join("|") ===
           "Round|Cards|Envelopes" &&
         repeatedTableHeader.cells.reduce(
             (columns, cell) => columns + cell.colSpan,
@@ -1062,6 +1721,22 @@ async function runProof(): Promise<ProofResult> {
       productionJsonIdentity,
       transformedHitTesting,
       visualScaleApplied,
+      nativeRenderedPerformance: nativeWorkloadEvaluations.every((result) =>
+        result.passed
+      ),
+      previewPagedParity: timesParity.pageParity && georgiaParity.pageParity,
+      livePagedLetterGeometry: timesParity.geometryEvaluation.passed &&
+        georgiaParity.geometryEvaluation.passed,
+      tnr12TypeParity:
+        timesParity.geometryEvaluation.checks.selectedCanonicalFont &&
+        timesParity.geometryEvaluation.checks.doubleSpacing &&
+        timesParity.geometryEvaluation.checks.rendererTypeParity,
+      georgia11TypeParity:
+        georgiaParity.geometryEvaluation.checks.selectedCanonicalFont &&
+        georgiaParity.geometryEvaluation.checks.doubleSpacing &&
+        georgiaParity.geometryEvaluation.checks.rendererTypeParity,
+      exactLiveStatusCount: timesParity.exactLiveStatusCount &&
+        georgiaParity.exactLiveStatusCount,
     };
     const passed = Object.values(checks).every(Boolean);
     return {
@@ -1071,22 +1746,18 @@ async function runProof(): Promise<ProofResult> {
       metrics: {
         measuredParagraphLines: starts.length,
         measuredFragments: initialMeasurement.fragments.length,
-        measuredListLines:
-          initialMeasurement.fragments.filter((fragment) =>
-            fragment.kind === "listItem"
-          ).length,
-        measuredTableRows:
-          initialMeasurement.fragments.filter((fragment) =>
-            fragment.kind === "tableRow"
-          ).length,
-        measuredFigures:
-          initialMeasurement.fragments.filter((fragment) =>
-            fragment.id.startsWith("figure:")
-          ).length,
-        measuredEquations:
-          initialMeasurement.fragments.filter((fragment) =>
-            fragment.id.startsWith("apaEquation:")
-          ).length,
+        measuredListLines: initialMeasurement.fragments.filter((fragment) =>
+          fragment.kind === "listItem"
+        ).length,
+        measuredTableRows: initialMeasurement.fragments.filter((fragment) =>
+          fragment.kind === "tableRow"
+        ).length,
+        measuredFigures: initialMeasurement.fragments.filter((fragment) =>
+          fragment.id.startsWith("figure:")
+        ).length,
+        measuredEquations: initialMeasurement.fragments.filter((fragment) =>
+          fragment.id.startsWith("apaEquation:")
+        ).length,
         generatedHeadingVisualHeight,
         generatedHeadingMeasuredHeight,
         firstTableVisualHeight,
@@ -1122,6 +1793,33 @@ async function runProof(): Promise<ProofResult> {
         productionScaledFrames,
         productionPageCount: productionComposition.total,
         productionJsonIdentity: String(productionJsonIdentity),
+        parityStableFrames,
+        nativeRuntimeIdentity: JSON.stringify({
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          vendor: navigator.vendor,
+          language: navigator.language,
+          hardwareConcurrency: navigator.hardwareConcurrency,
+          deviceMemory: (navigator as Navigator & { deviceMemory?: number })
+            .deviceMemory ?? "unavailable",
+          devicePixelRatio: globalThis.devicePixelRatio,
+          screenWidth: globalThis.screen.width,
+          screenHeight: globalThis.screen.height,
+        }),
+        nativeWorkload10: JSON.stringify(nativeWorkloads[0]),
+        nativeWorkload25: JSON.stringify(nativeWorkloads[1]),
+        nativeWorkload50: JSON.stringify(nativeWorkloads[2]),
+        nativeInputP95_10: percentile95(
+          nativeWorkloads[0]?.inputDurationsMs ?? [],
+        ),
+        nativeInputP95_25: percentile95(
+          nativeWorkloads[1]?.inputDurationsMs ?? [],
+        ),
+        nativeInputP95_50: percentile95(
+          nativeWorkloads[2]?.inputDurationsMs ?? [],
+        ),
+        timesParity: JSON.stringify(timesParity),
+        georgiaParity: JSON.stringify(georgiaParity),
         nativeInputAccepted: String(nativeInputAccepted),
         nativeInputEventCount,
         nativeInputPosition,
@@ -1160,21 +1858,25 @@ async function runProof(): Promise<ProofResult> {
   } finally {
     paginationMeasurer?.destroy();
     productionEditor?.destroy();
+    parityEditor?.destroy();
     editor.destroy();
   }
 }
 
 const resultElement = requireElement<HTMLElement>("#proof-result");
 let proofFinished = false;
-const watchdog = startProofPageWatchdog(45_000, () => {
-  finishProof({
-    passed: false,
-    engine: navigator.userAgent,
-    checks: {},
-    metrics: {},
-    error: "Pagination proof page watchdog expired",
-  });
-});
+const watchdog = startProofPageWatchdog(
+  AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationPage,
+  () => {
+    finishProof({
+      passed: false,
+      engine: navigator.userAgent,
+      checks: {},
+      metrics: {},
+      error: "Pagination proof page watchdog expired",
+    });
+  },
+);
 
 function finishProof(result: ProofResult): void {
   if (proofFinished) return;

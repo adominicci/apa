@@ -1011,6 +1011,19 @@ describe("renderEssayHtml", () => {
 });
 
 describe("renderEssayCss", () => {
+  it("uses the editor's canonical Letter geometry and selected type metrics", () => {
+    const essay = sampleEssay();
+    essay.settings.font = "georgia-11";
+
+    const css = renderEssayCss(essay.settings);
+
+    expect(css).toContain("size: 8.5in 11in;");
+    expect(css).toContain("margin: 1in;");
+    expect(css).toContain(
+      '.tesina-document { font-family: Georgia, "Times New Roman", serif; font-size: 11pt; line-height: 2;',
+    );
+  });
+
   it("scopes preview markup and styles so they cannot restyle the app shell", () => {
     const essay = sampleEssay();
     const html = renderEssayHtml(essay, essay.content, []);
@@ -1045,7 +1058,7 @@ describe("renderEssayCss", () => {
   it("sets page size and margin per settings", () => {
     const essay = sampleEssay();
     const css = renderEssayCss(essay.settings);
-    expect(css).toContain("size: letter;");
+    expect(css).toContain("size: 8.5in 11in;");
     expect(css).toContain("margin: 1in;");
     expect(css).toContain("counter(page)");
     expect(css).not.toContain("@top-left");

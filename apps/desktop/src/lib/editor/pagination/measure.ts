@@ -51,6 +51,7 @@ export interface PaginationMeasurerOptions {
   view: EditorView;
   onInvalidate(reason: PaginationReason): void;
   adapter?: PaginationLayoutAdapter;
+  readinessTimeoutMs?: number;
 }
 
 interface LineSample {
@@ -74,6 +75,7 @@ interface LayoutRect {
 
 const GAP_SELECTOR = "[data-pagination-gap], [data-pagination-proof-gap]";
 const LINE_TOLERANCE = 0.75;
+export const DEFAULT_PAGINATION_READINESS_TIMEOUT_MS = 5_000;
 
 export function canonicalLayoutScale(
   visualWidth: number,
@@ -127,6 +129,10 @@ export function createPaginationMeasurer(
   options: PaginationMeasurerOptions,
 ): PaginationMeasurer {
   const adapter = options.adapter ?? browserPaginationLayoutAdapter;
+  const readinessTimeoutMs = Math.max(
+    1,
+    options.readinessTimeoutMs ?? DEFAULT_PAGINATION_READINESS_TIMEOUT_MS,
+  );
   let destroyed = false;
   const stopObserving = adapter.observe(options.view, (reason) => {
     if (!destroyed) options.onInvalidate(reason);
@@ -134,11 +140,28 @@ export function createPaginationMeasurer(
 
   return {
     async read(request) {
+      let deadline: ReturnType<typeof setTimeout> | undefined;
       try {
-        await adapter.waitUntilReady(options.view, request.signal);
+        await Promise.race([
+          adapter.waitUntilReady(options.view, request.signal),
+          abortPromise(request.signal),
+          new Promise<void>((_resolve, reject) => {
+            deadline = setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    `Pagination layout inputs did not become ready within ${readinessTimeoutMs}ms`,
+                  ),
+                ),
+              readinessTimeoutMs,
+            );
+          }),
+        ]);
       } catch (error) {
         if (isStale(request, destroyed)) return staleResult(request);
         throw error;
+      } finally {
+        if (deadline !== undefined) clearTimeout(deadline);
       }
       if (isStale(request, destroyed)) return staleResult(request);
       const snapshot = adapter.readLayout(options.view);

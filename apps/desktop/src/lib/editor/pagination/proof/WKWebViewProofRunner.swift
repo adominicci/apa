@@ -12,7 +12,9 @@ guard CommandLine.arguments.count == 2,
   FileHandle.standardError.write(Data("usage: WKWebViewProofRunner.swift <url>\n".utf8))
   exit(64)
 }
-let hostDeadline: TimeInterval = url.lastPathComponent == "nativeManualProof.html" ? 300 : 45
+let hostDeadline: TimeInterval = url.lastPathComponent == "nativeManualProof.html"
+  ? 300
+  : (url.lastPathComponent == "nativeProof.html" ? 135 : 45)
 
 final class ProofCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
   private func diagnostic(_ message: String) {

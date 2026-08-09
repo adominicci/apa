@@ -31,6 +31,9 @@ describe("native proof direct host command", () => {
       windowsHostBuild: 360_000,
       originReadiness: 10_000,
       outerNativeHostProcess: 60_000,
+      expandedPaginationPage: 120_000,
+      expandedPaginationHost: 135_000,
+      expandedPaginationOuter: 150_000,
     });
     expect(AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.windowsHostBuild).toBeLessThan(
       10 * 60_000,
@@ -38,6 +41,14 @@ describe("native proof direct host command", () => {
     expect(AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.outerNativeHostProcess).toBe(
       60_000,
     );
+    expect(AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationPage)
+      .toBeLessThan(
+        AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationHost,
+      );
+    expect(AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationHost)
+      .toBeLessThan(
+        AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationOuter,
+      );
   });
 
   it("selects the Swift WKWebView runner on macOS", () => {

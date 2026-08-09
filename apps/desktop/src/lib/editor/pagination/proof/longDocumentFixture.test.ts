@@ -3,7 +3,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { buildReferenceList, getTerms } from "@tesina/engine";
 import { createTesinaEditor } from "../../createEditor.ts";
-import { createLongDocumentFixtures } from "./longDocumentFixture.ts";
+import {
+  createLongDocumentFixtures,
+  createStablePaginationParityFixture,
+} from "./longDocumentFixture.ts";
 
 Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 Range.prototype.getBoundingClientRect = () => new DOMRect();
@@ -34,6 +37,20 @@ function allStrings(value: unknown): string[] {
 afterEach(() => document.body.replaceChildren());
 
 describe("long-document pagination proof fixtures", () => {
+  it("derives a stable supported subset for exact Paged.js parity", () => {
+    const fixture = createStablePaginationParityFixture("en");
+    const json = JSON.stringify(fixture.content);
+
+    expect(json).toContain('"type":"sectionAbstract"');
+    expect(json).toContain('"type":"sectionBody"');
+    expect(json).toContain('"type":"sectionAppendix"');
+    expect(json).toContain('"type":"orderedList"');
+    expect(json).not.toMatch(/"type":"(?:apaTable|figure|apaEquation)"/);
+    expect(fixture.references.map((reference) => reference.id)).toEqual([
+      "proof-ref-1",
+    ]);
+  });
+
   it.each(["en", "es"] as const)(
     "loads the %s fixture through the real Tesina schema with every authored break risk",
     (locale) => {
