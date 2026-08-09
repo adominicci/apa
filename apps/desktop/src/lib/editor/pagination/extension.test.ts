@@ -255,6 +255,10 @@ describe("derived pagination extension", () => {
       ],
     });
     const appendixPos = positionsOf(editor.state.doc, "sectionAppendix")[0]!;
+    const appendixTextPos = positionOfText(
+      editor.state.doc,
+      "Appendix after references",
+    );
     const getComputedStyle = globalThis.getComputedStyle.bind(globalThis);
     const styleSpy = vi.spyOn(globalThis, "getComputedStyle")
       .mockImplementation(
@@ -275,7 +279,7 @@ describe("derived pagination extension", () => {
       const height = this.matches(".sec-body p")
         ? 600
         : this.matches(".sec-appendix p")
-        ? 120
+        ? 1_000
         : 0;
       return new DOMRect(0, 0, 624, height);
     });
@@ -308,10 +312,22 @@ describe("derived pagination extension", () => {
       const references = element.querySelector<HTMLElement>(
         "[data-reference-pages]",
       );
+      const appendixPageNumber = element.querySelector<HTMLElement>(
+        '[data-pagination-page-key="authored:1:appendix"]',
+      );
+      const continuationPageNumber = element.querySelector<HTMLElement>(
+        '[data-pagination-page-key="authored:2:appendix"]',
+      );
+      const continuationGap = element.querySelector<HTMLElement>(
+        `[data-pagination-pos="${appendixTextPos}"]`,
+      );
       const appendix = editor.view.nodeDOM(appendixPos);
 
       expect(gaps).toHaveLength(1);
       expect(references).not.toBeNull();
+      expect(appendixPageNumber).not.toBeNull();
+      expect(continuationPageNumber).not.toBeNull();
+      expect(continuationGap).not.toBeNull();
       expect(appendix).toBeInstanceOf(HTMLElement);
       expect(gap!.parentElement).toBe(editor.view.dom);
       expect(
@@ -319,7 +335,15 @@ describe("derived pagination extension", () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
       expect(
-        references!.compareDocumentPosition(appendix!) &
+        references!.compareDocumentPosition(appendixPageNumber!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(
+        appendixPageNumber!.compareDocumentPosition(appendix!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0);
+      expect(
+        continuationPageNumber!.compareDocumentPosition(continuationGap!) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).not.toBe(0);
     } finally {

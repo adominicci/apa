@@ -336,6 +336,9 @@ function decorationsFor(
     referencePageCount: plan.pageCount.references,
     documentEnd: doc.content.size,
   });
+  const firstAppendixPage = composition.pages.find((page) =>
+    page.kind === "authored" && page.section === "appendix"
+  );
   const numberDecorations = composition.pages.flatMap((page) => {
     if (page.kind !== "authored") return [];
     if (page.pos < 0 || page.pos > doc.content.size) return [];
@@ -348,7 +351,10 @@ function decorationsFor(
           page.key,
         ),
       {
-        side: -4,
+        side: plan.pageCount.references > 0 &&
+            page.key === firstAppendixPage?.key
+          ? composition.referenceInsertion.side + 1
+          : -4,
         key: `pagination-page-number:${page.key}:${page.pageNumber}`,
         stopEvent: () => true,
         ignoreSelection: true,
