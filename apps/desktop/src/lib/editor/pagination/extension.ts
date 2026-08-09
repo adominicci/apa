@@ -1,4 +1,5 @@
 import { type Editor, Extension } from "@tiptap/core";
+import type { Node as PMNode } from "@tiptap/pm/model";
 import type { Transaction } from "@tiptap/pm/state";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
@@ -13,6 +14,7 @@ import type {
   PaginationEnvironment,
   PaginationGap,
   PaginationInput,
+  PaginationOverflow,
   PaginationPlan,
   PaginationReason,
   PaginationStateReport,
@@ -217,6 +219,26 @@ function setGapAttributes(element: HTMLElement, gap: PaginationGap): void {
   element.style.userSelect = "none";
 }
 
+const CANVAS_GAP_HEIGHT = 28;
+const CANVAS_GAP_TOP_MARGIN = 96;
+
+function appendPaginationCanvasGap(
+  ownerDocument: Document,
+  parent: HTMLElement,
+  height: number,
+): void {
+  // A malformed spacer cannot reserve both the band and next page's top margin.
+  if (height < CANVAS_GAP_HEIGHT + CANVAS_GAP_TOP_MARGIN) return;
+  const canvas = ownerDocument.createElement("span");
+  canvas.dataset["paginationCanvasGap"] = "true";
+  canvas.contentEditable = "false";
+  canvas.setAttribute("aria-hidden", "true");
+  canvas.tabIndex = -1;
+  canvas.style.pointerEvents = "none";
+  canvas.style.userSelect = "none";
+  parent.append(canvas);
+}
+
 /** Creates presentation-only DOM; it never clones a ProseMirror table row. */
 export function createPaginationGapElement(
   ownerDocument: Document,
@@ -234,9 +256,9 @@ export function createPaginationGapElement(
     const header = tableStart.repeatedHeader;
     const spacer = ownerDocument.createElement("div");
     spacer.dataset["paginationGapSpace"] = "true";
-    spacer.style.height = `${
-      Math.max(0, gap.height - (header?.height ?? 0))
-    }px`;
+    const spacerHeight = Math.max(0, gap.height - (header?.height ?? 0));
+    spacer.style.height = `${spacerHeight}px`;
+    appendPaginationCanvasGap(ownerDocument, spacer, spacerHeight);
     cell.append(spacer);
 
     if (header) {
@@ -262,11 +284,16 @@ export function createPaginationGapElement(
   const spacer = ownerDocument.createElement("span");
   setGapAttributes(spacer, gap);
   spacer.style.display = gap.kind === "line" ? "inline-block" : "block";
-  if (gap.kind === "line") spacer.style.verticalAlign = "top";
+  if (gap.kind === "line") {
+    spacer.style.width = "100%";
+    spacer.style.lineHeight = "0";
+    spacer.style.verticalAlign = "top";
+  }
   spacer.style.height = `${gap.height}px`;
   spacer.style.margin = "0";
   spacer.style.padding = "0";
   spacer.style.border = "0";
+  appendPaginationCanvasGap(ownerDocument, spacer, gap.height);
   return spacer;
 }
 
@@ -304,6 +331,83 @@ function createPageNumberElement(
   number.style.userSelect = "none";
   number.textContent = String(pageNumber);
   return number;
+}
+
+function overflowTargetMatches(
+  node: PMNode | null,
+  overflow: PaginationOverflow,
+): boolean {
+  if (!node) return false;
+  if (overflow.kind === "tableRow") return node.type.name === "tableRow";
+  return node.type.name === "figure" || node.type.name === "apaEquation" ||
+    (node.isBlock && node.isLeaf);
+}
+
+function overflowDecorationsFor(
+  doc: Parameters<typeof DecorationSet.create>[0],
+  overflow: PaginationOverflow,
+): Decoration[] {
+  const node = overflow.pos >= 0 && overflow.pos < doc.content.size
+    ? doc.nodeAt(overflow.pos)
+    : null;
+  if (!overflowTargetMatches(node, overflow) || !node) return [];
+  if (overflow.kind !== "tableRow") {
+    return [Decoration.node(
+      overflow.pos,
+      overflow.pos + node.nodeSize,
+      {
+        class: "tesina-pagination-overflow",
+        "data-pagination-overflow": overflow.kind,
+        "data-pagination-overflow-fragment": overflow.fragmentId,
+      },
+    )];
+  }
+  const resolved = doc.resolve(overflow.pos);
+  let table: { from: number; to: number } | undefined;
+  for (let depth = resolved.depth; depth > 0; depth -= 1) {
+    const ancestor = resolved.node(depth);
+    if (ancestor.type.name !== "table") continue;
+    const from = resolved.before(depth);
+    table = { from, to: from + ancestor.nodeSize };
+    break;
+  }
+  if (!table) return [];
+  const cells: Array<{ from: number; to: number; span: number }> = [];
+  let columnCount = 0;
+  node.forEach((cell, offset) => {
+    const rawSpan = Number(cell.attrs["colspan"]);
+    const span = Number.isFinite(rawSpan) && rawSpan > 0
+      ? Math.floor(rawSpan)
+      : 1;
+    columnCount += span;
+    cells.push({
+      from: overflow.pos + 1 + offset,
+      to: overflow.pos + 1 + offset + cell.nodeSize,
+      span,
+    });
+  });
+  const row = Decoration.node(
+    overflow.pos,
+    overflow.pos + node.nodeSize,
+    {
+      class: "tesina-pagination-overflow",
+      "data-pagination-overflow": overflow.kind,
+      "data-pagination-overflow-fragment": overflow.fragmentId,
+      style: `--pagination-overflow-columns: ${Math.max(1, columnCount)}`,
+    },
+  );
+  return [
+    Decoration.node(table.from, table.to, {
+      class: "tesina-pagination-overflow-table",
+    }),
+    row,
+    ...cells.map((cell) =>
+      Decoration.node(cell.from, cell.to, {
+        class: "tesina-pagination-overflow-cell",
+        style: `--pagination-overflow-span: ${cell.span}`,
+      })
+    ),
+  ];
 }
 
 function decorationsFor(
@@ -361,7 +465,14 @@ function decorationsFor(
       },
     )];
   });
-  return DecorationSet.create(doc, [...numberDecorations, ...gapDecorations]);
+  const overflowDecorations = plan.overflows.flatMap((overflow) =>
+    overflowDecorationsFor(doc, overflow)
+  );
+  return DecorationSet.create(doc, [
+    ...numberDecorations,
+    ...gapDecorations,
+    ...overflowDecorations,
+  ]);
 }
 
 function dispatchMeta(view: EditorView, meta: PaginationMeta): void {

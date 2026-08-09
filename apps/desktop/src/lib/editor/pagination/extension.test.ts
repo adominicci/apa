@@ -972,10 +972,23 @@ describe("derived pagination extension", () => {
         textContent: "",
       });
       expect(first?.getAttribute("aria-hidden")).toBe("true");
+      const firstCanvas = first?.querySelector<HTMLElement>(
+        "[data-pagination-canvas-gap]",
+      );
+      expect(first?.querySelectorAll("[data-pagination-canvas-gap]"))
+        .toHaveLength(1);
+      expect(firstCanvas).toMatchObject({
+        contentEditable: "false",
+        tabIndex: -1,
+        textContent: "",
+      });
 
       invalidatePagination(editor, "font");
       await frames.flushAll();
       expect(element.querySelector("[data-pagination-gap]")).toBe(first);
+      expect(first?.querySelector("[data-pagination-canvas-gap]")).toBe(
+        firstCanvas,
+      );
 
       gapHeight = 221;
       invalidatePagination(editor, "font");
@@ -1028,6 +1041,21 @@ describe("derived pagination extension", () => {
       expect(gapRow?.cells[0]?.colSpan).toBe(3);
       expect(gapRow?.contentEditable).toBe("false");
       expect(gapRow?.getAttribute("aria-hidden")).toBe("true");
+      const canvas = gapRow?.cells[0]?.querySelector<HTMLElement>(
+        "[data-pagination-canvas-gap]",
+      );
+      expect(gapRow?.cells[0]?.querySelectorAll("[data-pagination-canvas-gap]"))
+        .toHaveLength(1);
+      expect(canvas).toMatchObject({
+        contentEditable: "false",
+        tabIndex: -1,
+        textContent: "",
+      });
+      expect(
+        gapRow?.cells[0]?.querySelectorAll(
+          "[data-pagination-gap-space] > [data-pagination-canvas-gap]",
+        ),
+      ).toHaveLength(1);
       expect(
         [...gapRow!.querySelectorAll("[data-pagination-repeated-header-cell]")]
           .map((cell) => cell.textContent),
@@ -1044,6 +1072,95 @@ describe("derived pagination extension", () => {
       expect(changedGapRow).not.toBe(gapRow);
       expect(changedGapRow?.cells[0]?.colSpan).toBe(4);
       expect(JSON.stringify(editor.getJSON())).toBe(baselineJson);
+    } finally {
+      editor.destroy();
+    }
+  });
+
+  it("paints every planned atomic and table-row overflow without changing authored JSON", async () => {
+    const frames = new TestFrames();
+    const { editor } = createEditor();
+    const figurePos = positionsOf(editor.state.doc, "figure").at(-1)!;
+    const rowPos = positionsOf(editor.state.doc, "tableRow").at(-1)!;
+    const baselineJson = JSON.stringify(editor.getJSON());
+    const baselineSelection = editor.state.selection.toJSON();
+    let includeOverflows = true;
+    try {
+      editor.registerPlugin(createPaginationPlugin(
+        { reason: "authored-content" },
+        {
+          createMeasurer: () => ({
+            read: ({ epoch }) => Promise.resolve(measured(epoch)),
+            destroy: () => {},
+          }),
+          plan: ({ epoch }) => {
+            const plan = stablePlan(epoch, figurePos);
+            plan.pageGaps = [];
+            plan.overflows = includeOverflows
+              ? [
+                {
+                  fragmentId: "figure-overflow",
+                  pos: figurePos,
+                  section: "body",
+                  kind: "atomic",
+                },
+                {
+                  fragmentId: "row-overflow",
+                  pos: rowPos,
+                  section: "body",
+                  kind: "tableRow",
+                },
+              ]
+              : [];
+            return plan;
+          },
+          requestFrame: frames.request,
+          cancelFrame: frames.cancel,
+        },
+      ));
+      await frames.flushAll();
+
+      const figure = editor.view.nodeDOM(figurePos) as HTMLElement;
+      const row = editor.view.nodeDOM(rowPos) as HTMLElement;
+      const table = row.closest("table");
+      const tableWrapper = table?.parentElement;
+      const cells = [...row.querySelectorAll<HTMLElement>("th, td")];
+      expect(figure.dataset["paginationOverflow"]).toBe("atomic");
+      expect(row.dataset["paginationOverflow"]).toBe("tableRow");
+      expect(figure.classList).toContain("tesina-pagination-overflow");
+      expect(row.classList).toContain("tesina-pagination-overflow");
+      expect(table).not.toBeNull();
+      expect(tableWrapper?.classList).toContain(
+        "tesina-pagination-overflow-table",
+      );
+      expect(row.style.getPropertyValue("--pagination-overflow-columns")).toBe(
+        "3",
+      );
+      expect(cells).toHaveLength(3);
+      expect(
+        cells.every((cell) =>
+          cell.classList.contains("tesina-pagination-overflow-cell") &&
+          cell.style.getPropertyValue("--pagination-overflow-span") === "1"
+        ),
+      ).toBe(true);
+      expect(JSON.stringify(editor.getJSON())).toBe(baselineJson);
+      expect(editor.state.selection.toJSON()).toEqual(baselineSelection);
+
+      includeOverflows = false;
+      invalidatePagination(editor, "canonical-layout");
+      await frames.flushAll();
+      expect(figure.hasAttribute("data-pagination-overflow")).toBe(false);
+      expect(row.hasAttribute("data-pagination-overflow")).toBe(false);
+      expect(tableWrapper?.classList).not.toContain(
+        "tesina-pagination-overflow-table",
+      );
+      expect(
+        cells.every((cell) =>
+          !cell.classList.contains("tesina-pagination-overflow-cell")
+        ),
+      ).toBe(true);
+      expect(JSON.stringify(editor.getJSON())).toBe(baselineJson);
+      expect(editor.state.selection.toJSON()).toEqual(baselineSelection);
     } finally {
       editor.destroy();
     }
@@ -1068,14 +1185,39 @@ describe("derived pagination extension", () => {
     });
 
     expect(line.style.display).toBe("inline-block");
+    expect(line.style.width).toBe("100%");
+    expect(line.style.lineHeight).toBe("0");
     expect(block.style.display).toBe("block");
     for (const widget of [line, block]) {
+      const canvas = widget.querySelector<HTMLElement>(
+        "[data-pagination-canvas-gap]",
+      );
+      expect(widget.querySelectorAll("[data-pagination-canvas-gap]"))
+        .toHaveLength(1);
+      expect(canvas).toMatchObject({
+        contentEditable: "false",
+        tabIndex: -1,
+        textContent: "",
+      });
       expect(widget.contentEditable).toBe("false");
       expect(widget.getAttribute("aria-hidden")).toBe("true");
       expect(widget.tabIndex).toBe(-1);
       expect(widget.textContent).toBe("");
       expect(widget.style.pointerEvents).toBe("none");
     }
+  });
+
+  it("fails closed instead of painting a canvas band into an undersized gap", () => {
+    const undersized = createPaginationGapElement(document, {
+      fragmentId: "undersized",
+      pageIndex: 1,
+      pos: 10,
+      section: "body",
+      kind: "block",
+      height: 123,
+    });
+
+    expect(undersized.querySelector("[data-pagination-canvas-gap]")).toBeNull();
   });
 
   it("recalculates identical derived flow after authored JSON is saved and reopened", async () => {

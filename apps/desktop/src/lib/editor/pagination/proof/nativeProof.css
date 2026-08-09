@@ -2,6 +2,7 @@
 
 :root {
   --paper: #fff;
+  --canvas: #eceff2;
   --fg: #111;
   --font: Inter, system-ui, sans-serif;
   --serif: "Times New Roman", Times, serif;
@@ -93,22 +94,11 @@ body {
   );
 }
 
-[data-pagination-proof-gap] {
-  background: #eceff2;
-}
-
-[data-pagination-proof-gap="line"],
-[data-pagination-proof-gap="block"] {
-  position: relative;
-  margin-inline: -96px !important;
-  width: 816px;
-}
-
-[data-pagination-proof-gap="line"]::before,
-[data-pagination-proof-gap="block"]::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-top: 1px solid #d8d8d8;
-  border-bottom: 1px solid #d8d8d8;
+#proof-mount[data-proof-oversize-table-row="true"]
+  .apa-table
+  tbody
+  tr:last-child
+  td
+  p {
+  min-height: 960px;
 }

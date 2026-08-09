@@ -32,6 +32,19 @@ function setProofAttributes(
   element.style.userSelect = "none";
 }
 
+function appendProofCanvasGap(parent: HTMLElement, height: number): void {
+  // Keep infeasible proof spacers clear rather than overlap authored content.
+  if (height < 124) return;
+  const canvas = document.createElement("span");
+  canvas.dataset["paginationCanvasGap"] = "true";
+  canvas.contentEditable = "false";
+  canvas.setAttribute("aria-hidden", "true");
+  canvas.tabIndex = -1;
+  canvas.style.pointerEvents = "none";
+  canvas.style.userSelect = "none";
+  parent.append(canvas);
+}
+
 function createGapElement(gap: DisposableProofGap): HTMLElement {
   if (gap.kind === "tableRow") {
     const row = document.createElement("tr");
@@ -41,6 +54,7 @@ function createGapElement(gap: DisposableProofGap): HTMLElement {
     cell.style.height = `${gap.height}px`;
     cell.style.padding = "0";
     cell.style.border = "0";
+    appendProofCanvasGap(cell, gap.height);
     row.append(cell);
     return row;
   }
@@ -48,11 +62,16 @@ function createGapElement(gap: DisposableProofGap): HTMLElement {
   const spacer = document.createElement("span");
   setProofAttributes(spacer, gap.kind);
   spacer.style.display = gap.kind === "line" ? "inline-block" : "block";
-  if (gap.kind === "line") spacer.style.verticalAlign = "top";
+  if (gap.kind === "line") {
+    spacer.style.width = "100%";
+    spacer.style.lineHeight = "0";
+    spacer.style.verticalAlign = "top";
+  }
   spacer.style.height = `${gap.height}px`;
   spacer.style.margin = "0";
   spacer.style.padding = "0";
   spacer.style.border = "0";
+  appendProofCanvasGap(spacer, gap.height);
   return spacer;
 }
 

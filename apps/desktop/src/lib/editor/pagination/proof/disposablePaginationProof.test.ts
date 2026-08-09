@@ -80,6 +80,18 @@ describe("disposable derived-pagination proof extension", () => {
       );
       expect(lineGap).not.toBeNull();
       expect(lineGap?.style.display).toBe("inline-block");
+      expect(lineGap?.style.width).toBe("100%");
+      expect(lineGap?.style.lineHeight).toBe("0");
+      const canvas = lineGap?.querySelector<HTMLElement>(
+        "[data-pagination-canvas-gap]",
+      );
+      expect(lineGap?.querySelectorAll("[data-pagination-canvas-gap]"))
+        .toHaveLength(1);
+      expect(canvas).toMatchObject({
+        contentEditable: "false",
+        tabIndex: -1,
+        textContent: "",
+      });
       expect(JSON.stringify(editor.getJSON())).toBe(before);
 
       editor.view.dispatch(
@@ -138,6 +150,8 @@ describe("disposable derived-pagination proof extension", () => {
       expect(gapRow?.cells[0]?.colSpan).toBe(3);
       expect(gapRow?.contentEditable).toBe("false");
       expect(gapRow?.getAttribute("aria-hidden")).toBe("true");
+      expect(gapRow?.cells[0]?.querySelectorAll("[data-pagination-canvas-gap]"))
+        .toHaveLength(1);
     } finally {
       editor.destroy();
     }
@@ -159,6 +173,15 @@ describe("disposable derived-pagination proof extension", () => {
       expect(figure?.querySelectorAll(".fig-img")).toHaveLength(1);
       expect(figure?.querySelectorAll("[data-figure-title]")).toHaveLength(1);
       expect(figure?.querySelectorAll("[data-figure-note]")).toHaveLength(1);
+      expect(gap?.querySelectorAll("[data-pagination-canvas-gap]"))
+        .toHaveLength(1);
+      expect(
+        gap?.querySelector<HTMLElement>("[data-pagination-canvas-gap]"),
+      ).toMatchObject({
+        contentEditable: "false",
+        tabIndex: -1,
+        textContent: "",
+      });
 
       setDisposablePaginationProofPlan(editor, { epoch: 5, gaps: [] });
       expect(element.querySelector("[data-pagination-proof-gap]")).toBeNull();
