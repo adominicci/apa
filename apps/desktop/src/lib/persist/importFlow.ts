@@ -23,6 +23,7 @@ import {
   ImportJournalError,
   type ImportJournalV1,
   pruneCompletedRollbacks,
+  type RecoveryOutcome,
   stageImport,
 } from "./importJournal.ts";
 
@@ -113,6 +114,8 @@ export interface ImportFlowDeps {
     relPath: string;
     sha256: string;
   }>;
+  /** Immediately resumes or rolls back a durable failed transaction. */
+  recoverImport(transactionId: string): Promise<RecoveryOutcome>;
   uuid(): string;
   now(): string;
   limits?: ArchiveLimits;
@@ -244,6 +247,38 @@ export async function applyConfirmedImport(
     } catch (error) {
       const stale = error instanceof ImportJournalError &&
         error.code === "import/stale-plan";
+      // Assignment happens inside the maintenance callback; preserve that
+      // runtime state explicitly because TypeScript cannot narrow across it.
+      const failedJournal = stagedJournal as ImportJournalV1 | null;
+      if (!stale && failedJournal !== null) {
+        let outcome: RecoveryOutcome;
+        try {
+          outcome = await deps.runMaintenance(() =>
+            deps.recoverImport(failedJournal.transactionId)
+          );
+        } catch (recoveryError) {
+          throw new ImportJournalError(
+            "import/recovery-required",
+            "the failed import could not be recovered safely",
+            recoveryError instanceof Error
+              ? recoveryError.message
+              : String(recoveryError),
+          );
+        }
+        if (outcome.kind === "resumed" || outcome.kind === "already-complete") {
+          return {
+            kind: "applied",
+            transactionId: failedJournal.transactionId,
+            preview: current.preview,
+          };
+        }
+        if (outcome.kind === "rolled-back") throw error;
+        throw new ImportJournalError(
+          "import/recovery-required",
+          "the failed import requires recovery before editing can continue",
+          failedJournal.transactionId,
+        );
+      }
       if (!stale || attempt === 1) throw error;
       if (stagedJournal !== null) {
         await deps.runMaintenance(() =>

@@ -513,6 +513,7 @@ function walkProseMirrorNode(value: unknown, where: string): void {
   ) throwEssayContent(where);
   if (node.type === "citation") validateCitationAttrs(node.attrs, where);
   if (node.type === "figureImage") validateFigureImageAttrs(node.attrs, where);
+  if (node.type === "apaEquation") validateEquationAttrs(node.attrs, where);
   if (node.marks !== undefined) {
     if (!Array.isArray(node.marks)) throwEssayContent(where);
     for (const mark of node.marks) {
@@ -527,6 +528,12 @@ function walkProseMirrorNode(value: unknown, where: string): void {
     for (const child of node.content) walkProseMirrorNode(child, where);
   }
   validateNodeChildren(node, where);
+}
+
+function validateEquationAttrs(value: unknown, where: string): void {
+  if (!isRecord(value) || typeof value.latex !== "string") {
+    throwEssayContent(where);
+  }
 }
 
 function validateFigureImageAttrs(value: unknown, where: string): void {

@@ -187,7 +187,7 @@ export async function planImport(
   const archiveLibraryReferenceIds = new Set(
     archive.library.references.map((reference) => reference.id),
   );
-  const snapshotOnlyReferencesById = new Map<string, Reference>();
+  const snapshotOnlyReferencesById = new Map<string, Reference[]>();
   for (
     const essay of [...archive.essays].sort((a, b) => a.id.localeCompare(b.id))
   ) {
@@ -195,10 +195,11 @@ export async function planImport(
     for (const snapshot of essay.referencesSnapshot) {
       if (
         cited.has(snapshot.id) &&
-        !archiveLibraryReferenceIds.has(snapshot.id) &&
-        !snapshotOnlyReferencesById.has(snapshot.id)
+        !archiveLibraryReferenceIds.has(snapshot.id)
       ) {
-        snapshotOnlyReferencesById.set(snapshot.id, snapshot);
+        const variants = snapshotOnlyReferencesById.get(snapshot.id) ?? [];
+        variants.push(snapshot);
+        snapshotOnlyReferencesById.set(snapshot.id, variants);
       }
     }
   }
@@ -228,19 +229,22 @@ export async function planImport(
     preview.references.conflicting += 1;
   }
   for (
-    const snapshot of [...snapshotOnlyReferencesById.values()].sort((a, b) =>
-      a.id.localeCompare(b.id)
-    )
+    const [snapshotId, variants] of [...snapshotOnlyReferencesById.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
   ) {
-    const existing = localReferencesById.get(snapshot.id);
-    if (
-      existing === undefined ||
-      (await referenceDigest(existing)) === (await referenceDigest(snapshot))
-    ) {
-      continue;
+    const existing = localReferencesById.get(snapshotId);
+    if (existing === undefined) continue;
+    const existingDigest = await referenceDigest(existing);
+    let conflicts = false;
+    for (const variant of variants) {
+      if ((await referenceDigest(variant)) !== existingDigest) {
+        conflicts = true;
+        break;
+      }
     }
+    if (!conflicts) continue;
     referenceIdMap.set(
-      snapshot.id,
+      snapshotId,
       allocateId(usedReferenceIds, deps.newUuid),
     );
     preview.references.conflicting += 1;

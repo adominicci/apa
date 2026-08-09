@@ -173,6 +173,40 @@ describe("LibraryImportModal", () => {
     expect(document.body.textContent).toContain(m.imp_success());
   });
 
+  it("keeps recovery-required apply failures non-dismissible", async () => {
+    const onClose = vi.fn();
+    mountModal({
+      loadPreview: () => Promise.resolve(fixturePreview()),
+      apply: () =>
+        Promise.reject(
+          Object.assign(new Error("recovery"), {
+            code: "import/recovery-required",
+          }),
+        ),
+      onClose,
+    });
+    await settle();
+    const confirm = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.imp_confirm())
+    );
+    confirm!.click();
+    await settle();
+
+    expect(document.body.textContent).toContain(m.err_recovery_required());
+    const buttons = [...document.querySelectorAll("button")];
+    expect(
+      buttons.some((button) =>
+        button.textContent?.includes(m.recovery_dismiss())
+      ),
+    ).toBe(false);
+    buttons[0]?.click();
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    await settle();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("re-presents a changed preview on replan-needed before applying", async () => {
     const second = fixturePreview({
       essays: { new: 1, identical: 2, conflicting: 1 },

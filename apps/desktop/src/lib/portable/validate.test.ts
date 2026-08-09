@@ -228,6 +228,19 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
     await expectCode(await rebuildArchive(files), "validate/essay-schema");
   });
 
+  it("rejects a non-string equation LaTeX attribute", async () => {
+    const files = mutateEssay(await goldenFiles(), (essay) => {
+      essay.content = {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [{ type: "apaEquation", attrs: { latex: { raw: "x" } } }],
+        }],
+      };
+    });
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
   it("rejects a malformed shared library", async () => {
     const files = await goldenFiles();
     files.set(

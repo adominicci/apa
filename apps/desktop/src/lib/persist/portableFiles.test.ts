@@ -114,6 +114,7 @@ class FakeJournal implements ReplacementJournal {
 
 const GOOD = new TextEncoder().encode("valid-archive");
 const OLD = new TextEncoder().encode("previous-archive");
+const CHANGED = new TextEncoder().encode("provider-changed");
 
 function makeDeps(fs: FakeFs): WriteDeps {
   let n = 0;
@@ -193,6 +194,25 @@ describe("writeArchiveReplacing", () => {
     expect(fs.files.get("/docs/lib.tesina")).toBe(GOOD);
   });
 
+  it("does not replace a destination that appears after the existence check", async () => {
+    const fs = new FakeFs();
+    const originalNoReplace = fs.renameNoReplace.bind(fs);
+    fs.renameNoReplace = (from, to) => {
+      fs.files.set(to, OLD);
+      return originalNoReplace(from, to);
+    };
+
+    await expect(
+      writeArchiveReplacing(
+        makeDeps(fs),
+        new FakeJournal(),
+        "/docs/lib.tesina",
+        GOOD,
+      ),
+    ).rejects.toThrow();
+    expect(fs.files.get("/docs/lib.tesina")).toBe(OLD);
+  });
+
   it("journals an existing destination even when rename can replace it", async () => {
     const fs = new FakeFs();
     fs.files.set("/docs/lib.tesina", OLD);
@@ -246,6 +266,30 @@ describe("writeArchiveReplacing", () => {
     expect(fs.files.get("/docs/lib.tesina")).toBe(GOOD);
     expect(journal.records.size).toBe(0);
     expect([...fs.files.keys()].some((p) => p.includes(".prev"))).toBe(false);
+  });
+
+  it("keeps evidence when the previous destination changes before preservation", async () => {
+    const fs = new FakeFs();
+    fs.files.set("/docs/lib.tesina", OLD);
+    const journal = new FakeJournal();
+    const originalRename = fs.rename.bind(fs);
+    fs.rename = async (from, to) => {
+      await originalRename(from, to);
+      if (from === "/docs/lib.tesina" && to.endsWith(".prev")) {
+        fs.files.set(to, CHANGED);
+      }
+    };
+
+    await expect(
+      writeArchiveReplacing(
+        makeDeps(fs),
+        journal,
+        "/docs/lib.tesina",
+        GOOD,
+      ),
+    ).rejects.toMatchObject({ code: "portable/replacement-recovery-required" });
+    expect(journal.records.size).toBe(1);
+    expect([...fs.files.values()]).toContain(CHANGED);
   });
 
   it("preserves the previous destination when the write fails", async () => {

@@ -6,7 +6,10 @@
     ImportApplyResult,
     ImportPreviewResult,
   } from "$lib/persist/importFlow";
-  import { describeArchiveError } from "./archiveErrorMessage.ts";
+  import {
+    archiveErrorCode,
+    describeArchiveError,
+  } from "./archiveErrorMessage.ts";
 
   /**
    * Shared Merge modal (design §11): used by Import library and Restore.
@@ -35,11 +38,13 @@
     | { kind: "preview"; preview: ImportPreviewResult; replanned: boolean }
     | { kind: "applying" }
     | { kind: "success" }
-    | { kind: "failure"; message: string };
+    | { kind: "failure"; message: string }
+    | { kind: "recovery-required"; message: string };
 
   let phase = $state<Phase>({ kind: "validating" });
   const busy = $derived(
-    phase.kind === "validating" || phase.kind === "applying",
+    phase.kind === "validating" || phase.kind === "applying" ||
+      phase.kind === "recovery-required",
   );
 
   onMount(() => {
@@ -70,12 +75,19 @@
       phase = { kind: "success" };
       onDone();
     } catch (error) {
-      phase = { kind: "failure", message: describeArchiveError(error) };
+      phase = {
+        kind: archiveErrorCode(error) === "import/recovery-required"
+          ? "recovery-required"
+          : "failure",
+        message: describeArchiveError(error),
+      };
     }
   }
 
   function close(): void {
-    if (phase.kind === "applying") return; // non-cancellable apply
+    if (phase.kind === "applying" || phase.kind === "recovery-required") {
+      return;
+    }
     onClose();
   }
 </script>
@@ -139,7 +151,7 @@
       <p role="status">{m.imp_applying()}</p>
     {:else if phase.kind === "success"}
       <p role="status">{m.imp_success()}</p>
-    {:else if phase.kind === "failure"}
+    {:else if phase.kind === "failure" || phase.kind === "recovery-required"}
       <p role="alert">{m.imp_failed({ reason: phase.message })}</p>
     {/if}
   </div>

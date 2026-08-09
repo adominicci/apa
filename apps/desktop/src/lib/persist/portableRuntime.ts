@@ -90,6 +90,7 @@ function importFlowDeps(service: LibraryArchiveService): ImportFlowDeps {
       );
       return { relPath, sha256 };
     },
+    recoverImport: recoverImportTransaction,
     uuid: () => crypto.randomUUID(),
     now: nowIso,
   };
@@ -186,6 +187,17 @@ function recoveryDeps(): RecoveryDeps {
       }
       return library;
     },
+  };
+}
+
+export async function recoverImportTransaction(transactionId: string) {
+  const outcomes = await recoverPendingImports(recoveryDeps());
+  return outcomes.find((outcome) =>
+    "transactionId" in outcome && outcome.transactionId === transactionId
+  ) ?? {
+    kind: "recovery-required" as const,
+    transactionId,
+    reason: "the durable import journal was not found during recovery",
   };
 }
 

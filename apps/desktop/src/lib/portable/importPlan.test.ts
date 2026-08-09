@@ -388,6 +388,36 @@ describe("planImport references", () => {
     expect(plan.mergedLibrary.references).toEqual([localRef]);
     expect(plan.preview.references.conflicting).toBe(1);
   });
+
+  it("remaps every essay when any same-id snapshot variant differs locally", async () => {
+    const localRef = reference(1, "Coincide con el primer snapshot");
+    const divergent = reference(1, "Versión histórica diferente");
+    const plan = await planImport(
+      archiveOf({
+        essays: [
+          essayOf({
+            id: fixtureUuid(2, 9),
+            cites: [localRef.id],
+            snapshot: [localRef],
+          }),
+          essayOf({
+            id: fixtureUuid(2, 10),
+            cites: [divergent.id],
+            snapshot: [divergent],
+          }),
+        ],
+      }),
+      localOf({ references: [localRef] }),
+      deps(),
+    );
+
+    const remappedId = fixtureUuid(9, 1);
+    for (const write of essayWrites(plan)) {
+      expect(collectCitationRefIds(write.essay.content)).toEqual([remappedId]);
+      expect(write.essay.referencesSnapshot[0].id).toBe(remappedId);
+    }
+    expect(plan.preview.references.conflicting).toBe(1);
+  });
 });
 
 describe("planImport collections", () => {

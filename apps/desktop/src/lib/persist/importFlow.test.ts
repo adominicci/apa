@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   applyConfirmedImport,
   captureLocalImportState,
@@ -100,6 +100,12 @@ function makeDeps(fs: MemoryAppData): ImportFlowDeps {
       fs.files.set(relPath, bytes);
       return { relPath, sha256: await sha256Hex(bytes) };
     },
+    recoverImport: (transactionId) =>
+      Promise.resolve({
+        kind: "recovery-required",
+        transactionId,
+        reason: "test recovery was not configured",
+      }),
     uuid: () => fixtureUuid(11, ++uuidCounter),
     now: () => "2026-04-01T12:00:00.000Z",
   };
@@ -248,6 +254,39 @@ describe("import flow integration", () => {
     expect(
       [...fs.files.keys()].some((entry) => entry.includes("/stage/")),
     ).toBe(false);
+  });
+
+  it("runs immediate recovery when apply fails after the journal is durable", async () => {
+    const fixture = figureHeavyLibraryFixture();
+    const fs = new MemoryAppData();
+    seedDestination(fs, fixture);
+    const deps = makeDeps(fs);
+    const recoverImport = vi.fn(() =>
+      Promise.resolve({
+        kind: "recovery-required" as const,
+        transactionId: "tx",
+        reason: "injected recovery block",
+      })
+    );
+    deps.recoverImport = recoverImport;
+    const preview = await previewImport(
+      await exportFixtureArchive(fixture),
+      deps,
+    );
+    const originalRename = fs.rename.bind(fs);
+    let failed = false;
+    fs.rename = (from, to) => {
+      if (!failed && to.startsWith("essays/") && !to.includes("/stage/")) {
+        failed = true;
+        return Promise.reject(new Error("injected apply failure"));
+      }
+      return originalRename(from, to);
+    };
+
+    await expect(applyConfirmedImport(preview, deps)).rejects.toMatchObject({
+      code: "import/recovery-required",
+    });
+    expect(recoverImport).toHaveBeenCalledOnce();
   });
 
   it("replans transparently when the library gains unrelated content mid-flow", async () => {

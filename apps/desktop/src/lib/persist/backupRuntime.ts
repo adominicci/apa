@@ -26,7 +26,10 @@ import { persistence } from "./coordinator.ts";
 import { operations } from "./operationCoordinator.ts";
 import { appDataImportFs, appDataSnapshotIo } from "./appDataFs.ts";
 import { captureStableSnapshot } from "./librarySnapshot.ts";
-import { libraryArchiveService } from "./portableRuntime.ts";
+import {
+  libraryArchiveService,
+  recoverImportTransaction,
+} from "./portableRuntime.ts";
 import {
   type ImportFlowDeps,
   type ImportPreviewResult,
@@ -315,6 +318,7 @@ function backupImportDeps(
       const { relPath, sha256 } = await service.createRollback(transactionId);
       return { relPath, sha256 };
     },
+    recoverImport: recoverImportTransaction,
     uuid: () => crypto.randomUUID(),
     now: () => new Date().toISOString(),
   };

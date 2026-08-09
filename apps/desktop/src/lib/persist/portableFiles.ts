@@ -141,7 +141,10 @@ export async function writeArchiveReplacing(
       () => deps.fs.exists(destinationPath),
     );
     if (!hadPrevious) {
-      await abortable(signal, () => deps.fs.rename(tmp, destinationPath));
+      await abortable(
+        signal,
+        () => deps.fs.renameNoReplace(tmp, destinationPath),
+      );
       await deps.validate(
         await abortable(signal, () => deps.fs.readFile(destinationPath)),
       );
@@ -168,6 +171,13 @@ export async function writeArchiveReplacing(
       signal,
       () => deps.fs.rename(destinationPath, record.previousPath),
     );
+    if (!(await previousMatches(deps, record))) {
+      throw new PortableFileError(
+        "portable/replacement-recovery-required",
+        "the destination changed while it was being preserved",
+        destinationPath,
+      );
+    }
     await abortable(signal, () => deps.fs.rename(tmp, destinationPath));
     await deps.validate(
       await abortable(signal, () => deps.fs.readFile(destinationPath)),
@@ -250,6 +260,12 @@ export async function recoverReplacements(
     }
     if (await fileMatches(deps, temporaryPath, record)) {
       // Interrupted before install: finish it.
+      if (
+        await deps.fs.exists(previousPath) &&
+        !(await previousMatches(deps, record))
+      ) {
+        continue;
+      }
       if (await deps.fs.exists(destinationPath)) {
         if (
           (await deps.fs.sha256File(destinationPath)) !== record.previousSha256
@@ -261,6 +277,7 @@ export async function recoverReplacements(
         // Crash landed before the previous file was moved aside: complete
         // the replacement exactly as the original operation would have.
         await deps.fs.rename(destinationPath, previousPath);
+        if (!(await previousMatches(deps, record))) continue;
       }
       await deps.fs.rename(temporaryPath, destinationPath);
       if (!(await fileMatches(deps, destinationPath, record))) {
@@ -290,6 +307,18 @@ export async function recoverReplacements(
       continue;
     }
     // Neither candidate exists any more; keep the record as evidence.
+  }
+}
+
+async function previousMatches(
+  deps: WriteDeps,
+  record: ReplacementRecord,
+): Promise<boolean> {
+  try {
+    return (await deps.fs.sha256File(record.previousPath)) ===
+      record.previousSha256;
+  } catch {
+    return false;
   }
 }
 
