@@ -56,6 +56,25 @@ function sameLineGroup(
   );
 }
 
+function keptChainHeight(
+  fragments: readonly MeasuredFragment[],
+  startIndex: number,
+): number {
+  const first = fragments[startIndex];
+  if (!first) return 0;
+  let total = measuredHeight(first.height);
+  let cursor = startIndex;
+  while (fragments[cursor]?.keepWithNext) {
+    const next = fragments[cursor + 1];
+    if (
+      !next || next.section !== first.section || next.forcePageStart
+    ) break;
+    total += measuredHeight(next.height);
+    cursor += 1;
+  }
+  return total;
+}
+
 function fragmentsFor(input: PaginationInput): MeasuredFragment[] {
   const entries = [
     ...input.fragments.map((fragment, index) => ({ fragment, index })),
@@ -244,31 +263,31 @@ export function planPagination(input: PaginationInput): PaginationPlan {
 
     const height = measuredHeight(fragment.height);
     const availableHeight = LETTER_PRINTABLE_HEIGHT - usedHeight;
-    const followingFragment = fragments[index + 1];
-    const pairedHeadingHeight = fragment.keepWithNext && followingFragment
-      ? height + measuredHeight(followingFragment.height)
+    const keptHeight = fragment.keepWithNext
+      ? keptChainHeight(fragments, index)
       : height;
 
     if (
       usedHeight > 0 &&
-      (height > availableHeight || pairedHeadingHeight > availableHeight)
+      (height > availableHeight || keptHeight > availableHeight)
     ) {
       startPage(fragment, pageStartKind(fragment.breakBefore));
     }
 
-    if (
-      height > LETTER_PRINTABLE_HEIGHT &&
-      (fragment.kind === "atomic" || fragment.kind === "tableRow")
-    ) {
+    const overflowKind = height > LETTER_PRINTABLE_HEIGHT &&
+        (fragment.kind === "atomic" || fragment.kind === "tableRow")
+      ? fragment.kind
+      : null;
+    if (overflowKind) {
       overflows.push({
         fragmentId: fragment.id,
         pos: fragment.breakBefore.pos,
         section: fragment.section,
-        kind: fragment.kind,
+        kind: overflowKind,
       });
     }
 
-    usedHeight += height;
+    usedHeight += overflowKind ? LETTER_PRINTABLE_HEIGHT : height;
     index += 1;
   }
 

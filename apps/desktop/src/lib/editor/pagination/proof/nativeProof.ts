@@ -41,7 +41,11 @@ import {
   createNativeProofBridge,
   type NativeProofBridgeScope,
 } from "./nativeBridge.ts";
-import { inlineFlowVisualHeight } from "./nativeProofGeometry.ts";
+import {
+  authoredTextPaintedCanvasIntersections,
+  inlineFlowVisualHeight,
+  type PositiveAreaRect,
+} from "./nativeProofGeometry.ts";
 import { samePlannerFragmentInputs } from "./plannerInputEquality.ts";
 import {
   captureSynchronousNativeMutation,
@@ -53,6 +57,8 @@ import {
   type NativePaginationQuiescenceSnapshot,
   type NativePaginationWorkloadPages,
   type NativePaginationWorkloadResult,
+  type NativePaintedBandGeometryEvidence,
+  type NativePaintedBandState,
   percentile95,
   remainingNativeDeadlineMs,
   waitForNativeCondition,
@@ -64,6 +70,7 @@ import {
 } from "./nativeProofDeadlines.ts";
 import { nativeWorkloadTrimPosition } from "./nativeWorkloadCalibration.ts";
 import { startProofPageWatchdog } from "./proofPageWatchdog.ts";
+import { settleStableInspectionEditor } from "./nativeInspectionLifecycle.ts";
 import "./nativeProof.css";
 
 interface ProofResult {
@@ -86,6 +93,10 @@ function diagnostic(stage: string, detail: Record<string, unknown> = {}): void {
 }
 
 diagnostic("module-start", { readyState: document.readyState });
+
+const preserveStableEditor =
+  new URLSearchParams(location.search).get("inspect") === "1";
+let pendingParityEditor: Editor | undefined;
 
 let frameIndex = 0;
 const frame = (action?: () => void) =>
@@ -348,6 +359,190 @@ function closeEnough(left: DOMRect, right: DOMRect): boolean {
   return Math.abs(left.top - right.top) < 0.5 &&
     Math.abs(left.height - right.height) < 0.5 &&
     Math.abs(left.width - right.width) < 0.5;
+}
+
+function positiveAreaRect(rect: DOMRect): PositiveAreaRect | null {
+  if (
+    !Number.isFinite(rect.top) || !Number.isFinite(rect.right) ||
+    !Number.isFinite(rect.bottom) || !Number.isFinite(rect.left) ||
+    !Number.isFinite(rect.width) || !Number.isFinite(rect.height) ||
+    rect.width <= 0 || rect.height <= 0
+  ) return null;
+  return {
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    left: rect.left,
+    width: rect.width,
+    height: rect.height,
+  };
+}
+
+function rectangleDiagnostic(
+  rect: DOMRect | PositiveAreaRect,
+): PositiveAreaRect {
+  return {
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    left: rect.left,
+    width: rect.width,
+    height: rect.height,
+  };
+}
+
+function elementDiagnostic(element: HTMLElement | null) {
+  if (!element) return null;
+  return {
+    tag: element.tagName,
+    classes: element.className,
+    dataset: { ...element.dataset },
+  };
+}
+
+function capturePaintedBandGeometry(
+  editor: Editor,
+  description: string,
+  derivedGapCount: number,
+): NativePaintedBandGeometryEvidence {
+  const root = editor.view.dom;
+  const markerElements = [
+    ...root.querySelectorAll<HTMLElement>("[data-pagination-canvas-gap]"),
+  ];
+  const markerDetails = markerElements.map((marker) => {
+    const parent = marker.parentElement;
+    const gapAncestor = marker.closest<HTMLElement>(
+      "[data-pagination-gap], [data-pagination-proof-gap], [data-pagination-gap-space]",
+    );
+    const rect = marker.getBoundingClientRect();
+    return {
+      rect,
+      diagnostic: {
+        marker: elementDiagnostic(marker),
+        rect: rectangleDiagnostic(rect),
+        gap: {
+          kind: gapAncestor?.dataset["paginationGap"] ??
+            gapAncestor?.dataset["paginationProofGap"] ?? null,
+          pos: gapAncestor?.dataset["paginationPos"] ?? null,
+          pageIndex: gapAncestor?.dataset["paginationPageIndex"] ?? null,
+        },
+        parent: elementDiagnostic(parent),
+        ancestor: elementDiagnostic(gapAncestor),
+        parentGapRect: parent
+          ? rectangleDiagnostic(parent.getBoundingClientRect())
+          : null,
+      },
+    };
+  });
+  const markerRects = markerDetails.map(({ rect }) => positiveAreaRect(rect));
+  const paintedCanvasRects = markerRects.filter(
+    (rect): rect is PositiveAreaRect => rect !== null,
+  );
+  const authoredTextRectDetails: Array<{
+    rect: PositiveAreaRect;
+    from: number;
+    to: number;
+    snippet: string;
+    owner: ReturnType<typeof elementDiagnostic>;
+  }> = [];
+  const walker = root.ownerDocument.createTreeWalker(
+    root,
+    NodeFilter.SHOW_TEXT,
+  );
+  while (walker.nextNode()) {
+    const text = walker.currentNode;
+    if (!(text instanceof Text) || !text.data.trim()) continue;
+    const parent = text.parentElement;
+    if (
+      !parent ||
+      parent.closest('[contenteditable="false"], [aria-hidden="true"]')
+    ) continue;
+    try {
+      const from = editor.view.posAtDOM(text, 0);
+      const to = editor.view.posAtDOM(text, text.data.length);
+      if (to <= from) continue;
+      const owner = parent.closest<HTMLElement>(
+        "[data-sec], p, h1, h2, h3, h4, h5, h6, li, td, th, figcaption",
+      ) ?? parent;
+      const range = root.ownerDocument.createRange();
+      range.selectNodeContents(text);
+      for (const rect of range.getClientRects()) {
+        const positiveRect = positiveAreaRect(rect);
+        if (!positiveRect) continue;
+        authoredTextRectDetails.push({
+          rect: positiveRect,
+          from,
+          to,
+          snippet: text.data.trim().replace(/\s+/g, " ").slice(0, 96),
+          owner: elementDiagnostic(owner),
+        });
+      }
+    } catch {
+      continue;
+    }
+  }
+  const authoredTextRects = authoredTextRectDetails.map(({ rect }) => rect);
+  const intersections = authoredTextPaintedCanvasIntersections(
+    authoredTextRects,
+    paintedCanvasRects,
+  );
+  const markerCount = markerElements.length;
+  const state: NativePaintedBandState = {
+    label: description,
+    derivedGapCount,
+    markerCount,
+    authoredTextRectCount: authoredTextRects.length,
+    intersectionCount: intersections.length,
+  };
+  const result: NativePaintedBandGeometryEvidence = {
+    intersections: intersections.length,
+    markers: paintedCanvasRects.length,
+    states: [state],
+  };
+  const geometryFailed = markerCount !== derivedGapCount || markerCount === 0 ||
+    paintedCanvasRects.length !== markerCount ||
+    authoredTextRects.length === 0 ||
+    intersections.length > 0;
+  diagnostic("native-painted-band-geometry", {
+    ...result,
+    invalidMarkerRectangles: markerElements.length - paintedCanvasRects.length,
+    intersections: intersections.slice(0, 12),
+    ...(geometryFailed
+      ? {
+        markerRects,
+        paintedCanvasRects,
+        markers: markerDetails.map(({ diagnostic }) => diagnostic),
+        authoredTextRects: authoredTextRectDetails.slice(0, 120),
+        intersectingMarkers: intersections.map(({ gapRectIndex }) =>
+          markerDetails[gapRectIndex]?.diagnostic
+        ),
+        intersectingAuthoredText: intersections.map(({ textRectIndex }) =>
+          authoredTextRectDetails[textRectIndex]
+        ),
+      }
+      : {}),
+  });
+  if (geometryFailed) {
+    throw new Error(
+      `${description} painted-band geometry failed: ` +
+        `derived=${derivedGapCount}, markers=${markerCount}, ` +
+        `positiveMarkers=${paintedCanvasRects.length}, intersections=${intersections.length}`,
+    );
+  }
+  return result;
+}
+
+function combinePaintedBandGeometry(
+  samples: readonly NativePaintedBandGeometryEvidence[],
+): NativePaintedBandGeometryEvidence {
+  return {
+    intersections: samples.reduce(
+      (count, sample) => count + sample.intersections,
+      0,
+    ),
+    markers: samples.reduce((count, sample) => count + sample.markers, 0),
+    states: samples.flatMap((sample) => sample.states),
+  };
 }
 
 interface LayoutSnapshot {
@@ -674,6 +869,40 @@ async function waitForLatestStableReport(
   return stable;
 }
 
+async function waitForCurrentStableNativeReport(
+  editor: Editor,
+  reports: PaginationStateReport[],
+  description: string,
+  minimumEpoch = Number.NEGATIVE_INFINITY,
+): Promise<PaginationStateReport> {
+  let stable: PaginationStateReport | undefined;
+  await waitForNativeQuiescence(
+    description,
+    () => {
+      const current = paginationPluginKey.getState(editor.state);
+      stable = latestSettledNativeReport(reports, current, minimumEpoch);
+      return {
+        stable: stable !== undefined,
+        epoch: current?.epoch ?? -1,
+        reportCount: reports.length,
+        readsStarted: 0,
+        readsCompleted: 0,
+        readsInFlight: 0,
+        pendingFrames: 0,
+      };
+    },
+    {
+      timeoutMs: NATIVE_EXPANDED_PROOF_BUDGET_MS.workloadSetupPerFixture,
+      yieldControl: async () => {
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        await frame();
+      },
+    },
+  );
+  if (!stable) throw new Error(`${description} did not produce a stable plan`);
+  return stable;
+}
+
 async function runNativePerformanceWorkload(
   targetPages: NativePaginationWorkloadPages,
   mount: HTMLElement,
@@ -834,9 +1063,23 @@ async function runNativePerformanceWorkload(
       }
     };
 
+    const paintedBandSamples: NativePaintedBandGeometryEvidence[] = [];
+    const captureWorkloadPaintedBand = (
+      description: string,
+      stable: PaginationStateReport,
+    ) => {
+      const plan = stable.visiblePlan ?? stable.lastStablePlan;
+      if (!plan) throw new Error(`${description} has no derived page-gap plan`);
+      paintedBandSamples.push(capturePaintedBandGeometry(
+        editor,
+        description,
+        plan.pageGaps.length,
+      ));
+    };
     let baseline = await waitForWorkloadSetup(
       `${targetPages}-page native workload initial settlement`,
     );
+    captureWorkloadPaintedBand("initial settlement", baseline);
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const authored = baseline.pageCount?.authored ?? 0;
       diagnostic("native-performance-calibration-attempt", {
@@ -893,6 +1136,7 @@ async function runNativePerformanceWorkload(
       baseline = await waitForWorkloadSetup(
         `${targetPages}-page native workload calibration`,
       );
+      captureWorkloadPaintedBand("calibration settlement", baseline);
     }
     const authoredPages = baseline.pageCount?.authored ?? 0;
     if (authoredPages !== targetPages) {
@@ -900,6 +1144,8 @@ async function runNativePerformanceWorkload(
         `Native workload calibrated to ${authoredPages}, expected ${targetPages}`,
       );
     }
+    captureWorkloadPaintedBand("calibration settlement", baseline);
+    captureWorkloadPaintedBand("final calibrated state", baseline);
 
     const firstParagraph = positionsOf(editor.state.doc, "paragraph")[0]! + 1;
     const operationDiagnosticState = () => ({
@@ -940,6 +1186,10 @@ async function runNativePerformanceWorkload(
       undefined,
       operationDiagnosticState,
     );
+    captureWorkloadPaintedBand(
+      "rapid typing",
+      latestStableReport(reports)!,
+    );
 
     let deletionInputMs = 0;
     let deletionReadsDuringInput = 0;
@@ -965,6 +1215,7 @@ async function runNativePerformanceWorkload(
       undefined,
       operationDiagnosticState,
     );
+    captureWorkloadPaintedBand("deletion", latestStableReport(reports)!);
     inputDurationsMs.push(deletionInputMs);
 
     const referenceEntriesBefore = mount.querySelectorAll(".ref-entry").length;
@@ -982,6 +1233,10 @@ async function runNativePerformanceWorkload(
       () =>
         mount.querySelectorAll(".ref-entry").length > referenceEntriesBefore,
       operationDiagnosticState,
+    );
+    captureWorkloadPaintedBand(
+      "reference refresh",
+      latestStableReport(reports)!,
     );
     const referenceEntriesAfter = mount.querySelectorAll(".ref-entry").length;
 
@@ -1005,6 +1260,10 @@ async function runNativePerformanceWorkload(
         getComputedStyle(editor.view.dom).fontFamily !== fontFamilyBefore &&
         getComputedStyle(editor.view.dom).fontSize === "16px",
       operationDiagnosticState,
+    );
+    captureWorkloadPaintedBand(
+      "font change",
+      latestStableReport(reports)!,
     );
     const fontFamilyAfter = getComputedStyle(editor.view.dom).fontFamily;
 
@@ -1043,6 +1302,10 @@ async function runNativePerformanceWorkload(
     );
     const scaleAfter = editor.view.dom.getBoundingClientRect().width /
       editor.view.dom.offsetWidth;
+    captureWorkloadPaintedBand(
+      "scale resize",
+      latestStableReport(reports)!,
+    );
     const resizeEndEpoch = paginationPluginKey.getState(editor.state)?.epoch ??
       -1;
     const resizeReports = reports.slice(resizeReportIndex);
@@ -1107,6 +1370,7 @@ async function runNativePerformanceWorkload(
         (count, occurrences) => count + Math.max(0, occurrences - 1),
         0,
       ),
+      paintedBandGeometry: combinePaintedBandGeometry(paintedBandSamples),
       referenceEntriesBefore,
       referenceEntriesAfter,
       fontFamilyBefore,
@@ -1340,6 +1604,9 @@ async function runProof(): Promise<ProofResult> {
     const lineGap = requireElement<HTMLElement>(
       "[data-pagination-proof-gap='line']",
     );
+    const lineGapCanvas = requireElement<HTMLElement>(
+      "[data-pagination-proof-gap='line'] [data-pagination-canvas-gap]",
+    );
     const body = requireElement<HTMLElement>("[data-sec='body']");
     let resizeRevision = 0;
     const resizeObserver = new ResizeObserver(() => resizeRevision += 1);
@@ -1370,6 +1637,7 @@ async function runProof(): Promise<ProofResult> {
           Math.abs(before.height - fragment.height) < 0.5;
       });
     const firstPlannedGap = hiddenStableLayout.snapshot.gap;
+    const firstPlannedCanvas = lineGapCanvas.getBoundingClientRect();
     const lineGapParentTag = lineGap.parentElement?.tagName ?? "none";
     const lineGapInsideParagraph = lineGapParentTag === "P";
     const resizeRevisionAtReveal = resizeRevision;
@@ -1771,6 +2039,7 @@ async function runProof(): Promise<ProofResult> {
         repaintReferenceDecoration(productionEditor);
       },
     };
+    mount.dataset["proofOversizeTableRow"] = "true";
     productionEditor = createTesinaEditor({
       element: mount,
       content: fixture.content,
@@ -1784,6 +2053,13 @@ async function runProof(): Promise<ProofResult> {
       referenceEnv: productionReferenceEnv,
       paginationEnv: productionPaginationEnv,
     });
+    if (
+      !mount.querySelector<HTMLElement>(
+        ".apa-table tbody tr:last-child td p",
+      )
+    ) {
+      throw new Error("Production proof table has no oversize-row target");
+    }
     const productionJson = JSON.stringify(productionEditor.getJSON());
     const productionStableFrames = await waitForCondition(
       "the production pagination and references stack to settle",
@@ -1793,11 +2069,20 @@ async function runProof(): Promise<ProofResult> {
         !!mount.querySelector("[data-pagination-page-number]"),
       240,
     );
-    const firstProductionStable = productionReports.findLast((report) =>
-      report.status === "stable"
-    )!;
+    const firstProductionStable = await waitForCurrentStableNativeReport(
+      productionEditor,
+      productionReports,
+      "production initial painted-band stability",
+    );
     const firstProductionPlan = firstProductionStable.visiblePlan ??
       firstProductionStable.lastStablePlan!;
+    await frame();
+    await frame();
+    const productionInitialPaintedBand = capturePaintedBandGeometry(
+      productionEditor,
+      "production initial stable painted band",
+      firstProductionPlan.pageGaps.length,
+    );
     const productionComposition = composeDocumentPages({
       authoredPageStarts: firstProductionPlan.pageStarts,
       referencePageCount: firstProductionStable.pageCount!.references,
@@ -1844,6 +2129,122 @@ async function runProof(): Promise<ProofResult> {
       (productionReferences.compareDocumentPosition(productionAppendix) &
           Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 
+    const productionAtomicOverflow = mount.querySelector<HTMLElement>(
+      '[data-pagination-overflow="atomic"]',
+    );
+    const productionRowOverflow = mount.querySelector<HTMLTableRowElement>(
+      'tr[data-pagination-overflow="tableRow"]',
+    );
+    if (!productionAtomicOverflow || !productionRowOverflow) {
+      diagnostic("production-overflow-treatment-incomplete", {
+        plannedOverflows: firstProductionPlan.overflows,
+        atomicFound: !!productionAtomicOverflow,
+        rowFound: !!productionRowOverflow,
+        forcedRowContentHeight: mount.querySelector<HTMLElement>(
+          ".apa-table tbody tr:last-child td p",
+        )?.getBoundingClientRect().height ?? -1,
+        forcedRowHeight: mount.querySelector<HTMLElement>(
+          ".apa-table tbody tr:last-child td p",
+        )?.closest("tr")
+          ?.getBoundingClientRect().height ?? -1,
+        markedOverflowKinds: [
+          ...mount.querySelectorAll<HTMLElement>(
+            "[data-pagination-overflow]",
+          ),
+        ].map((element) =>
+          element.dataset["paginationOverflow"] ?? ""
+        ),
+      });
+      throw new Error("Production overflow treatment DOM is incomplete");
+    }
+    const productionAtomicStyle = getComputedStyle(productionAtomicOverflow);
+    const productionRowStyle = getComputedStyle(productionRowOverflow);
+    const productionRowTable = productionRowOverflow.closest("table");
+    const productionRowTableStyle = productionRowTable
+      ? getComputedStyle(productionRowTable)
+      : null;
+    const productionAtomicRect = productionAtomicOverflow
+      .getBoundingClientRect();
+    const productionRowRect = productionRowOverflow.getBoundingClientRect();
+    const productionRowTableRect = productionRowTable?.getBoundingClientRect();
+    const productionAtomicOuterHeight = productionAtomicRect.height +
+      Number.parseFloat(productionAtomicStyle.marginTop) +
+      Number.parseFloat(productionAtomicStyle.marginBottom);
+    const productionRowCells = [...productionRowOverflow.cells];
+    const productionRowCellWidths = productionRowCells.map((cell) =>
+      cell.getBoundingClientRect().width
+    );
+    const productionAtomicScrollHeight = productionAtomicOverflow.scrollHeight;
+    const productionAtomicClientHeight = productionAtomicOverflow.clientHeight;
+    const productionRowScrollHeight = productionRowOverflow.scrollHeight;
+    const productionRowClientHeight = productionRowOverflow.clientHeight;
+    productionAtomicOverflow.scrollTop = productionAtomicScrollHeight;
+    productionRowOverflow.scrollTop = productionRowScrollHeight;
+    const productionAtomicContentReachable =
+      productionAtomicOverflow.scrollTop > 0;
+    const productionRowContentReachable = productionRowOverflow.scrollTop > 0;
+    productionAtomicOverflow.scrollTop = 0;
+    productionRowOverflow.scrollTop = 0;
+    const firstFollowingGap = (element: HTMLElement): HTMLElement | null =>
+      [...mount.querySelectorAll<HTMLElement>("[data-pagination-gap]")].find(
+        (gap) =>
+          (element.compareDocumentPosition(gap) &
+            Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+      ) ?? null;
+    const productionAtomicFollowingGap = firstFollowingGap(
+      productionAtomicOverflow,
+    );
+    const productionRowFollowingGap = firstFollowingGap(
+      productionRowOverflow,
+    );
+    const productionAtomicOverflowY = productionAtomicStyle.overflowY;
+    const productionAtomicOutlineStyle = productionAtomicStyle.outlineStyle;
+    const productionRowDisplay = productionRowStyle.display;
+    const productionRowOverflowY = productionRowStyle.overflowY;
+    const productionRowOutlineStyle = productionRowStyle.outlineStyle;
+    const productionRowTableLayout = productionRowTableStyle?.tableLayout ??
+      "";
+    const productionAtomicFollowingGapTop = productionAtomicFollowingGap
+      ?.getBoundingClientRect().top ?? -1;
+    const productionRowFollowingGapTop = productionRowFollowingGap
+      ?.getBoundingClientRect().top ?? -1;
+    const productionAtomicOverflowGeometry =
+      firstProductionPlan.overflows.some((overflow) =>
+        overflow.kind === "atomic"
+      ) &&
+      productionAtomicOuterHeight <= 864.5 &&
+      productionAtomicScrollHeight > productionAtomicClientHeight &&
+      productionAtomicContentReachable &&
+      productionAtomicOverflowY === "auto" &&
+      productionAtomicOutlineStyle === "dashed" &&
+      !!productionAtomicFollowingGap &&
+      productionAtomicFollowingGapTop >= productionAtomicRect.bottom - 0.5;
+    const productionTableRowOverflowGeometry =
+      firstProductionPlan.overflows.some((overflow) =>
+        overflow.kind === "tableRow"
+      ) &&
+      productionRowOverflow.tagName === "TR" &&
+      productionRowOverflow.parentElement?.tagName === "TBODY" &&
+      productionRowCells.length === 3 &&
+      productionRowCells.every((cell) => cell.tagName === "TD") &&
+      productionRowTable?.tagName === "TABLE" &&
+      !!productionRowTableRect &&
+      productionRowTableLayout === "fixed" &&
+      Math.abs(productionRowRect.width - productionRowTableRect.width) < 1 &&
+      productionRowCellWidths.every((width) => width > 0) &&
+      Math.abs(
+          productionRowCellWidths.reduce((total, width) => total + width, 0) -
+            productionRowRect.width,
+        ) < 1 &&
+      productionRowRect.height <= 864.5 &&
+      productionRowScrollHeight > productionRowClientHeight &&
+      productionRowContentReachable &&
+      productionRowDisplay === "grid" &&
+      productionRowOverflowY === "auto" &&
+      productionRowOutlineStyle === "dashed" &&
+      !!productionRowFollowingGap &&
+      productionRowFollowingGapTop >= productionRowRect.bottom - 0.5;
+
     const proofEditor = requireElement<HTMLElement>("#proof-editor");
     const unscaledEditorRect = productionEditor.view.dom
       .getBoundingClientRect();
@@ -1862,9 +2263,24 @@ async function runProof(): Promise<ProofResult> {
         ),
       240,
     );
-    const scaledProductionStable = productionReports.findLast((report) =>
-      report.status === "stable" && report.epoch >= scaledEpoch
-    )!;
+    const scaledProductionStable = await waitForCurrentStableNativeReport(
+      productionEditor,
+      productionReports,
+      "production scaled painted-band stability",
+      scaledEpoch,
+    );
+    const scaledProductionPlan = scaledProductionStable.visiblePlan ??
+      scaledProductionStable.lastStablePlan;
+    if (!scaledProductionPlan) {
+      throw new Error("Production scaled stable plan is unavailable");
+    }
+    await frame();
+    await frame();
+    const productionScaledPaintedBand = capturePaintedBandGeometry(
+      productionEditor,
+      "production scaled stable painted band",
+      scaledProductionPlan.pageGaps.length,
+    );
     const scaledEditorRect = productionEditor.view.dom.getBoundingClientRect();
     const productionTargetPos = positionsOf(
       productionEditor.state.doc,
@@ -1898,6 +2314,7 @@ async function runProof(): Promise<ProofResult> {
 
     productionEditor.destroy();
     productionEditor = undefined;
+    delete mount.dataset["proofOversizeTableRow"];
     mount.replaceChildren();
     proofEditor.style.transform = "";
     shell.style.width = "864px";
@@ -1937,8 +2354,7 @@ async function runProof(): Promise<ProofResult> {
       references: parityFixture.references,
       locale: "en",
       emptyLabel: "unused",
-      onPageCountChange: (count: number) =>
-        parityReferenceCount = count,
+      onPageCountChange: (count: number) => parityReferenceCount = count,
     };
     const parityPaginationEnv = {
       reason: "canonical-layout" as const,
@@ -1995,13 +2411,16 @@ async function runProof(): Promise<ProofResult> {
       expectedFamily: string,
       expectedSizePt: number,
       invalidate: boolean,
+      paintedBandLabel: string,
     ) => {
       shell.style.setProperty("--doc-font", cssStack);
       shell.style.setProperty("--doc-font-size", `${expectedSizePt}pt`);
       parityEssay.settings.font = font;
+      let minimumEpoch = Number.NEGATIVE_INFINITY;
       if (invalidate) {
         const targetEpoch =
           (paginationPluginKey.getState(parityEditor!.state)?.epoch ?? 0) + 1;
+        minimumEpoch = targetEpoch;
         invalidatePagination(parityEditor!, "font");
         await waitForCondition(
           `${expectedFamily} live pagination parity`,
@@ -2012,11 +2431,23 @@ async function runProof(): Promise<ProofResult> {
           240,
         );
       }
-      const stable = latestStableReport(parityReports);
+      const stable = await waitForCurrentStableNativeReport(
+        parityEditor!,
+        parityReports,
+        `${expectedFamily} parity painted-band stability`,
+        minimumEpoch,
+      );
       const plan = stable?.visiblePlan ?? stable?.lastStablePlan;
       if (!stable?.pageCount || !plan) {
         throw new Error(`${expectedFamily} live parity plan is unavailable`);
       }
+      await frame();
+      await frame();
+      const paintedBandGeometry = capturePaintedBandGeometry(
+        parityEditor!,
+        paintedBandLabel,
+        plan.pageGaps.length,
+      );
       const composition = composeDocumentPages({
         authoredPageStarts: plan.pageStarts,
         referencePageCount: stable.pageCount.references,
@@ -2124,6 +2555,7 @@ async function runProof(): Promise<ProofResult> {
         previewPageCount: previewFlow.total,
         liveSections: liveKinds.join(","),
         previewSections: previewKinds.join(","),
+        paintedBandGeometry,
       };
     };
 
@@ -2133,6 +2565,7 @@ async function runProof(): Promise<ProofResult> {
       "Times New Roman",
       12,
       false,
+      "Times stable painted band",
     );
     const georgiaParity = await captureParity(
       "georgia-11",
@@ -2140,6 +2573,7 @@ async function runProof(): Promise<ProofResult> {
       "Georgia",
       11,
       true,
+      "Georgia stable painted band",
     );
 
     const checks = {
@@ -2226,17 +2660,23 @@ async function runProof(): Promise<ProofResult> {
         heightWithTrailingPage.value - heightWithoutTrailingPage.value >= 170,
       stableFirstPaint: conditionalFirstPaint,
       visualGapIsReal: firstPlannedGap.height >= 179 &&
-        firstPlannedGap.width >= 815,
+        firstPlannedCanvas.width >= 815,
       productionPaginationStack: productionComposition.total ===
           firstProductionStable.pageCount!.total + 1 &&
         productionPageChromeSequential && productionPageChromeAfterGaps &&
         productionReferencesBeforeAppendix,
+      productionAtomicOverflowGeometry,
+      productionTableRowOverflowGeometry,
       hardBreakOnlyLinesMeasured: hardBreakEvidence.passed,
       productionPageChromeInert,
       productionScaleInvariantCount,
       productionJsonIdentity,
       transformedHitTesting,
       visualScaleApplied,
+      productionPaintedBandGeometry: productionInitialPaintedBand.markers > 0 &&
+        productionScaledPaintedBand.markers > 0 &&
+        productionInitialPaintedBand.intersections === 0 &&
+        productionScaledPaintedBand.intersections === 0,
       nativeRenderedPerformance: nativeWorkloadEvaluations.every((result) =>
         result.passed
       ),
@@ -2253,6 +2693,10 @@ async function runProof(): Promise<ProofResult> {
         georgiaParity.geometryEvaluation.checks.rendererTypeParity,
       exactLiveStatusCount: timesParity.exactLiveStatusCount &&
         georgiaParity.exactLiveStatusCount,
+      parityPaintedBandGeometry: timesParity.paintedBandGeometry.markers > 0 &&
+        georgiaParity.paintedBandGeometry.markers > 0 &&
+        timesParity.paintedBandGeometry.intersections === 0 &&
+        georgiaParity.paintedBandGeometry.intersections === 0,
     };
     const passed = Object.values(checks).every(Boolean);
     return {
@@ -2270,18 +2714,22 @@ async function runProof(): Promise<ProofResult> {
         hardBreakOnlyVisualSpan: hardBreakEvidence.breakOnlyVisualSpan,
         hardBreakOnlyMeasuredSpan: hardBreakEvidence.breakOnlyMeasuredSpan,
         measuredFragments: initialMeasurement.fragments.length,
-        measuredListLines: initialMeasurement.fragments.filter((fragment) =>
-          fragment.kind === "listItem"
-        ).length,
-        measuredTableRows: initialMeasurement.fragments.filter((fragment) =>
-          fragment.kind === "tableRow"
-        ).length,
-        measuredFigures: initialMeasurement.fragments.filter((fragment) =>
-          fragment.id.startsWith("figure:")
-        ).length,
-        measuredEquations: initialMeasurement.fragments.filter((fragment) =>
-          fragment.id.startsWith("apaEquation:")
-        ).length,
+        measuredListLines:
+          initialMeasurement.fragments.filter((fragment) =>
+            fragment.kind === "listItem"
+          ).length,
+        measuredTableRows:
+          initialMeasurement.fragments.filter((fragment) =>
+            fragment.kind === "tableRow"
+          ).length,
+        measuredFigures:
+          initialMeasurement.fragments.filter((fragment) =>
+            fragment.id.startsWith("figure:")
+          ).length,
+        measuredEquations:
+          initialMeasurement.fragments.filter((fragment) =>
+            fragment.id.startsWith("apaEquation:")
+          ).length,
         generatedHeadingVisualHeight,
         generatedHeadingMeasuredHeight,
         firstTableVisualHeight,
@@ -2317,6 +2765,37 @@ async function runProof(): Promise<ProofResult> {
         productionScaledFrames,
         productionPageCount: productionComposition.total,
         productionGapNumberPairs: productionGapNumberPairs.length,
+        productionAtomicOverflowOuterHeight: productionAtomicOuterHeight,
+        productionAtomicOverflowScrollHeight: productionAtomicScrollHeight,
+        productionAtomicOverflowClientHeight: productionAtomicClientHeight,
+        productionAtomicOverflowY,
+        productionAtomicOutlineStyle,
+        productionAtomicContentReachable: String(
+          productionAtomicContentReachable,
+        ),
+        productionAtomicFollowingGapTop,
+        productionAtomicBottom: productionAtomicRect.bottom,
+        productionTableRowOverflowHeight: productionRowRect.height,
+        productionTableRowOverflowWidth: productionRowRect.width,
+        productionTableWidth: productionRowTableRect?.width ?? -1,
+        productionTableLayout: productionRowTableLayout,
+        productionTableRowOverflowScrollHeight: productionRowScrollHeight,
+        productionTableRowOverflowClientHeight: productionRowClientHeight,
+        productionTableRowDisplay: productionRowDisplay,
+        productionTableRowOverflowY: productionRowOverflowY,
+        productionTableRowOutlineStyle: productionRowOutlineStyle,
+        productionTableRowContentReachable: String(
+          productionRowContentReachable,
+        ),
+        productionTableRowFollowingGapTop: productionRowFollowingGapTop,
+        productionTableRowBottom: productionRowRect.bottom,
+        productionTableRowTag: productionRowOverflow.tagName,
+        productionTableRowParentTag:
+          productionRowOverflow.parentElement?.tagName ?? "",
+        productionTableRowCellTags: productionRowCells.map((cell) =>
+          cell.tagName
+        ).join(","),
+        productionTableRowOverflowCellWidths: productionRowCellWidths.join(","),
         productionJsonIdentity: String(productionJsonIdentity),
         parityStableFrames,
         nativeRuntimeIdentity: JSON.stringify({
@@ -2350,6 +2829,7 @@ async function runProof(): Promise<ProofResult> {
         nativeInputPosition,
         nativeCaretAfterInputPosition,
         lineGapHeight: firstPlannedGap.height,
+        lineGapCanvasWidth: firstPlannedCanvas.width,
         lineGapParentTag,
         tableGapSeparation: rowBefore && rowAfter
           ? rowAfter.top - rowBefore.bottom
@@ -2383,7 +2863,7 @@ async function runProof(): Promise<ProofResult> {
   } finally {
     paginationMeasurer?.destroy();
     productionEditor?.destroy();
-    parityEditor?.destroy();
+    pendingParityEditor = parityEditor;
     editor.destroy();
   }
 }
@@ -2403,17 +2883,35 @@ const watchdog = startProofPageWatchdog(
   },
 );
 
-function finishProof(result: ProofResult): void {
-  if (proofFinished) return;
+function finishProof(result: ProofResult): boolean {
+  if (proofFinished) return false;
   proofFinished = true;
   watchdog.cancel();
   resultElement.textContent = JSON.stringify(result, null, 2);
   nativeBridge.postResult(result);
+  return true;
+}
+
+function settleInspectionResult(
+  localPassed: boolean,
+  resultAccepted: boolean,
+): void {
+  const editor = pendingParityEditor;
+  const preserved = settleStableInspectionEditor({
+    requested: preserveStableEditor && editor !== undefined,
+    localPassed,
+    resultAccepted,
+    destroy: () => editor?.destroy(),
+    markReady: () => {
+      document.body.dataset["stablePaginationInspection"] = "ready";
+    },
+  });
+  if (!preserved) pendingParityEditor = undefined;
 }
 
 runProof().then((result) => {
   diagnostic("proof-result", { passed: result.passed });
-  finishProof(result);
+  settleInspectionResult(result.passed, finishProof(result));
 }).catch((error: unknown) => {
   diagnostic("proof-catch", {
     error: error instanceof Error ? error.message : String(error),
@@ -2427,5 +2925,5 @@ runProof().then((result) => {
       ? `${error.message}\n${error.stack ?? ""}`
       : String(error),
   };
-  finishProof(result);
+  settleInspectionResult(false, finishProof(result));
 });

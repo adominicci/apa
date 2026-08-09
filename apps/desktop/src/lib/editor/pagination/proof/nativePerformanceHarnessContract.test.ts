@@ -6,6 +6,10 @@ const source = await readFile(
   resolve(import.meta.dirname!, "nativeProof.ts"),
   "utf8",
 );
+const proofCss = await readFile(
+  resolve(import.meta.dirname!, "nativeProof.css"),
+  "utf8",
+);
 const capture = source.slice(
   source.indexOf("async function captureNativePaginationOperation"),
   source.indexOf("function workloadParagraphText"),
@@ -21,6 +25,18 @@ const rapidTyping = workload.slice(
 const scaleResize = workload.slice(
   workload.indexOf("const resizeReportIndex"),
   workload.indexOf("const capturedOperations"),
+);
+const firstPaint = source.slice(
+  source.indexOf("const lineGap = requireElement<HTMLElement>("),
+  source.indexOf("const beforeCaret = editor.view.coordsAtPos(lineGapPos - 1)"),
+);
+const paintedBandOracle = source.slice(
+  source.indexOf("function capturePaintedBandGeometry"),
+  source.indexOf("interface LayoutSnapshot"),
+);
+const parityCapture = source.slice(
+  source.indexOf("const captureParity = async"),
+  source.indexOf("const timesParity = await captureParity"),
 );
 
 describe("native performance harness wiring", () => {
@@ -46,6 +62,75 @@ describe("native performance harness wiring", () => {
     expect(scaleResize).toContain("waitForNativeQuiescence(");
     expect(scaleResize).not.toMatch(
       /await frame\(\);\s*await frame\(\);\s*await frame\(\);/,
+    );
+  });
+
+  it("uses only positive painted marker rectangles and samples every stable state", () => {
+    expect(paintedBandOracle).toContain("[data-pagination-canvas-gap]");
+    expect(paintedBandOracle).toContain("markerCount !== derivedGapCount");
+    expect(paintedBandOracle).toContain("markerCount === 0");
+    expect(paintedBandOracle).not.toContain(
+      'querySelectorAll<HTMLElement>("[data-pagination-gap]")',
+    );
+    expect(paintedBandOracle).not.toContain("root.getBoundingClientRect()");
+    expect(workload).toContain("capturePaintedBandGeometry(");
+    for (
+      const label of [
+        "initial settlement",
+        "calibration settlement",
+        "final calibrated state",
+        "rapid typing",
+        "deletion",
+        "reference refresh",
+        "font change",
+        "scale resize",
+      ]
+    ) {
+      expect(workload).toMatch(
+        new RegExp(`captureWorkloadPaintedBand\\(\\s*\"${label}\"`),
+      );
+    }
+    expect(source).toContain("production initial stable painted band");
+    expect(source).toContain("production scaled stable painted band");
+    expect(source).toContain("Times stable painted band");
+    expect(source).toContain("Georgia stable painted band");
+    expect(paintedBandOracle).toContain("authoredTextRects.length === 0");
+  });
+
+  it("samples production and parity only from the current quiescent stable epoch", () => {
+    expect(source).toContain(
+      "async function waitForCurrentStableNativeReport",
+    );
+    expect(source.match(/await waitForCurrentStableNativeReport\(/g))
+      .toHaveLength(3);
+    expect(parityCapture).toContain("await waitForCurrentStableNativeReport(");
+  });
+
+  it("measures the full-canvas first paint from its marker, not the narrow spacer", () => {
+    expect(firstPaint).toContain(
+      "const lineGapCanvas = requireElement<HTMLElement>(",
+    );
+    expect(firstPaint).toContain(
+      "\"[data-pagination-proof-gap='line'] [data-pagination-canvas-gap]\"",
+    );
+    expect(source).toContain(
+      "firstPlannedGap.height >= 179 &&\n        firstPlannedCanvas.width >= 815",
+    );
+  });
+
+  it("preserves only the final stable parity editor for an opt-in visual sweep", () => {
+    expect(source).toMatch(
+      /const preserveStableEditor\s*=\s*new URLSearchParams\(location\.search\)\.get\("inspect"\) === "1";/,
+    );
+    expect(source).toContain("pendingParityEditor = parityEditor;");
+    expect(source).toContain(
+      'document.body.dataset["stablePaginationInspection"] = "ready";',
+    );
+    expect(source).toContain(
+      "settleStableInspectionEditor({",
+    );
+    expect(proofCss).toContain(
+      'body[data-stable-pagination-inspection="ready"] #proof-result',
     );
   });
 });

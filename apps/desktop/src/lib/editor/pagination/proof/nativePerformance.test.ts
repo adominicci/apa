@@ -22,6 +22,26 @@ function passingResult(
     readsDuringInput: 0,
     staleStableCommits: 0,
     duplicateStableEpochs: 0,
+    paintedBandGeometry: {
+      intersections: 0,
+      markers: 8,
+      states: [
+        "initial settlement",
+        "calibration settlement",
+        "final calibrated state",
+        "rapid typing",
+        "deletion",
+        "reference refresh",
+        "font change",
+        "scale resize",
+      ].map((label) => ({
+        label,
+        derivedGapCount: 1,
+        markerCount: 1,
+        authoredTextRectCount: 10,
+        intersectionCount: 0,
+      })),
+    },
     referenceEntriesBefore: 1,
     referenceEntriesAfter: 4,
     fontFamilyBefore: "Georgia, Times New Roman, serif",
@@ -94,6 +114,7 @@ describe("native pagination performance evidence", () => {
     result.readsDuringInput = 1;
     result.staleStableCommits = 1;
     result.duplicateStableEpochs = 1;
+    result.paintedBandGeometry.intersections = 1;
     result.referenceEntriesAfter = 1;
     result.fontFamilyAfter = result.fontFamilyBefore;
     result.scaleAfter = result.scaleBefore;
@@ -115,6 +136,8 @@ describe("native pagination performance evidence", () => {
         boundedPaginationFrames: false,
         noStaleStableCommit: false,
         noVisibleOscillation: false,
+        noAuthoredTextInPageGaps: false,
+        actualPaintedBandGeometry: true,
         operationsSettledWithinBudget: false,
         stableOperationsCommittedOnce: false,
         noFallbackCommit: false,
@@ -124,6 +147,39 @@ describe("native pagination performance evidence", () => {
         scaleResizeDidNotPaginate: false,
       },
     });
+  });
+
+  it("fails closed when painted-band evidence has no positive marker coverage or states", () => {
+    const result = passingResult(10);
+    result.paintedBandGeometry = {
+      intersections: 0,
+      markers: 0,
+      states: [],
+    };
+
+    expect(evaluateNativePaginationWorkload(result).passed).toBe(false);
+  });
+
+  it("rejects painted-band intersections, marker mismatches, and missing states", () => {
+    const intersection = passingResult(10);
+    intersection.paintedBandGeometry.intersections = 1;
+    expect(evaluateNativePaginationWorkload(intersection).passed).toBe(false);
+
+    const markerMismatch = passingResult(10);
+    markerMismatch.paintedBandGeometry.states[0]!.markerCount = 2;
+    expect(evaluateNativePaginationWorkload(markerMismatch).passed).toBe(false);
+
+    const missingState = passingResult(10);
+    missingState.paintedBandGeometry.states = missingState
+      .paintedBandGeometry.states.slice(1);
+    expect(evaluateNativePaginationWorkload(missingState).passed).toBe(false);
+
+    const missingAuthoredText = passingResult(10);
+    missingAuthoredText.paintedBandGeometry.states[0]!.authoredTextRectCount =
+      0;
+    expect(evaluateNativePaginationWorkload(missingAuthoredText).passed).toBe(
+      false,
+    );
   });
 });
 

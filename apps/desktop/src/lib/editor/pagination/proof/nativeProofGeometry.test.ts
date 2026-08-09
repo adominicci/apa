@@ -71,7 +71,7 @@ describe("native proof geometry", () => {
     }]);
   });
 
-  it("uses the actual painted canvas rectangle rather than its spacer parent", () => {
+  it("catches a phase-offset painted band that the spacer parent would miss", () => {
     const authoredText = [{
       top: 1_056,
       right: 240,

@@ -299,18 +299,49 @@ function paginationGaps(element: Element, scale: number): LayoutRect[] {
   );
 }
 
+function descendantScrollExtent(
+  element: HTMLElement,
+  rect: LayoutRect,
+  scale: number,
+): number {
+  let bottom = rect.top;
+  for (const descendant of element.querySelectorAll<HTMLElement>("*")) {
+    if (descendant.closest(GAP_SELECTOR)) continue;
+    const descendantRect = canonicalRect(
+      descendant.getBoundingClientRect(),
+      scale,
+    );
+    if (descendantRect.width <= 0 || descendantRect.height <= 0) continue;
+    bottom = Math.max(bottom, descendantRect.bottom);
+  }
+  return Math.max(0, bottom - rect.top + element.scrollTop);
+}
+
 function heightWithoutGaps(element: HTMLElement, scale: number): number {
   const ownerWindow = element.ownerDocument.defaultView;
   const rect = canonicalRect(element.getBoundingClientRect(), scale);
   if (!ownerWindow) return rect.height;
   const style = ownerWindow.getComputedStyle(element);
+  const paintedOverflow = element.dataset["paginationOverflow"];
+  const isPaintedOverflow = paintedOverflow === "atomic" ||
+    paintedOverflow === "tableRow";
+  const borderHeight = cssNumber(style.borderTopWidth) +
+    cssNumber(style.borderBottomWidth);
+  const intrinsicHeight = isPaintedOverflow
+    ? Math.max(
+      rect.height,
+      element.scrollHeight + borderHeight,
+      descendantScrollExtent(element, rect, scale) +
+        cssNumber(style.borderBottomWidth),
+    )
+    : rect.height;
   const descendantGapHeight = paginationGaps(element, scale).reduce(
     (total, gap) => total + gap.height,
     0,
   );
   return Math.max(
     0,
-    rect.height - descendantGapHeight + cssNumber(style.marginTop) +
+    intrinsicHeight - descendantGapHeight + cssNumber(style.marginTop) +
       cssNumber(style.marginBottom),
   );
 }

@@ -18,6 +18,32 @@ export interface NativePaginationOperationResult {
   endEpoch: number;
 }
 
+export const NATIVE_PAINTED_BAND_REQUIRED_STATES = [
+  "initial settlement",
+  "calibration settlement",
+  "final calibrated state",
+  "rapid typing",
+  "deletion",
+  "reference refresh",
+  "font change",
+  "scale resize",
+] as const;
+
+export interface NativePaintedBandState {
+  label: string;
+  derivedGapCount: number;
+  markerCount: number;
+  authoredTextRectCount: number;
+  intersectionCount: number;
+}
+
+/** Fail-closed native evidence from actual painted canvas marker rectangles. */
+export interface NativePaintedBandGeometryEvidence {
+  intersections: number;
+  markers: number;
+  states: readonly NativePaintedBandState[];
+}
+
 export interface NativePaginationWorkloadResult {
   targetPages: NativePaginationWorkloadPages;
   authoredPages: number;
@@ -26,6 +52,7 @@ export interface NativePaginationWorkloadResult {
   readsDuringInput: number;
   staleStableCommits: number;
   duplicateStableEpochs: number;
+  paintedBandGeometry: NativePaintedBandGeometryEvidence;
   referenceEntriesBefore: number;
   referenceEntriesAfter: number;
   fontFamilyBefore: string;
@@ -48,6 +75,8 @@ export interface NativePaginationWorkloadEvaluation {
     | "boundedPaginationFrames"
     | "noStaleStableCommit"
     | "noVisibleOscillation"
+    | "noAuthoredTextInPageGaps"
+    | "actualPaintedBandGeometry"
     | "operationsSettledWithinBudget"
     | "stableOperationsCommittedOnce"
     | "noFallbackCommit"
@@ -319,6 +348,20 @@ export function evaluateNativePaginationWorkload(
     ),
     noStaleStableCommit: result.staleStableCommits === 0,
     noVisibleOscillation: result.duplicateStableEpochs === 0,
+    noAuthoredTextInPageGaps: result.paintedBandGeometry.intersections === 0 &&
+      result.paintedBandGeometry.states.every((state) =>
+        state.intersectionCount === 0
+      ),
+    actualPaintedBandGeometry: result.paintedBandGeometry.markers > 0 &&
+      result.paintedBandGeometry.states.length > 0 &&
+      result.paintedBandGeometry.states.every((state) =>
+        state.markerCount > 0 &&
+        state.markerCount === state.derivedGapCount &&
+        state.authoredTextRectCount > 0
+      ) &&
+      NATIVE_PAINTED_BAND_REQUIRED_STATES.every((label) =>
+        result.paintedBandGeometry.states.some((state) => state.label === label)
+      ),
     operationsSettledWithinBudget:
       result.operations.rapidTyping.settlementMs <= budget.typingDeletionMs &&
       result.operations.deletion.settlementMs <= budget.typingDeletionMs &&

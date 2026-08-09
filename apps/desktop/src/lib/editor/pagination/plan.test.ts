@@ -421,6 +421,36 @@ describe("planPagination", () => {
     ]);
   });
 
+  it("moves a complete table preamble chain with its first row", () => {
+    const plan = stablePlan({
+      epoch: 7,
+      fragments: [
+        fragment("preface", 1, 744),
+        fragment("table-margin", 20, 20, {
+          kind: "heading",
+          keepWithNext: true,
+        }),
+        fragment("table-title", 30, 30, {
+          kind: "heading",
+          keepWithNext: true,
+        }),
+        fragment("table-chrome", 40, 30, {
+          kind: "heading",
+          keepWithNext: true,
+        }),
+        fragment("first-row", 50, 50, {
+          kind: "tableRow",
+          table: { tableId: "results", columnCount: 3 },
+        }),
+      ],
+    });
+
+    expect(plan.pageStarts).toEqual([
+      { pageIndex: 0, pos: 1, section: "body", kind: "section" },
+      { pageIndex: 1, pos: 20, section: "body", kind: "block" },
+    ]);
+  });
+
   it("starts a list continuation at a line boundary without a second marker", () => {
     const plan = stablePlan({
       epoch: 8,
@@ -653,7 +683,7 @@ describe("planPagination", () => {
     ]);
   });
 
-  it("subtracts bounded overflow before spacing the following page", () => {
+  it("spaces following content from the bounded overflow viewport", () => {
     const plan = stablePlan({
       epoch: 15,
       fragments: [
@@ -668,8 +698,7 @@ describe("planPagination", () => {
       pos: 20,
       section: "body",
       kind: "line",
-      height: LETTER_PRINTABLE_HEIGHT - 900 +
-        2 * LETTER_PAGE_MARGIN + visualPageGap,
+      height: 2 * LETTER_PAGE_MARGIN + visualPageGap,
     }]);
   });
 

@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { EditorView } from "@tiptap/pm/view";
 import { createTesinaEditor } from "../createEditor.ts";
-import type { PaginationReason } from "./types.ts";
+import type { PaginationReason, StablePaginationPlan } from "./types.ts";
 import {
   browserPaginationLayoutAdapter,
   canonicalLayoutLength,
@@ -729,6 +729,434 @@ describe("text line sampling", () => {
     } finally {
       styleSpy.mockRestore();
       rangeSpy.mockRestore();
+      editor.destroy();
+      mount.remove();
+    }
+  });
+
+  it("remeasures a painted atomic overflow from its reachable scroll extent", () => {
+    const mount = document.createElement("div");
+    document.body.append(mount);
+    const editor = createTesinaEditor({
+      element: mount,
+      content: {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [{
+            type: "figure",
+            content: [
+              {
+                type: "figureTitle",
+                content: [{ type: "text", text: "Oversize proof" }],
+              },
+              { type: "figureImage", attrs: { src: "", alt: "proof" } },
+              {
+                type: "figureNote",
+                content: [{ type: "text", text: "Reachable note" }],
+              },
+            ],
+          }],
+        }],
+      },
+      newlyCreated: true,
+      citationEnv: { refsById: new Map(), locale: "en" },
+      referenceEnv: { references: [], locale: "en", emptyLabel: "unused" },
+      paginationEnv: null,
+    });
+    let figurePos = -1;
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "figure") figurePos = pos;
+      return figurePos < 0;
+    });
+    const figure = editor.view.nodeDOM(figurePos) as HTMLElement;
+    figure.dataset["paginationOverflow"] = "atomic";
+    vi.spyOn(figure, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 100, 624, 832),
+    );
+    Object.defineProperty(figure, "clientHeight", {
+      configurable: true,
+      value: 832,
+    });
+    Object.defineProperty(figure, "scrollHeight", {
+      configurable: true,
+      value: 960,
+    });
+    const getComputedStyle = globalThis.getComputedStyle.bind(globalThis);
+    const styleSpy = vi.spyOn(globalThis, "getComputedStyle")
+      .mockImplementation(
+        (element, pseudoElement) =>
+          pseudoElement
+            ? {
+              display: "none",
+              content: "none",
+            } as CSSStyleDeclaration
+            : element === figure
+            ? {
+              marginTop: "16px",
+              marginBottom: "16px",
+              borderTopWidth: "0px",
+              borderBottomWidth: "0px",
+            } as CSSStyleDeclaration
+            : getComputedStyle(element),
+      );
+
+    try {
+      const snapshot = browserPaginationLayoutAdapter.readLayout(editor.view);
+      const atomic = snapshot.fragments.find((fragment) =>
+        fragment.id === `figure:${figurePos}`
+      );
+      expect(atomic?.height).toBe(992);
+      const plan = planPagination({
+        epoch: 1,
+        fragments: snapshot.fragments,
+        emptySections: snapshot.emptySections,
+      });
+      expect(plan.status).toBe("stable");
+      if (plan.status !== "stable") throw new Error("expected stable plan");
+      expect(plan.overflows).toEqual([{
+        fragmentId: `figure:${figurePos}`,
+        pos: figurePos,
+        section: "body",
+        kind: "atomic",
+      }]);
+    } finally {
+      styleSpy.mockRestore();
+      editor.destroy();
+      mount.remove();
+    }
+  });
+
+  it("remeasures a painted table-row overflow from its reachable scroll extent", () => {
+    const mount = document.createElement("div");
+    document.body.append(mount);
+    const editor = createTesinaEditor({
+      element: mount,
+      content: {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [{
+            type: "apaTable",
+            content: [
+              {
+                type: "tableTitle",
+                content: [{ type: "text", text: "Oversize row" }],
+              },
+              {
+                type: "table",
+                content: [{
+                  type: "tableRow",
+                  content: [{
+                    type: "tableCell",
+                    content: [{
+                      type: "paragraph",
+                      content: [{ type: "text", text: "Reachable cell" }],
+                    }],
+                  }],
+                }],
+              },
+              { type: "tableNote" },
+            ],
+          }],
+        }],
+      },
+      newlyCreated: true,
+      citationEnv: { refsById: new Map(), locale: "en" },
+      referenceEnv: { references: [], locale: "en", emptyLabel: "unused" },
+      paginationEnv: null,
+    });
+    let rowPos = -1;
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "tableRow") rowPos = pos;
+      return rowPos < 0;
+    });
+    const row = editor.view.nodeDOM(rowPos) as HTMLElement;
+    row.dataset["paginationOverflow"] = "tableRow";
+    const scale = 0.75;
+    const canonicalTop = 100;
+    let shrunk = false;
+    Object.defineProperty(editor.view.dom, "offsetWidth", {
+      configurable: true,
+      value: 816,
+    });
+    vi.spyOn(editor.view.dom, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 0, 612, 3_000),
+    );
+    vi.spyOn(row, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(
+        0,
+        canonicalTop * scale,
+        624 * scale,
+        864 * scale,
+      ),
+    );
+    Object.defineProperty(row, "clientHeight", {
+      configurable: true,
+      value: 864,
+    });
+    Object.defineProperty(row, "scrollHeight", {
+      configurable: true,
+      value: 864,
+    });
+    const firstCell = row.querySelector<HTMLElement>("td")!;
+    const gap = document.createElement("span");
+    gap.dataset["paginationGap"] = "tableRow";
+    const misplacedGapPaint = document.createElement("span");
+    gap.append(misplacedGapPaint);
+    const fractionalContent = document.createElement("span");
+    firstCell.append(gap, fractionalContent);
+    vi.spyOn(gap, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 400 * scale, 624 * scale, 124 * scale),
+    );
+    vi.spyOn(misplacedGapPaint, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 1_200 * scale, 624 * scale, 28 * scale),
+    );
+    vi.spyOn(fractionalContent, "getBoundingClientRect")
+      .mockImplementation(() => {
+        const intrinsicHeight = shrunk ? 824 : 988.25;
+        const bottom = canonicalTop + intrinsicHeight - row.scrollTop;
+        return new DOMRect(
+          0,
+          (bottom - 16) * scale,
+          624 * scale,
+          16 * scale,
+        );
+      });
+    row.scrollTop = 40;
+    const getComputedStyle = globalThis.getComputedStyle.bind(globalThis);
+    const styleSpy = vi.spyOn(globalThis, "getComputedStyle")
+      .mockImplementation(
+        (element, pseudoElement) =>
+          pseudoElement
+            ? {
+              display: "none",
+              content: "none",
+            } as CSSStyleDeclaration
+            : element === row
+            ? {
+              marginTop: "0px",
+              marginBottom: "0px",
+              borderTopWidth: "0px",
+              borderBottomWidth: "0px",
+            } as CSSStyleDeclaration
+            : getComputedStyle(element),
+      );
+
+    try {
+      let firstOverflows: StablePaginationPlan["overflows"] | undefined;
+      for (let pass = 0; pass < 2; pass += 1) {
+        const snapshot = browserPaginationLayoutAdapter.readLayout(editor.view);
+        const tableRow = snapshot.fragments.find((fragment) =>
+          fragment.breakBefore.pos === rowPos && fragment.kind === "tableRow"
+        );
+        expect(tableRow?.height).toBe(864.25);
+        const plan = planPagination({
+          epoch: 1,
+          fragments: snapshot.fragments,
+          emptySections: snapshot.emptySections,
+        });
+        expect(plan.status).toBe("stable");
+        if (plan.status !== "stable") throw new Error("expected stable plan");
+        expect(plan.overflows).toContainEqual({
+          fragmentId: tableRow?.id,
+          pos: rowPos,
+          section: "body",
+          kind: "tableRow",
+        });
+        if (firstOverflows) expect(plan.overflows).toEqual(firstOverflows);
+        firstOverflows = plan.overflows;
+      }
+
+      shrunk = true;
+      const shrunkSnapshot = browserPaginationLayoutAdapter.readLayout(
+        editor.view,
+      );
+      const shrunkRow = shrunkSnapshot.fragments.find((fragment) =>
+        fragment.breakBefore.pos === rowPos && fragment.kind === "tableRow"
+      );
+      expect(shrunkRow?.height).toBe(740);
+      const shrunkPlan = planPagination({
+        epoch: 1,
+        fragments: shrunkSnapshot.fragments,
+        emptySections: shrunkSnapshot.emptySections,
+      });
+      expect(shrunkPlan.status).toBe("stable");
+      if (shrunkPlan.status !== "stable") {
+        throw new Error("expected stable plan");
+      }
+      expect(shrunkPlan.overflows).toEqual([]);
+    } finally {
+      styleSpy.mockRestore();
+      editor.destroy();
+      mount.remove();
+    }
+  });
+
+  it("keeps a transformed fractional atomic overflow stable and clears it after shrink", () => {
+    const mount = document.createElement("div");
+    document.body.append(mount);
+    const editor = createTesinaEditor({
+      element: mount,
+      content: {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [{
+            type: "figure",
+            content: [
+              {
+                type: "figureTitle",
+                content: [{ type: "text", text: "Fractional overflow" }],
+              },
+              { type: "figureImage", attrs: { src: "", alt: "proof" } },
+              { type: "figureNote" },
+            ],
+          }],
+        }],
+      },
+      newlyCreated: true,
+      citationEnv: { refsById: new Map(), locale: "en" },
+      referenceEnv: { references: [], locale: "en", emptyLabel: "unused" },
+      paginationEnv: null,
+    });
+    let figurePos = -1;
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "figure") figurePos = pos;
+      return figurePos < 0;
+    });
+    const figure = editor.view.nodeDOM(figurePos) as HTMLElement;
+    const fractionalContent = document.createElement("span");
+    const gap = document.createElement("span");
+    gap.dataset["paginationGap"] = "line";
+    const misplacedGapPaint = document.createElement("span");
+    gap.append(misplacedGapPaint);
+    figure.append(gap, fractionalContent);
+    const scale = 0.75;
+    const canonicalTop = 100;
+    let phase: "unpainted" | "painted" | "shrunk" = "unpainted";
+    Object.defineProperty(editor.view.dom, "offsetWidth", {
+      configurable: true,
+      value: 816,
+    });
+    vi.spyOn(editor.view.dom, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 0, 612, 3_000),
+    );
+    vi.spyOn(figure, "getBoundingClientRect").mockImplementation(() => {
+      const canonicalHeight = phase === "unpainted"
+        ? 956.25
+        : phase === "painted"
+        ? 832
+        : 824;
+      return new DOMRect(
+        0,
+        canonicalTop * scale,
+        624 * scale,
+        canonicalHeight * scale,
+      );
+    });
+    vi.spyOn(gap, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 400 * scale, 624 * scale, 124 * scale),
+    );
+    vi.spyOn(misplacedGapPaint, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 1_200 * scale, 624 * scale, 28 * scale),
+    );
+    vi.spyOn(fractionalContent, "getBoundingClientRect")
+      .mockImplementation(() => {
+        const intrinsicHeight = phase === "shrunk" ? 824 : 956.25;
+        const bottom = canonicalTop + intrinsicHeight - figure.scrollTop;
+        return new DOMRect(
+          0,
+          (bottom - 16) * scale,
+          624 * scale,
+          16 * scale,
+        );
+      });
+    figure.scrollTop = 40;
+    Object.defineProperty(figure, "clientHeight", {
+      configurable: true,
+      get: () => phase === "shrunk" ? 824 : 832,
+    });
+    Object.defineProperty(figure, "scrollHeight", {
+      configurable: true,
+      get: () => phase === "shrunk" ? 824 : 832,
+    });
+    const getComputedStyle = globalThis.getComputedStyle.bind(globalThis);
+    const styleSpy = vi.spyOn(globalThis, "getComputedStyle")
+      .mockImplementation(
+        (element, pseudoElement) =>
+          pseudoElement
+            ? {
+              display: "none",
+              content: "none",
+            } as CSSStyleDeclaration
+            : element === figure
+            ? {
+              marginTop: "16px",
+              marginBottom: "16px",
+              borderTopWidth: "0px",
+              borderBottomWidth: "0px",
+            } as CSSStyleDeclaration
+            : getComputedStyle(element),
+      );
+
+    try {
+      const firstSnapshot = browserPaginationLayoutAdapter.readLayout(
+        editor.view,
+      );
+      const firstPlan = planPagination({
+        epoch: 1,
+        fragments: firstSnapshot.fragments,
+        emptySections: firstSnapshot.emptySections,
+      });
+      expect(firstPlan.status).toBe("stable");
+      if (firstPlan.status !== "stable") {
+        throw new Error("expected stable plan");
+      }
+      expect(firstPlan.overflows).toHaveLength(1);
+
+      phase = "painted";
+      figure.dataset["paginationOverflow"] = "atomic";
+      for (let pass = 0; pass < 2; pass += 1) {
+        const paintedSnapshot = browserPaginationLayoutAdapter.readLayout(
+          editor.view,
+        );
+        const paintedAtomic = paintedSnapshot.fragments.find((fragment) =>
+          fragment.id === `figure:${figurePos}`
+        );
+        expect(paintedAtomic?.height).toBe(864.25);
+        const paintedPlan = planPagination({
+          epoch: 1,
+          fragments: paintedSnapshot.fragments,
+          emptySections: paintedSnapshot.emptySections,
+        });
+        expect(paintedPlan.status).toBe("stable");
+        if (paintedPlan.status !== "stable") {
+          throw new Error("expected stable plan");
+        }
+        expect(paintedPlan.overflows).toEqual(firstPlan.overflows);
+      }
+
+      phase = "shrunk";
+      const shrunkSnapshot = browserPaginationLayoutAdapter.readLayout(
+        editor.view,
+      );
+      const shrunkAtomic = shrunkSnapshot.fragments.find((fragment) =>
+        fragment.id === `figure:${figurePos}`
+      );
+      expect(shrunkAtomic?.height).toBe(732);
+      const shrunkPlan = planPagination({
+        epoch: 1,
+        fragments: shrunkSnapshot.fragments,
+        emptySections: shrunkSnapshot.emptySections,
+      });
+      expect(shrunkPlan.status).toBe("stable");
+      if (shrunkPlan.status !== "stable") {
+        throw new Error("expected stable plan");
+      }
+      expect(shrunkPlan.overflows).toEqual([]);
+    } finally {
+      styleSpy.mockRestore();
       editor.destroy();
       mount.remove();
     }

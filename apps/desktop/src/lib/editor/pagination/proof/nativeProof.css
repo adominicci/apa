@@ -56,6 +56,10 @@ body {
   font: 11px/1.2 monospace;
 }
 
+body[data-stable-pagination-inspection="ready"] #proof-result {
+  display: none;
+}
+
 #proof-preview {
   position: absolute;
   left: -10000px;
