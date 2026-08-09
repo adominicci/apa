@@ -234,12 +234,16 @@ export async function planImport(
       .sort(([a], [b]) => a.localeCompare(b))
   ) {
     const existing = localReferencesById.get(snapshotId);
-    if (existing === undefined) continue;
-    const existingDigest = await referenceDigest(existing);
+    // At most one semantic variant may keep the shared snapshot id. A local
+    // reference owns it when present; otherwise the first deterministic
+    // snapshot variant owns it. Every divergent variant receives a new id so
+    // restoring one essay cannot make its live reference shadow another
+    // essay's historical snapshot.
+    const baselineDigest = await referenceDigest(existing ?? variants[0]);
     const variantIdMap = new Map<string, string>();
     for (const variant of variants) {
       const variantDigest = await referenceDigest(variant);
-      if (variantDigest === existingDigest || variantIdMap.has(variantDigest)) {
+      if (variantDigest === baselineDigest || variantIdMap.has(variantDigest)) {
         continue;
       }
       variantIdMap.set(

@@ -432,6 +432,38 @@ describe("planImport references", () => {
     expect(writes[2].essay.referencesSnapshot[0].id).toBe(fixtureUuid(9, 2));
     expect(plan.preview.references.conflicting).toBe(2);
   });
+
+  it("separates divergent snapshot-only variants when no local reference exists", async () => {
+    const first = reference(1, "Primera versión preservada");
+    const second = reference(1, "Segunda versión preservada");
+    const plan = await planImport(
+      archiveOf({
+        essays: [
+          essayOf({
+            id: fixtureUuid(2, 12),
+            cites: [first.id],
+            snapshot: [first],
+          }),
+          essayOf({
+            id: fixtureUuid(2, 13),
+            cites: [second.id],
+            snapshot: [second],
+          }),
+        ],
+      }),
+      localOf({}),
+      deps(),
+    );
+
+    const writes = essayWrites(plan);
+    expect(collectCitationRefIds(writes[0].essay.content)).toEqual([first.id]);
+    expect(writes[0].essay.referencesSnapshot[0].id).toBe(first.id);
+    expect(collectCitationRefIds(writes[1].essay.content)).toEqual([
+      fixtureUuid(9, 1),
+    ]);
+    expect(writes[1].essay.referencesSnapshot[0].id).toBe(fixtureUuid(9, 1));
+    expect(plan.preview.references.conflicting).toBe(1);
+  });
 });
 
 describe("planImport collections", () => {
