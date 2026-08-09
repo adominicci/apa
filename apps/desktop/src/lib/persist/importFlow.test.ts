@@ -222,6 +222,34 @@ describe("import flow integration", () => {
     expect([...fs.files.keys()].some((p) => p.includes("/stage/"))).toBe(false);
   });
 
+  it("requires re-confirmation when an identical essay changes after preview", async () => {
+    const fixture = figureHeavyLibraryFixture();
+    const fs = new MemoryAppData();
+    const { identicalId } = seedDestination(fs, fixture);
+    const deps = makeDeps(fs);
+    const preview = await previewImport(
+      await exportFixtureArchive(fixture),
+      deps,
+    );
+
+    const path = `essays/${identicalId}.json`;
+    const edited = JSON.parse(new TextDecoder().decode(fs.files.get(path)!));
+    edited.titlePage.title = "Edited while import preview was open";
+    fs.files.set(path, canonicalJsonBytes(edited));
+
+    const result = await applyConfirmedImport(preview, deps);
+    expect(result.kind).toBe("replan-needed");
+    if (result.kind !== "replan-needed") return;
+    expect(result.next.preview.essays).toEqual({
+      new: 2,
+      identical: 0,
+      conflicting: 2,
+    });
+    expect(
+      [...fs.files.keys()].some((entry) => entry.includes("/stage/")),
+    ).toBe(false);
+  });
+
   it("replans transparently when the library gains unrelated content mid-flow", async () => {
     const fixture = figureHeavyLibraryFixture();
     const fs = new MemoryAppData();

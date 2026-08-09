@@ -512,6 +512,7 @@ function walkProseMirrorNode(value: unknown, where: string): void {
       Array.isArray(node.attrs))
   ) throwEssayContent(where);
   if (node.type === "citation") validateCitationAttrs(node.attrs, where);
+  if (node.type === "figureImage") validateFigureImageAttrs(node.attrs, where);
   if (node.marks !== undefined) {
     if (!Array.isArray(node.marks)) throwEssayContent(where);
     for (const mark of node.marks) {
@@ -526,6 +527,23 @@ function walkProseMirrorNode(value: unknown, where: string): void {
     for (const child of node.content) walkProseMirrorNode(child, where);
   }
   validateNodeChildren(node, where);
+}
+
+function validateFigureImageAttrs(value: unknown, where: string): void {
+  if (
+    !isRecord(value) || typeof value.src !== "string" ||
+    typeof value.alt !== "string"
+  ) {
+    throwEssayContent(where);
+  }
+  try {
+    if (parseArchiveEntryPath(value.src).kind !== "asset") {
+      throwEssayContent(where);
+    }
+  } catch (error) {
+    if (error instanceof ValidateError) throw error;
+    throwEssayContent(where);
+  }
 }
 
 const CITATION_MODES = new Set(["parenthetical", "narrative"]);

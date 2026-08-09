@@ -326,8 +326,6 @@ impl BackupDirectoryCore {
             }
             validated_tests.push((file_name.clone(), current_sha256));
         }
-        write_json_atomic(&self.app_data_dir, DIRECTORY_FILE_NAME, &config)?;
-
         let created_at = rfc3339_now();
         let mut ledger = load_ledger(&self.app_data_dir);
         for (file_name, sha256) in &validated_tests {
@@ -338,7 +336,11 @@ impl BackupDirectoryCore {
                 backup_set_id: backup_set_id.clone(),
             });
         }
+        // The ledger is non-authorizing metadata. Persist it first so any
+        // failure leaves setup inactive; once the authorization record lands,
+        // both durable halves already describe the same backup set.
         write_json_atomic(&self.app_data_dir, LEDGER_FILE_NAME, &ledger)?;
+        write_json_atomic(&self.app_data_dir, DIRECTORY_FILE_NAME, &config)?;
 
         inner.active = Some(ActiveState {
             canonical_folder_path: canonical_folder_path.clone(),
@@ -1293,6 +1295,22 @@ mod tests {
             .expect_err("changed test archive must not activate backups");
         assert_eq!(error.code, BackupErrorCode::HashMismatch);
         assert!(!fixture.app_data_dir.join(DIRECTORY_FILE_NAME).exists());
+    }
+
+    #[test]
+    fn activation_does_not_persist_authorization_when_ledger_write_fails() {
+        let fixture = fixture();
+        let core = core(&fixture);
+        core.begin_configuration(fixture.selected_dir.to_str().unwrap())
+            .unwrap();
+        core.write_test_archive("Ledger Failure.tesina", b"validated")
+            .unwrap();
+        fs::create_dir(fixture.app_data_dir.join(LEDGER_FILE_NAME)).unwrap();
+
+        core.activate_configuration()
+            .expect_err("ledger failure must abort activation");
+        assert!(!fixture.app_data_dir.join(DIRECTORY_FILE_NAME).exists());
+        assert!(!core.status().configured);
     }
 
     #[test]

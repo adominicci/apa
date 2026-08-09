@@ -208,6 +208,26 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
     await expectCode(await rebuildArchive(files), "validate/essay-schema");
   });
 
+  it("rejects malformed figure image attributes", async () => {
+    const files = mutateEssay(await goldenFiles(), (essay) => {
+      const walk = (value: unknown): boolean => {
+        if (!value || typeof value !== "object") return false;
+        const node = value as {
+          type?: string;
+          attrs?: unknown;
+          content?: unknown[];
+        };
+        if (node.type === "figureImage") {
+          node.attrs = { src: null, alt: 42 };
+          return true;
+        }
+        return node.content?.some(walk) ?? false;
+      };
+      if (!walk(essay.content)) throw new Error("fixture has no figure");
+    });
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
   it("rejects a malformed shared library", async () => {
     const files = await goldenFiles();
     files.set(

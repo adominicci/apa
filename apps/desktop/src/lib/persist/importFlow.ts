@@ -179,9 +179,32 @@ export async function applyConfirmedImport(
   let current = confirmed;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     let stagedJournal: ImportJournalV1 | null = null;
+    let replanNeeded: ImportPreviewResult | null = null;
     try {
       await deps.runMaintenance(async () => {
         await deps.flushPending();
+        // Recompute from the complete live world while holding the same
+        // maintenance lease used for staging. Library-only hashing cannot
+        // detect an edited same-ID essay or changed asset dedupe candidate.
+        const { local, previousLibrarySha256 } = await captureLocalImportState(
+          deps.fs,
+        );
+        const plan = await planImport(current.archive, local, {
+          transactionId: deps.uuid(),
+          newUuid: deps.uuid,
+          now: deps.now,
+        });
+        const refreshed: ImportPreviewResult = {
+          ...current,
+          plan,
+          preview: plan.preview,
+          previousLibrarySha256,
+        };
+        if (!previewsEqual(refreshed.preview, current.preview)) {
+          replanNeeded = refreshed;
+          return;
+        }
+        current = refreshed;
         const journal = await stageImport(current.plan, {
           fs: deps.fs,
           readArchiveAsset: (archivePath) => {
@@ -210,6 +233,9 @@ export async function applyConfirmedImport(
           keepCompleted: COMPLETED_ROLLBACK_RETENTION,
         });
       });
+      if (replanNeeded !== null) {
+        return { kind: "replan-needed", next: replanNeeded };
+      }
       return {
         kind: "applied",
         transactionId: current.plan.transactionId,
