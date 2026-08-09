@@ -58,10 +58,10 @@ describe("APA editor page-sheets", () => {
 
   it("makes each derived gap own its 28px full-canvas painted band", () => {
     expect(css).toMatch(
-      /\[data-pagination-canvas-gap\]\s*\{[^}]*position:\s*absolute;[^}]*left:\s*-96px;[^}]*top:\s*calc\(100% - 124px\);[^}]*width:\s*816px;[^}]*height:\s*28px;[^}]*box-sizing:\s*border-box;[^}]*background:\s*var\(--canvas\);[^}]*pointer-events:\s*none;[^}]*user-select:\s*none;/s,
+      /\[data-pagination-canvas-gap\]\s*\{[^}]*position:\s*absolute;[^}]*left:\s*-96px;[^}]*top:\s*calc\(100% - 124px\);[^}]*width:\s*816px;[^}]*height:\s*28px;[^}]*box-sizing:\s*border-box;[^}]*background:\s*var\(--canvas\);[^}]*border-top:\s*1px solid var\(--border-soft\);[^}]*border-bottom:\s*1px solid var\(--border-soft\);[^}]*pointer-events:\s*none;[^}]*user-select:\s*none;/s,
     );
     expect(css).toMatch(
-      /\[data-pagination-gap="line"\],\s*\.apa-editor \.tiptap \[data-pagination-gap="block"\],\s*\.apa-editor \.tiptap \[data-pagination-gap-space\]\s*\{[^}]*position:\s*relative;/s,
+      /\[data-pagination-gap="line"\],\s*\.apa-editor \.tiptap \[data-pagination-gap="block"\],\s*\.apa-editor \.tiptap \[data-pagination-proof-gap="line"\],\s*\.apa-editor \.tiptap \[data-pagination-proof-gap="block"\],\s*\.apa-editor \.tiptap \[data-pagination-gap-space\]\s*\{[^}]*position:\s*relative;/s,
     );
   });
 

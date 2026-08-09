@@ -33,8 +33,9 @@ function setProofAttributes(
 }
 
 function appendProofCanvasGap(parent: HTMLElement, height: number): void {
-  // Keep infeasible proof spacers clear rather than overlap authored content.
-  if (height < 124) return;
+  if (height < 124) {
+    throw new RangeError("Canvas gap requires at least 124px");
+  }
   const canvas = document.createElement("span");
   canvas.dataset["paginationCanvasGap"] = "true";
   canvas.contentEditable = "false";
@@ -51,10 +52,13 @@ function createGapElement(gap: DisposableProofGap): HTMLElement {
     setProofAttributes(row, gap.kind);
     const cell = document.createElement("td");
     cell.colSpan = gap.columns;
-    cell.style.height = `${gap.height}px`;
     cell.style.padding = "0";
     cell.style.border = "0";
-    appendProofCanvasGap(cell, gap.height);
+    const spacer = document.createElement("div");
+    spacer.dataset["paginationGapSpace"] = "true";
+    spacer.style.height = `${gap.height}px`;
+    appendProofCanvasGap(spacer, gap.height);
+    cell.append(spacer);
     row.append(cell);
     return row;
   }

@@ -92,6 +92,9 @@ describe("disposable derived-pagination proof extension", () => {
         tabIndex: -1,
         textContent: "",
       });
+      expect(canvas?.getAttribute("aria-hidden")).toBe("true");
+      expect(canvas?.style.pointerEvents).toBe("none");
+      expect(canvas?.style.userSelect).toBe("none");
       expect(JSON.stringify(editor.getJSON())).toBe(before);
 
       editor.view.dispatch(
@@ -152,6 +155,22 @@ describe("disposable derived-pagination proof extension", () => {
       expect(gapRow?.getAttribute("aria-hidden")).toBe("true");
       expect(gapRow?.cells[0]?.querySelectorAll("[data-pagination-canvas-gap]"))
         .toHaveLength(1);
+      const canvas = gapRow?.cells[0]?.querySelector<HTMLElement>(
+        "[data-pagination-canvas-gap]",
+      );
+      expect(
+        gapRow?.cells[0]?.querySelectorAll(
+          "[data-pagination-gap-space] > [data-pagination-canvas-gap]",
+        ),
+      ).toHaveLength(1);
+      expect(canvas).toMatchObject({
+        contentEditable: "false",
+        tabIndex: -1,
+        textContent: "",
+      });
+      expect(canvas?.getAttribute("aria-hidden")).toBe("true");
+      expect(canvas?.style.pointerEvents).toBe("none");
+      expect(canvas?.style.userSelect).toBe("none");
     } finally {
       editor.destroy();
     }
@@ -182,10 +201,31 @@ describe("disposable derived-pagination proof extension", () => {
         tabIndex: -1,
         textContent: "",
       });
+      const blockCanvas = gap?.querySelector<HTMLElement>(
+        "[data-pagination-canvas-gap]",
+      );
+      expect(blockCanvas?.getAttribute("aria-hidden")).toBe("true");
+      expect(blockCanvas?.style.pointerEvents).toBe("none");
+      expect(blockCanvas?.style.userSelect).toBe("none");
 
       setDisposablePaginationProofPlan(editor, { epoch: 5, gaps: [] });
       expect(element.querySelector("[data-pagination-proof-gap]")).toBeNull();
       expect(JSON.stringify(editor.getJSON())).toBe(before);
+    } finally {
+      editor.destroy();
+    }
+  });
+
+  it("rejects an undersized proof gap instead of returning an unpainted widget", () => {
+    const { editor } = createProofEditor();
+    try {
+      const gapPos = positionOfText(editor.state.doc, "simulated round") + 10;
+      expect(() =>
+        setDisposablePaginationProofPlan(editor, {
+          epoch: 6,
+          gaps: [{ kind: "line", pos: gapPos, height: 123 }],
+        })
+      ).toThrow(/canvas gap requires at least 124px/i);
     } finally {
       editor.destroy();
     }

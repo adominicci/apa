@@ -66,6 +66,8 @@
 
 .apa-editor .tiptap [data-pagination-gap="line"],
 .apa-editor .tiptap [data-pagination-gap="block"],
+.apa-editor .tiptap [data-pagination-proof-gap="line"],
+.apa-editor .tiptap [data-pagination-proof-gap="block"],
 .apa-editor .tiptap [data-pagination-gap-space] {
   position: relative;
 }
@@ -78,8 +80,8 @@
   height: 28px;
   box-sizing: border-box;
   background: var(--canvas);
-  border-top: 1px solid #d8d8d8;
-  border-bottom: 1px solid #d8d8d8;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
   box-shadow: 0 2px 8px rgb(0 0 0 / 14%);
   pointer-events: none;
   user-select: none;

@@ -982,6 +982,9 @@ describe("derived pagination extension", () => {
         tabIndex: -1,
         textContent: "",
       });
+      expect(firstCanvas?.getAttribute("aria-hidden")).toBe("true");
+      expect(firstCanvas?.style.pointerEvents).toBe("none");
+      expect(firstCanvas?.style.userSelect).toBe("none");
 
       invalidatePagination(editor, "font");
       await frames.flushAll();
@@ -1051,6 +1054,9 @@ describe("derived pagination extension", () => {
         tabIndex: -1,
         textContent: "",
       });
+      expect(canvas?.getAttribute("aria-hidden")).toBe("true");
+      expect(canvas?.style.pointerEvents).toBe("none");
+      expect(canvas?.style.userSelect).toBe("none");
       expect(
         gapRow?.cells[0]?.querySelectorAll(
           "[data-pagination-gap-space] > [data-pagination-canvas-gap]",
@@ -1199,6 +1205,9 @@ describe("derived pagination extension", () => {
         tabIndex: -1,
         textContent: "",
       });
+      expect(canvas?.getAttribute("aria-hidden")).toBe("true");
+      expect(canvas?.style.pointerEvents).toBe("none");
+      expect(canvas?.style.userSelect).toBe("none");
       expect(widget.contentEditable).toBe("false");
       expect(widget.getAttribute("aria-hidden")).toBe("true");
       expect(widget.tabIndex).toBe(-1);
@@ -1207,17 +1216,17 @@ describe("derived pagination extension", () => {
     }
   });
 
-  it("fails closed instead of painting a canvas band into an undersized gap", () => {
-    const undersized = createPaginationGapElement(document, {
-      fragmentId: "undersized",
-      pageIndex: 1,
-      pos: 10,
-      section: "body",
-      kind: "block",
-      height: 123,
-    });
-
-    expect(undersized.querySelector("[data-pagination-canvas-gap]")).toBeNull();
+  it("rejects an undersized gap instead of returning an unpainted widget", () => {
+    expect(() =>
+      createPaginationGapElement(document, {
+        fragmentId: "undersized",
+        pageIndex: 1,
+        pos: 10,
+        section: "body",
+        kind: "block",
+        height: 123,
+      })
+    ).toThrow(/canvas gap requires at least 124px/i);
   });
 
   it("recalculates identical derived flow after authored JSON is saved and reopened", async () => {

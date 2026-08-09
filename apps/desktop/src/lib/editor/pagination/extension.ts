@@ -227,8 +227,9 @@ function appendPaginationCanvasGap(
   parent: HTMLElement,
   height: number,
 ): void {
-  // A malformed spacer cannot reserve both the band and next page's top margin.
-  if (height < CANVAS_GAP_HEIGHT + CANVAS_GAP_TOP_MARGIN) return;
+  if (height < CANVAS_GAP_HEIGHT + CANVAS_GAP_TOP_MARGIN) {
+    throw new RangeError("Canvas gap requires at least 124px");
+  }
   const canvas = ownerDocument.createElement("span");
   canvas.dataset["paginationCanvasGap"] = "true";
   canvas.contentEditable = "false";
