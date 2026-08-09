@@ -730,6 +730,27 @@ function textFragments(
     ? `${groupPrefix}:${pos}`
     : `list:${listItemPos}:text:${pos}`;
   const kind = listItemPos === null ? "line" as const : "listItem" as const;
+  const fragments = measuredLineFragments(
+    node,
+    pos,
+    section,
+    groupId,
+    kind,
+    lines,
+    fallbackLineHeight,
+  );
+  return fragments;
+}
+
+function measuredLineFragments(
+  node: PMNode,
+  pos: number,
+  section: SectionKind,
+  groupId: string,
+  kind: "line" | "listItem",
+  lines: readonly LineMeasurement[],
+  fallbackLineHeight: number,
+): MeasuredFragment[] {
   return lines.map((line, index) => {
     const next = lines[index + 1];
     const height = next
@@ -748,6 +769,84 @@ function textFragments(
       lineGroup: { id: groupId, index, count: lines.length },
     };
   });
+}
+
+function runInHeadingFragments(
+  view: EditorView,
+  node: PMNode,
+  pos: number,
+  element: HTMLElement,
+  section: SectionKind,
+  scale: number,
+): MeasuredFragment[] {
+  const headingLines = lineMeasurements(view, element, pos + 1, scale);
+  let paragraphElement = element.nextElementSibling;
+  while (
+    paragraphElement &&
+    (paragraphElement.matches(GAP_SELECTOR) ||
+      paragraphElement.getAttribute("aria-hidden") === "true")
+  ) {
+    paragraphElement = paragraphElement.nextElementSibling;
+  }
+  const ownerWindow = element.ownerDocument.defaultView;
+  const paragraphLines = ownerWindow?.HTMLElement &&
+      paragraphElement instanceof ownerWindow.HTMLElement &&
+      paragraphElement.tagName === "P"
+    ? lineMeasurements(
+      view,
+      paragraphElement,
+      pos + node.nodeSize + 1,
+      scale,
+    )
+    : [];
+  const paragraphFirstTop = paragraphLines[0]?.top;
+  const headingOnlyLines = paragraphFirstTop === undefined
+    ? headingLines
+    : headingLines.filter((line) =>
+      line.top < paragraphFirstTop - LINE_TOLERANCE
+    );
+  if (headingOnlyLines.length === 0) {
+    return [blockFragment(
+      `heading:${pos}`,
+      pos,
+      node,
+      section,
+      "heading",
+      0,
+      true,
+    )];
+  }
+  const style = ownerWindow?.getComputedStyle(element);
+  const fallbackLineHeight = style
+    ? lineHeight(
+      style,
+      canonicalRect(element.getBoundingClientRect(), scale).height,
+    )
+    : 1;
+  const fragments = measuredLineFragments(
+    node,
+    pos,
+    section,
+    `runInHeading:${pos}`,
+    "line",
+    headingOnlyLines,
+    fallbackLineHeight,
+  );
+  return fragments.map((fragment, index) =>
+    index === fragments.length - 1
+      ? {
+        ...fragment,
+        kind: "heading" as const,
+        lineGroup: undefined,
+        keepWithNext: true,
+      }
+      : {
+        ...fragment,
+        lineGroup: fragment.lineGroup
+          ? { ...fragment.lineGroup, count: fragments.length - 1 }
+          : undefined,
+      }
+  );
 }
 
 function paginatedTextBlockFragments(
@@ -1007,15 +1106,14 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
         const isRunIn = element.hasAttribute("data-apa-run-in");
         sectionFragments.push(
           ...isRunIn
-            ? [blockFragment(
-              `heading:${pos}`,
-              pos,
+            ? runInHeadingFragments(
+              view,
               node,
+              pos,
+              element,
               section,
-              "heading",
-              0,
-              true,
-            )]
+              scale,
+            )
             : paginatedTextBlockFragments(
               view,
               node,

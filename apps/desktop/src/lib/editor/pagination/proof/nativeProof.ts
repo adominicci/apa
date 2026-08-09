@@ -229,6 +229,7 @@ interface NativeReferenceOverflowEvidence {
 
 interface NativeOversizedTableTextEvidence {
   passed: boolean;
+  runInHeadingSplitAcrossSheets: boolean;
   headingSplitAcrossSheets: boolean;
   tableTitleSplitAcrossSheets: boolean;
   tableNoteSplitAcrossSheets: boolean;
@@ -466,6 +467,10 @@ async function measureNativeOversizedTableTextEvidence(
     { length: 320 },
     (_, index) => `Invented long heading segment ${index + 1}`,
   ).join(" ");
+  const runInHeading = Array.from(
+    { length: 320 },
+    (_, index) => `Invented long run-in heading segment ${index + 1}`,
+  ).join(" ");
   const reports: PaginationStateReport[] = [];
   const editor = createTesinaEditor({
     element: mount,
@@ -474,6 +479,19 @@ async function measureNativeOversizedTableTextEvidence(
       content: [{
         type: "sectionBody",
         content: [
+          {
+            type: "heading",
+            attrs: { level: 4 },
+            content: [{ type: "text", text: runInHeading }],
+          },
+          {
+            type: "paragraph",
+            content: [{
+              type: "text",
+              text:
+                "The invented run-in paragraph begins on the shared final heading line.",
+            }],
+          },
           {
             type: "heading",
             attrs: { level: 1 },
@@ -540,12 +558,19 @@ async function measureNativeOversizedTableTextEvidence(
     if (!plan || !stable.pageCount) {
       throw new Error("Oversized table text proof has no stable plan");
     }
-    const headingPos = positionsOf(editor.state.doc, "heading")[0]!;
+    const headingPositions = positionsOf(editor.state.doc, "heading");
+    const runInHeadingPos = headingPositions[0]!;
+    const headingPos = headingPositions[1]!;
     const titlePos = positionsOf(editor.state.doc, "tableTitle")[0]!;
     const notePos = positionsOf(editor.state.doc, "tableNote")[0]!;
+    const runInHeadingNode = editor.state.doc.nodeAt(runInHeadingPos)!;
     const headingNode = editor.state.doc.nodeAt(headingPos)!;
     const titleNode = editor.state.doc.nodeAt(titlePos)!;
     const noteNode = editor.state.doc.nodeAt(notePos)!;
+    const runInHeadingSplitAcrossSheets = plan.pageStarts.some((start) =>
+      start.pos > runInHeadingPos &&
+      start.pos < runInHeadingPos + runInHeadingNode.nodeSize - 1
+    );
     const headingSplitAcrossSheets = plan.pageStarts.some((start) =>
       start.pos > headingPos &&
       start.pos < headingPos + headingNode.nodeSize - 1
@@ -564,11 +589,13 @@ async function measureNativeOversizedTableTextEvidence(
       expectedPaintedBandCount(plan, 0),
     );
     const evidence: NativeOversizedTableTextEvidence = {
-      passed: headingSplitAcrossSheets && tableTitleSplitAcrossSheets &&
+      passed: runInHeadingSplitAcrossSheets && headingSplitAcrossSheets &&
+        tableTitleSplitAcrossSheets &&
         tableNoteSplitAcrossSheets &&
         oversizedTableTextPaintedBandGeometry.markers > 0 &&
         oversizedTableTextPaintedBandGeometry.intersections === 0 &&
         JSON.stringify(editor.getJSON()) === baselineJson,
+      runInHeadingSplitAcrossSheets,
       headingSplitAcrossSheets,
       tableTitleSplitAcrossSheets,
       tableNoteSplitAcrossSheets,

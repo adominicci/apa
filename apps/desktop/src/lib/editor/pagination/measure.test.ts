@@ -1003,6 +1003,170 @@ describe("text line sampling", () => {
     }
   });
 
+  it("measures run-in heading-only lines before the shared paragraph line", () => {
+    const mount = document.createElement("div");
+    document.body.append(mount);
+    const editor = createTesinaEditor({
+      element: mount,
+      content: {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 4 },
+              content: [{ type: "text", text: "ABCDEF" }],
+            },
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Body" }],
+            },
+          ],
+        }],
+      },
+      newlyCreated: true,
+      citationEnv: { refsById: new Map(), locale: "en" },
+      referenceEnv: { references: [], locale: "en", emptyLabel: "unused" },
+      paginationEnv: null,
+    });
+    let headingPos = -1;
+    let paragraphPos = -1;
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "heading") headingPos = pos;
+      if (node.type.name === "paragraph") paragraphPos = pos;
+      return true;
+    });
+    const heading = editor.view.nodeDOM(headingPos) as HTMLElement;
+    const paragraph = editor.view.nodeDOM(paragraphPos) as HTMLElement;
+    expect(heading.dataset["apaRunIn"]).toBe("true");
+    const headingNode = heading.firstChild!;
+    const paragraphNode = paragraph.firstChild!;
+    vi.spyOn(heading, "getClientRects").mockReturnValue(
+      [
+        new DOMRect(0, 100, 16, 16),
+        new DOMRect(0, 120, 16, 16),
+        new DOMRect(0, 140, 16, 16),
+      ] as unknown as DOMRectList,
+    );
+    vi.spyOn(paragraph, "getClientRects").mockReturnValue(
+      [
+        new DOMRect(16, 140, 16, 16),
+        new DOMRect(0, 160, 16, 16),
+      ] as unknown as DOMRectList,
+    );
+    let measuredNode: Node | null = null;
+    let endExclusive = 0;
+    const rangeSpy = vi.spyOn(document, "createRange").mockImplementation(
+      () =>
+        ({
+          setStart(node: Node) {
+            measuredNode = node;
+          },
+          setEnd(node: Node, offset: number) {
+            measuredNode = node;
+            endExclusive = offset;
+          },
+          getClientRects() {
+            const top = measuredNode === headingNode
+              ? 100
+              : measuredNode === paragraphNode
+              ? 140
+              : null;
+            if (top === null) return [] as unknown as DOMRectList;
+            return Array.from(
+              { length: Math.ceil(endExclusive / 2) },
+              (_, line) =>
+                new DOMRect(
+                  0,
+                  top + line * 20,
+                  Math.min(2, endExclusive - line * 2) * 8,
+                  16,
+                ),
+            ) as unknown as DOMRectList;
+          },
+        }) as unknown as Range,
+    );
+    const getComputedStyle = globalThis.getComputedStyle.bind(globalThis);
+    const styleSpy = vi.spyOn(globalThis, "getComputedStyle")
+      .mockImplementation(
+        (element, pseudoElement) =>
+          pseudoElement
+            ? { display: "none", content: "none" } as CSSStyleDeclaration
+            : element === heading || element === paragraph
+            ? {
+              lineHeight: "20px",
+              fontSize: "16px",
+              marginTop: "0px",
+              marginBottom: "0px",
+              borderTopWidth: "0px",
+              borderBottomWidth: "0px",
+            } as CSSStyleDeclaration
+            : getComputedStyle(element),
+      );
+
+    try {
+      const snapshot = browserPaginationLayoutAdapter.readLayout(editor.view);
+      const headingOnlyLines = snapshot.fragments.filter((fragment) =>
+        fragment.id.startsWith(`runInHeading:${headingPos}:line:`)
+      );
+      const paragraphLines = snapshot.fragments.filter((fragment) =>
+        fragment.lineGroup?.id === `text:${paragraphPos}`
+      );
+      expect(headingOnlyLines).toHaveLength(2);
+      expect(headingOnlyLines.map((fragment) => fragment.breakBefore.pos))
+        .toEqual([
+          editor.view.posAtDOM(headingNode, 0),
+          editor.view.posAtDOM(headingNode, 2),
+        ]);
+      expect(headingOnlyLines[0]?.lineGroup).toMatchObject({
+        id: `runInHeading:${headingPos}`,
+        index: 0,
+        count: 1,
+      });
+      expect(headingOnlyLines.at(-1)?.kind).toBe("heading");
+      expect(headingOnlyLines.at(-1)?.lineGroup).toBeUndefined();
+      expect(headingOnlyLines.at(-1)?.keepWithNext).toBe(true);
+      expect(paragraphLines).toHaveLength(2);
+      expect(
+        [...headingOnlyLines, ...paragraphLines].reduce(
+          (total, fragment) => total + fragment.height,
+          0,
+        ),
+      ).toBe(80);
+      const plan = planPagination({
+        epoch: 1,
+        fragments: [
+          {
+            id: "preface",
+            from: 1,
+            to: 2,
+            section: "body",
+            kind: "line",
+            height: LETTER_PRINTABLE_HEIGHT - 40,
+            breakBefore: { kind: "line", pos: 1, section: "body" },
+          },
+          ...headingOnlyLines,
+          ...paragraphLines,
+        ],
+      });
+      expect(plan.status).toBe("stable");
+      if (plan.status !== "stable") throw new Error("Expected stable plan");
+      expect([
+        headingOnlyLines[0]?.from,
+        headingOnlyLines.at(-1)?.from,
+      ]).toContain(plan.pageStarts[1]?.pos);
+      expect(
+        plan.pageStarts.some((start) => start.pos === paragraphLines[0]?.from),
+      ).toBe(false);
+    } finally {
+      styleSpy.mockRestore();
+      rangeSpy.mockRestore();
+      editor.destroy();
+      mount.remove();
+    }
+  });
+
   it("remeasures a painted atomic overflow from its reachable scroll extent", () => {
     const mount = document.createElement("div");
     document.body.append(mount);

@@ -163,6 +163,7 @@ describe("native performance harness wiring", () => {
       /capturePaintedBandGeometry\(\s*editor,\s*"oversized heading, table title and note stable painted band"/,
     );
     expect(source).toContain("headingSplitAcrossSheets");
+    expect(source).toContain("runInHeadingSplitAcrossSheets");
     expect(source).toContain("tableTitleSplitAcrossSheets");
     expect(source).toContain("tableNoteSplitAcrossSheets");
   });
