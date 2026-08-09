@@ -41,6 +41,7 @@
   font-size: var(--doc-font-size, 12pt);
   line-height: 2;
   outline: none;
+  overflow: clip;
   counter-reset: apa-table apa-figure apa-equation;
 }
 
@@ -75,9 +76,9 @@
 
 .apa-editor .tiptap [data-pagination-canvas-gap] {
   position: absolute;
-  left: -96px;
+  left: -816px;
   top: calc(100% - 124px);
-  width: 816px;
+  width: 2448px;
   height: 28px;
   box-sizing: border-box;
   background: var(--canvas);
@@ -105,15 +106,12 @@
   right: 0;
 }
 
-.apa-editor .tiptap .sec-references + .sec-references {
-  margin-top: 220px;
-}
-
-.apa-editor
-  .tiptap
-  .reference-page-stack[data-has-following-appendix="true"]
-  > .sec-references:last-child {
-  margin-bottom: 220px;
+.apa-editor .tiptap [data-reference-page-gap] {
+  position: relative;
+  width: 624px;
+  height: 220px;
+  pointer-events: none;
+  user-select: none;
 }
 
 .apa-editor .tiptap p {
@@ -349,8 +347,8 @@
     minmax(0, 1fr)
   );
   width: 624px;
-  height: 864px;
-  max-height: 864px;
+  height: var(--pagination-overflow-max-height, 864px);
+  max-height: var(--pagination-overflow-max-height, 864px);
   overflow-y: auto;
   overscroll-behavior: contain;
   outline: 2px dashed var(--warn, #a65f00);

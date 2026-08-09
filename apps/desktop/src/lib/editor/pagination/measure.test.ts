@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { EditorView } from "@tiptap/pm/view";
 import { createTesinaEditor } from "../createEditor.ts";
+import { LETTER_PRINTABLE_HEIGHT } from "./geometry.ts";
 import type { PaginationReason, StablePaginationPlan } from "./types.ts";
 import {
   browserPaginationLayoutAdapter,
@@ -819,6 +820,7 @@ describe("text line sampling", () => {
         pos: figurePos,
         section: "body",
         kind: "atomic",
+        maxHeight: LETTER_PRINTABLE_HEIGHT,
       }]);
     } finally {
       styleSpy.mockRestore();
@@ -963,6 +965,7 @@ describe("text line sampling", () => {
           pos: rowPos,
           section: "body",
           kind: "tableRow",
+          maxHeight: LETTER_PRINTABLE_HEIGHT,
         });
         if (firstOverflows) expect(plan.overflows).toEqual(firstOverflows);
         firstOverflows = plan.overflows;

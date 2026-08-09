@@ -58,7 +58,10 @@ describe("APA editor page-sheets", () => {
 
   it("makes each derived gap own its 28px full-canvas painted band", () => {
     expect(css).toMatch(
-      /\[data-pagination-canvas-gap\]\s*\{[^}]*position:\s*absolute;[^}]*left:\s*-96px;[^}]*top:\s*calc\(100% - 124px\);[^}]*width:\s*816px;[^}]*height:\s*28px;[^}]*box-sizing:\s*border-box;[^}]*background:\s*var\(--canvas\);[^}]*border-top:\s*1px solid var\(--border-soft\);[^}]*border-bottom:\s*1px solid var\(--border-soft\);[^}]*pointer-events:\s*none;[^}]*user-select:\s*none;/s,
+      /\[data-pagination-canvas-gap\]\s*\{[^}]*position:\s*absolute;[^}]*left:\s*-816px;[^}]*top:\s*calc\(100% - 124px\);[^}]*width:\s*2448px;[^}]*height:\s*28px;[^}]*box-sizing:\s*border-box;[^}]*background:\s*var\(--canvas\);[^}]*border-top:\s*1px solid var\(--border-soft\);[^}]*border-bottom:\s*1px solid var\(--border-soft\);[^}]*pointer-events:\s*none;[^}]*user-select:\s*none;/s,
+    );
+    expect(css).toMatch(
+      /\.apa-editor \.tiptap\s*\{[^}]*overflow:\s*clip;/s,
     );
     expect(css).toMatch(
       /\[data-pagination-gap="line"\],\s*\.apa-editor \.tiptap \[data-pagination-gap="block"\],\s*\.apa-editor \.tiptap \[data-pagination-gap="section"\],\s*\.apa-editor \.tiptap \[data-pagination-proof-gap="line"\],\s*\.apa-editor \.tiptap \[data-pagination-proof-gap="block"\],\s*\.apa-editor \.tiptap \[data-pagination-gap-space\]\s*\{[^}]*position:\s*relative;/s,
@@ -78,6 +81,12 @@ describe("APA editor page-sheets", () => {
     expect(css).toMatch(
       /\.sec-references\s*\{[^}]*height:\s*864px;[^}]*padding:\s*0;/s,
     );
+    expect(css).toMatch(
+      /\[data-reference-page-gap\]\s*\{[^}]*position:\s*relative;[^}]*width:\s*624px;[^}]*height:\s*220px;/s,
+    );
+    expect(css).not.toMatch(
+      /\.sec-references\s*\+\s*\.sec-references\s*\{[^}]*margin-top:/s,
+    );
   });
 
   it("bounds every painted oversize atomic block and table without hiding its content", () => {
@@ -85,7 +94,7 @@ describe("APA editor page-sheets", () => {
       /\.tesina-pagination-overflow\[data-pagination-overflow="atomic"\]\s*\{[^}]*max-height:\s*calc\(864px - 2em\);[^}]*overflow-y:\s*auto;[^}]*outline:/s,
     );
     expect(css).toMatch(
-      /tr\.tesina-pagination-overflow\[data-pagination-overflow="tableRow"\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(\s*var\(--pagination-overflow-columns\),\s*minmax\(0,\s*1fr\)\s*\);[^}]*width:\s*624px;[^}]*height:\s*864px;[^}]*max-height:\s*864px;[^}]*overflow-y:\s*auto;[^}]*outline:/s,
+      /tr\.tesina-pagination-overflow\[data-pagination-overflow="tableRow"\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(\s*var\(--pagination-overflow-columns\),\s*minmax\(0,\s*1fr\)\s*\);[^}]*width:\s*624px;[^}]*height:\s*var\(--pagination-overflow-max-height,\s*864px\);[^}]*max-height:\s*var\(--pagination-overflow-max-height,\s*864px\);[^}]*overflow-y:\s*auto;[^}]*outline:/s,
     );
     expect(css).toMatch(
       /tr\.tesina-pagination-overflow\[data-pagination-overflow="tableRow"\]\s*>\s*\.tesina-pagination-overflow-cell\s*\{[^}]*display:\s*block;[^}]*grid-column:\s*span var\(--pagination-overflow-span\);/s,

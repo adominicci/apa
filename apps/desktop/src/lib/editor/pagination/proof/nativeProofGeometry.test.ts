@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   authoredTextPaintedCanvasIntersections,
+  clipPaintedCanvasRectToRoot,
   inlineFlowVisualHeight,
 } from "./nativeProofGeometry.ts";
 
@@ -107,5 +108,33 @@ describe("native proof geometry", () => {
       overlapWidth: 240,
       overlapHeight: 17,
     }]);
+  });
+
+  it("clips an intentionally wide marker to the exact paper root", () => {
+    const root = {
+      top: 0,
+      right: 1_048,
+      bottom: 4_800,
+      left: 232,
+      width: 816,
+      height: 4_800,
+    };
+    const shiftedWideMarker = {
+      top: 1_050,
+      right: 1_560,
+      bottom: 1_078,
+      left: -1_000,
+      width: 2_560,
+      height: 28,
+    };
+
+    expect(clipPaintedCanvasRectToRoot(shiftedWideMarker, root)).toEqual({
+      top: 1_050,
+      right: 1_048,
+      bottom: 1_078,
+      left: 232,
+      width: 816,
+      height: 28,
+    });
   });
 });

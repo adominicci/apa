@@ -598,6 +598,40 @@ describe("planPagination", () => {
     expect(plan.tableRowStarts[0]).toMatchObject({ repeatedHeader });
   });
 
+  it("bounds a continued row to the printable space below its repeated header", () => {
+    const repeatedHeader = {
+      height: 48,
+      cells: [{ text: "Round", colSpan: 1 }],
+    };
+    const plan = stablePlan({
+      epoch: 10,
+      fragments: [
+        fragment("preface", 1, 800),
+        fragment("header-row", 20, 30, {
+          kind: "tableRow",
+          table: { tableId: "results", columnCount: 1 },
+        }),
+        fragment("tall-row", 30, 840, {
+          kind: "tableRow",
+          table: {
+            tableId: "results",
+            columnCount: 1,
+            repeatedHeader,
+          },
+        }),
+      ],
+    });
+
+    expect(plan.tableRowStarts[0]).toMatchObject({ repeatedHeader });
+    expect(plan.overflows).toEqual([{
+      fragmentId: "tall-row",
+      pos: 30,
+      section: "body",
+      kind: "tableRow",
+      maxHeight: LETTER_PRINTABLE_HEIGHT - repeatedHeader.height,
+    }]);
+  });
+
   it("adds separately rendered reference pages to the authored page count", () => {
     const plan = stablePlan({
       epoch: 11,
@@ -710,7 +744,13 @@ describe("planPagination", () => {
 
     expect(plan.pageStarts).toHaveLength(1);
     expect(plan.overflows).toEqual([
-      { fragmentId: "figure", pos: 1, section: "body", kind: "atomic" },
+      {
+        fragmentId: "figure",
+        pos: 1,
+        section: "body",
+        kind: "atomic",
+        maxHeight: LETTER_PRINTABLE_HEIGHT,
+      },
     ]);
   });
 
@@ -746,7 +786,13 @@ describe("planPagination", () => {
 
     expect(plan.pageStarts).toHaveLength(1);
     expect(plan.overflows).toEqual([
-      { fragmentId: "row", pos: 1, section: "body", kind: "tableRow" },
+      {
+        fragmentId: "row",
+        pos: 1,
+        section: "body",
+        kind: "tableRow",
+        maxHeight: LETTER_PRINTABLE_HEIGHT,
+      },
     ]);
   });
 

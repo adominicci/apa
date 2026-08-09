@@ -113,6 +113,8 @@ export interface PaginationOverflow {
   pos: number;
   section: SectionKind;
   kind: PaginationOverflowKind;
+  /** Canonical pixels available to the bounded viewport on its sheet. */
+  maxHeight: number;
 }
 
 export type SectionPageCounts = Record<SectionKind, number>;

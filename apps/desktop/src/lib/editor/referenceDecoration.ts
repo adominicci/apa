@@ -94,6 +94,24 @@ function defaultPagePlan(env: ReferenceDecorationEnv): ReferencePagePlan {
   };
 }
 
+function createReferencePageGap(ownerDocument: Document): HTMLElement {
+  const gap = ownerDocument.createElement("div");
+  gap.dataset["referencePageGap"] = "true";
+  gap.contentEditable = "false";
+  gap.setAttribute("aria-hidden", "true");
+  gap.tabIndex = -1;
+
+  const canvas = ownerDocument.createElement("span");
+  canvas.dataset["paginationCanvasGap"] = "reference";
+  canvas.contentEditable = "false";
+  canvas.setAttribute("aria-hidden", "true");
+  canvas.tabIndex = -1;
+  canvas.style.pointerEvents = "none";
+  canvas.style.userSelect = "none";
+  gap.append(canvas);
+  return gap;
+}
+
 function verticalMargins(element: HTMLElement): number {
   const style = element.ownerDocument.defaultView?.getComputedStyle(element);
   if (!style) return 0;
@@ -170,6 +188,10 @@ export function createReferencePagesElement(
       page.append(empty);
     }
     wrapper.append(page);
+    const hasFollowingReferencePage = pagePlan.index < plan.pages.length - 1;
+    if (hasFollowingReferencePage || hasFollowingAppendix) {
+      wrapper.append(createReferencePageGap(ownerDocument));
+    }
   }
 
   return wrapper;

@@ -67,12 +67,22 @@ describe("native performance harness wiring", () => {
 
   it("uses only positive painted marker rectangles and samples every stable state", () => {
     expect(paintedBandOracle).toContain("[data-pagination-canvas-gap]");
+    expect(paintedBandOracle).toContain("clipPaintedCanvasRectToRoot");
+    expect(paintedBandOracle).toContain("misalignedMarkerCount");
+    expect(source).toContain("function expectedPaintedBandCount");
+    expect(source).toContain("[data-reference-page-gap]");
+    expect(source.match(/expectedPaintedBandCount\(/g)?.length).toBeGreaterThan(
+      4,
+    );
     expect(paintedBandOracle).toContain("markerCount !== derivedGapCount");
     expect(paintedBandOracle).toContain("markerCount === 0");
     expect(paintedBandOracle).not.toContain(
       'querySelectorAll<HTMLElement>("[data-pagination-gap]")',
     );
-    expect(paintedBandOracle).not.toContain("root.getBoundingClientRect()");
+    expect(paintedBandOracle).toContain("marker.getBoundingClientRect()");
+    expect(paintedBandOracle).toMatch(
+      /clipPaintedCanvasRectToRoot\(rect, rootRect\)/,
+    );
     expect(workload).toContain("capturePaintedBandGeometry(");
     for (
       const label of [
@@ -124,6 +134,10 @@ describe("native performance harness wiring", () => {
     );
     expect(source).toMatch(
       /productionRowCellWidths\.reduce\([\s\S]*?-\s+productionRowClientWidth/,
+    );
+    expect(source).toContain("plannedRowOverflow.maxHeight");
+    expect(source).toMatch(
+      /productionRowRect\.height\s*<=\s*plannedRowOverflow\.maxHeight\s*\+\s*0\.5/,
     );
   });
 

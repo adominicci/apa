@@ -1109,12 +1109,14 @@ describe("derived pagination extension", () => {
                   pos: figurePos,
                   section: "body",
                   kind: "atomic",
+                  maxHeight: 864,
                 },
                 {
                   fragmentId: "row-overflow",
                   pos: rowPos,
                   section: "body",
                   kind: "tableRow",
+                  maxHeight: 816,
                 },
               ]
               : [];
@@ -1142,6 +1144,8 @@ describe("derived pagination extension", () => {
       expect(row.style.getPropertyValue("--pagination-overflow-columns")).toBe(
         "3",
       );
+      expect(row.style.getPropertyValue("--pagination-overflow-max-height"))
+        .toBe("816px");
       expect(cells).toHaveLength(3);
       expect(
         cells.every((cell) =>

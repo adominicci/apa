@@ -360,6 +360,7 @@ function overflowDecorationsFor(
         class: "tesina-pagination-overflow",
         "data-pagination-overflow": overflow.kind,
         "data-pagination-overflow-fragment": overflow.fragmentId,
+        style: `--pagination-overflow-max-height: ${overflow.maxHeight}px`,
       },
     )];
   }
@@ -394,7 +395,8 @@ function overflowDecorationsFor(
       class: "tesina-pagination-overflow",
       "data-pagination-overflow": overflow.kind,
       "data-pagination-overflow-fragment": overflow.fragmentId,
-      style: `--pagination-overflow-columns: ${Math.max(1, columnCount)}`,
+      style: `--pagination-overflow-columns: ${Math.max(1, columnCount)}; ` +
+        `--pagination-overflow-max-height: ${overflow.maxHeight}px`,
     },
   );
   return [

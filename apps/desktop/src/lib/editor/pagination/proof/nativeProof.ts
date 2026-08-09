@@ -29,7 +29,7 @@ import {
   invalidatePagination,
   paginationPluginKey,
 } from "../extension.ts";
-import type { PaginationStateReport } from "../types.ts";
+import type { PaginationStateReport, StablePaginationPlan } from "../types.ts";
 import {
   createLongDocumentFixtures,
   createStablePaginationParityFixture,
@@ -46,6 +46,7 @@ import {
 } from "./nativeBridge.ts";
 import {
   authoredTextPaintedCanvasIntersections,
+  clipPaintedCanvasRectToRoot,
   inlineFlowVisualHeight,
   type PositiveAreaRect,
 } from "./nativeProofGeometry.ts";
@@ -221,6 +222,9 @@ interface NativeReferenceOverflowEvidence {
   overflowY: string;
   outlineStyle: string;
   contentReachable: boolean;
+  pageGaps: number;
+  canvasGapWidth: number;
+  canvasGapHeight: number;
 }
 
 async function measureNativeReferenceOverflowEvidence(
@@ -259,7 +263,7 @@ async function measureNativeReferenceOverflowEvidence(
         },
         plan,
         [7, 8],
-        false,
+        true,
       ),
     );
     await frame();
@@ -273,6 +277,14 @@ async function measureNativeReferenceOverflowEvidence(
     }
     const style = getComputedStyle(overflow);
     const rect = overflow.getBoundingClientRect();
+    const referencePageGaps = root.querySelectorAll(
+      "[data-reference-page-gap]",
+    );
+    const referenceCanvasGaps = root.querySelectorAll<HTMLElement>(
+      "[data-reference-page-gap] > [data-pagination-canvas-gap]",
+    );
+    const referenceCanvasRect = referenceCanvasGaps[0]
+      ?.getBoundingClientRect();
     const productionReferenceOverflowScrollHeight = overflow.scrollHeight;
     const productionReferenceOverflowClientHeight = overflow.clientHeight;
     overflow.scrollTop = productionReferenceOverflowScrollHeight;
@@ -286,7 +298,10 @@ async function measureNativeReferenceOverflowEvidence(
           productionReferenceOverflowClientHeight &&
         productionReferenceOverflowContentReachable &&
         style.overflowY === "auto" &&
-        style.outlineStyle === "dashed",
+        style.outlineStyle === "dashed" &&
+        referencePageGaps.length === 2 && referenceCanvasGaps.length === 2 &&
+        !!referenceCanvasRect && referenceCanvasRect.width >= 815 &&
+        Math.abs(referenceCanvasRect.height - 28) < 0.5,
       pageCount: plan.pageCount,
       height: rect.height,
       clientHeight: productionReferenceOverflowClientHeight,
@@ -294,6 +309,9 @@ async function measureNativeReferenceOverflowEvidence(
       overflowY: style.overflowY,
       outlineStyle: style.outlineStyle,
       contentReachable: productionReferenceOverflowContentReachable,
+      pageGaps: referencePageGaps.length,
+      canvasGapWidth: referenceCanvasRect?.width ?? -1,
+      canvasGapHeight: referenceCanvasRect?.height ?? -1,
     };
     diagnostic("native-reference-overflow-evidence", { ...evidence });
     return evidence;
@@ -493,19 +511,35 @@ function elementDiagnostic(element: HTMLElement | null) {
   };
 }
 
+function expectedPaintedBandCount(
+  plan: StablePaginationPlan,
+  referencePageCount: number,
+): number {
+  const references = Math.max(0, Math.floor(referencePageCount));
+  if (references === 0) return plan.pageGaps.length;
+  const hasAppendix = plan.pageStarts.some((page) =>
+    page.section === "appendix"
+  );
+  const referencePageGaps = Math.max(0, references - 1) +
+    (hasAppendix ? 1 : 0);
+  return plan.pageGaps.length + referencePageGaps;
+}
+
 function capturePaintedBandGeometry(
   editor: Editor,
   description: string,
   derivedGapCount: number,
 ): NativePaintedBandGeometryEvidence {
   const root = editor.view.dom;
+  const rootRect = positiveAreaRect(root.getBoundingClientRect());
   const markerElements = [
     ...root.querySelectorAll<HTMLElement>("[data-pagination-canvas-gap]"),
   ];
   const markerDetails = markerElements.map((marker) => {
     const parent = marker.parentElement;
     const gapAncestor = marker.closest<HTMLElement>(
-      "[data-pagination-gap], [data-pagination-proof-gap], [data-pagination-gap-space]",
+      "[data-pagination-gap], [data-pagination-proof-gap], " +
+        "[data-pagination-gap-space], [data-reference-page-gap]",
     );
     const rect = marker.getBoundingClientRect();
     return {
@@ -515,7 +549,10 @@ function capturePaintedBandGeometry(
         rect: rectangleDiagnostic(rect),
         gap: {
           kind: gapAncestor?.dataset["paginationGap"] ??
-            gapAncestor?.dataset["paginationProofGap"] ?? null,
+            gapAncestor?.dataset["paginationProofGap"] ??
+            (gapAncestor?.hasAttribute("data-reference-page-gap")
+              ? "references"
+              : null),
           pos: gapAncestor?.dataset["paginationPos"] ?? null,
           pageIndex: gapAncestor?.dataset["paginationPageIndex"] ?? null,
         },
@@ -528,9 +565,18 @@ function capturePaintedBandGeometry(
     };
   });
   const markerRects = markerDetails.map(({ rect }) => positiveAreaRect(rect));
-  const paintedCanvasRects = markerRects.filter(
-    (rect): rect is PositiveAreaRect => rect !== null,
-  );
+  const paintedCanvasRects = rootRect
+    ? markerRects.map((rect) =>
+      rect ? clipPaintedCanvasRectToRoot(rect, rootRect) : null
+    ).filter((rect): rect is PositiveAreaRect => rect !== null)
+    : [];
+  const misalignedMarkerCount = rootRect
+    ? paintedCanvasRects.filter((rect) =>
+      Math.abs(rect.left - rootRect.left) >= 0.5 ||
+      Math.abs(rect.right - rootRect.right) >= 0.5 ||
+      Math.abs(rect.width - rootRect.width) >= 0.5
+    ).length
+    : markerElements.length;
   const authoredTextRectDetails: Array<{
     rect: PositiveAreaRect;
     from: number;
@@ -594,15 +640,18 @@ function capturePaintedBandGeometry(
   };
   const geometryFailed = markerCount !== derivedGapCount || markerCount === 0 ||
     paintedCanvasRects.length !== markerCount ||
+    misalignedMarkerCount > 0 ||
     authoredTextRects.length === 0 ||
     intersections.length > 0;
   diagnostic("native-painted-band-geometry", {
     ...result,
     invalidMarkerRectangles: markerElements.length - paintedCanvasRects.length,
+    misalignedMarkerCount,
     intersections: intersections.slice(0, 12),
     ...(geometryFailed
       ? {
         markerRects,
+        rootRect,
         paintedCanvasRects,
         markers: markerDetails.map(({ diagnostic }) => diagnostic),
         authoredTextRects: authoredTextRectDetails.slice(0, 120),
@@ -619,7 +668,8 @@ function capturePaintedBandGeometry(
     throw new Error(
       `${description} painted-band geometry failed: ` +
         `derived=${derivedGapCount}, markers=${markerCount}, ` +
-        `positiveMarkers=${paintedCanvasRects.length}, intersections=${intersections.length}`,
+        `positiveMarkers=${paintedCanvasRects.length}, ` +
+        `misaligned=${misalignedMarkerCount}, intersections=${intersections.length}`,
     );
   }
   return result;
@@ -1166,7 +1216,10 @@ async function runNativePerformanceWorkload(
       paintedBandSamples.push(capturePaintedBandGeometry(
         editor,
         description,
-        plan.pageGaps.length,
+        expectedPaintedBandCount(
+          plan,
+          stable.pageCount?.references ?? 0,
+        ),
       ));
     };
     let baseline = await waitForWorkloadSetup(
@@ -2179,7 +2232,10 @@ async function runProof(): Promise<ProofResult> {
     const productionInitialPaintedBand = capturePaintedBandGeometry(
       productionEditor,
       "production initial stable painted band",
-      firstProductionPlan.pageGaps.length,
+      expectedPaintedBandCount(
+        firstProductionPlan,
+        firstProductionStable.pageCount!.references,
+      ),
     );
     const productionComposition = composeDocumentPages({
       authoredPageStarts: firstProductionPlan.pageStarts,
@@ -2257,6 +2313,9 @@ async function runProof(): Promise<ProofResult> {
     }
     const productionAtomicStyle = getComputedStyle(productionAtomicOverflow);
     const productionRowStyle = getComputedStyle(productionRowOverflow);
+    const plannedRowOverflow = firstProductionPlan.overflows.find((overflow) =>
+      overflow.kind === "tableRow"
+    );
     const productionRowTable = productionRowOverflow.closest("table");
     const productionRowTableStyle = productionRowTable
       ? getComputedStyle(productionRowTable)
@@ -2318,10 +2377,7 @@ async function runProof(): Promise<ProofResult> {
       productionAtomicOutlineStyle === "dashed" &&
       !!productionAtomicFollowingGap &&
       productionAtomicFollowingGapTop >= productionAtomicRect.bottom - 0.5;
-    const productionTableRowOverflowGeometry =
-      firstProductionPlan.overflows.some((overflow) =>
-        overflow.kind === "tableRow"
-      ) &&
+    const productionTableRowOverflowGeometry = !!plannedRowOverflow &&
       productionRowOverflow.tagName === "TR" &&
       productionRowOverflow.parentElement?.tagName === "TBODY" &&
       productionRowCells.length === 3 &&
@@ -2335,7 +2391,7 @@ async function runProof(): Promise<ProofResult> {
           productionRowCellWidths.reduce((total, width) => total + width, 0) -
             productionRowClientWidth,
         ) < 1 &&
-      productionRowRect.height <= 864.5 &&
+      productionRowRect.height <= plannedRowOverflow.maxHeight + 0.5 &&
       productionRowScrollHeight > productionRowClientHeight &&
       productionRowContentReachable &&
       productionRowDisplay === "grid" &&
@@ -2378,7 +2434,10 @@ async function runProof(): Promise<ProofResult> {
     const productionScaledPaintedBand = capturePaintedBandGeometry(
       productionEditor,
       "production scaled stable painted band",
-      scaledProductionPlan.pageGaps.length,
+      expectedPaintedBandCount(
+        scaledProductionPlan,
+        scaledProductionStable.pageCount!.references,
+      ),
     );
     const scaledEditorRect = productionEditor.view.dom.getBoundingClientRect();
     const productionTargetPos = positionsOf(
@@ -2545,7 +2604,7 @@ async function runProof(): Promise<ProofResult> {
       const paintedBandGeometry = capturePaintedBandGeometry(
         parityEditor!,
         paintedBandLabel,
-        plan.pageGaps.length,
+        expectedPaintedBandCount(plan, stable.pageCount.references),
       );
       const composition = composeDocumentPages({
         authoredPageStarts: plan.pageStarts,

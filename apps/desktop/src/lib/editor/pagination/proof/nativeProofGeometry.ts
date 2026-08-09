@@ -17,6 +17,22 @@ export interface AuthoredTextGapIntersection {
   overlapHeight: number;
 }
 
+/** The visible portion of a painted marker after the paper root clips it. */
+export function clipPaintedCanvasRectToRoot(
+  marker: PositiveAreaRect,
+  root: PositiveAreaRect,
+): PositiveAreaRect | null {
+  const top = Math.max(marker.top, root.top);
+  const right = Math.min(marker.right, root.right);
+  const bottom = Math.min(marker.bottom, root.bottom);
+  const left = Math.max(marker.left, root.left);
+  const width = right - left;
+  const height = bottom - top;
+  return width > 0 && height > 0
+    ? { top, right, bottom, left, width, height }
+    : null;
+}
+
 const LINE_TOP_TOLERANCE = 1;
 
 /** Exact line-box advance represented by visible inline fragment rectangles. */

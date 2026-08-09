@@ -294,7 +294,11 @@ export function planPagination(input: PaginationInput): PaginationPlan {
       startPage(fragment, pageStartKind(fragment.breakBefore));
     }
 
-    const overflowKind = height > LETTER_PRINTABLE_HEIGHT &&
+    const overflowMaxHeight = Math.max(
+      0,
+      LETTER_PRINTABLE_HEIGHT - usedHeight,
+    );
+    const overflowKind = height > overflowMaxHeight &&
         (fragment.kind === "atomic" || fragment.kind === "tableRow")
       ? fragment.kind
       : null;
@@ -304,10 +308,11 @@ export function planPagination(input: PaginationInput): PaginationPlan {
         pos: fragment.breakBefore.pos,
         section: fragment.section,
         kind: overflowKind,
+        maxHeight: overflowMaxHeight,
       });
     }
 
-    usedHeight += overflowKind ? LETTER_PRINTABLE_HEIGHT : height;
+    usedHeight += overflowKind ? overflowMaxHeight : height;
     index += 1;
   }
 

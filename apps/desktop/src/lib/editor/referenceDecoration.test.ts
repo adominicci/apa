@@ -177,6 +177,17 @@ describe("live reference-page decoration", () => {
       expect(number.getAttribute("aria-hidden")).toBe("true");
       expect(number.tabIndex).toBe(-1);
     }
+    const gaps = [...pages.querySelectorAll<HTMLElement>(
+      "[data-reference-page-gap]",
+    )];
+    expect(gaps).toHaveLength(2);
+    for (const gap of gaps) {
+      expect(gap.contentEditable).toBe("false");
+      expect(gap.getAttribute("aria-hidden")).toBe("true");
+      expect(gap.tabIndex).toBe(-1);
+      expect(gap.querySelectorAll("[data-pagination-canvas-gap]"))
+        .toHaveLength(1);
+    }
     expect(pages.textContent).toContain("Rivera, A. (2024)");
   });
 
