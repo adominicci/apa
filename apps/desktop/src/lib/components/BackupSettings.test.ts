@@ -105,6 +105,7 @@ class Harness {
           } satisfies BackupAdapterStatus,
         ),
       writeArchive: () => Promise.resolve({ sha256: "x" }),
+      confirmArchive: () => Promise.resolve(),
       readArchive: () => Promise.resolve(new Uint8Array()),
       listArchives: () => Promise.resolve([...this.archives]),
       removeArchive: () => Promise.resolve(),

@@ -33,6 +33,7 @@ class Harness {
   // Local-time constructor: daily gating uses the LOCAL calendar day.
   clock = new Date(2026, 2, 5, 10, 0, 0);
   writeError: { code: string } | null = null;
+  validationError: { code: string } | null = null;
   removeError = false;
   packages = 0;
   activityListeners = new Set<() => void>();
@@ -53,13 +54,16 @@ class Harness {
           return Promise.reject({ code: "name_taken" });
         }
         this.archives.set(fileName, bytes);
+        return Promise.resolve({ sha256: `sha-${fileName}` });
+      },
+      confirmArchive: (fileName, sha256) => {
         this.ledger.push({
           fileName,
-          sha256: `sha-${fileName}`,
+          sha256,
           createdAt: this.clock.toISOString(),
           backupSetId: SET_ID,
         });
-        return Promise.resolve({ sha256: `sha-${fileName}` });
+        return Promise.resolve();
       },
       readArchive: (fileName) => {
         const bytes = this.archives.get(fileName);
@@ -94,7 +98,10 @@ class Harness {
         });
       },
       currentContentDigest: () => Promise.resolve(this.digest),
-      validateArchiveBytes: () => Promise.resolve(),
+      validateArchiveBytes: () =>
+        this.validationError
+          ? Promise.reject(this.validationError)
+          : Promise.resolve(),
       settings: {
         get backup() {
           return harnessRef.settingsValue;
@@ -179,6 +186,16 @@ describe("BackupStore scheduling", () => {
     const retry = await harnessRef.store.runAutomatic();
     expect(retry.kind).toBe("success");
     expect(harnessRef.settingsValue?.lastErrorCode).toBeUndefined();
+  });
+
+  it("does not ledger a backup until reopen validation succeeds", async () => {
+    harnessRef.validationError = { code: "archive_invalid" };
+    expect(await harnessRef.store.runAutomatic()).toEqual({
+      kind: "failed",
+      errorCode: "archive_invalid",
+    });
+    expect(harnessRef.archives.size).toBe(1);
+    expect(harnessRef.ledger).toEqual([]);
   });
 
   it("serializes concurrent manual and automatic requests", async () => {

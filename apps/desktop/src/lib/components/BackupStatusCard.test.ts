@@ -42,6 +42,7 @@ function fakeStore(settings: BackupSettingsFacade): BackupStore {
           } satisfies BackupAdapterStatus,
         ),
       writeArchive: () => Promise.resolve({ sha256: "x" }),
+      confirmArchive: () => Promise.resolve(),
       readArchive: () => Promise.resolve(new Uint8Array()),
       listArchives: () => Promise.resolve([]),
       removeArchive: () => Promise.resolve(),

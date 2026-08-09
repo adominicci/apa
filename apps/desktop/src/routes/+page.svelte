@@ -56,10 +56,15 @@
       await runRecoveryPhase();
     } catch (err) {
       console.error("No se pudo reintentar la recuperación:", err);
+      recoveryRequired = [{
+        kind: "recovery-required",
+        transactionId: "(startup)",
+        reason: err instanceof Error ? err.message : String(err),
+      }];
+      return;
     }
-    if (recoveryRequired === null) {
-      await Promise.all([library.reload(), essays.loadIndex()]);
-    }
+    if (recoveryRequired !== null) return;
+    await finishStartup(true);
   }
 
   async function exportDiagnostic(): Promise<void> {
@@ -90,24 +95,9 @@
     stopBackup = null;
   });
 
-  onMount(async () => {
-    try {
-      await runRecoveryPhase();
-    } catch (err) {
-      // Fail closed: an unexpected recovery failure means unfinished-import
-      // state may exist that was neither resumed nor rolled back, so the
-      // editable library must not load (amended library-merge-import spec).
-      console.error("No se pudo ejecutar la recuperación inicial:", err);
-      recoveryRequired = [{
-        kind: "recovery-required",
-        transactionId: "(startup)",
-        reason: err instanceof Error ? err.message : String(err),
-      }];
-      return;
-    }
-    if (recoveryRequired !== null) return;
+  async function finishStartup(reload = false): Promise<void> {
     await Promise.all([
-      library.load(),
+      reload ? library.reload() : library.load(),
       essays.loadIndex(),
       uiLocale.load(),
     ]);
@@ -129,6 +119,25 @@
     }
     // Non-blocking: never delay first paint on the network check.
     void updater.check();
+  }
+
+  onMount(async () => {
+    try {
+      await runRecoveryPhase();
+    } catch (err) {
+      // Fail closed: an unexpected recovery failure means unfinished-import
+      // state may exist that was neither resumed nor rolled back, so the
+      // editable library must not load (amended library-merge-import spec).
+      console.error("No se pudo ejecutar la recuperación inicial:", err);
+      recoveryRequired = [{
+        kind: "recovery-required",
+        transactionId: "(startup)",
+        reason: err instanceof Error ? err.message : String(err),
+      }];
+      return;
+    }
+    if (recoveryRequired !== null) return;
+    await finishStartup();
   });
 
   function applyLaunch(launch: LaunchValue<Essay>) {

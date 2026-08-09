@@ -282,6 +282,21 @@ describe("applyImport (tasks 6.3/6.4)", () => {
 });
 
 describe("rollback safety (task 6.5)", () => {
+  it("closes a successful rollback so later startups do not repeat it", async () => {
+    const { fs, recovery } = await makeScenario();
+    for (const key of fs.files.keys()) {
+      if (key.includes("/stage/")) fs.files.delete(key);
+    }
+
+    expect((await recoverPendingImports(recovery))[0].kind).toBe("rolled-back");
+    expect((await recoverPendingImports(recovery))[0].kind).toBe(
+      "already-complete",
+    );
+    const removed = await pruneCompletedRollbacks({ fs, keepCompleted: 0 });
+    expect(removed).toEqual([`backups/imports/${TX}.tesina`]);
+    expect(await fs.list(`imports/${TX}`)).toEqual([]);
+  });
+
   it("validates the rollback before removing any imported output", async () => {
     const { fs, journal, recovery, finalPaths } = await makeScenario();
     await applyImport(journal, { fs });

@@ -30,6 +30,7 @@ export interface BackupAdapter {
     fileName: string,
     bytes: Uint8Array,
   ): Promise<{ sha256: string }>;
+  confirmArchive(fileName: string, expectedSha256: string): Promise<void>;
   readArchive(fileName: string): Promise<Uint8Array>;
   listArchives(): Promise<{ fileName: string; byteLength: number }[]>;
   removeArchive(fileName: string, expectedSha256: string): Promise<void>;
@@ -170,25 +171,31 @@ export class BackupStore {
       // Exclusive create: a taken name (another same-set write this second,
       // or a synced copy) selects the next candidate; nothing is replaced.
       let fileName: string | null = null;
+      let writtenSha256: string | null = null;
       for (let attempt = 0; attempt < 3 && fileName === null; attempt += 1) {
         const stamp = new Date(deps.now().getTime() + attempt * 1000)
           .toISOString()
           .replace(/\.\d+Z$/, "Z");
         const candidate = backupFileName(status.backupSetId, stamp);
         try {
-          await deps.adapter.writeArchive(candidate, packaged.bytes);
+          const written = await deps.adapter.writeArchive(
+            candidate,
+            packaged.bytes,
+          );
           fileName = candidate;
+          writtenSha256 = written.sha256;
         } catch (error) {
           if (errorCodeOf(error) !== "name_taken") throw error;
         }
       }
-      if (fileName === null) {
+      if (fileName === null || writtenSha256 === null) {
         throw Object.assign(new Error("no free backup name"), {
           code: "name_taken",
         });
       }
       // Spec: success means closed, locally visible, reopened, validated.
       await deps.validateArchiveBytes(await deps.adapter.readArchive(fileName));
+      await deps.adapter.confirmArchive(fileName, writtenSha256);
 
       deps.settings.updateBackup({
         lastSuccessAt: deps.now().toISOString(),

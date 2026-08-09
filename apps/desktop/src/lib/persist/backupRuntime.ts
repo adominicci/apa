@@ -90,6 +90,12 @@ export const tauriBackupAdapter: BackupAdapter = {
     });
     return new Uint8Array(bytes);
   },
+  async confirmArchive(fileName, expectedSha256) {
+    await invokeBackup<void>("backup_confirm_archive", {
+      fileName,
+      expectedSha256,
+    });
+  },
   listArchives() {
     return invokeBackup<{ fileName: string; byteLength: number }[]>(
       "backup_list_archives",

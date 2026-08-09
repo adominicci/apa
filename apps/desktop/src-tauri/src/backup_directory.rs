@@ -341,25 +341,54 @@ impl BackupDirectoryCore {
 
     /// Exclusive-create write of a new archive into the active subfolder.
     /// Never clobbers an existing file (`name_taken` on collision). Returns
-    /// the Rust-computed authoritative sha256 and appends a ledger entry.
+    /// the Rust-computed authoritative sha256. The caller must reopen and
+    /// validate the archive before `confirm_archive` records it in the ledger.
     pub fn write_archive(&self, file_name: &str, bytes: &[u8]) -> Result<String, BackupError> {
+        validate_file_name(file_name)?;
+        let inner = self.lock();
+        let active = require_active(&inner)?;
+        let subfolder = resolve_subfolder(&active.canonical_folder_path)?;
+        write_exclusive(&subfolder, file_name, bytes)?;
+        let sha = sha256_hex(bytes);
+        drop(inner);
+        Ok(sha)
+    }
+
+    /// Records a written archive only after the TypeScript caller has reopened
+    /// and fully validated it. The current bytes are hashed again here so the
+    /// ledger can never authorize retention of different or truncated bytes.
+    pub fn confirm_archive(
+        &self,
+        file_name: &str,
+        expected_sha256: &str,
+    ) -> Result<(), BackupError> {
         validate_file_name(file_name)?;
         let inner = self.lock();
         let active = require_active(&inner)?;
         let backup_set_id = active.backup_set_id.clone();
         let subfolder = resolve_subfolder(&active.canonical_folder_path)?;
-        write_exclusive(&subfolder, file_name, bytes)?;
-        let sha = sha256_hex(bytes);
+        let bytes = fs::read(subfolder.join(file_name))
+            .map_err(|error| BackupError::io("cannot reopen archive for confirmation", &error))?;
+        let current = sha256_hex(&bytes);
+        if !current.eq_ignore_ascii_case(expected_sha256) {
+            return Err(BackupError::new(
+                BackupErrorCode::HashMismatch,
+                "the validated archive bytes changed before ledger confirmation",
+            ));
+        }
         let mut ledger = load_ledger(&self.app_data_dir);
+        ledger.entries.retain(|entry| {
+            !(entry.file_name == file_name && entry.backup_set_id == backup_set_id)
+        });
         ledger.entries.push(LedgerEntry {
             file_name: file_name.to_owned(),
-            sha256: sha.clone(),
+            sha256: current,
             created_at: rfc3339_now(),
             backup_set_id,
         });
         write_json_atomic(&self.app_data_dir, LEDGER_FILE_NAME, &ledger)?;
         drop(inner);
-        Ok(sha)
+        Ok(())
     }
 
     /// Reads an archive from the pending subfolder while a configuration is
@@ -832,6 +861,15 @@ pub async fn backup_write_archive(
 }
 
 #[tauri::command]
+pub async fn backup_confirm_archive(
+    state: tauri::State<'_, BackupDirectoryCore>,
+    file_name: String,
+    expected_sha256: String,
+) -> Result<(), BackupError> {
+    state.confirm_archive(&file_name, &expected_sha256)
+}
+
+#[tauri::command]
 pub async fn backup_read_archive(
     state: tauri::State<'_, BackupDirectoryCore>,
     file_name: String,
@@ -1145,6 +1183,40 @@ mod tests {
         let sha = core.write_archive("Round Trip.tesina", &bytes).unwrap();
         assert_eq!(sha, sha256_hex(&bytes));
         assert_eq!(core.read_archive("Round Trip.tesina").unwrap(), bytes);
+        assert!(core
+            .ledger_entries()
+            .unwrap()
+            .iter()
+            .all(|entry| entry.file_name != "Round Trip.tesina"));
+        core.confirm_archive("Round Trip.tesina", &sha).unwrap();
+        assert!(core
+            .ledger_entries()
+            .unwrap()
+            .iter()
+            .any(|entry| entry.file_name == "Round Trip.tesina"));
+    }
+
+    #[test]
+    fn confirm_archive_rejects_changed_bytes_without_ledgering_them() {
+        let fixture = fixture();
+        let core = core(&fixture);
+        configure(&core, &fixture.selected_dir);
+        let sha = core.write_archive("Changed.tesina", b"valid").unwrap();
+        fs::write(
+            subfolder_of(&fixture.selected_dir).join("Changed.tesina"),
+            b"truncated",
+        )
+        .unwrap();
+
+        let error = core
+            .confirm_archive("Changed.tesina", &sha)
+            .expect_err("changed bytes must not enter the ledger");
+        assert_eq!(error.code, BackupErrorCode::HashMismatch);
+        assert!(core
+            .ledger_entries()
+            .unwrap()
+            .iter()
+            .all(|entry| entry.file_name != "Changed.tesina"));
     }
 
     #[test]
@@ -1220,7 +1292,8 @@ mod tests {
         let fixture = fixture();
         let core = core(&fixture);
         configure(&core, &fixture.selected_dir);
-        core.write_archive("Guarded.tesina", b"guarded bytes").unwrap();
+        let sha = core.write_archive("Guarded.tesina", b"guarded bytes").unwrap();
+        core.confirm_archive("Guarded.tesina", &sha).unwrap();
 
         let error = core
             .remove_archive("Guarded.tesina", &sha256_hex(b"some other bytes"))
@@ -1240,6 +1313,7 @@ mod tests {
         let core = core(&fixture);
         configure(&core, &fixture.selected_dir);
         let sha = core.write_archive("Old.tesina", b"old bytes").unwrap();
+        core.confirm_archive("Old.tesina", &sha).unwrap();
 
         core.remove_archive("Old.tesina", &sha).unwrap();
         assert!(!subfolder_of(&fixture.selected_dir).join("Old.tesina").exists());
@@ -1322,6 +1396,7 @@ mod tests {
         let core = core(&fixture);
         for error in [
             core.write_archive("A.tesina", b"x").unwrap_err(),
+            core.confirm_archive("A.tesina", "00").unwrap_err(),
             core.read_archive("A.tesina").unwrap_err(),
             core.list_archives().unwrap_err(),
             core.remove_archive("A.tesina", "00").unwrap_err(),

@@ -50,7 +50,7 @@ export interface ImportFs {
   list(relDir: string): Promise<string[]>;
 }
 
-export type JournalStatus = "staged" | "applying" | "complete";
+export type JournalStatus = "staged" | "applying" | "complete" | "rolled-back";
 
 export interface JournalFileOp {
   kind: "writeAsset" | "writeEssay";
@@ -519,6 +519,8 @@ async function rollbackTransaction(
       reason: `unexpected bytes at ${blocked}`,
     };
   }
+  const closed = { ...journal, status: "rolled-back" as const };
+  await persistJournal(fs, closed);
   await fs.removeDir(`${txDir(journal.transactionId)}/stage`);
   return { kind: "rolled-back", transactionId: journal.transactionId };
 }
@@ -572,7 +574,7 @@ export async function recoverPendingImports(
       });
       continue;
     }
-    if (journal.status === "complete") {
+    if (journal.status === "complete" || journal.status === "rolled-back") {
       await fs.removeDir(`${txDir(transactionId)}/stage`);
       outcomes.push({ kind: "already-complete", transactionId });
       continue;
@@ -617,7 +619,9 @@ export async function pruneCompletedRollbacks(
   const completed: ImportJournalV1[] = [];
   for (const transactionId of await fs.list(IMPORTS_DIR)) {
     const journal = await loadJournal(fs, transactionId);
-    if (journal?.status === "complete") completed.push(journal);
+    if (journal?.status === "complete" || journal?.status === "rolled-back") {
+      completed.push(journal);
+    }
   }
   completed.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const prune = completed.slice(

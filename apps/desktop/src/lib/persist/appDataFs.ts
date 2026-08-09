@@ -28,6 +28,33 @@ async function absolute(relPath: string): Promise<string> {
   return await join(await appDataDir(), relPath);
 }
 
+interface ReplaceOps {
+  exists(path: string): Promise<boolean>;
+  remove(path: string): Promise<void>;
+  rename(from: string, to: string): Promise<void>;
+}
+
+/**
+ * Installs a prepared sibling file over an existing target. Unix rename
+ * replaces directly; Windows requires the existing destination removed
+ * first. Import journals have two independently validated copies, so the
+ * fallback remains recoverable if the process stops between those steps.
+ */
+export async function installReplacement(
+  tmp: string,
+  target: string,
+  ops: ReplaceOps,
+  windowsReplace = false,
+): Promise<void> {
+  try {
+    await ops.rename(tmp, target);
+  } catch (error) {
+    if (!windowsReplace || !(await ops.exists(target))) throw error;
+    await ops.remove(target);
+    await ops.rename(tmp, target);
+  }
+}
+
 /** ImportFs over $APPDATA. Writes are atomic (tmp + rename) and counted. */
 export const appDataImportFs: ImportFs = {
   async exists(relPath) {
@@ -45,7 +72,12 @@ export const appDataImportFs: ImportFs = {
     if (!(await exists(dir))) await mkdir(dir, { recursive: true });
     const tmp = `${target}.tmp`;
     await writeFile(tmp, bytes);
-    await rename(tmp, target);
+    await installReplacement(
+      tmp,
+      target,
+      { exists, remove, rename },
+      typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent),
+    );
   },
   async rename(fromRel, toRel) {
     persistence.noteDirectWrite();
