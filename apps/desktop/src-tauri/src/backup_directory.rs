@@ -29,7 +29,7 @@ const LEDGER_FILE_NAME: &str = "backup-ledger.json";
 const ARCHIVE_EXTENSION: &str = ".tesina";
 const MAX_FILE_NAME_LENGTH: usize = 120;
 const SELECTED_FOLDER_TIMEOUT: Duration = Duration::from_secs(30);
-const MAX_ARCHIVE_BYTES: usize = 1024 * 1024 * 1024;
+const MAX_ARCHIVE_BYTES: usize = 128 * 1024 * 1024;
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -839,30 +839,46 @@ fn write_exclusive(dir: &Path, file_name: &str, bytes: &[u8]) -> Result<(), Back
             Err(_) => {
                 // Hard links unsupported on this filesystem: exclusive create
                 // plus copy preserves the no-clobber guarantee.
-                let mut file = match OpenOptions::new()
-                    .write(true)
-                    .create_new(true)
-                    .open(&final_path)
-                {
-                    Ok(file) => file,
-                    Err(error) if error.kind() == ErrorKind::AlreadyExists => {
-                        return Err(name_taken())
-                    }
-                    Err(error) => {
-                        return Err(BackupError::io("cannot create archive file", &error))
-                    }
-                };
-                file.write_all(bytes)
-                    .map_err(|error| BackupError::io("cannot write archive bytes", &error))?;
-                file.sync_all()
-                    .map_err(|error| BackupError::io("cannot sync archive bytes", &error))?;
-                Ok(())
+                copy_exclusive_file(&final_path, |file| {
+                    file.write_all(bytes)
+                        .map_err(|error| BackupError::io("cannot write archive bytes", &error))
+                })
             }
         }
     })();
 
     let _ = fs::remove_file(&tmp_path);
     write_result
+}
+
+fn copy_exclusive_file<F>(final_path: &Path, write: F) -> Result<(), BackupError>
+where
+    F: FnOnce(&mut fs::File) -> Result<(), BackupError>,
+{
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(final_path)
+        .map_err(|error| {
+            if error.kind() == ErrorKind::AlreadyExists {
+                BackupError::new(
+                    BackupErrorCode::NameTaken,
+                    "a file with this name already exists in the backup folder",
+                )
+            } else {
+                BackupError::io("cannot create archive file", &error)
+            }
+        })?;
+    let result = write(&mut file).and_then(|()| {
+        file.sync_all()
+            .map_err(|error| BackupError::io("cannot sync archive bytes", &error))
+    });
+    drop(file);
+    if result.is_err() {
+        fs::remove_file(final_path)
+            .map_err(|error| BackupError::io("cannot remove incomplete archive file", &error))?;
+    }
+    result
 }
 
 /// Atomic app-data JSON write: temporary sibling, fsync, rename over target.
@@ -1540,6 +1556,23 @@ mod tests {
         assert!(entries[0].created_at.ends_with('Z'));
         assert_eq!(&entries[0].created_at[4..5], "-");
         assert_eq!(&entries[0].created_at[10..11], "T");
+    }
+
+    #[test]
+    fn failed_exclusive_copy_removes_its_owned_destination() {
+        let root = TempDir::new().unwrap();
+        let destination = root.path().join("Partial.tesina");
+        let error = copy_exclusive_file(&destination, |file| {
+            file.write_all(b"partial").unwrap();
+            Err(BackupError::new(
+                BackupErrorCode::Io,
+                "injected copy failure",
+            ))
+        })
+        .expect_err("copy failure must propagate");
+
+        assert_eq!(error.code, BackupErrorCode::Io);
+        assert!(!destination.exists());
     }
 
     #[test]

@@ -201,7 +201,7 @@ export async function writeArchiveReplacing(
   }
 }
 
-function abortable<T>(
+async function abortable<T>(
   signal: AbortSignal | undefined,
   operation: () => Promise<T>,
 ): Promise<T> {
@@ -210,28 +210,43 @@ function abortable<T>(
       new PortableFileError("portable/cancelled", "operation cancelled"),
     );
   }
-  const work = operation();
-  return new Promise<T>((resolve, reject) => {
-    const cancel = () =>
-      reject(
-        new PortableFileError("portable/cancelled", "operation cancelled"),
+  let cancelled = false;
+  let timedOut = false;
+  const cancel = () => {
+    cancelled = true;
+  };
+  const timeout = setTimeout(() => {
+    timedOut = true;
+  }, 30_000);
+  signal?.addEventListener("abort", cancel, { once: true });
+  try {
+    let value: T | undefined;
+    let operationError: unknown;
+    let operationFailed = false;
+    try {
+      value = await operation();
+    } catch (error) {
+      operationFailed = true;
+      operationError = error;
+    }
+
+    // Filesystem plugin promises cannot be interrupted safely. Record expiry,
+    // but do not settle until the worker has stopped mutating its paths.
+    if (cancelled || signal?.aborted) {
+      throw new PortableFileError("portable/cancelled", "operation cancelled");
+    }
+    if (timedOut) {
+      throw new PortableFileError(
+        "portable/timeout",
+        "the selected destination did not respond before the timeout",
       );
-    const timeout = setTimeout(
-      () =>
-        reject(
-          new PortableFileError(
-            "portable/timeout",
-            "the selected destination did not respond before the timeout",
-          ),
-        ),
-      30_000,
-    );
-    signal?.addEventListener("abort", cancel, { once: true });
-    work.then(resolve, reject).finally(() => {
-      clearTimeout(timeout);
-      signal?.removeEventListener("abort", cancel);
-    });
-  });
+    }
+    if (operationFailed) throw operationError;
+    return value as T;
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener("abort", cancel);
+  }
 }
 
 /**

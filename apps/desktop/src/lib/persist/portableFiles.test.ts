@@ -435,9 +435,25 @@ describe("writeArchiveReplacing", () => {
     expect([...journal.records.keys()]).toEqual(["r2"]);
   });
 
-  it("stops waiting for a stalled export when cancellation is requested", async () => {
+  it("does not report cancellation while a filesystem mutation is still running", async () => {
     const fs = new FakeFs();
-    fs.writeFile = () => new Promise<void>(() => {});
+    fs.files.set("/docs/lib.tesina", OLD);
+    const originalRename = fs.rename.bind(fs);
+    let releaseRename!: () => void;
+    const renameReleased = new Promise<void>((resolve) => {
+      releaseRename = resolve;
+    });
+    let renameStarted!: () => void;
+    const renameWasStarted = new Promise<void>((resolve) => {
+      renameStarted = resolve;
+    });
+    fs.rename = async (from, to) => {
+      if (from === "/docs/lib.tesina" && to.endsWith(".prev")) {
+        renameStarted();
+        await renameReleased;
+      }
+      await originalRename(from, to);
+    };
     const controller = new AbortController();
     const work = writeArchiveReplacing(
       makeDeps(fs),
@@ -446,7 +462,15 @@ describe("writeArchiveReplacing", () => {
       GOOD,
       controller.signal,
     );
+    await renameWasStarted;
     controller.abort();
+    const earlyOutcome = await Promise.race([
+      work.then(() => "resolved", () => "rejected"),
+      new Promise<string>((resolve) => setTimeout(() => resolve("pending"), 5)),
+    ]);
+    expect(earlyOutcome).toBe("pending");
+
+    releaseRename();
     await expect(work).rejects.toMatchObject({ code: "portable/cancelled" });
   });
 });

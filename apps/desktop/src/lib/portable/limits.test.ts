@@ -43,6 +43,15 @@ function fixtureEntries(
 }
 
 describe("archive limits against representative fixtures", () => {
+  it("bounds the modeled peak archive-read memory below one GiB", () => {
+    // The compressed input and retained expanded buffers coexist. JSON text,
+    // parsed objects, and validation bookkeeping can consume roughly two
+    // additional expanded-payload equivalents in the webview.
+    const modeledPeak = ARCHIVE_LIMITS.maxArchiveBytes +
+      ARCHIVE_LIMITS.maxTotalExpandedBytes * 3;
+    expect(modeledPeak).toBeLessThanOrEqual(1024 * 1024 * 1024);
+  });
+
   const profiles = [
     ["empty", emptyLibraryFixture()],
     ["large-text", largeTextLibraryFixture()],

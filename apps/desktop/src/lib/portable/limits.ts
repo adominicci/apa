@@ -47,15 +47,16 @@ export interface ArchiveLimits {
 
 export const ARCHIVE_LIMITS: ArchiveLimits = {
   // Fixtures measure ~8 MiB (large-text) and ~1 MiB (figure-heavy) zipped;
-  // 1 GiB supports image-rich libraries two orders of magnitude larger.
-  maxArchiveBytes: 1024 * 1024 * 1024,
+  // 128 MiB leaves broad real-world headroom without letting the compressed
+  // input dominate webview memory while expanded payloads are retained.
+  maxArchiveBytes: 128 * 1024 * 1024,
   // 120 essays + assets is ~160 entries; 20 000 covers 5 000 essays with
   // thousands of figures.
   maxEntryCount: 20_000,
-  // The large-text essay JSON measures ~250 KiB; 128 MiB allows very large
-  // single figures while keeping one entry's buffer bounded.
-  maxEntryExpandedBytes: 128 * 1024 * 1024,
-  maxTotalExpandedBytes: 2 * 1024 * 1024 * 1024,
+  // The large-text essay JSON measures ~250 KiB. These caps keep the modeled
+  // compressed + expanded + decoded/parsed peak below one GiB.
+  maxEntryExpandedBytes: 64 * 1024 * 1024,
+  maxTotalExpandedBytes: 256 * 1024 * 1024,
   // Fixture text compresses ~17x; genuine bombs exceed 1000x. 200 is far
   // above legitimate prose yet stops a 1 GiB-from-5 MiB bomb.
   maxCompressionRatio: 200,
