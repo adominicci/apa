@@ -567,6 +567,18 @@ async function runNativePerformanceWorkload(
           pendingImageCount: images.filter((image) => !image.complete).length,
           referencePageCount,
           referenceEntries: mount.querySelectorAll(".ref-entry").length,
+          paragraphCount: positionsOf(editor.state.doc, "paragraph").length,
+          docContentSize: editor.state.doc.content.size,
+          stablePageStarts: current?.lastStablePlan?.pageStarts.length ?? 0,
+          stablePageGaps: current?.lastStablePlan?.pageGaps.length ?? 0,
+          paintedPageGaps: mount.querySelectorAll("[data-pagination-gap]")
+            .length,
+          paintedPageNumbers: mount.querySelectorAll(
+            "[data-pagination-page-number]",
+          ).length,
+          referenceDecorationActive: mount.querySelector(
+            "[data-reference-pages]",
+          ) !== null,
           remainingSetupMs: remainingNativeDeadlineMs(setupDeadline),
           error: error instanceof Error ? error.message : String(error),
         });
@@ -760,6 +772,22 @@ async function runNativePerformanceWorkload(
         (stableEpochCounts.get(report.epoch) ?? 0) + 1,
       );
     }
+    const finalStable = latestStableReport(reports)?.lastStablePlan;
+    diagnostic("native-performance-fixture-identity", {
+      targetPages,
+      paragraphCount: positionsOf(editor.state.doc, "paragraph").length,
+      docContentSize: editor.state.doc.content.size,
+      stablePageStarts: finalStable?.pageStarts.length ?? 0,
+      stablePageGaps: finalStable?.pageGaps.length ?? 0,
+      paintedPageGaps: mount.querySelectorAll("[data-pagination-gap]").length,
+      paintedPageNumbers: mount.querySelectorAll(
+        "[data-pagination-page-number]",
+      ).length,
+      referenceDecorationActive: mount.querySelector(
+        "[data-reference-pages]",
+      ) !== null,
+      referenceEntries: mount.querySelectorAll(".ref-entry").length,
+    });
     return {
       targetPages,
       authoredPages,
