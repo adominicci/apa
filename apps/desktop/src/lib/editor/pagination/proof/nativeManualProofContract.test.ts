@@ -196,6 +196,31 @@ describe("visible native manual-proof contract", () => {
     ).toBeLessThan(layoutMethod.indexOf("LoadKeyboardLayoutW"));
   });
 
+  it("waits conditionally for the exact Win32 clipboard commit before paste", () => {
+    const pasteBranch = nativeInputDriver.slice(
+      nativeInputDriver.indexOf("DriverAction::Paste =>"),
+      nativeInputDriver.indexOf("DriverAction::MoveCaret =>"),
+    );
+    expect(pasteBranch).toContain("wait_for_exact_clipboard_text");
+    expect(pasteBranch).not.toContain("read_clipboard_text");
+
+    const readiness = nativeInputDriver.slice(
+      nativeInputDriver.indexOf("fn wait_for_exact_clipboard_text"),
+      nativeInputDriver.indexOf("fn restore_clipboard_snapshot"),
+    );
+    expect(readiness).toContain("CLIPBOARD_READINESS_TIMEOUT");
+    expect(readiness).toContain("CLIPBOARD_POLL_INTERVAL");
+    expect(readiness).toContain("Instant::now()");
+    expect(readiness).toContain("thread::sleep");
+    expect(readiness).toContain("poll_exact_clipboard_text");
+    expect(readiness.indexOf("read_clipboard_text")).toBeLessThan(
+      readiness.indexOf("thread::sleep"),
+    );
+    expect(readiness).not.toMatch(/execute_script|dispatchEvent/);
+    expect(nativeInputDriver).toContain("lastMismatchUtf16");
+    expect(nativeInputDriver).toContain("lastError");
+  });
+
   it("uses the same direct platform host and bounded cleanup lifecycle", () => {
     expect(runner).toContain("nativeHostCommand(process.platform");
     expect(runner).toContain("executeBoundedProcess");

@@ -4,6 +4,7 @@ import {
   type WorkflowRecord,
   workflowSteps,
 } from "./workflow-policy.ts";
+import { AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS } from "../apps/desktop/src/lib/editor/pagination/proof/nativeProofDeadlines.ts";
 
 const root = decodeURIComponent(new URL("../", import.meta.url).pathname);
 const source = await Deno.readTextFile(`${root}.github/workflows/ci.yml`);
@@ -31,23 +32,40 @@ function nativeJob(name: string): WorkflowRecord {
 
 describe("native pagination CI contract", () => {
   it.each([
-    ["pagination-native-macos", "macos-latest"],
-    ["pagination-native-windows", "windows-latest"],
-  ])("runs the shared proof in the dedicated %s job", (name, runner) => {
-    const job = nativeJob(name);
-    expect(job["runs-on"]).toBe(runner);
-    expect(job["timeout-minutes"]).toBe(10);
-    const steps = workflowSteps({ jobs: { [name]: job } });
-    const commands = steps.map((step) => step.run).filter((run) =>
-      typeof run === "string"
-    ).join("\n");
-    expect(commands).toContain(
-      "vitest run apps/desktop/src/lib/editor/pagination",
-    );
-    expect(commands).toContain(
-      "apps/desktop/src/lib/editor/pagination/proof/runNativeProof.ts",
-    );
-    expect(commands).not.toMatch(/playwright|chromium|browser bundle/i);
+    ["pagination-native-macos", "macos-latest", 10],
+    ["pagination-native-windows", "windows-latest", 15],
+  ])(
+    "runs the shared proof in the dedicated %s job",
+    (name, runner, timeout) => {
+      const job = nativeJob(name);
+      expect(job["runs-on"]).toBe(runner);
+      expect(job["timeout-minutes"]).toBe(timeout);
+      const steps = workflowSteps({ jobs: { [name]: job } });
+      const commands = steps.map((step) => step.run).filter((run) =>
+        typeof run === "string"
+      ).join("\n");
+      expect(commands).toContain(
+        "vitest run apps/desktop/src/lib/editor/pagination",
+      );
+      expect(commands).toContain(
+        "apps/desktop/src/lib/editor/pagination/proof/runNativeProof.ts",
+      );
+      expect(commands).not.toMatch(/playwright|chromium|browser bundle/i);
+    },
+  );
+
+  it("keeps the Windows job above the bounded cold-build and retry envelope", () => {
+    const windowsJobMs = Number(
+      nativeJob("pagination-native-windows")["timeout-minutes"],
+    ) * 60_000;
+    const proofEnvelopeMs =
+      AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.windowsHostBuild +
+      AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.originReadiness * 3 +
+      AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.outerNativeHostProcess * 3 +
+      AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationOuter;
+
+    expect(proofEnvelopeMs).toBe(720_000);
+    expect(windowsJobMs - proofEnvelopeMs).toBeGreaterThanOrEqual(180_000);
   });
 
   it.each([

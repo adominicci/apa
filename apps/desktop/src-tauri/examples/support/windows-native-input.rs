@@ -294,6 +294,90 @@ pub(crate) fn require_complete_input(
     }
 }
 
+#[derive(Debug, Default, PartialEq, Eq)]
+pub(crate) struct ClipboardReadinessDiagnostics {
+    attempts: usize,
+    empty_reads: usize,
+    mismatch_reads: usize,
+    error_reads: usize,
+    last_mismatch_utf16: Option<usize>,
+    last_error: Option<String>,
+}
+
+impl ClipboardReadinessDiagnostics {
+    fn summary(&self) -> String {
+        format!(
+            "attempts={}, empty={}, mismatches={}, errors={}, lastMismatchUtf16={}, lastError={}",
+            self.attempts,
+            self.empty_reads,
+            self.mismatch_reads,
+            self.error_reads,
+            self.last_mismatch_utf16
+                .map_or_else(|| "none".to_string(), |length| length.to_string()),
+            self.last_error.as_deref().unwrap_or("none"),
+        )
+    }
+}
+
+fn normalize_newlines(value: &str) -> String {
+    value.replace("\r\n", "\n")
+}
+
+pub(crate) fn poll_exact_clipboard_text(
+    expected: &str,
+    timeout_ms: u64,
+    poll_interval_ms: u64,
+    mut read: impl FnMut() -> Result<String, String>,
+    mut now_ms: impl FnMut() -> u64,
+    mut wait: impl FnMut(u64),
+) -> Result<ClipboardReadinessDiagnostics, String> {
+    let expected = normalize_newlines(expected);
+    let mut diagnostics = ClipboardReadinessDiagnostics::default();
+    let started_ms = now_ms();
+    loop {
+        let elapsed_ms = now_ms().saturating_sub(started_ms);
+        if diagnostics.attempts > 0 && elapsed_ms >= timeout_ms {
+            return Err(format!(
+                "Win32 clipboard did not reach the exact copied selection within {timeout_ms} ms ({})",
+                diagnostics.summary(),
+            ));
+        }
+        diagnostics.attempts += 1;
+        let exact = match read() {
+            Ok(observed) => {
+                let observed = normalize_newlines(&observed);
+                if observed == expected {
+                    true
+                } else {
+                    if observed.is_empty() {
+                        diagnostics.empty_reads += 1;
+                    } else {
+                        diagnostics.mismatch_reads += 1;
+                        diagnostics.last_mismatch_utf16 = Some(observed.encode_utf16().count());
+                    }
+                    false
+                }
+            }
+            Err(error) => {
+                diagnostics.error_reads += 1;
+                diagnostics.last_error = Some(error);
+                false
+            }
+        };
+        let elapsed_ms = now_ms().saturating_sub(started_ms);
+        if exact && elapsed_ms <= timeout_ms {
+            return Ok(diagnostics);
+        }
+        if elapsed_ms >= timeout_ms {
+            return Err(format!(
+                "Win32 clipboard did not reach the exact copied selection within {timeout_ms} ms ({})",
+                diagnostics.summary(),
+            ));
+        }
+        wait(poll_interval_ms.min(timeout_ms - elapsed_ms));
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum ClipboardSnapshotKind {
     Empty,
@@ -425,11 +509,17 @@ pub(crate) fn execute_cleanup<L, C, B>(
 mod platform {
     use super::{
         classify_clipboard_snapshot, execute_cleanup, normalize_absolute_coordinate,
-        pending_key_releases, require_complete_input, CleanupAction, CleanupState,
-        ClipboardSnapshotKind, DriverAction, DriverProtocol, InputPoint, ReadyGeometry,
+        pending_key_releases, poll_exact_clipboard_text, require_complete_input, CleanupAction,
+        CleanupState, ClipboardSnapshotKind, DriverAction, DriverProtocol, InputPoint,
+        ReadyGeometry,
     };
     use serde_json::Value;
-    use std::{ffi::c_void, mem::size_of, ptr};
+    use std::{
+        ffi::c_void,
+        mem::size_of,
+        ptr, thread,
+        time::{Duration, Instant},
+    };
     use windows_sys::Win32::{
         Foundation::{GetLastError, SetLastError, ERROR_SUCCESS, HWND, POINT},
         Graphics::Gdi::ClientToScreen,
@@ -478,6 +568,8 @@ mod platform {
         b'9' as u16,
         0,
     ];
+    const CLIPBOARD_READINESS_TIMEOUT: Duration = Duration::from_millis(1_000);
+    const CLIPBOARD_POLL_INTERVAL: Duration = Duration::from_millis(10);
 
     enum ClipboardSnapshot {
         Empty,
@@ -536,17 +628,11 @@ mod platform {
                 }
                 DriverAction::Paste => {
                     self.require_focus()?;
-                    let clipboard = normalize_newlines(&read_clipboard_text(self.hwnd)?);
-                    let expected = normalize_newlines(
-                        self.protocol
-                            .selected_text()
-                            .ok_or_else(|| "native input selection is unavailable".to_string())?,
-                    );
-                    if clipboard != expected {
-                        return Err(
-                            "Win32 clipboard text does not match the copied selection".into()
-                        );
-                    }
+                    let expected = self
+                        .protocol
+                        .selected_text()
+                        .ok_or_else(|| "native input selection is unavailable".to_string())?;
+                    wait_for_exact_clipboard_text(self.hwnd, expected)?;
                     self.send_paste()?;
                 }
                 DriverAction::MoveCaret => {
@@ -1040,10 +1126,6 @@ mod platform {
         require_complete_input(inputs.len() as u32, actual, label)
     }
 
-    fn normalize_newlines(value: &str) -> String {
-        value.replace("\r\n", "\n")
-    }
-
     fn snapshot_clipboard(hwnd: HWND) -> Result<ClipboardSnapshot, String> {
         unsafe {
             if OpenClipboard(hwnd) == 0 {
@@ -1073,6 +1155,25 @@ mod platform {
             }
             close_clipboard_result(read_open_clipboard_text())
         }
+    }
+
+    fn wait_for_exact_clipboard_text(hwnd: HWND, expected: &str) -> Result<(), String> {
+        let started = Instant::now();
+        let diagnostics = poll_exact_clipboard_text(
+            expected,
+            CLIPBOARD_READINESS_TIMEOUT.as_millis() as u64,
+            CLIPBOARD_POLL_INTERVAL.as_millis() as u64,
+            || read_clipboard_text(hwnd),
+            || started.elapsed().as_millis() as u64,
+            |delay_ms| thread::sleep(Duration::from_millis(delay_ms)),
+        )?;
+        if diagnostics.attempts > 1 {
+            eprintln!(
+                "[native-proof] Win32 clipboard readiness {}",
+                diagnostics.summary(),
+            );
+        }
+        Ok(())
     }
 
     unsafe fn read_open_clipboard_text() -> Result<String, String> {
@@ -1134,10 +1235,12 @@ pub(crate) use platform::WindowsNativeInputDriver;
 mod tests {
     use super::{
         classify_clipboard_snapshot, cleanup_actions, execute_cleanup,
-        normalize_absolute_coordinate, pending_key_releases, require_complete_input, CleanupAction,
-        CleanupState, ClipboardSnapshotKind, DriverAction, DriverProtocol,
+        normalize_absolute_coordinate, pending_key_releases, poll_exact_clipboard_text,
+        require_complete_input, CleanupAction, CleanupState, ClipboardSnapshotKind, DriverAction,
+        DriverProtocol,
     };
     use serde_json::json;
+    use std::cell::Cell;
 
     fn ready() -> serde_json::Value {
         json!({
@@ -1595,6 +1698,76 @@ mod tests {
             classify_clipboard_snapshot(-1).unwrap_err(),
             "CountClipboardFormats returned an invalid result"
         );
+    }
+
+    #[test]
+    fn polls_until_the_normalized_clipboard_matches_exactly() {
+        let mut observations = [
+            Err("OpenClipboard failed".to_string()),
+            Ok(String::new()),
+            Ok("different text".to_string()),
+            Ok("invented\r\nselection".to_string()),
+        ]
+        .into_iter();
+        let now_ms = Cell::new(0u64);
+        let mut waits = Vec::new();
+
+        let diagnostics = poll_exact_clipboard_text(
+            "invented\nselection",
+            1_000,
+            10,
+            || observations.next().expect("bounded observation"),
+            || now_ms.get(),
+            |delay_ms| {
+                waits.push(delay_ms);
+                now_ms.set(now_ms.get() + delay_ms);
+            },
+        )
+        .unwrap();
+
+        assert_eq!(diagnostics.attempts, 4);
+        assert_eq!(diagnostics.empty_reads, 1);
+        assert_eq!(diagnostics.mismatch_reads, 1);
+        assert_eq!(diagnostics.error_reads, 1);
+        assert_eq!(diagnostics.last_mismatch_utf16, Some(14));
+        assert_eq!(
+            diagnostics.last_error.as_deref(),
+            Some("OpenClipboard failed")
+        );
+        assert_eq!(waits, vec![10, 10, 10]);
+    }
+
+    #[test]
+    fn clipboard_polling_fails_closed_with_bounded_diagnostics() {
+        let mut observations = [
+            Ok(String::new()),
+            Ok("wrong".to_string()),
+            Err("clipboard owner busy".to_string()),
+        ]
+        .into_iter();
+        let now_ms = Cell::new(0u64);
+        let mut waits = Vec::new();
+
+        let error = poll_exact_clipboard_text(
+            "invented selection",
+            25,
+            10,
+            || observations.next().expect("bounded observation"),
+            || now_ms.get(),
+            |delay_ms| {
+                waits.push(delay_ms);
+                now_ms.set(now_ms.get() + delay_ms);
+            },
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            error,
+            "Win32 clipboard did not reach the exact copied selection within 25 ms \
+(attempts=3, empty=1, mismatches=1, errors=1, lastMismatchUtf16=5, \
+lastError=clipboard owner busy)"
+        );
+        assert_eq!(waits, vec![10, 10, 5]);
     }
 
     #[test]

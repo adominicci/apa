@@ -16,6 +16,9 @@ import {
 import { AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS } from "./nativeProofDeadlines.ts";
 import { nativeProofPhases } from "./nativeProofPhases.ts";
 import { nativeHostRuntimeIdentity } from "./nativeHostRuntimeIdentity.ts";
+import { isRetryableZeroEventNativeInputResult } from "./nativeManualRetry.ts";
+
+const MAX_ZERO_EVENT_NATIVE_INPUT_ATTEMPTS = 2;
 
 const proofDir = dirname(fileURLToPath(import.meta.url));
 console.log(
@@ -84,35 +87,67 @@ async function runNativeHost(
   console.error(
     `Native proof origin ready after ${readiness.attempts} request(s): ${readiness.url}`,
   );
-  const host = nativeHostCommand(
-    process.platform,
-    {
-      proofDir,
-      url,
-      profileDir: resolve(profileDir, profileName),
-      windowsHostBinary: windowsHostBinary(),
-    },
-    mode,
-  );
-  const output = await executeBoundedProcess(
-    host.command,
-    host.args,
-    {
-      timeoutMs: url.pathname === "/nativeProof.html"
-        ? AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationOuter
-        : AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.outerNativeHostProcess,
-    },
-  );
-  const stdout = output.stdout.trim();
-  const stderr = output.stderr.trim();
-  if (emitResult && stdout) console.log(stdout);
-  if (!emitResult && output.code !== 0 && stdout) console.error(stdout);
-  if (stderr) console.error(stderr);
-  if (output.code !== 0) {
+  const maxAttempts = mode === "windows-native-input"
+    ? MAX_ZERO_EVENT_NATIVE_INPUT_ATTEMPTS
+    : 1;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const attemptProfileName = attempt === 0
+      ? profileName
+      : `${profileName}-zero-event-retry`;
+    const host = nativeHostCommand(
+      process.platform,
+      {
+        proofDir,
+        url,
+        profileDir: resolve(profileDir, attemptProfileName),
+        windowsHostBinary: windowsHostBinary(),
+      },
+      mode,
+    );
+    const output = await executeBoundedProcess(
+      host.command,
+      host.args,
+      {
+        timeoutMs: url.pathname === "/nativeProof.html"
+          ? AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.expandedPaginationOuter
+          : AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS.outerNativeHostProcess,
+      },
+    );
+    const stdout = output.stdout.trim();
+    const stderr = output.stderr.trim();
+    if (emitResult && stdout) console.log(stdout);
+    if (!emitResult && output.code !== 0 && stdout) console.error(stdout);
+    if (stderr) console.error(stderr);
+    let result: unknown;
+    try {
+      result = stdout ? JSON.parse(stdout) : undefined;
+    } catch (error) {
+      if (output.code !== 0) {
+        throw new Error(`Native proof host exited with code ${output.code}`);
+      }
+      throw error;
+    }
+    if (output.code === 0) {
+      if (
+        typeof result === "object" && result !== null &&
+        "passed" in result && result.passed === true
+      ) {
+        return;
+      }
+      throw new Error("Native proof did not pass");
+    }
+    if (
+      attempt === 0 && mode === "windows-native-input" &&
+      isRetryableZeroEventNativeInputResult(result)
+    ) {
+      console.error(
+        "Retrying the complete Windows native-input proof in one fresh visible host/profile after an exact zero-event timeout",
+      );
+      continue;
+    }
     throw new Error(`Native proof host exited with code ${output.code}`);
   }
-  const result = JSON.parse(stdout) as { passed?: boolean };
-  if (result.passed !== true) throw new Error("Native proof did not pass");
+  throw new Error("Windows native-input proof exhausted its bounded attempts");
 }
 
 await runProofLifecycle(async () => {
