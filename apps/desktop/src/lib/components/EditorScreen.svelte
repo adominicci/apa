@@ -295,19 +295,24 @@
 
   let lastPaginationLocale = untrack(() => documentLanguage);
   let lastPaginationFont = untrack(() => essay.settings.font);
+  let lastPaginationTitle = untrack(() => essayTitle);
   $effect(() => {
     const currentEditor = editor;
     const locale = documentLanguage;
     const font = essay.settings.font;
+    const title = essayTitle;
     if (!currentEditor || currentEditor.isDestroyed) return;
     const localeChanged = locale !== lastPaginationLocale;
     const fontChanged = font !== lastPaginationFont;
-    if (!localeChanged && !fontChanged) return;
+    const titleChanged = title !== lastPaginationTitle;
+    if (!localeChanged && !fontChanged && !titleChanged) return;
     lastPaginationLocale = locale;
     lastPaginationFont = font;
+    lastPaginationTitle = title;
     void tick().then(async () => {
       if (currentEditor !== editor || currentEditor.isDestroyed) return;
       if (localeChanged) invalidatePagination(currentEditor, "document-locale");
+      if (titleChanged) invalidatePagination(currentEditor, "canonical-layout");
       if (fontChanged) {
         invalidatePagination(currentEditor, "font");
         await document.fonts?.ready;

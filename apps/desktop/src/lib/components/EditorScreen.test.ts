@@ -674,6 +674,46 @@ describe("editor preview round trip", () => {
     }
   });
 
+  it("repaginates after a cover-title edit updates the generated body heading", async () => {
+    const essay = essayWithBody("Seed");
+    essay.titlePage.title = "Short title";
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+
+    try {
+      flushSync();
+      await tick();
+      runtime.paginationInvalidations = [];
+
+      const title = document.querySelector<HTMLInputElement>(
+        ".cover-sheet input.cf.title",
+      );
+      expect(title).not.toBeNull();
+      title!.value =
+        "A substantially longer generated body title that wraps onto several lines";
+      title!.dispatchEvent(new Event("input", { bubbles: true }));
+      flushSync();
+      await tick();
+      await drainMicrotasks();
+
+      expect(
+        document.querySelector<HTMLElement>(".sheet-stack")?.style
+          .getPropertyValue("--body-title"),
+      ).toContain("substantially longer generated body title");
+      expect(runtime.paginationInvalidations).toEqual(["canonical-layout"]);
+    } finally {
+      await unmount(component);
+    }
+  });
+
   it("keeps close pending until an edit made during the active write is persisted", async () => {
     vi.useFakeTimers();
     const firstWrite = deferred<void>();
