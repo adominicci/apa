@@ -229,6 +229,7 @@ interface NativeReferenceOverflowEvidence {
 
 interface NativeOversizedTableTextEvidence {
   passed: boolean;
+  headingSplitAcrossSheets: boolean;
   tableTitleSplitAcrossSheets: boolean;
   tableNoteSplitAcrossSheets: boolean;
   authoredPageCount: number;
@@ -461,6 +462,10 @@ async function measureNativeOversizedTableTextEvidence(
     { length: 320 },
     (_, index) => `Invented long table note segment ${index + 1}`,
   ).join(" ");
+  const heading = Array.from(
+    { length: 320 },
+    (_, index) => `Invented long heading segment ${index + 1}`,
+  ).join(" ");
   const reports: PaginationStateReport[] = [];
   const editor = createTesinaEditor({
     element: mount,
@@ -468,44 +473,51 @@ async function measureNativeOversizedTableTextEvidence(
       type: "doc",
       content: [{
         type: "sectionBody",
-        content: [{
-          type: "apaTable",
-          content: [
-            {
-              type: "tableTitle",
-              content: [{ type: "text", text: title }],
-            },
-            {
-              type: "table",
-              content: [
-                {
-                  type: "tableRow",
-                  content: [{
-                    type: "tableHeader",
+        content: [
+          {
+            type: "heading",
+            attrs: { level: 1 },
+            content: [{ type: "text", text: heading }],
+          },
+          {
+            type: "apaTable",
+            content: [
+              {
+                type: "tableTitle",
+                content: [{ type: "text", text: title }],
+              },
+              {
+                type: "table",
+                content: [
+                  {
+                    type: "tableRow",
                     content: [{
-                      type: "paragraph",
-                      content: [{ type: "text", text: "Invented header" }],
+                      type: "tableHeader",
+                      content: [{
+                        type: "paragraph",
+                        content: [{ type: "text", text: "Invented header" }],
+                      }],
                     }],
-                  }],
-                },
-                {
-                  type: "tableRow",
-                  content: [{
-                    type: "tableCell",
+                  },
+                  {
+                    type: "tableRow",
                     content: [{
-                      type: "paragraph",
-                      content: [{ type: "text", text: "Invented cell" }],
+                      type: "tableCell",
+                      content: [{
+                        type: "paragraph",
+                        content: [{ type: "text", text: "Invented cell" }],
+                      }],
                     }],
-                  }],
-                },
-              ],
-            },
-            {
-              type: "tableNote",
-              content: [{ type: "text", text: note }],
-            },
-          ],
-        }],
+                  },
+                ],
+              },
+              {
+                type: "tableNote",
+                content: [{ type: "text", text: note }],
+              },
+            ],
+          },
+        ],
       }],
     },
     newlyCreated: true,
@@ -522,16 +534,22 @@ async function measureNativeOversizedTableTextEvidence(
     const stable = await waitForCurrentStableNativeReport(
       editor,
       reports,
-      "oversized table title and note stability",
+      "oversized heading, table title and note stability",
     );
     const plan = stable.visiblePlan ?? stable.lastStablePlan;
     if (!plan || !stable.pageCount) {
       throw new Error("Oversized table text proof has no stable plan");
     }
+    const headingPos = positionsOf(editor.state.doc, "heading")[0]!;
     const titlePos = positionsOf(editor.state.doc, "tableTitle")[0]!;
     const notePos = positionsOf(editor.state.doc, "tableNote")[0]!;
+    const headingNode = editor.state.doc.nodeAt(headingPos)!;
     const titleNode = editor.state.doc.nodeAt(titlePos)!;
     const noteNode = editor.state.doc.nodeAt(notePos)!;
+    const headingSplitAcrossSheets = plan.pageStarts.some((start) =>
+      start.pos > headingPos &&
+      start.pos < headingPos + headingNode.nodeSize - 1
+    );
     const tableTitleSplitAcrossSheets = plan.pageStarts.some((start) =>
       start.pos > titlePos && start.pos < titlePos + titleNode.nodeSize - 1
     );
@@ -542,14 +560,16 @@ async function measureNativeOversizedTableTextEvidence(
     await frame();
     const oversizedTableTextPaintedBandGeometry = capturePaintedBandGeometry(
       editor,
-      "oversized table title and note stable painted band",
+      "oversized heading, table title and note stable painted band",
       expectedPaintedBandCount(plan, 0),
     );
     const evidence: NativeOversizedTableTextEvidence = {
-      passed: tableTitleSplitAcrossSheets && tableNoteSplitAcrossSheets &&
+      passed: headingSplitAcrossSheets && tableTitleSplitAcrossSheets &&
+        tableNoteSplitAcrossSheets &&
         oversizedTableTextPaintedBandGeometry.markers > 0 &&
         oversizedTableTextPaintedBandGeometry.intersections === 0 &&
         JSON.stringify(editor.getJSON()) === baselineJson,
+      headingSplitAcrossSheets,
       tableTitleSplitAcrossSheets,
       tableNoteSplitAcrossSheets,
       authoredPageCount: stable.pageCount.authored,
@@ -2364,8 +2384,23 @@ async function runProof(): Promise<ProofResult> {
     const productionRepeatedHeaderCell = mount.querySelector<HTMLElement>(
       "[data-pagination-repeated-header-cell]",
     );
-    const productionRepeatedHeaderCellStyle = productionRepeatedHeaderCell
+    const computedRepeatedHeaderCellStyle = productionRepeatedHeaderCell
       ? getComputedStyle(productionRepeatedHeaderCell)
+      : null;
+    // CSSStyleDeclaration is live and the production editor is later replaced
+    // by the parity editor. Snapshot the exact values while this cell exists so
+    // the final native payload retains useful presentation evidence.
+    const productionRepeatedHeaderCellStyle = computedRepeatedHeaderCellStyle
+      ? {
+        paddingTop: computedRepeatedHeaderCellStyle.paddingTop,
+        paddingRight: computedRepeatedHeaderCellStyle.paddingRight,
+        paddingBottom: computedRepeatedHeaderCellStyle.paddingBottom,
+        paddingLeft: computedRepeatedHeaderCellStyle.paddingLeft,
+        borderBottomWidth: computedRepeatedHeaderCellStyle.borderBottomWidth,
+        borderBottomStyle: computedRepeatedHeaderCellStyle.borderBottomStyle,
+        textAlign: computedRepeatedHeaderCellStyle.textAlign,
+        fontWeight: computedRepeatedHeaderCellStyle.fontWeight,
+      }
       : null;
     const tableContinuationHeaderStyled =
       productionRepeatedHeaderCellStyle !== null &&

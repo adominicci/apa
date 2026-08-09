@@ -896,6 +896,113 @@ describe("text line sampling", () => {
     }
   });
 
+  it("splits an oversized block heading at real browser line boundaries", () => {
+    const mount = document.createElement("div");
+    document.body.append(mount);
+    const headingText = "H".repeat(100);
+    const editor = createTesinaEditor({
+      element: mount,
+      content: {
+        type: "doc",
+        content: [{
+          type: "sectionBody",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 1 },
+              content: [{ type: "text", text: headingText }],
+            },
+            { type: "paragraph", content: [{ type: "text", text: "Body" }] },
+          ],
+        }],
+      },
+      newlyCreated: true,
+      citationEnv: { refsById: new Map(), locale: "en" },
+      referenceEnv: { references: [], locale: "en", emptyLabel: "unused" },
+      paginationEnv: null,
+    });
+    let headingPos = -1;
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "heading") headingPos = pos;
+      return headingPos < 0;
+    });
+    const heading = editor.view.nodeDOM(headingPos) as HTMLElement;
+    const headingNode = heading.firstChild!;
+    vi.spyOn(heading, "getBoundingClientRect").mockReturnValue(
+      new DOMRect(0, 100, 624, 1_000),
+    );
+    let endExclusive = 0;
+    const rangeSpy = vi.spyOn(document, "createRange").mockImplementation(
+      () =>
+        ({
+          setStart() {},
+          setEnd(_node: Node, offset: number) {
+            endExclusive = offset;
+          },
+          getClientRects() {
+            return Array.from(
+              { length: Math.ceil(endExclusive / 2) },
+              (_, line) =>
+                new DOMRect(
+                  0,
+                  100 + line * 20,
+                  Math.min(2, endExclusive - line * 2) * 8,
+                  16,
+                ),
+            ) as unknown as DOMRectList;
+          },
+        }) as unknown as Range,
+    );
+    const getComputedStyle = globalThis.getComputedStyle.bind(globalThis);
+    const styleSpy = vi.spyOn(globalThis, "getComputedStyle")
+      .mockImplementation(
+        (element, pseudoElement) =>
+          pseudoElement
+            ? { display: "none", content: "none" } as CSSStyleDeclaration
+            : element === heading
+            ? {
+              lineHeight: "20px",
+              fontSize: "16px",
+              marginTop: "0px",
+              marginBottom: "0px",
+              borderTopWidth: "0px",
+              borderBottomWidth: "0px",
+            } as CSSStyleDeclaration
+            : getComputedStyle(element),
+      );
+
+    try {
+      const snapshot = browserPaginationLayoutAdapter.readLayout(editor.view);
+      const headingLines = snapshot.fragments.filter((fragment) =>
+        fragment.lineGroup?.id === `heading:${headingPos}`
+      );
+      expect(headingLines).toHaveLength(50);
+      expect(headingLines.map((fragment) => fragment.breakBefore.pos)).toEqual(
+        Array.from(
+          { length: 50 },
+          (_, index) => editor.view.posAtDOM(headingNode, index * 2),
+        ),
+      );
+      const plan = planPagination({
+        epoch: 1,
+        fragments: snapshot.fragments,
+        emptySections: snapshot.emptySections,
+      });
+      expect(plan.status).toBe("stable");
+      if (plan.status !== "stable") throw new Error("expected stable plan");
+      expect(
+        plan.pageStarts.some((start) =>
+          start.pos > headingPos && start.pos < headingPos + headingText.length
+        ),
+      ).toBe(true);
+    } finally {
+      styleSpy.mockRestore();
+      rangeSpy.mockRestore();
+      editor.destroy();
+      mount.remove();
+    }
+  });
+
   it("remeasures a painted atomic overflow from its reachable scroll extent", () => {
     const mount = document.createElement("div");
     document.body.append(mount);

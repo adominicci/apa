@@ -155,13 +155,14 @@ describe("native performance harness wiring", () => {
     );
   });
 
-  it("proves oversized editable table text paginates without crossing painted bands", () => {
+  it("proves oversized editable headings and table text paginate without crossing painted bands", () => {
     expect(source).toContain("measureNativeOversizedTableTextEvidence");
     expect(source).toContain("native-oversized-table-text-evidence");
     expect(source).toContain("oversizedTableTextPaintedBandGeometry");
     expect(source).toMatch(
-      /capturePaintedBandGeometry\(\s*editor,\s*"oversized table title and note stable painted band"/,
+      /capturePaintedBandGeometry\(\s*editor,\s*"oversized heading, table title and note stable painted band"/,
     );
+    expect(source).toContain("headingSplitAcrossSheets");
     expect(source).toContain("tableTitleSplitAcrossSheets");
     expect(source).toContain("tableNoteSplitAcrossSheets");
   });
@@ -169,6 +170,10 @@ describe("native performance harness wiring", () => {
   it("checks real continuation-header cell presentation in both native engines", () => {
     expect(source).toContain("tableContinuationHeaderStyled");
     expect(source).toContain("productionRepeatedHeaderCellStyle");
+    expect(source).toContain("computedRepeatedHeaderCellStyle");
+    expect(source).toMatch(
+      /productionRepeatedHeaderCellStyle\s*=\s*computedRepeatedHeaderCellStyle\s*\?\s*\{[\s\S]*?paddingTop:\s*computedRepeatedHeaderCellStyle\.paddingTop/,
+    );
     expect(source).toMatch(
       /productionRepeatedHeaderCellStyle\.paddingTop === "4px"/,
     );

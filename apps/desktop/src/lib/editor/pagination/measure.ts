@@ -750,7 +750,7 @@ function textFragments(
   });
 }
 
-function tableTextFragments(
+function paginatedTextBlockFragments(
   view: EditorView,
   node: PMNode,
   pos: number,
@@ -1005,15 +1005,27 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
         // twice. Keep the zero-height fragment for the pre-heading break and
         // keep-with-next rule.
         const isRunIn = element.hasAttribute("data-apa-run-in");
-        sectionFragments.push(blockFragment(
-          `heading:${pos}`,
-          pos,
-          node,
-          section,
-          "heading",
-          isRunIn ? 0 : heightWithoutGaps(element, scale),
-          true,
-        ));
+        sectionFragments.push(
+          ...isRunIn
+            ? [blockFragment(
+              `heading:${pos}`,
+              pos,
+              node,
+              section,
+              "heading",
+              0,
+              true,
+            )]
+            : paginatedTextBlockFragments(
+              view,
+              node,
+              pos,
+              element,
+              section,
+              scale,
+              heightWithoutGaps(element, scale),
+            ),
+        );
         return false;
       }
 
@@ -1027,7 +1039,7 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
             tableElement && ownerWindow
           ? cssNumber(ownerWindow.getComputedStyle(tableElement).marginBottom)
           : 0;
-        sectionFragments.push(...tableTextFragments(
+        sectionFragments.push(...paginatedTextBlockFragments(
           view,
           node,
           pos,
