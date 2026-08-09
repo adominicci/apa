@@ -241,6 +241,44 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
     await expectCode(await rebuildArchive(files), "validate/essay-schema");
   });
 
+  it("rejects unsafe table spans and malformed column widths", async () => {
+    for (
+      const attrs of [
+        { colspan: 1_000_000, rowspan: 1, colwidth: null },
+        { colspan: 2, rowspan: 1, colwidth: [120] },
+        { colspan: 1, rowspan: 1, colwidth: [-1] },
+      ]
+    ) {
+      const files = mutateEssay(await goldenFiles(), (essay) => {
+        essay.content = {
+          type: "doc",
+          content: [{
+            type: "sectionBody",
+            content: [{
+              type: "apaTable",
+              content: [
+                { type: "tableTitle" },
+                {
+                  type: "table",
+                  content: [{
+                    type: "tableRow",
+                    content: [{
+                      type: "tableCell",
+                      attrs,
+                      content: [{ type: "paragraph" }],
+                    }],
+                  }],
+                },
+                { type: "tableNote" },
+              ],
+            }],
+          }],
+        };
+      });
+      await expectCode(await rebuildArchive(files), "validate/essay-schema");
+    }
+  });
+
   it("rejects a malformed shared library", async () => {
     const files = await goldenFiles();
     files.set(

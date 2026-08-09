@@ -46,6 +46,8 @@
     onRunWizard: () => void;
     /** Called after a successful restore merge so home/library reload. */
     onRestored: () => void;
+    /** Called when native backup configuration changes. */
+    onBackupChanged?: () => void;
     onClose: () => void;
   }
 
@@ -59,6 +61,7 @@
     openFolder = revealBackupFolder,
     onRunWizard,
     onRestored,
+    onBackupChanged = () => {},
     onClose,
   }: Props = $props();
 
@@ -128,6 +131,7 @@
     try {
       await turnOff();
       await reloadStatus();
+      onBackupChanged();
       notice = m.bk_turn_off_done();
     } catch (error) {
       errorNotice = describeBackupError(error);

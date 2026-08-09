@@ -35,12 +35,14 @@
   // ── Backup surfaces (tasks 10.1–10.5) ───────────────────────────
   let backupWizardOpen = $state(false);
   let backupSettingsOpen = $state(false);
-  /** Re-keys the backup surfaces so they reload native status. */
+  /** Re-keys settings and the home card when their native state changes. */
   let backupNonce = $state(0);
+  let backupStatusNonce = $state(0);
 
   function backupConfigured() {
     backupWizardOpen = false;
     backupNonce += 1;
+    backupStatusNonce += 1;
   }
 
   function refreshAfterRestore() {
@@ -246,7 +248,7 @@
           </div>
         </header>
 
-        {#key backupNonce}
+        {#key backupStatusNonce}
           <BackupStatusCard
             onSetup={() => (backupWizardOpen = true)}
             onOpenSettings={() => (backupSettingsOpen = true)}
@@ -391,6 +393,7 @@
     <BackupSettings
       onRunWizard={() => (backupWizardOpen = true)}
       onRestored={refreshAfterRestore}
+      onBackupChanged={() => (backupStatusNonce += 1)}
       onClose={() => (backupSettingsOpen = false)}
     />
   {/key}

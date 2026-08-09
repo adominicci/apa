@@ -389,9 +389,10 @@ describe("planImport references", () => {
     expect(plan.preview.references.conflicting).toBe(1);
   });
 
-  it("remaps every essay when any same-id snapshot variant differs locally", async () => {
+  it("gives each divergent same-id snapshot variant its own identity", async () => {
     const localRef = reference(1, "Coincide con el primer snapshot");
-    const divergent = reference(1, "Versión histórica diferente");
+    const divergentA = reference(1, "Versión histórica diferente A");
+    const divergentB = reference(1, "Versión histórica diferente B");
     const plan = await planImport(
       archiveOf({
         essays: [
@@ -402,8 +403,13 @@ describe("planImport references", () => {
           }),
           essayOf({
             id: fixtureUuid(2, 10),
-            cites: [divergent.id],
-            snapshot: [divergent],
+            cites: [divergentA.id],
+            snapshot: [divergentA],
+          }),
+          essayOf({
+            id: fixtureUuid(2, 11),
+            cites: [divergentB.id],
+            snapshot: [divergentB],
           }),
         ],
       }),
@@ -411,12 +417,20 @@ describe("planImport references", () => {
       deps(),
     );
 
-    const remappedId = fixtureUuid(9, 1);
-    for (const write of essayWrites(plan)) {
-      expect(collectCitationRefIds(write.essay.content)).toEqual([remappedId]);
-      expect(write.essay.referencesSnapshot[0].id).toBe(remappedId);
-    }
-    expect(plan.preview.references.conflicting).toBe(1);
+    const writes = essayWrites(plan);
+    expect(collectCitationRefIds(writes[0].essay.content)).toEqual([
+      localRef.id,
+    ]);
+    expect(writes[0].essay.referencesSnapshot[0].id).toBe(localRef.id);
+    expect(collectCitationRefIds(writes[1].essay.content)).toEqual([
+      fixtureUuid(9, 1),
+    ]);
+    expect(writes[1].essay.referencesSnapshot[0].id).toBe(fixtureUuid(9, 1));
+    expect(collectCitationRefIds(writes[2].essay.content)).toEqual([
+      fixtureUuid(9, 2),
+    ]);
+    expect(writes[2].essay.referencesSnapshot[0].id).toBe(fixtureUuid(9, 2));
+    expect(plan.preview.references.conflicting).toBe(2);
   });
 });
 

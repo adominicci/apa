@@ -457,6 +457,29 @@ describe("writeArchiveReplacing", () => {
     expect(journal.records.size).toBe(1);
   });
 
+  it("does not restore a preserved previous file whose hash changed", async () => {
+    const fs = new FakeFs();
+    const journal = new FakeJournal();
+    const deps = makeDeps(fs);
+    const record: ReplacementRecord = {
+      id: "r-corrupt-previous",
+      destinationPath: "/docs/lib.tesina",
+      temporaryPath: "/docs/lib.tesina.tmp",
+      previousPath: "/docs/lib.tesina.prev",
+      expectedSha256: await deps.sha256(GOOD),
+      previousSha256: await deps.sha256(OLD),
+    };
+    await journal.save(record);
+    const changed = new TextEncoder().encode("changed-previous");
+    fs.files.set(record.previousPath, changed);
+
+    await recoverReplacements(deps, journal);
+
+    expect(fs.files.has(record.destinationPath)).toBe(false);
+    expect(fs.files.get(record.previousPath)).toBe(changed);
+    expect(journal.records.has(record.id)).toBe(true);
+  });
+
   it("recovers only the destination reauthorized by the current dialog", async () => {
     const fs = new FakeFs();
     const journal = new FakeJournal();

@@ -86,6 +86,7 @@ class Harness {
   );
   onRunWizard = vi.fn();
   onRestored = vi.fn();
+  onBackupChanged = vi.fn();
   onClose = vi.fn();
 
   constructor(backup?: BackupUiSettings) {
@@ -140,6 +141,7 @@ function mountSettings(h: Harness): void {
       openFolder: h.openFolder,
       onRunWizard: h.onRunWizard,
       onRestored: h.onRestored,
+      onBackupChanged: h.onBackupChanged,
       onClose: h.onClose,
     },
   }) as Record<string, unknown>;
@@ -243,6 +245,7 @@ describe("BackupSettings", () => {
     buttonByText(m.bk_turn_off_confirm())!.click();
     await settle();
     expect(h.turnOff).toHaveBeenCalledOnce();
+    expect(h.onBackupChanged).toHaveBeenCalledOnce();
     const text = bodyText();
     expect(text).toContain(m.bk_turn_off_done());
     expect(text).toContain(m.bk_not_configured());

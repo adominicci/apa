@@ -514,6 +514,9 @@ function walkProseMirrorNode(value: unknown, where: string): void {
   if (node.type === "citation") validateCitationAttrs(node.attrs, where);
   if (node.type === "figureImage") validateFigureImageAttrs(node.attrs, where);
   if (node.type === "apaEquation") validateEquationAttrs(node.attrs, where);
+  if (node.type === "tableCell" || node.type === "tableHeader") {
+    validateTableCellAttrs(node.attrs, where);
+  }
   if (node.marks !== undefined) {
     if (!Array.isArray(node.marks)) throwEssayContent(where);
     for (const mark of node.marks) {
@@ -534,6 +537,31 @@ function validateEquationAttrs(value: unknown, where: string): void {
   if (!isRecord(value) || typeof value.latex !== "string") {
     throwEssayContent(where);
   }
+}
+
+const MAX_TABLE_SPAN = 1_000;
+const MAX_TABLE_COLUMN_WIDTH = 100_000;
+
+function validateTableCellAttrs(value: unknown, where: string): void {
+  if (value !== undefined && !isRecord(value)) throwEssayContent(where);
+  const attrs = value ?? {};
+  const colspan = (attrs as Record<string, unknown>).colspan ?? 1;
+  const rowspan = (attrs as Record<string, unknown>).rowspan ?? 1;
+  if (
+    !Number.isInteger(colspan) || Number(colspan) < 1 ||
+    Number(colspan) > MAX_TABLE_SPAN ||
+    !Number.isInteger(rowspan) || Number(rowspan) < 1 ||
+    Number(rowspan) > MAX_TABLE_SPAN
+  ) throwEssayContent(where);
+  const colwidth = (attrs as Record<string, unknown>).colwidth;
+  if (colwidth === undefined || colwidth === null) return;
+  if (
+    !Array.isArray(colwidth) || colwidth.length !== Number(colspan) ||
+    colwidth.some((width) =>
+      !Number.isInteger(width) || Number(width) < 1 ||
+      Number(width) > MAX_TABLE_COLUMN_WIDTH
+    )
+  ) throwEssayContent(where);
 }
 
 function validateFigureImageAttrs(value: unknown, where: string): void {

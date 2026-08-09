@@ -320,7 +320,15 @@ export async function recoverReplacements(
     if (await deps.fs.exists(previousPath)) {
       // The new bytes are gone: restore the previous destination.
       if (!(await deps.fs.exists(destinationPath))) {
-        await deps.fs.rename(previousPath, destinationPath);
+        if (!(await previousMatches(deps, record))) continue;
+        try {
+          await deps.fs.renameNoReplace(previousPath, destinationPath);
+        } catch {
+          continue;
+        }
+        if (
+          (await deps.fs.sha256File(destinationPath)) !== record.previousSha256
+        ) continue;
         await journal.remove(record.id);
         continue;
       }

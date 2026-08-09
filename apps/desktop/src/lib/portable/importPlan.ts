@@ -209,6 +209,7 @@ export async function planImport(
     ...snapshotOnlyReferencesById.keys(),
   ]);
   const referenceIdMap = new Map<string, string>();
+  const snapshotVariantIdMaps = new Map<string, Map<string, string>>();
   const addedReferences: Reference[] = [];
   for (const reference of archive.library.references) {
     const existing = localReferencesById.get(reference.id);
@@ -235,19 +236,21 @@ export async function planImport(
     const existing = localReferencesById.get(snapshotId);
     if (existing === undefined) continue;
     const existingDigest = await referenceDigest(existing);
-    let conflicts = false;
+    const variantIdMap = new Map<string, string>();
     for (const variant of variants) {
-      if ((await referenceDigest(variant)) !== existingDigest) {
-        conflicts = true;
-        break;
+      const variantDigest = await referenceDigest(variant);
+      if (variantDigest === existingDigest || variantIdMap.has(variantDigest)) {
+        continue;
       }
+      variantIdMap.set(
+        variantDigest,
+        allocateId(usedReferenceIds, deps.newUuid),
+      );
+      preview.references.conflicting += 1;
     }
-    if (!conflicts) continue;
-    referenceIdMap.set(
-      snapshotId,
-      allocateId(usedReferenceIds, deps.newUuid),
-    );
-    preview.references.conflicting += 1;
+    if (variantIdMap.size > 0) {
+      snapshotVariantIdMaps.set(snapshotId, variantIdMap);
+    }
   }
 
   // c. Collections: member ids map through the reference map BEFORE the
@@ -293,13 +296,26 @@ export async function planImport(
     ...archive.essays.map((e) => e.id),
   ]);
   const essayWrites: EssayWriteOp[] = [];
-  const remapMaps = { referenceIdMap, figurePathMap };
   for (
     const imported of [...archive.essays].sort((a, b) =>
       a.id.localeCompare(b.id)
     )
   ) {
-    const normalized = remapEssay(imported, remapMaps);
+    const essayReferenceIdMap = new Map(referenceIdMap);
+    const citedIds = new Set(collectCitationRefIds(imported.content));
+    for (const snapshot of imported.referencesSnapshot) {
+      if (!citedIds.has(snapshot.id)) continue;
+      const variantMap = snapshotVariantIdMaps.get(snapshot.id);
+      if (variantMap === undefined) continue;
+      const mappedId = variantMap.get(await referenceDigest(snapshot));
+      if (mappedId !== undefined) {
+        essayReferenceIdMap.set(snapshot.id, mappedId);
+      }
+    }
+    const normalized = remapEssay(imported, {
+      referenceIdMap: essayReferenceIdMap,
+      figurePathMap,
+    });
     const localEssay = localEssaysById.get(imported.id);
     const idTaken = localEssay !== undefined ||
       local.existingEssayIds.has(imported.id);
