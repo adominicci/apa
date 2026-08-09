@@ -87,6 +87,7 @@
     persistence,
     type PersistenceRegistration,
   } from "$lib/persist/coordinator";
+  import { useReleaseNotesController } from "$lib/update/releaseNotesController.svelte";
 
   interface Props {
     essay: Essay;
@@ -108,6 +109,7 @@
     onBack,
     onOpenLibrary,
   }: Props = $props();
+  const releaseNotes = useReleaseNotesController();
 
   // Remounted per essay via {#key essay.id}; initial captures are deliberate.
   let documentLanguage = $state<DocLocale>(
@@ -1208,7 +1210,23 @@
       {documentLanguage.toUpperCase()}
     </button>
     <span class="sep">·</span>
-    <span>APA 7</span>
+    <span>{m.status_apa_edition(undefined, { locale: uiLocale.current })}</span>
+    <button
+      type="button"
+      class="version"
+      data-release-notes-version
+      title={m.release_notes_open_tooltip({
+        version: releaseNotes.installedVersion,
+      }, { locale: uiLocale.current })}
+      aria-label={m.release_notes_open_label({
+        version: releaseNotes.installedVersion,
+      }, { locale: uiLocale.current })}
+      onclick={() => releaseNotes.openInstalledNotes()}
+    >
+      {m.app_version_short({ version: releaseNotes.installedVersion }, {
+        locale: uiLocale.current,
+      })}
+    </button>
     {#if exportMessage}
       <span class="export-msg">{exportMessage}</span>
     {/if}
@@ -1932,13 +1950,27 @@
     color: var(--border);
   }
 
-  .statusbar .lang {
+  .statusbar .lang,
+  .statusbar .version {
     border: none;
     background: none;
     font: inherit;
-    color: var(--accent);
     cursor: pointer;
     padding: 0 2px;
+    flex: 0 0 auto;
+  }
+
+  .statusbar .lang {
+    color: var(--accent);
+  }
+
+  .statusbar .version {
+    color: inherit;
+  }
+
+  .statusbar .version:hover,
+  .statusbar .version:focus-visible {
+    color: var(--accent);
   }
 
   .export-msg {

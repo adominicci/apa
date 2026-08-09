@@ -68,11 +68,11 @@
 
 ## Task 8: Clickable installed version on home and editor surfaces
 
-- [ ] 8.1 Replace hardcoded version literals in `messages/en.json` and `messages/es.json` with parameterized APA-edition/version-control text plus localized tooltips and accessible names; regenerate Paraglide and update the release-policy wording in `AGENTS.md` to identify package/runtime metadata as the visible-version source.
-- [ ] 8.2 Convert the home sidebar footer in `EssayHome.svelte` into a keyboard-accessible version button using the shared installed version, while preserving the localized APA 7th-edition label and compact sidebar layout.
-- [ ] 8.3 Add a `v{version}` button beside the existing `APA 7` label in `EditorScreen.svelte`'s bottom status bar, preserving save state, export messages, language control, narrow-window layout, and focus mode.
-- [ ] 8.4 Add component tests proving both buttons show the actual runtime/package version, open only the installed version's notes, handle malformed/empty/mismatched runtime results without mislabeling notes, reopen after dismissal, contain and return focus to the invoking control, and never navigate away from or mutate the open essay.
-- [ ] 8.5 Run the Svelte MCP autofixer on `EssayHome.svelte` and `EditorScreen.svelte`, verify English and Spanish UI copy, and commit the version-entry-point checkpoint with an English commit message.
+- [x] 8.1 Replace hardcoded version literals in `messages/en.json` and `messages/es.json` with parameterized APA-edition/version-control text plus localized tooltips and accessible names; regenerate Paraglide and update the release-policy wording in `AGENTS.md` to identify package/runtime metadata as the visible-version source.
+- [x] 8.2 Convert the home sidebar footer in `EssayHome.svelte` into a keyboard-accessible version button using the shared installed version, while preserving the localized APA 7th-edition label and compact sidebar layout.
+- [x] 8.3 Add a `v{version}` button beside the existing `APA 7` label in `EditorScreen.svelte`'s bottom status bar, preserving save state, export messages, language control, narrow-window layout, and focus mode.
+- [x] 8.4 Add component tests proving both buttons show the actual runtime/package version, open only the installed version's notes, handle malformed/empty/mismatched runtime results without mislabeling notes, reopen after dismissal, contain and return focus to the invoking control, and never navigate away from or mutate the open essay.
+- [x] 8.5 Run the Svelte MCP autofixer on `EssayHome.svelte` and `EditorScreen.svelte`, verify English and Spanish UI copy, and commit the version-entry-point checkpoint with an English commit message.
 
 ## Task 9: Full local quality and scenario matrix
 

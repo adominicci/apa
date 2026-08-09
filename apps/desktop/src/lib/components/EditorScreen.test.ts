@@ -15,7 +15,9 @@ import {
   readPendingReleaseNotes,
   type ReleaseNotesStorage,
 } from "$lib/update/releaseNotes";
-import EditorScreen from "./EditorScreen.svelte";
+import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
+import { createReleaseNotesController } from "$lib/update/releaseNotesController.svelte";
+import EditorScreen from "./EditorScreenReleaseNotesHarness.test.svelte";
 import type {
   PaginationEnvironment,
   StablePaginationPlan,
@@ -262,6 +264,112 @@ afterEach(() => {
 });
 
 describe("editor preview round trip", () => {
+  it("shows a native installed-version button beside APA 7 in the status bar", async () => {
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay: essayWithBody("Seed"),
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    const versionButton = document.querySelector<HTMLButtonElement>(
+      ".statusbar button[data-release-notes-version]",
+    );
+    expect(versionButton).not.toBeNull();
+    expect(versionButton?.type).toBe("button");
+    expect(versionButton?.textContent).toBe(
+      `v${bundledReleaseNotes.version}`,
+    );
+    expect(versionButton?.title).toBe(
+      `Novedades de Tesina ${bundledReleaseNotes.version}`,
+    );
+    expect(versionButton?.getAttribute("aria-label")).toBe(
+      `Abrir las notas de Tesina ${bundledReleaseNotes.version}`,
+    );
+    expect(versionButton?.previousElementSibling?.textContent).toBe("APA 7");
+
+    document.querySelector<HTMLButtonElement>(
+      `.fm-btn[aria-label="${m.fab_focus()}"]`,
+    )!.click();
+    flushSync();
+    expect(document.querySelector(".statusbar")?.classList).toContain("dim");
+    expect(versionButton?.isConnected).toBe(true);
+    await unmount(component);
+  });
+
+  it("opens mismatch-safe notes and returns focus without navigation or essay mutation", async () => {
+    const releaseNotesController = createReleaseNotesController({
+      bundled: bundledReleaseNotes,
+      getRuntimeVersion: () => Promise.resolve("9.8.7"),
+      getStorage: () => null,
+      unavailableBody: () =>
+        "Las notas no están disponibles para esta versión.",
+    });
+    releaseNotesController.setUiReady(true);
+    await releaseNotesController.resolveRuntimeVersion();
+    const essay = essayWithBody("Identity-safe body");
+    const essayBefore = structuredClone(essay);
+    const onBack = vi.fn();
+    const onOpenLibrary = vi.fn();
+    const initialLocation = globalThis.location.href;
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay,
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack,
+        onOpenLibrary,
+        releaseNotesController,
+      },
+    });
+    flushSync();
+    const authoredJson = JSON.stringify(runtime.editors[0]!.getJSON());
+
+    const versionButton = document.querySelector<HTMLButtonElement>(
+      ".statusbar button[data-release-notes-version]",
+    )!;
+    expect(versionButton.textContent).toBe("v9.8.7");
+    expect(versionButton.title).toBe("Novedades de Tesina 9.8.7");
+    versionButton.focus();
+    versionButton.click();
+    flushSync();
+
+    const dialog = document.querySelector<HTMLElement>("[role='dialog']");
+    expect(dialog?.textContent).toContain("Tesina 9.8.7");
+    expect(dialog?.textContent).toContain(
+      "Las notas no están disponibles para esta versión.",
+    );
+    expect(dialog?.textContent).not.toContain(
+      "The editor now shows the paper as separate pages",
+    );
+    globalThis.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
+    );
+    expect(dialog?.contains(document.activeElement)).toBe(true);
+
+    document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
+    flushSync();
+    expect(document.activeElement).toBe(versionButton);
+
+    versionButton.click();
+    flushSync();
+    expect(document.querySelector("[role='dialog']")?.textContent).toContain(
+      "Las notas no están disponibles para esta versión.",
+    );
+    expect(JSON.stringify(runtime.editors[0]!.getJSON())).toBe(authoredJson);
+    expect(essay).toEqual(essayBefore);
+    expect(globalThis.location.href).toBe(initialLocation);
+    expect(onBack).not.toHaveBeenCalled();
+    expect(onOpenLibrary).not.toHaveBeenCalled();
+    await unmount(component);
+  });
+
   it("shows localized live pagination lifecycle without a words-based estimate", async () => {
     const component = mount(EditorScreen, {
       target: document.body,
@@ -409,6 +517,11 @@ describe("editor preview round trip", () => {
         document.querySelector<HTMLElement>(".paper-scale-outer")?.style
           .height,
       ).toBe("1584px");
+      expect(
+        document.querySelector<HTMLButtonElement>(
+          ".statusbar button[data-release-notes-version]",
+        )?.type,
+      ).toBe("button");
 
       availableWidth = 816;
       document.querySelector<HTMLButtonElement>(
