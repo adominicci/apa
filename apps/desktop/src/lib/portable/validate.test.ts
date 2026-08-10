@@ -462,6 +462,72 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
     await expectCode(await rebuildArchive(files), "validate/essay-schema");
   });
 
+  it("accepts the editor's persisted HTTPS link marks", async () => {
+    const files = mutateEssay(await goldenFiles(), (essay) => {
+      const walk = (value: unknown): boolean => {
+        if (!value || typeof value !== "object") return false;
+        const node = value as {
+          type?: string;
+          text?: string;
+          marks?: unknown[];
+          content?: unknown[];
+        };
+        if (node.type === "text" && typeof node.text === "string") {
+          node.marks = [{
+            type: "link",
+            attrs: {
+              href: "https://example.com/source",
+              target: "_blank",
+              rel: "nofollow noopener noreferrer",
+              class: "",
+              title: "",
+            },
+          }];
+          return true;
+        }
+        return node.content?.some(walk) ?? false;
+      };
+      if (!walk(essay.content)) throw new Error("fixture has no text node");
+    });
+
+    const result = await validateArchive(
+      await rebuildArchive(files),
+      ARCHIVE_LIMITS,
+    );
+    expect(result.essays).toHaveLength(12);
+  });
+
+  it("rejects link marks with executable URL schemes", async () => {
+    const files = mutateEssay(await goldenFiles(), (essay) => {
+      const walk = (value: unknown): boolean => {
+        if (!value || typeof value !== "object") return false;
+        const node = value as {
+          type?: string;
+          text?: string;
+          marks?: unknown[];
+          content?: unknown[];
+        };
+        if (node.type === "text" && typeof node.text === "string") {
+          node.marks = [{
+            type: "link",
+            attrs: {
+              href: "javascript:alert(1)",
+              target: "_blank",
+              rel: "noopener noreferrer nofollow",
+              class: null,
+              title: null,
+            },
+          }];
+          return true;
+        }
+        return node.content?.some(walk) ?? false;
+      };
+      if (!walk(essay.content)) throw new Error("fixture has no text node");
+    });
+
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
   it("rejects a citation beyond the item budget", async () => {
     const files = mutateEssay(await goldenFiles(), (essay) => {
       const walk = (value: unknown): boolean => {
