@@ -10,7 +10,7 @@ import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import LayoutReleaseNotesHarness from "./LayoutReleaseNotesHarness.test.svelte";
 
 const canonicalNotesExcerpt =
-  "Export your complete library — every essay, reference, collection";
+  "Backups can now be set up when a paper contains website links";
 
 const runtime = vi.hoisted(() => ({
   getVersion: vi.fn<() => Promise<string>>(),

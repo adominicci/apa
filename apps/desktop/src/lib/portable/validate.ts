@@ -507,6 +507,38 @@ const SUPPORTED_NODE_TYPES = new Set([
   "apaEquation",
 ]);
 const SUPPORTED_MARK_TYPES = new Set(["bold", "italic", "underline"]);
+const SAFE_LINK_PROTOCOLS = new Set([
+  "http:",
+  "https:",
+  "ftp:",
+  "ftps:",
+  "mailto:",
+  "tel:",
+  "callto:",
+  "sms:",
+  "cid:",
+  "xmpp:",
+]);
+
+function validateLinkMark(value: unknown, where: string): void {
+  if (!isRecord(value) || !isRecord(value.attrs)) throwEssayContent(where);
+  const { href, target, rel, class: className, title } = value.attrs;
+  if (
+    typeof href !== "string" || href === "" ||
+    [target, rel, className, title].some((attribute) =>
+      attribute !== undefined && attribute !== null &&
+      typeof attribute !== "string"
+    )
+  ) throwEssayContent(where);
+
+  try {
+    const parsed = new URL(href, "https://tesina.invalid/");
+    if (!SAFE_LINK_PROTOCOLS.has(parsed.protocol)) throwEssayContent(where);
+  } catch (error) {
+    if (error instanceof ValidateError) throw error;
+    throwEssayContent(where);
+  }
+}
 
 function validateProseMirrorDoc(value: unknown, where: string): void {
   if (value === null || typeof value !== "object") {
@@ -567,10 +599,11 @@ function walkProseMirrorNode(value: unknown, where: string): void {
   if (node.marks !== undefined) {
     if (!Array.isArray(node.marks)) throwEssayContent(where);
     for (const mark of node.marks) {
-      if (
-        mark === null || typeof mark !== "object" ||
-        !SUPPORTED_MARK_TYPES.has(String((mark as { type?: unknown }).type))
-      ) throwEssayContent(where);
+      if (!isRecord(mark) || typeof mark.type !== "string") {
+        throwEssayContent(where);
+      }
+      if (mark.type === "link") validateLinkMark(mark, where);
+      else if (!SUPPORTED_MARK_TYPES.has(mark.type)) throwEssayContent(where);
     }
   }
   if (node.content !== undefined) {
