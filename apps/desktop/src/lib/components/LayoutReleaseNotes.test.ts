@@ -10,7 +10,7 @@ import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import LayoutReleaseNotesHarness from "./LayoutReleaseNotesHarness.test.svelte";
 
 const canonicalNotesExcerpt =
-  "Backups can now be set up when a paper contains website links";
+  "Tesina now checks the correct published release feed";
 
 const runtime = vi.hoisted(() => ({
   getVersion: vi.fn<() => Promise<string>>(),

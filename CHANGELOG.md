@@ -5,6 +5,13 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-08-10
+
+### Fixed
+
+- Tesina now checks the correct published release feed when looking for updates
+  at startup.
+
 ## [0.1.5] - 2026-08-09
 
 ### Fixed
@@ -99,10 +106,11 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/apa/compare/v0.1.5...HEAD
-[0.1.5]: https://github.com/adominicci/apa/compare/v0.1.4...v0.1.5
-[0.1.4]: https://github.com/adominicci/apa/compare/v0.1.3...v0.1.4
-[0.1.3]: https://github.com/adominicci/apa/compare/v0.1.2...v0.1.3
-[0.1.2]: https://github.com/adominicci/apa/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/adominicci/apa/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/adominicci/apa/releases/tag/v0.1.0
+[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/adominicci/tesina/compare/v0.1.5...v0.1.6
+[0.1.5]: https://github.com/adominicci/tesina/compare/v0.1.4...v0.1.5
+[0.1.4]: https://github.com/adominicci/tesina/compare/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/adominicci/tesina/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/adominicci/tesina/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/adominicci/tesina/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/adominicci/tesina/releases/tag/v0.1.0
