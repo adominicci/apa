@@ -263,6 +263,39 @@ describe("BackupSetupWizard", () => {
     expect(bodyText()).toContain(m.bk_success_title());
   });
 
+  it("waits for failed-test cleanup before closing", async () => {
+    const cleanup = deferred<void>();
+    const onClose = vi.fn();
+    const io = fakeIo({
+      activate: vi.fn(() => Promise.reject({ code: "archive_invalid" })),
+      cancel: vi.fn(() => cleanup.promise),
+    });
+    mountWizard({ io, onClose });
+    await settle();
+    buttonByText(m.bk_continue())!.click();
+    await settle();
+    buttonByText(m.bk_choose_folder())!.click();
+    await settle();
+    buttonByText(m.bk_continue())!.click();
+    await settle();
+    buttonByText(m.bk_continue())!.click();
+    await settle();
+    document.querySelector<HTMLInputElement>('input[type="checkbox"]')!
+      .click();
+    await settle();
+    buttonByText(m.bk_test_write())!.click();
+    await settle();
+
+    buttonByText(m.bk_cancel())!.click();
+    await settle();
+    expect(io.cancel).toHaveBeenCalledOnce();
+    expect(onClose).not.toHaveBeenCalled();
+
+    cleanup.resolve();
+    await settle();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it("cleans a failed test before backing out to choose another folder", async () => {
     const io = fakeIo({
       activate: vi.fn(() => Promise.reject({ code: "archive_invalid" })),

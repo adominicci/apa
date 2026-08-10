@@ -421,12 +421,48 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
     await expectCode(await rebuildArchive(files), "validate/essay-schema");
   });
 
+  it("rejects a citation beyond the item budget", async () => {
+    const files = mutateEssay(await goldenFiles(), (essay) => {
+      const walk = (value: unknown): boolean => {
+        if (!value || typeof value !== "object") return false;
+        const node = value as {
+          type?: string;
+          attrs?: { items?: unknown[] };
+          content?: unknown[];
+        };
+        if (node.type === "citation" && Array.isArray(node.attrs?.items)) {
+          node.attrs.items = Array.from(
+            { length: 101 },
+            () => ({ ...node.attrs!.items![0] as object }),
+          );
+          return true;
+        }
+        return node.content?.some(walk) ?? false;
+      };
+      if (!walk(essay.content)) throw new Error("fixture has no citation");
+    });
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
   it("rejects a collection with a malformed member list", async () => {
     const files = await goldenFiles();
     const library = JSON.parse(
       new TextDecoder().decode(files.get("library.json")!),
     );
     library.collections[0].refIds = "all";
+    files.set("library.json", canonicalJsonBytes(library));
+    await expectCode(await rebuildArchive(files), "validate/library-schema");
+  });
+
+  it("rejects duplicate collection ids", async () => {
+    const files = await goldenFiles();
+    const library = JSON.parse(
+      new TextDecoder().decode(files.get("library.json")!),
+    );
+    library.collections.push({
+      ...library.collections[0],
+      name: "Conflicting duplicate collection",
+    });
     files.set("library.json", canonicalJsonBytes(library));
     await expectCode(await rebuildArchive(files), "validate/library-schema");
   });
@@ -493,6 +529,13 @@ describe("image validation (task 3.3)", () => {
     const files = await goldenFiles();
     const pngPath = [...files.keys()].find((p) => p.endsWith(".png"))!;
     files.set(pngPath, pngBytes(ARCHIVE_LIMITS.maxImageDimension + 1, 4));
+    await expectCode(await rebuildArchive(files), "validate/image-limit");
+  });
+
+  it("rejects zero image dimensions", async () => {
+    const files = await goldenFiles();
+    const pngPath = [...files.keys()].find((p) => p.endsWith(".png"))!;
+    files.set(pngPath, pngBytes(0, 4));
     await expectCode(await rebuildArchive(files), "validate/image-limit");
   });
 

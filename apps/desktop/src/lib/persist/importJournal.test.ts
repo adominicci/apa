@@ -357,6 +357,33 @@ describe("rollback safety (task 6.5)", () => {
     expect(fs.files.has(installed)).toBe(true);
   });
 
+  it("quarantines a journaled output before deleting its pathname", async () => {
+    const { fs, journal, recovery, finalPaths } = await makeScenario();
+    await applyImport(journal, { fs });
+    const applying = { ...journal, status: "applying" as const };
+    const envelope = {
+      schemaVersion: 1,
+      payloadSha256: await sha256Hex(canonicalJsonBytes(applying)),
+      payload: applying,
+    };
+    fs.files.set(`imports/${TX}/journal.json`, canonicalJsonBytes(envelope));
+    fs.files.set(
+      `imports/${TX}/journal-copy.json`,
+      canonicalJsonBytes(envelope),
+    );
+    fs.files.delete(finalPaths[1]);
+
+    expect((await recoverPendingImports(recovery))[0].kind).toBe(
+      "rolled-back",
+    );
+    expect(fs.ops).not.toContain(`remove:${finalPaths[0]}`);
+    expect(fs.ops.some((op) =>
+      op.startsWith(
+        `rename:${finalPaths[0]}->imports/${TX}/rollback-quarantine/`,
+      )
+    )).toBe(true);
+  });
+
   it("preserves a final path whose bytes were changed after apply", async () => {
     const { fs, journal, recovery, finalPaths } = await makeScenario();
     // Apply half the operations, then simulate external modification.

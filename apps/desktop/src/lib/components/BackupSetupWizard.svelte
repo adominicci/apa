@@ -140,16 +140,23 @@
     }
   }
 
-  function cancelWizard(): void {
-    if (testing) return; // the test write finishes or fails first
+  async function cancelWizard(): Promise<void> {
+    if (testing || backing) return; // finish the active safe point first
     if (activated) {
       onConfigured();
       return;
     }
-    void io.cancel().catch(() => {
-      // Best-effort native cleanup; nothing was configured.
-    });
-    onClose();
+    backing = true;
+    try {
+      await io.cancel();
+      onClose();
+    } catch (error) {
+      // A written test archive is complete and unencrypted. Keep this session
+      // open so the user can retry cleanup instead of orphaning that file.
+      testError = describeBackupError(error);
+    } finally {
+      backing = false;
+    }
   }
 </script>
 
@@ -157,8 +164,8 @@
   title={m.bk_wizard_title()}
   subtitle={m.bk_step_of({ current: stepNumber[step] })}
   dismissOnOverlay={false}
-  dismissOnEscape={!testing}
-  onClose={cancelWizard}
+  dismissOnEscape={!testing && !backing}
+  onClose={() => void cancelWizard()}
 >
   <div class="wizard-body">
     {#if step === "why"}
@@ -221,7 +228,11 @@
         {m.bk_done()}
       </button>
     {:else}
-      <button class="btn btn-secondary" disabled={testing} onclick={cancelWizard}>
+      <button
+        class="btn btn-secondary"
+        disabled={testing || backing}
+        onclick={() => void cancelWizard()}
+      >
         {m.bk_cancel()}
       </button>
       {#if step !== "why"}

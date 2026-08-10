@@ -506,16 +506,54 @@ async function rollbackTransaction(
     )
     : null;
 
+  const quarantineOutput = async (op: JournalFileOp): Promise<boolean> => {
+    const quarantine = `${
+      txDir(journal.transactionId)
+    }/rollback-quarantine/${op.opId}`;
+    const matches = async (): Promise<boolean> => {
+      const bytes = await fs.readBytes(quarantine);
+      return bytes !== null && bytes.length === op.byteLength &&
+        (await sha256Hex(bytes)) === op.sha256;
+    };
+
+    // Resume safely if a prior rollback stopped after the atomic quarantine.
+    if (await fs.exists(quarantine)) {
+      if (await matches()) {
+        if (await fs.exists(op.finalPath)) return false;
+        await fs.remove(quarantine);
+        return true;
+      }
+      if (!(await fs.exists(op.finalPath))) {
+        try {
+          await fs.rename(quarantine, op.finalPath);
+        } catch { /* preserve the quarantined evidence */ }
+      }
+      return false;
+    }
+
+    if (!(await fs.exists(op.finalPath))) return true;
+    try {
+      // Same-volume rename makes the pathname check-and-take atomic. Only the
+      // isolated entry whose bytes are verified below can then be deleted.
+      await fs.rename(op.finalPath, quarantine);
+    } catch {
+      return false;
+    }
+    if (await matches()) {
+      await fs.remove(quarantine);
+      return true;
+    }
+    if (!(await fs.exists(op.finalPath))) {
+      try {
+        await fs.rename(quarantine, op.finalPath);
+      } catch { /* preserve the quarantined evidence */ }
+    }
+    return false;
+  };
+
   for (const op of journal.operations) {
     if (op.kind === "mergeLibrary") continue;
-    if (!(await fs.exists(op.finalPath))) continue;
-    const bytes = await fs.readBytes(op.finalPath);
-    if (
-      bytes !== null && bytes.length === op.byteLength &&
-      (await sha256Hex(bytes)) === op.sha256
-    ) {
-      await fs.remove(op.finalPath);
-    } else {
+    if (!(await quarantineOutput(op))) {
       blocked = op.finalPath;
     }
   }

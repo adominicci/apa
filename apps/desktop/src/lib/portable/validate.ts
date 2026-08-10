@@ -302,6 +302,7 @@ function validateLibraryPayload(
     referenceIds.add(validated.id);
   }
   const collections = lib.collections ?? [];
+  const collectionIds = new Set<string>();
   for (const collection of collections) {
     if (
       collection === null || typeof collection !== "object" ||
@@ -314,10 +315,18 @@ function validateLibraryPayload(
         where,
       );
     }
-    requireCanonicalId(
+    const collectionId = requireCanonicalId(
       (collection as RefCollection).id,
       `${where}: collection id`,
     );
+    if (collectionIds.has(collectionId)) {
+      throw new ValidateError(
+        "validate/library-schema",
+        "the shared library contains a duplicate collection id",
+        where,
+      );
+    }
+    collectionIds.add(collectionId);
     for (const refId of (collection as RefCollection).refIds) {
       if (typeof refId !== "string") {
         throw new ValidateError(
@@ -645,10 +654,12 @@ function validateFigureImageAttrs(value: unknown, where: string): void {
 
 const CITATION_MODES = new Set(["parenthetical", "narrative"]);
 const LOCATOR_TYPES = new Set(["page", "pages", "paragraph", "timestamp"]);
+const MAX_CITATION_ITEMS = 100;
 
 function validateCitationAttrs(value: unknown, where: string): void {
   if (
     !isRecord(value) || !Array.isArray(value.items) ||
+    value.items.length > MAX_CITATION_ITEMS ||
     !CITATION_MODES.has(String(value.mode))
   ) {
     throwEssayContent(where);
@@ -898,6 +909,7 @@ export async function validateArchive(
       );
     }
     if (
+      header.width === 0 || header.height === 0 ||
       header.width > limits.maxImageDimension ||
       header.height > limits.maxImageDimension ||
       header.frames > limits.maxImageFrames ||
