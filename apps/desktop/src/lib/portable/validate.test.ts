@@ -377,6 +377,20 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
     await expectCode(await rebuildArchive(files), "validate/library-schema");
   });
 
+  it("rejects contributor arrays beyond the per-field budget", async () => {
+    const files = await goldenFiles();
+    const library = JSON.parse(
+      new TextDecoder().decode(files.get("library.json")!),
+    );
+    library.references[0].authors = Array.from(
+      { length: 101 },
+      (_, index) => ({ kind: "person", family: `Author ${index}` }),
+    );
+    files.set("library.json", canonicalJsonBytes(library));
+
+    await expectCode(await rebuildArchive(files), "validate/library-schema");
+  });
+
   it("rejects malformed snapshot references", async () => {
     const files = mutateEssay(await goldenFiles(), (essay) => {
       const references = essay.referencesSnapshot as Record<string, unknown>[];
@@ -417,6 +431,22 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
         return node.content?.some(walk) ?? false;
       };
       if (!walk(doc)) throw new Error("fixture has no citation");
+    });
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
+  it("rejects heading levels outside the editor schema", async () => {
+    const files = mutateEssay(await goldenFiles(), (essay) => {
+      const doc = essay.content as {
+        content: Array<{ type?: string; content?: unknown[] }>;
+      };
+      const body = doc.content.find((node) => node.type === "sectionBody");
+      if (!body?.content) throw new Error("fixture has no body section");
+      body.content.unshift({
+        type: "heading",
+        attrs: { level: 6 },
+        content: [{ type: "text", text: "Invalid heading" }],
+      });
     });
     await expectCode(await rebuildArchive(files), "validate/essay-schema");
   });

@@ -1,8 +1,11 @@
 /**
- * Bounded image header inspection (design §4): signature, dimensions, and
- * frame counts read from headers only — nothing is ever decoded. Supported
- * kinds mirror persist/assets.ts (png, jpg, gif, bmp).
+ * Bounded image inspection (design §4): signatures, dimensions, frame counts,
+ * and enough encoded structure to reject corrupt assets. Supported kinds
+ * mirror persist/assets.ts (png, jpg, gif, bmp).
  */
+
+import { unzlibSync } from "fflate";
+import { crc32 } from "./zip.ts";
 
 export interface ImageHeader {
   kind: "png" | "jpg" | "gif" | "bmp";
@@ -67,7 +70,87 @@ function fail(detail: string): never {
   );
 }
 
-function pngHeader(bytes: Uint8Array, maxFrames: number): ImageHeader {
+function pngScanlines(
+  width: number,
+  height: number,
+  bitsPerPixel: number,
+  interlace: number,
+): number[] {
+  const passes = interlace === 0 ? [[0, 0, 1, 1]] : [
+    [0, 0, 8, 8],
+    [4, 0, 8, 8],
+    [0, 4, 4, 8],
+    [2, 0, 4, 4],
+    [0, 2, 2, 4],
+    [1, 0, 2, 2],
+    [0, 1, 1, 2],
+  ];
+  const scanlines: number[] = [];
+  for (const [startX, startY, stepX, stepY] of passes) {
+    if (width <= startX || height <= startY) continue;
+    const passWidth = Math.ceil((width - startX) / stepX);
+    const passHeight = Math.ceil((height - startY) / stepY);
+    const rowBytes = Math.ceil((passWidth * bitsPerPixel) / 8);
+    for (let row = 0; row < passHeight; row += 1) scanlines.push(rowBytes);
+  }
+  return scanlines;
+}
+
+function validatePngImageData(
+  chunks: Uint8Array[],
+  width: number,
+  height: number,
+  bitDepth: number,
+  colorType: number,
+  interlace: number,
+): void {
+  const allowedDepths: Record<number, number[]> = {
+    0: [1, 2, 4, 8, 16],
+    2: [8, 16],
+    3: [1, 2, 4, 8],
+    4: [8, 16],
+    6: [8, 16],
+  };
+  const channels: Record<number, number> = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 };
+  if (!allowedDepths[colorType]?.includes(bitDepth)) fail("png/color");
+  const scanlines = pngScanlines(
+    width,
+    height,
+    channels[colorType] * bitDepth,
+    interlace,
+  );
+  const expectedLength = scanlines.reduce((total, row) => total + row + 1, 0);
+  const encodedLength = chunks.reduce(
+    (total, chunk) => total + chunk.length,
+    0,
+  );
+  const encoded = new Uint8Array(encodedLength);
+  let encodedAt = 0;
+  for (const chunk of chunks) {
+    encoded.set(chunk, encodedAt);
+    encodedAt += chunk.length;
+  }
+  let decoded: Uint8Array;
+  try {
+    decoded = unzlibSync(encoded, {
+      out: new Uint8Array(expectedLength + 1),
+    });
+  } catch {
+    fail("png/zlib");
+  }
+  if (decoded.length !== expectedLength) fail("png/raster-length");
+  let decodedAt = 0;
+  for (const rowBytes of scanlines) {
+    if (decoded[decodedAt] > 4) fail("png/filter");
+    decodedAt += rowBytes + 1;
+  }
+}
+
+function pngHeader(
+  bytes: Uint8Array,
+  maxFrames: number,
+  maxPixels: number,
+): ImageHeader {
   const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   if (bytes.length < 33 || sig.some((b, i) => bytes[i] !== b)) fail("png");
   // First chunk must be IHDR.
@@ -77,8 +160,17 @@ function pngHeader(bytes: Uint8Array, maxFrames: number): ImageHeader {
     bytes[15] !== 0x52
   ) fail("png/ihdr");
   let frames = 1;
-  let sawImageData = false;
+  const imageData: Uint8Array[] = [];
   let sawEnd = false;
+  const width = u32be(bytes, 16);
+  const height = u32be(bytes, 20);
+  if (width === 0 || height === 0 || width * height > maxPixels) {
+    return { kind: "png", width, height, frames };
+  }
+  const bitDepth = bytes[24];
+  const colorType = bytes[25];
+  const interlace = bytes[28];
+  if (bytes[26] !== 0 || bytes[27] !== 0 || interlace > 1) fail("png/ihdr");
   let at = 8;
   while (at + 12 <= bytes.length) {
     const length = u32be(bytes, at);
@@ -90,6 +182,10 @@ function pngHeader(bytes: Uint8Array, maxFrames: number): ImageHeader {
       bytes[at + 6],
       bytes[at + 7],
     );
+    if (
+      crc32(bytes.subarray(at + 4, at + 8 + length)) !==
+        u32be(bytes, at + 8 + length)
+    ) fail("png/crc");
     if (type === "acTL") {
       if (length !== 8) fail("png/actl");
       frames = u32be(bytes, at + 8);
@@ -103,7 +199,9 @@ function pngHeader(bytes: Uint8Array, maxFrames: number): ImageHeader {
         };
       }
     }
-    if (type === "IDAT" && length > 0) sawImageData = true;
+    if (type === "IDAT" && length > 0) {
+      imageData.push(bytes.subarray(at + 8, at + 8 + length));
+    }
     if (type === "IEND") {
       if (length !== 0) fail("png/iend");
       sawEnd = true;
@@ -111,11 +209,19 @@ function pngHeader(bytes: Uint8Array, maxFrames: number): ImageHeader {
     }
     at = end;
   }
-  if (!sawImageData || !sawEnd) fail("png/incomplete");
+  if (imageData.length === 0 || !sawEnd) fail("png/incomplete");
+  validatePngImageData(
+    imageData,
+    width,
+    height,
+    bitDepth,
+    colorType,
+    interlace,
+  );
   return {
     kind: "png",
-    width: u32be(bytes, 16),
-    height: u32be(bytes, 20),
+    width,
+    height,
     frames,
   };
 }
@@ -290,6 +396,7 @@ export function readImageHeader(
   bytes: Uint8Array,
   extension: string,
   maxFrames: number,
+  maxPixels = 40_000_000,
 ): ImageHeader {
   const kind = SUPPORTED_IMAGE_EXTENSIONS[extension];
   if (!kind) {
@@ -301,7 +408,7 @@ export function readImageHeader(
   }
   switch (kind) {
     case "png":
-      return pngHeader(bytes, maxFrames);
+      return pngHeader(bytes, maxFrames, maxPixels);
     case "jpg":
       return jpegHeader(bytes);
     case "gif":

@@ -5,6 +5,7 @@
  * validator inspects (signatures, dimensions, frame counts — never decoding).
  */
 
+import { zlibSync } from "fflate";
 import { crc32 } from "../zip.ts";
 
 function u32be(value: number): number[] {
@@ -40,6 +41,7 @@ function pngChunk(type: string, data: number[]): number[] {
 }
 
 export function pngBytes(width: number, height: number): Uint8Array {
+  const scanlines = new Uint8Array(height * (1 + width * 3));
   return Uint8Array.from([
     0x89,
     0x50,
@@ -58,7 +60,7 @@ export function pngBytes(width: number, height: number): Uint8Array {
       0,
       0,
     ]),
-    ...pngChunk("IDAT", [0x78, 0x9c, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01]),
+    ...pngChunk("IDAT", [...zlibSync(scanlines)]),
     ...pngChunk("IEND", []),
   ]);
 }

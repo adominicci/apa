@@ -446,23 +446,20 @@ impl BackupDirectoryCore {
         })
     }
 
-    /// Clears the pending selection and removes ONLY the exact test file(s)
-    /// this pending session wrote (best-effort; never touches other files).
+    /// Clears the pending selection only after removing every exact test file
+    /// this pending session wrote. A failed cleanup remains pending so the UI
+    /// can retry after the folder becomes available again.
     pub fn cancel_configuration(&self) -> Result<(), BackupError> {
         self.invalidate_current_configuration_epoch();
         let mut inner = self.lock();
-        if let Some(pending) = inner.pending.take() {
-            if let Ok(subfolder) = resolve_subfolder(&pending.canonical_folder_path) {
-                for (file_name, expected_sha256) in &pending.test_archives {
-                    if validate_file_name(file_name).is_ok() {
-                        let _ = quarantine_and_remove_archive(
-                            &subfolder.join(file_name),
-                            expected_sha256,
-                            |_| Ok(()),
-                        );
-                    }
-                }
+        if let Some(pending) = inner.pending.as_ref() {
+            let subfolder = resolve_subfolder(&pending.canonical_folder_path)?;
+            for (file_name, expected_sha256) in &pending.test_archives {
+                validate_file_name(file_name)?;
+                let path = subfolder.join(file_name);
+                cleanup_pending_archive(&path, expected_sha256)?;
             }
+            inner.pending = None;
         }
         Ok(())
     }
@@ -1062,6 +1059,57 @@ fn sha256_file_bounded(
 /// Moves the pathname out of service before hashing so a sync provider may
 /// recreate the public name without making us delete unverified bytes. The
 /// hook is a deterministic test seam for that post-quarantine race.
+fn cleanup_pending_archive(path: &Path, expected_sha256: &str) -> Result<(), BackupError> {
+    let parent = path.parent().ok_or_else(|| {
+        BackupError::new(BackupErrorCode::Io, "the archive has no parent directory")
+    })?;
+    // A stable quarantine name makes a failed removal retryable even when the
+    // public pathname is now absent or has been recreated by a sync provider.
+    let quarantine = parent.join(format!(".delete-pending-{expected_sha256}"));
+    let candidate = if quarantine.exists() {
+        quarantine.clone()
+    } else {
+        if !path.exists() {
+            return Ok(());
+        }
+        fs::rename(path, &quarantine)
+            .map_err(|error| BackupError::io("cannot quarantine test archive", &error))?;
+        quarantine.clone()
+    };
+
+    let outcome = (|| {
+        let metadata = fs::symlink_metadata(&candidate).map_err(|error| {
+            BackupError::io("quarantined test archive is not accessible", &error)
+        })?;
+        if !metadata.is_file() {
+            return Err(BackupError::new(
+                BackupErrorCode::Io,
+                "the quarantined test archive is not a regular file",
+            ));
+        }
+        let current = sha256_file_bounded(
+            &candidate,
+            "cannot read quarantined test archive",
+            MAX_ARCHIVE_BYTES,
+        )?;
+        if !current.eq_ignore_ascii_case(expected_sha256) {
+            return Err(BackupError::new(
+                BackupErrorCode::HashMismatch,
+                "the test archive changed before cleanup; nothing was deleted",
+            ));
+        }
+        fs::remove_file(&candidate)
+            .map_err(|error| BackupError::io("cannot remove quarantined test archive", &error))
+    })();
+
+    if outcome.is_err() && candidate.exists() && !path.exists() {
+        fs::rename(&candidate, path).map_err(|error| {
+            BackupError::io("cannot restore test archive after failed cleanup", &error)
+        })?;
+    }
+    outcome
+}
+
 fn quarantine_and_remove_archive<F>(
     path: &Path,
     expected_sha256: &str,
@@ -1852,7 +1900,7 @@ mod tests {
     }
 
     #[test]
-    fn cancel_keeps_a_test_archive_replaced_by_sync() {
+    fn cancel_keeps_a_test_archive_replaced_by_sync_and_remains_retryable() {
         let fixture = fixture();
         let core = core(&fixture);
         core.begin_configuration(fixture.selected_dir.to_str().unwrap())
@@ -1862,9 +1910,41 @@ mod tests {
         let path = subfolder_of(&fixture.selected_dir).join("Test Backup.tesina");
         fs::write(&path, b"synced replacement").unwrap();
 
-        core.cancel_configuration().unwrap();
+        let error = core
+            .cancel_configuration()
+            .expect_err("a replacement must not be deleted or forgotten");
 
+        assert_eq!(error.code, BackupErrorCode::HashMismatch);
         assert_eq!(fs::read(path).unwrap(), b"synced replacement");
+        assert!(core.lock().pending.is_some());
+    }
+
+    #[test]
+    fn cancel_retains_pending_cleanup_until_the_folder_returns() {
+        let fixture = fixture();
+        let core = core(&fixture);
+        core.begin_configuration(fixture.selected_dir.to_str().unwrap())
+            .unwrap();
+        core.write_test_archive("Retry Cleanup.tesina", b"owned test")
+            .unwrap();
+        let unavailable = fixture._root.path().join("TemporarilyUnavailable");
+        fs::rename(&fixture.selected_dir, &unavailable).unwrap();
+
+        let error = core
+            .cancel_configuration()
+            .expect_err("cleanup failure must be reported");
+        assert_eq!(error.code, BackupErrorCode::FolderUnavailable);
+        assert!(
+            core.lock().pending.is_some(),
+            "cleanup must remain retryable"
+        );
+
+        fs::rename(&unavailable, &fixture.selected_dir).unwrap();
+        core.cancel_configuration().expect("retry cleanup");
+        assert!(core.lock().pending.is_none());
+        assert!(!subfolder_of(&fixture.selected_dir)
+            .join("Retry Cleanup.tesina")
+            .exists());
     }
 
     #[test]

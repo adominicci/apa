@@ -1,26 +1,32 @@
 import { describe, expect, it } from "vitest";
+import { zlibSync } from "fflate";
 import { readImageHeader } from "./imageHeaders.ts";
+import { crc32 } from "./zip.ts";
 import { bmpBytes, gifBytes, jpegBytes } from "./fixtures/images.ts";
 
 function chunk(type: string, data: number[]): number[] {
   const length = data.length;
+  const body = Uint8Array.from([
+    ...[...type].map((char) => char.charCodeAt(0)),
+    ...data,
+  ]);
+  const checksum = crc32(body);
   return [
     (length >>> 24) & 0xff,
     (length >>> 16) & 0xff,
     (length >>> 8) & 0xff,
     length & 0xff,
-    ...[...type].map((char) => char.charCodeAt(0)),
-    ...data,
-    0,
-    0,
-    0,
-    0,
+    ...body,
+    (checksum >>> 24) & 0xff,
+    (checksum >>> 16) & 0xff,
+    (checksum >>> 8) & 0xff,
+    checksum & 0xff,
   ];
 }
 
 function animatedPng(
   frames: number,
-  imageData: number[] = [0x78, 0x9c, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01],
+  imageData: number[] = [...zlibSync(new Uint8Array(24 * (1 + 32 * 4)))],
 ): Uint8Array {
   return new Uint8Array([
     0x89,
@@ -63,6 +69,16 @@ describe("readImageHeader APNG", () => {
 
   it("rejects a PNG whose IDAT chunks contain no encoded bytes", () => {
     expect(() => readImageHeader(animatedPng(1, []), "png", 100)).toThrow();
+  });
+
+  it("rejects a PNG whose nonempty IDAT is not a valid zlib stream", () => {
+    expect(() => readImageHeader(animatedPng(1, [1]), "png", 100)).toThrow();
+  });
+
+  it("rejects a PNG with a corrupt chunk checksum", () => {
+    const bytes = animatedPng(1);
+    bytes[29] ^= 0xff;
+    expect(() => readImageHeader(bytes, "png", 100)).toThrow();
   });
 });
 

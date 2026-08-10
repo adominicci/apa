@@ -134,18 +134,21 @@ function validateDate(value: unknown): boolean {
     validOptionalBoolean(value.noDate) && validOptionalBoolean(value.inPress);
 }
 
+const MAX_CONTRIBUTORS_PER_FIELD = 100;
+
 function validateContributors(value: unknown): boolean {
-  return Array.isArray(value) && value.every((contributor) => {
-    if (!isRecord(contributor)) return false;
-    if (contributor.kind === "person") {
-      return typeof contributor.family === "string" &&
-        validOptionalString(contributor.given) &&
-        validOptionalString(contributor.suffix);
-    }
-    return contributor.kind === "group" &&
-      typeof contributor.name === "string" &&
-      validOptionalString(contributor.abbreviation);
-  });
+  return Array.isArray(value) && value.length <= MAX_CONTRIBUTORS_PER_FIELD &&
+    value.every((contributor) => {
+      if (!isRecord(contributor)) return false;
+      if (contributor.kind === "person") {
+        return typeof contributor.family === "string" &&
+          validOptionalString(contributor.given) &&
+          validOptionalString(contributor.suffix);
+      }
+      return contributor.kind === "group" &&
+        typeof contributor.name === "string" &&
+        validOptionalString(contributor.abbreviation);
+    });
 }
 
 function validateOptionalContributors(value: unknown): boolean {
@@ -547,6 +550,11 @@ function walkProseMirrorNode(value: unknown, where: string): void {
       Array.isArray(node.attrs))
   ) throwEssayContent(where);
   if (node.type === "citation") validateCitationAttrs(node.attrs, where);
+  if (
+    node.type === "heading" &&
+    (!isRecord(node.attrs) || !Number.isSafeInteger(node.attrs.level) ||
+      Number(node.attrs.level) < 1 || Number(node.attrs.level) > 5)
+  ) throwEssayContent(where);
   if (node.type === "figureImage") validateFigureImageAttrs(node.attrs, where);
   if (node.type === "apaEquation") validateEquationAttrs(node.attrs, where);
   if (node.type === "tableCell" || node.type === "tableHeader") {
@@ -890,7 +898,12 @@ export async function validateArchive(
     const record = records.get(path)!;
     let header: ImageHeader;
     try {
-      header = readImageHeader(payload, extension, limits.maxImageFrames);
+      header = readImageHeader(
+        payload,
+        extension,
+        limits.maxImageFrames,
+        limits.maxImagePixels,
+      );
     } catch (error) {
       if (error instanceof ImageHeaderError) {
         throw new ValidateError(
