@@ -247,15 +247,11 @@
   content: "Appendix";
 }
 
-.apa-editor[data-doclang="es"]
-  .tiptap
-  .sec-appendix[data-appendix-letter]::before {
+.apa-editor[data-doclang="es"] .tiptap .sec-appendix[data-appendix-letter]::before {
   content: "Apéndice " attr(data-appendix-letter);
 }
 
-.apa-editor[data-doclang="en"]
-  .tiptap
-  .sec-appendix[data-appendix-letter]::before {
+.apa-editor[data-doclang="en"] .tiptap .sec-appendix[data-appendix-letter]::before {
   content: "Appendix " attr(data-appendix-letter);
 }
 
@@ -324,9 +320,7 @@
 /* A non-splittable block that exceeds the printable area stays authored and
    editable. Derived pagination decorates that exact node and bounds only its
    presentation, keeping all content reachable through the local scroller. */
-.apa-editor
-  .tiptap
-  .tesina-pagination-overflow[data-pagination-overflow="atomic"] {
+.apa-editor .tiptap .tesina-pagination-overflow[data-pagination-overflow="atomic"] {
   max-height: calc(864px - 2em);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -337,9 +331,7 @@
 /* Keep valid table/tbody/tr/td DOM while the exceptional row becomes its own
    bounded grid viewport. Derived span metadata preserves the authored column
    structure; later rows and their page gaps remain in ordinary table flow. */
-.apa-editor
-  .tiptap
-  tr.tesina-pagination-overflow[data-pagination-overflow="tableRow"] {
+.apa-editor .tiptap tr.tesina-pagination-overflow[data-pagination-overflow="tableRow"] {
   display: grid;
   grid-template-columns:
     repeat(
@@ -360,10 +352,7 @@
   width: 100%;
 }
 
-.apa-editor
-  .tiptap
-  tr.tesina-pagination-overflow[data-pagination-overflow="tableRow"]
-  > .tesina-pagination-overflow-cell {
+.apa-editor .tiptap tr.tesina-pagination-overflow[data-pagination-overflow="tableRow"] > .tesina-pagination-overflow-cell {
   display: block;
   grid-column: span var(--pagination-overflow-span);
   min-width: 0;

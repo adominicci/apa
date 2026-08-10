@@ -8,6 +8,12 @@ import {
   writeTextFile,
 } from "@tauri-apps/plugin-fs";
 import { appDataDir, dirname, join } from "@tauri-apps/api/path";
+import { persistence } from "./coordinator.ts";
+import {
+  installReplacement,
+  isWindowsWebView,
+  recoverInterruptedReplacement,
+} from "./atomicReplace.ts";
 
 /**
  * All Tesina data lives under the OS app-data directory ($APPDATA), the only
@@ -34,21 +40,44 @@ export async function writeJsonAtomic(
   relativePath: string,
   data: unknown,
 ): Promise<void> {
+  persistence.noteDirectWrite();
+  await writeJsonAtomicQuiet(relativePath, data);
+}
+
+/**
+ * Same crash-safe write WITHOUT the persistence-activity note. Only for
+ * files outside the content library (settings/status caches): backup-owned
+ * status writes must never feed the activity signal that schedules backup
+ * eligibility checks, or an unchanged library would re-check forever.
+ */
+export async function writeJsonAtomicQuiet(
+  relativePath: string,
+  data: unknown,
+): Promise<void> {
   const target = await resolveAbsolute(relativePath);
   await ensureDir(await dirname(target));
   const tmp = `${target}.tmp`;
   await writeTextFile(tmp, JSON.stringify(data, null, 2));
-  await rename(tmp, target);
+  await installReplacement(
+    tmp,
+    target,
+    { exists, remove, rename },
+    isWindowsWebView(),
+  );
 }
 
 /** Returns `null` when the file does not exist yet. */
 export async function readJson<T>(relativePath: string): Promise<T | null> {
   const target = await resolveAbsolute(relativePath);
+  if (isWindowsWebView()) {
+    await recoverInterruptedReplacement(target, { exists, remove, rename });
+  }
   if (!(await exists(target))) return null;
   return JSON.parse(await readTextFile(target)) as T;
 }
 
 export async function removeFile(relativePath: string): Promise<void> {
+  persistence.noteDirectWrite();
   const target = await resolveAbsolute(relativePath);
   if (await exists(target)) {
     await remove(target);

@@ -23,6 +23,9 @@
     ]
   },
   "lint": {
+    "rules": {
+      "exclude": ["no-import-prefix", "no-sloppy-imports"]
+    },
     "exclude": [
       "**/node_modules",
       "**/dist",

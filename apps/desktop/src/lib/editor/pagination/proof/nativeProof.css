@@ -98,11 +98,6 @@ body[data-stable-pagination-inspection="ready"] #proof-result {
   );
 }
 
-#proof-mount[data-proof-oversize-table-row="true"]
-  .apa-table
-  tbody
-  tr:last-child
-  td
-  p {
+#proof-mount[data-proof-oversize-table-row="true"] .apa-table tbody tr:last-child td p {
   min-height: 960px;
 }

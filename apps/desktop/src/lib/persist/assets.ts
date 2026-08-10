@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
+import { persistence } from "./coordinator.ts";
 
 /**
  * Figure images are copied into `essays/assets/` under $APPDATA and referenced
@@ -37,6 +38,7 @@ async function absolute(relPath: string): Promise<string> {
 
 /** Copies a picked image into the assets dir; returns its relative path. */
 export async function importImageFile(file: File): Promise<string> {
+  persistence.noteDirectWrite();
   const bytes = new Uint8Array(await file.arrayBuffer());
   const ext = extOf(file.name);
   const relPath = `${IMAGE_DIR}/${crypto.randomUUID()}.${ext}`;

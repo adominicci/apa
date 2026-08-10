@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createCloseRequestHandler } from "./windowClose";
+import { createCloseRequestHandler } from "./windowClose.ts";
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -38,15 +38,19 @@ describe("native close persistence barrier", () => {
     const error = new Error("disk full");
     const destroy = vi.fn<() => Promise<void>>().mockResolvedValue();
     const onError = vi.fn();
+    const resumeAfterFailedShutdown = vi.fn<() => Promise<void>>()
+      .mockResolvedValue();
     const close = createCloseRequestHandler({
       flushPending: () => Promise.reject(error),
       destroy,
+      resumeAfterFailedShutdown,
       onError,
     });
 
     await close({ preventDefault: vi.fn() });
 
     expect(destroy).not.toHaveBeenCalled();
+    expect(resumeAfterFailedShutdown).toHaveBeenCalledOnce();
     expect(onError).toHaveBeenCalledWith(error);
   });
 });

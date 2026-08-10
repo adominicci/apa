@@ -23,6 +23,7 @@ coverage/
 
 # Generated manual-verification artifacts
 samples/
+.playwright-mcp/
 
 # Local env
 .env

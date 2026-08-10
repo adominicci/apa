@@ -10,7 +10,7 @@ import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import LayoutReleaseNotesHarness from "./LayoutReleaseNotesHarness.test.svelte";
 
 const canonicalNotesExcerpt =
-  "Essays now flow automatically from one US Letter page to the next";
+  "Export your complete library — every essay, reference, collection";
 
 const runtime = vi.hoisted(() => ({
   getVersion: vi.fn<() => Promise<string>>(),
@@ -35,6 +35,8 @@ vi.mock("$lib/state/uiLocale.svelte", () => ({
     current: "en",
     theme: "system",
     loaded: true,
+    flushPending: () => Promise.resolve(),
+    setPersistenceDirtyNotifier: vi.fn(),
   },
 }));
 

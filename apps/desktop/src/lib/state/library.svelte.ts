@@ -46,6 +46,12 @@ export class LibraryStore {
   #activeFlush: Promise<void> | null = null;
   #notifyPersistenceDirty: (() => void) | null = null;
 
+  /** Re-reads library.json (after a Merge import rewrote it on disk). */
+  async reload(): Promise<void> {
+    this.loaded = false;
+    await this.load();
+  }
+
   async load(): Promise<void> {
     if (this.loaded) return;
     try {

@@ -5,6 +5,7 @@ interface CloseRequestEvent {
 interface CloseRequestDependencies {
   flushPending(): Promise<void>;
   destroy(): Promise<void>;
+  resumeAfterFailedShutdown?(): Promise<void>;
   onError(error: unknown): void;
 }
 
@@ -27,6 +28,7 @@ export function createCloseRequestHandler(
       await dependencies.destroy();
     } catch (error) {
       closing = false;
+      await dependencies.resumeAfterFailedShutdown?.();
       dependencies.onError(error);
     }
   };

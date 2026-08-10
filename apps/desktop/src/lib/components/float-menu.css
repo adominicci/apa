@@ -213,8 +213,7 @@
 .float-menu[data-dock="left"] .fm-count,
 .float-menu[data-dock="right"] .fm-count,
 /* El caret de los desplegables sobra junto a un ícono solo: agrega ancho y
-   ya no apunta hacia donde el menú se abre. */
-.float-menu[data-dock="left"] .caret,
+   ya no apunta hacia donde el menú se abre. */ .float-menu[data-dock="left"] .caret,
 .float-menu[data-dock="right"] .caret {
   display: none;
 }
@@ -417,18 +416,10 @@
  * remains in place and keeps its icon, accessible name, and popover.
  */
 @media (max-width: 1428px) {
-  .float-menu[data-dock="bottom"]
-    .fm-btn:not(.primary):not(.fm-primary-action)
-    .fm-label,
-  .float-menu[data-dock="top"]
-    .fm-btn:not(.primary):not(.fm-primary-action)
-    .fm-label,
-  .float-menu[data-dock="left"]
-    .fm-btn:not(.primary):not(.fm-primary-action)
-    .fm-label,
-  .float-menu[data-dock="right"]
-    .fm-btn:not(.primary):not(.fm-primary-action)
-    .fm-label,
+  .float-menu[data-dock="bottom"] .fm-btn:not(.primary):not(.fm-primary-action) .fm-label,
+  .float-menu[data-dock="top"] .fm-btn:not(.primary):not(.fm-primary-action) .fm-label,
+  .float-menu[data-dock="left"] .fm-btn:not(.primary):not(.fm-primary-action) .fm-label,
+  .float-menu[data-dock="right"] .fm-btn:not(.primary):not(.fm-primary-action) .fm-label,
   .float-menu .fm-count {
     display: none;
   }
@@ -438,10 +429,8 @@
     position: relative;
   }
 
-  .float-menu[data-dock="bottom"]
-    .fm-btn:not(.primary):not(.fm-primary-action)::after,
-  .float-menu[data-dock="top"]
-    .fm-btn:not(.primary):not(.fm-primary-action)::after {
+  .float-menu[data-dock="bottom"] .fm-btn:not(.primary):not(.fm-primary-action)::after,
+  .float-menu[data-dock="top"] .fm-btn:not(.primary):not(.fm-primary-action)::after {
     content: attr(data-tip);
     position: absolute;
     left: 50%;
@@ -461,24 +450,18 @@
     z-index: 70;
   }
 
-  .float-menu[data-dock="bottom"]
-    .fm-btn:not(.primary):not(.fm-primary-action)::after {
+  .float-menu[data-dock="bottom"] .fm-btn:not(.primary):not(.fm-primary-action)::after {
     bottom: calc(100% + 8px);
   }
 
-  .float-menu[data-dock="top"]
-    .fm-btn:not(.primary):not(.fm-primary-action)::after {
+  .float-menu[data-dock="top"] .fm-btn:not(.primary):not(.fm-primary-action)::after {
     top: calc(100% + 8px);
   }
 
-  .float-menu[data-dock="bottom"]
-    .fm-btn:not(.primary):not(.fm-primary-action):hover::after,
-  .float-menu[data-dock="bottom"]
-    .fm-btn:not(.primary):not(.fm-primary-action):focus-visible::after,
-  .float-menu[data-dock="top"]
-    .fm-btn:not(.primary):not(.fm-primary-action):hover::after,
-  .float-menu[data-dock="top"]
-    .fm-btn:not(.primary):not(.fm-primary-action):focus-visible::after {
+  .float-menu[data-dock="bottom"] .fm-btn:not(.primary):not(.fm-primary-action):hover::after,
+  .float-menu[data-dock="bottom"] .fm-btn:not(.primary):not(.fm-primary-action):focus-visible::after,
+  .float-menu[data-dock="top"] .fm-btn:not(.primary):not(.fm-primary-action):hover::after,
+  .float-menu[data-dock="top"] .fm-btn:not(.primary):not(.fm-primary-action):focus-visible::after {
     opacity: 1;
   }
 }
@@ -502,10 +485,8 @@
 /* Side preferences render as a horizontal bar below 1100px. Restore the
    secondary icon tooltips in that forced-bottom layout. */
 @media (max-width: 1100px) {
-  .float-menu[data-dock="left"]
-    .fm-btn:not(.primary):not(.fm-primary-action)::after,
-  .float-menu[data-dock="right"]
-    .fm-btn:not(.primary):not(.fm-primary-action)::after {
+  .float-menu[data-dock="left"] .fm-btn:not(.primary):not(.fm-primary-action)::after,
+  .float-menu[data-dock="right"] .fm-btn:not(.primary):not(.fm-primary-action)::after {
     content: attr(data-tip);
     top: auto;
     right: auto;

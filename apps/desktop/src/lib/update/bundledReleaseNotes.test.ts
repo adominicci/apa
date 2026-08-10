@@ -7,17 +7,28 @@ import {
 
 describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
-    const expectedNotes = `### Changed
+    const expectedNotes = `### Added
 
-- Essays now flow automatically from one US Letter page to the next while you
-  write, with the title page, body, references, and appendices staying in order.
-- Release notes now show formatted headings and lists while unsafe links and
-  embedded content remain blocked.
-- The installed version is always available on the home screen and in the
-  editor status bar, where it can reopen that version's release notes at any
-  time.`;
+- Export your complete library — every essay, reference, collection, and
+  figure — as one portable \`.tesina\` file you can copy, move, or keep
+  anywhere. Tesina verifies the saved file by reopening it before reporting
+  success.
+- Import a \`.tesina\` file with a clear preview first: new content is added,
+  identical content is skipped, and anything that differs is kept as a
+  separate imported copy. Importing never replaces or deletes your current
+  work, and an interrupted import is finished or undone safely the next time
+  Tesina starts.
+- Optional daily backups to one folder you choose — including folders synced
+  by Google Drive, iCloud Drive, OneDrive, or Dropbox — set up through a
+  five-step guided wizard in your language. Tesina keeps the seven newest
+  backups from this computer, never touches anyone else's files, and shows
+  you the last successful backup at a glance.
+- Restore from a backup by merging it into your current library, so newer
+  work is never rolled back or replaced.
+- Backup files are complete and not password-protected; the wizard explains
+  this clearly before anything is written.`;
 
-    expect(bundledReleaseNotes.version).toBe("0.1.3");
+    expect(bundledReleaseNotes.version).toBe("0.1.4");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");

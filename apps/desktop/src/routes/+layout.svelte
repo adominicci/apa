@@ -19,6 +19,7 @@
   import { m } from "$lib/paraglide/messages";
   import { library } from "$lib/state/library.svelte";
   import { persistence } from "$lib/persist/coordinator";
+  import { operations } from "$lib/persist/operationCoordinator";
   import { createCloseRequestHandler } from "$lib/persist/windowClose";
 
   interface Props {
@@ -60,15 +61,27 @@
     const libraryPersistence = persistence.register(() =>
       library.flushPending()
     );
+    const settingsPersistence = persistence.register(() =>
+      uiLocale.flushPending()
+    );
     library.setPersistenceDirtyNotifier(libraryPersistence.markDirty);
+    uiLocale.setPersistenceDirtyNotifier(settingsPersistence.markDirty);
     let disposed = false;
     let unlisten: (() => void) | undefined;
 
     if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
       const appWindow = getCurrentWindow();
       const close = createCloseRequestHandler({
-        flushPending: () => persistence.flushPending(),
+        // Flush persistence first, then wait for active export/backup/import
+        // operations to reach their safe points (cancel-and-clean or a
+        // persisted recoverable journal) — design §13, task 6.7.
+        flushPending: async () => {
+          await persistence.flushPending();
+          await operations.awaitSafeShutdown();
+          await persistence.flushPending();
+        },
         destroy: () => appWindow.destroy(),
+        resumeAfterFailedShutdown: () => operations.resumeAfterFailedShutdown(),
         onError: (error) => {
           console.error("No se pudo cerrar la aplicación:", error);
         },
@@ -87,7 +100,9 @@
       disposed = true;
       unlisten?.();
       library.setPersistenceDirtyNotifier(null);
+      uiLocale.setPersistenceDirtyNotifier(null);
       libraryPersistence.unregister();
+      settingsPersistence.unregister();
     };
   });
 

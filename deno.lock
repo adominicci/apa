@@ -3,6 +3,7 @@
   "specifiers": {
     "npm:@inlang/paraglide-js@2.21.0": "2.21.0_typescript@5.6.3",
     "npm:@inlang/paraglide-js@^2.4.0": "2.21.0_typescript@5.6.3",
+    "npm:@noble/hashes@1.8.0": "1.8.0",
     "npm:@retorquere/bibtex-parser@10": "10.0.0",
     "npm:@sveltejs/adapter-static@^3.0.6": "3.0.10_@sveltejs+kit@2.69.2__@sveltejs+vite-plugin-svelte@5.1.1___svelte@5.56.4____acorn@8.17.0___vite@6.4.3____picomatch@4.0.5__svelte@5.56.4___acorn@8.17.0__typescript@5.6.3__vite@6.4.3___picomatch@4.0.5__acorn@8.17.0_@sveltejs+vite-plugin-svelte@5.1.1__svelte@5.56.4___acorn@8.17.0__vite@6.4.3___picomatch@4.0.5_svelte@5.56.4__acorn@8.17.0_typescript@5.6.3_vite@6.4.3__picomatch@4.0.5",
     "npm:@sveltejs/kit@2.69.2": "2.69.2_@sveltejs+vite-plugin-svelte@5.1.1__svelte@5.56.4___acorn@8.17.0__vite@6.4.3___picomatch@4.0.5_svelte@5.56.4__acorn@8.17.0_typescript@5.6.3_vite@6.4.3__picomatch@4.0.5_acorn@8.17.0",
@@ -254,6 +255,9 @@
     },
     "@lix-js/server-protocol-schema@0.1.1": {
       "integrity": "sha512-jBeALB6prAbtr5q4vTuxnRZZv1M2rKe8iNqRQhFJ4Tv7150unEa0vKyz0hs8Gl3fUGsWaNJBh3J8++fpbrpRBQ=="
+    },
+    "@noble/hashes@1.8.0": {
+      "integrity": "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="
     },
     "@polka/url@1.0.0-next.29": {
       "integrity": "sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww=="
@@ -1890,6 +1894,7 @@
         "packageJson": {
           "dependencies": [
             "npm:@inlang/paraglide-js@^2.4.0",
+            "npm:@noble/hashes@1.8.0",
             "npm:@retorquere/bibtex-parser@10",
             "npm:@sveltejs/adapter-static@^3.0.6",
             "npm:@sveltejs/kit@^2.9.0",
@@ -1909,6 +1914,7 @@
             "npm:@tiptap/pm@^3.6.5",
             "npm:@tiptap/starter-kit@^3.6.5",
             "npm:dompurify@3.4.13",
+            "npm:fflate@~0.8.2",
             "npm:jsdom@26",
             "npm:marked@18.0.9",
             "npm:pagedjs@~0.4.3",
