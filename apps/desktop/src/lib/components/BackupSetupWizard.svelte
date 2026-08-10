@@ -107,8 +107,9 @@
     // Cleanup via cancel: Rust removes only this session's test files.
     try {
       await io.cancel();
-    } catch {
-      // Cleanup is best-effort; the user is re-selecting anyway.
+    } catch (error) {
+      testError = describeBackupError(error);
+      return;
     }
     pending = null;
     consent = false;
@@ -124,15 +125,16 @@
       backing = true;
       try {
         await io.cancel();
-      } catch {
-        // Best-effort cleanup; the old pending selection is no longer reused.
+      } catch (error) {
+        testError = describeBackupError(error);
+        return;
       } finally {
-        pending = null;
-        consent = false;
-        testError = null;
-        step = "location";
         backing = false;
       }
+      pending = null;
+      consent = false;
+      testError = null;
+      step = "location";
     }
     else if (step === "test") {
       testError = null;

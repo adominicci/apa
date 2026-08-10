@@ -418,10 +418,11 @@ async function fileMatches(
 ): Promise<boolean> {
   if (!(await deps.fs.exists(path))) return false;
   try {
-    if ((await deps.fs.sha256File(path)) !== record.expectedSha256) {
+    const bytes = await deps.fs.readFile(path);
+    if ((await deps.sha256(bytes)) !== record.expectedSha256) {
       return false;
     }
-    await deps.validate(await deps.fs.readFile(path));
+    await deps.validate(bytes);
     return true;
   } catch {
     return false;

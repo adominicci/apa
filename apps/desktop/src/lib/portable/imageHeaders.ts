@@ -377,16 +377,31 @@ function bmpHeader(bytes: Uint8Array): ImageHeader {
     fileSize !== bytes.length || pixelOffset < 14 + dibSize ||
     pixelOffset >= fileSize
   ) fail("bmp/dib");
-  const width = u32le(bytes, 18);
+  const width = u32le(bytes, 18) | 0;
   // Height may be negative (top-down); magnitude is the pixel height.
   const rawHeight = u32le(bytes, 22) | 0;
-  if (width === 0 || rawHeight === 0 || u16le(bytes, 26) !== 1) {
+  const bitsPerPixel = u16le(bytes, 28);
+  const compression = u32le(bytes, 30);
+  const imageSize = u32le(bytes, 34);
+  if (
+    width <= 0 || rawHeight === 0 || u16le(bytes, 26) !== 1 ||
+    ![16, 24, 32].includes(bitsPerPixel) || compression !== 0
+  ) {
     fail("bmp/dimensions");
   }
+  const height = Math.abs(rawHeight);
+  const rowBytes = Math.ceil((width * bitsPerPixel) / 32) * 4;
+  const rasterBytes = rowBytes * height;
+  if (
+    !Number.isSafeInteger(rasterBytes) ||
+    pixelOffset + rasterBytes > fileSize ||
+    (imageSize !== 0 &&
+      (imageSize < rasterBytes || pixelOffset + imageSize > fileSize))
+  ) fail("bmp/raster");
   return {
     kind: "bmp",
     width,
-    height: Math.abs(rawHeight),
+    height,
     frames: 1,
   };
 }

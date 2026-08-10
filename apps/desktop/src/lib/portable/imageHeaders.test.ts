@@ -103,4 +103,16 @@ describe("readImageHeader BMP", () => {
     expect(() => readImageHeader(bmpBytes(4, 4).slice(0, 26), "bmp", 1))
       .toThrow();
   });
+
+  it("rejects a BMP whose payload is too short for its declared raster", () => {
+    const bytes = bmpBytes(4, 4);
+    bytes.set([0x40, 0x1f, 0x00, 0x00], 18); // declare width 8,000
+    expect(() => readImageHeader(bytes, "bmp", 1)).toThrow();
+  });
+
+  it("rejects unsupported indexed BMP pixel formats", () => {
+    const bytes = bmpBytes(4, 4);
+    bytes.set([0x08, 0x00], 28);
+    expect(() => readImageHeader(bytes, "bmp", 1)).toThrow();
+  });
 });

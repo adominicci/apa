@@ -30,6 +30,7 @@ class Harness {
   mutateAfterPackage: string | null = null;
   configured = true;
   folderAvailable = true;
+  statusError: { code: string } | null = null;
   // Local-time constructor: daily gating uses the LOCAL calendar day.
   clock = new Date(2026, 2, 5, 10, 0, 0);
   writeError: { code: string } | null = null;
@@ -45,7 +46,7 @@ class Harness {
     if (settingsValue !== undefined) this.settingsValue = settingsValue;
     const adapter: BackupAdapter = {
       status: () =>
-        Promise.resolve({
+        this.statusError ? Promise.reject(this.statusError) : Promise.resolve({
           configured: this.configured,
           folderAvailable: this.folderAvailable,
           backupSetId: this.configured ? SET_ID : undefined,
@@ -272,6 +273,17 @@ describe("BackupStore scheduling", () => {
       kind: "failed",
       errorCode: "folder_unavailable",
     });
+    expect(harnessRef.archives.size).toBe(0);
+  });
+
+  it("normalizes a failed backup status request", async () => {
+    harnessRef.statusError = { code: "io" };
+
+    expect(await harnessRef.store.runManual()).toEqual({
+      kind: "failed",
+      errorCode: "io",
+    });
+    expect(harnessRef.settingsValue?.lastErrorCode).toBe("io");
     expect(harnessRef.archives.size).toBe(0);
   });
 

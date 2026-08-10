@@ -453,14 +453,18 @@ function validateEssaySettings(value: unknown, where: string): void {
   }
 }
 
+const MAX_TITLE_PAGE_ITEMS = 100;
+
 function validateTitlePage(value: unknown, where: string): void {
   const titlePage = value as Record<string, unknown>;
   const optionalStrings = ["course", "instructor", "dueDate", "authorNote"];
   if (
     typeof titlePage.title !== "string" ||
     !Array.isArray(titlePage.authors) ||
+    titlePage.authors.length > MAX_TITLE_PAGE_ITEMS ||
     !titlePage.authors.every((item) => typeof item === "string") ||
     !Array.isArray(titlePage.affiliations) ||
+    titlePage.affiliations.length > MAX_TITLE_PAGE_ITEMS ||
     !titlePage.affiliations.every((item) => typeof item === "string") ||
     optionalStrings.some((key) =>
       titlePage[key] !== undefined && typeof titlePage[key] !== "string"

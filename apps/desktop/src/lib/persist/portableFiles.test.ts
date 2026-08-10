@@ -382,6 +382,33 @@ describe("writeArchiveReplacing", () => {
     expect(journal.records.size).toBe(1);
   });
 
+  it("hashes and validates one recovery read when the provider swaps bytes", async () => {
+    const fs = new FakeFs();
+    fs.files.set("/docs/lib.tesina", OLD);
+    const journal = new FakeJournal();
+    const originalRead = fs.readFile.bind(fs);
+    fs.readFile = async (path) => {
+      if (path === "/docs/lib.tesina" && fs.files.get(path) === GOOD) {
+        fs.files.set(path, OTHER_VALID);
+      }
+      return await originalRead(path);
+    };
+
+    await expect(
+      writeArchiveReplacing(
+        makeDeps(fs),
+        journal,
+        "/docs/lib.tesina",
+        GOOD,
+      ),
+    ).rejects.toMatchObject({
+      code: "portable/replacement-recovery-required",
+    });
+    expect(fs.files.get("/docs/lib.tesina")).toBe(OTHER_VALID);
+    expect([...fs.files.values()]).toContain(OLD);
+    expect(journal.records.size).toBe(1);
+  });
+
   it("does not delete preserved bytes replaced during final cleanup", async () => {
     const fs = new FakeFs();
     fs.files.set("/docs/lib.tesina", OLD);

@@ -340,6 +340,28 @@ describe("BackupSetupWizard", () => {
     expect(bodyText()).toContain(m.bk_no_folder_yet());
   });
 
+  it("keeps the failed-test session when choosing another folder cannot clean up", async () => {
+    const io = fakeIo({
+      writeTest: vi.fn(() => Promise.reject({ code: "io" })),
+      cancel: vi.fn(() => Promise.reject({ code: "folder_unavailable" })),
+    });
+    await advanceToTest(io);
+    document.querySelector<HTMLInputElement>('input[type="checkbox"]')!
+      .click();
+    await settle();
+    buttonByText(m.bk_test_write())!.click();
+    await settle();
+
+    buttonByText(m.bk_choose_another())!.click();
+    await settle();
+
+    expect(io.cancel).toHaveBeenCalledOnce();
+    expect(bodyText()).toContain(m.bk_test_title());
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      m.bk_err_folder_unavailable(),
+    );
+  });
+
   it("renders Spanish and English wizard chrome from the UI locale", async () => {
     const io = fakeIo();
     mountWizard({ io });

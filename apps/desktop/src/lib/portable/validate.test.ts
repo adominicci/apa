@@ -188,6 +188,17 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
     await expectCode(await rebuildArchive(files), "validate/essay-schema");
   });
 
+  it("rejects title-page arrays beyond the rendering budget", async () => {
+    const files = mutateEssay(await goldenFiles(), (essay) => {
+      const titlePage = essay.titlePage as Record<string, unknown>;
+      titlePage.authors = Array.from(
+        { length: 101 },
+        (_, index) => `Author ${index}`,
+      );
+    });
+    await expectCode(await rebuildArchive(files), "validate/essay-schema");
+  });
+
   it("rejects unsupported settings enum values", async () => {
     const files = mutateEssay(await goldenFiles(), (e) => {
       (e.settings as Record<string, unknown>).documentLanguage = "fr";

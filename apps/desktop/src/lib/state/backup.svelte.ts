@@ -165,12 +165,11 @@ export class BackupStore {
 
   async #runInner(manual: boolean): Promise<BackupRunOutcome> {
     const deps = this.#deps;
-    const status = await deps.adapter.status();
-    if (!status.configured || !status.backupSetId) {
-      return { kind: "skipped", reason: "not-configured" };
-    }
-
     try {
+      const status = await deps.adapter.status();
+      if (!status.configured || !status.backupSetId) {
+        return { kind: "skipped", reason: "not-configured" };
+      }
       deps.settings.updateBackup({
         lastAttemptAt: deps.now().toISOString(),
       });

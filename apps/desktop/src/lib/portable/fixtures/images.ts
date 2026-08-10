@@ -162,10 +162,12 @@ export function gifBytes(
 
 export function bmpBytes(width: number, height: number): Uint8Array {
   const headerSize = 54;
+  const rowBytes = Math.ceil((width * 24) / 32) * 4;
+  const rasterBytes = rowBytes * Math.abs(height);
   return Uint8Array.from([
     0x42,
     0x4d, // "BM"
-    ...u32le(headerSize + 4),
+    ...u32le(headerSize + rasterBytes),
     0x00,
     0x00,
     0x00,
@@ -177,14 +179,11 @@ export function bmpBytes(width: number, height: number): Uint8Array {
     ...u16le(1), // planes
     ...u16le(24), // bits per pixel
     ...u32le(0),
-    ...u32le(4),
+    ...u32le(rasterBytes),
     ...u32le(2835),
     ...u32le(2835),
     ...u32le(0),
     ...u32le(0),
-    0x00,
-    0x00,
-    0x00,
-    0x00, // minimal pixel payload
+    ...new Uint8Array(rasterBytes),
   ]);
 }

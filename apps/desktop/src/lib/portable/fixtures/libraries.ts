@@ -222,7 +222,9 @@ export function figureHeavyLibraryFixture(): LibraryFixture {
   const assets: Record<string, Uint8Array> = {};
   const essays: Essay[] = [];
   const makers = [
-    (n: number) => ({ ext: "png", bytes: pngBytes(640 + n, 480) }),
+    // Keep raster bytes modest because semantic validation intentionally
+    // inflates every PNG; the profile is figure-heavy by count, not file size.
+    (n: number) => ({ ext: "png", bytes: pngBytes(64 + n, 48) }),
     (n: number) => ({ ext: "jpg", bytes: jpegBytes(800, 600 + n) }),
     (n: number) => ({ ext: "gif", bytes: gifBytes(320, 240, 2 + (n % 3)) }),
     (n: number) => ({ ext: "bmp", bytes: bmpBytes(64, 48 + n) }),
