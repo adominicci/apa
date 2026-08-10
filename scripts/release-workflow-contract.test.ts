@@ -186,6 +186,12 @@ describe("release workflow contract", () => {
     expect(tauriConfig.bundle.macOS.signingIdentity).toBe("-");
   });
 
+  it("checks the Tesina GitHub release feed for updates", () => {
+    expect(tauriConfig.plugins.updater.endpoints).toEqual([
+      "https://github.com/adominicci/tesina/releases/latest/download/latest.json",
+    ]);
+  });
+
   it("fails the tag job when the app or DMG package is structurally invalid", () => {
     expect(releaseWorkflow).toContain(
       "scripts/prepare-macos-release-artifacts.ts",

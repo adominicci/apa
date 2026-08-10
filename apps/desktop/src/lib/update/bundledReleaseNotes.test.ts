@@ -9,10 +9,10 @@ describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
     const expectedNotes = `### Fixed
 
-- Backups can now be set up when a paper contains website links. Tesina still
-  blocks links that could run code when it checks a backup file.`;
+- Tesina now checks the correct published release feed when looking for updates
+  at startup.`;
 
-    expect(bundledReleaseNotes.version).toBe("0.1.5");
+    expect(bundledReleaseNotes.version).toBe("0.1.6");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");

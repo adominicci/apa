@@ -123,7 +123,7 @@ describe("essay launch context", () => {
       `Tesina ${bundledReleaseNotes.version}`,
     );
     expect(dialog?.textContent).toContain(
-      "Backups can now be set up when a paper contains website links",
+      "Tesina now checks the correct published release feed",
     );
     expect(dialog?.contains(document.activeElement)).toBe(true);
     globalThis.dispatchEvent(
@@ -139,7 +139,7 @@ describe("essay launch context", () => {
     versionButton.click();
     flushSync();
     expect(document.querySelector("[role='dialog']")?.textContent).toContain(
-      "Backups can now be set up when a paper contains website links",
+      "Tesina now checks the correct published release feed",
     );
     expect(globalThis.location.href).toBe(initialLocation);
     expect(onCreate).not.toHaveBeenCalled();
@@ -206,7 +206,7 @@ describe("essay launch context", () => {
       versionButton.click();
       flushSync();
       expect(document.querySelector("[role='dialog']")?.textContent).toContain(
-        "Backups can now be set up when a paper contains website links",
+        "Tesina now checks the correct published release feed",
       );
       expect(document.querySelector("[role='dialog']")?.textContent).not
         .toContain("Las notas no están disponibles.");
