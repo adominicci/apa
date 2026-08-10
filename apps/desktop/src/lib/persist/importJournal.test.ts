@@ -307,6 +307,21 @@ describe("applyImport (tasks 6.3/6.4)", () => {
 });
 
 describe("rollback safety (task 6.5)", () => {
+  it("restores a plan-time library that disappeared before rollback", async () => {
+    const { fs, recovery } = await makeScenario();
+    for (const key of [...fs.files.keys()]) {
+      if (key.includes("/stage/")) fs.files.delete(key);
+    }
+    fs.files.delete("library.json");
+
+    expect((await recoverPendingImports(recovery))[0].kind).toBe(
+      "rolled-back",
+    );
+    expect(fs.files.get("library.json")).toEqual(
+      canonicalJsonBytes(emptyLibraryFixture().library),
+    );
+  });
+
   it("closes a successful rollback so later startups do not repeat it", async () => {
     const { fs, recovery } = await makeScenario();
     for (const key of fs.files.keys()) {
