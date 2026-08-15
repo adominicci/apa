@@ -1,8 +1,14 @@
 # PDF export design
 
 Date: 2026-08-15
-Status: proposed — awaiting review
+Status: **blocked at step 1** — the spike did not clear the gate. See
+"Spike result" below before building anything from this document.
 Applies to: `apps/desktop`
+
+> **Read this first.** The architecture below still stands, but the section
+> titled "The render contract" prescribes a print configuration that has now
+> been measured and does **not** work: it paginates without terminating. Do not
+> implement steps 2-6 until the runaway is understood.
 
 ## Problem
 
@@ -143,6 +149,71 @@ a path with no panel and no user interaction.
 This distinction is the single most important implementation detail in this
 document. Getting it wrong produces a file that looks plausible in a thumbnail
 and is unusable when submitted.
+
+## Spike result — 2026-08-15
+
+Step 1 ran. Host:
+`apps/desktop/src-tauri/examples/macos-pdf-proof-host.rs`, behind the
+`pdf-proof-host` feature. It prints one JSON envelope and exits non-zero on
+failure, following the `webview2-proof-host` precedent.
+
+```bash
+cargo run --example macos-pdf-proof-host --features pdf-proof-host -- /tmp/out.pdf
+```
+
+### What cleared
+
+- **Every API in the table above is real and callable from Rust.** The host
+  compiles and runs against the locked `objc2` crates. Nothing new was needed
+  in the dependency graph, exactly as predicted.
+- **The completion handshake works in a hidden window** — but only after a fix
+  the design did not anticipate. `requestAnimationFrame` is **suspended in an
+  off-screen window**, so an rAF-based ready signal never fires and the host
+  stalled until its deadline. Racing rAF against a `setTimeout` fixes it. The
+  same trap applies to `document.fonts.ready`, which can also stall off-screen;
+  it too needs a timer as a second path.
+
+### What did not clear
+
+**`runOperation` paginates without terminating.** The first visible run wrote a
+**3.65 GB** PDF and was still growing when the process was killed. The host now
+carries a size watchdog so a bad geometry cannot fill the disk again.
+
+Four candidate causes were eliminated by measurement, not argument:
+
+| Hypothesis | Flag | Result |
+| --- | --- | --- |
+| Zeroed `NSPrintInfo` margins | `--default-margins` | still runs away |
+| Stacked page-box CSS | `--simple` | still runs away |
+| Resizing the view to the paper box | `--keep-frame` | still runs away |
+| Mutating the shared `NSPrintInfo` | `--shared-info` | still runs away |
+
+Trivial HTML with no page CSS, printed through an unmodified print info, runs
+away too. **The fault is in how the operation is driven, not in the document.**
+
+### Consequences for this document
+
+- The geometry table in "The render contract" is **not** the fix it was written
+  as. Zeroed margins are not the cause of the runaway, and were never tested
+  against a working baseline; treat the whole table as unverified.
+- The stated risk order was wrong. "Paged.js completion signal" was ranked most
+  likely to bite; it was real but cheap to fix. The unranked risk — that the
+  print operation itself would not terminate — is the one that actually blocks.
+- A new hard requirement, learned the expensive way: **any code path that runs
+  a print operation must be bounded by an output-size or page-count cap.** A
+  runaway here does not merely fail, it fills the user's disk.
+
+### Next hypothesis
+
+`runOperation` is called synchronously from inside the `tao` event-loop
+callback, so the main run loop never pumps and the operation cannot finish.
+wry's own `print_with_options` avoids precisely this: it calls
+`runOperationModalForWindow:...` with `setCanSpawnSeparateThread(true)` rather
+than blocking the handler. The next attempt should defer the print onto the
+main queue and settle through a completion delegate.
+
+If that fails too, the fallback ladder is: a visible-but-off-screen window, then
+`window.print()` with its announced UX downgrade.
 
 ## Export UX
 
