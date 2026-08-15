@@ -228,9 +228,7 @@
   color: var(--accent);
 }
 
-:is(.modal, .ui-controls)
-  .select-option[aria-selected="true"].is-active
-  .select-tick {
+:is(.modal, .ui-controls) .select-option[aria-selected="true"].is-active .select-tick {
   color: var(--accent-on);
 }
 
@@ -248,9 +246,7 @@
   color: var(--muted);
 }
 
-:is(.modal, .ui-controls)
-  .select-option[aria-selected="true"].is-active
-  .select-hint {
+:is(.modal, .ui-controls) .select-option[aria-selected="true"].is-active .select-hint {
   color: var(--accent-on);
 }
 
@@ -478,9 +474,7 @@
   transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
 }
 
-:is(.modal, .ui-controls)
-  .seg
-  button:hover:not([aria-pressed="true"]):not(.active) {
+:is(.modal, .ui-controls) .seg button:hover:not([aria-pressed="true"]):not(.active) {
   background: var(--hover);
   color: var(--fg);
 }
@@ -546,8 +540,7 @@
   color: var(--accent-on);
 }
 
-:is(.modal, .ui-controls)
-  .btn-primary:hover:not(:disabled):not([aria-disabled="true"]) {
+:is(.modal, .ui-controls) .btn-primary:hover:not(:disabled):not([aria-disabled="true"]) {
   background: var(--accent-hover);
   color: var(--accent-on);
 }
