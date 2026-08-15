@@ -104,7 +104,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 14px;
+    padding: var(--sp-3);
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
     background: var(--chrome);
@@ -113,7 +113,7 @@
 
   .eq-preview-msg {
     margin: 0;
-    font-size: 12.5px;
+    font-size: var(--t-small);
     color: var(--muted);
   }
 

@@ -94,8 +94,8 @@
   }
 
   .grp {
-    padding: 7px 10px 3px;
-    font-size: 10.5px;
+    padding: var(--sp-15) var(--sp-2) var(--sp-05);
+    font-size: var(--t-caption);
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -106,14 +106,14 @@
     border: none;
     background: none;
     text-align: left;
-    padding: 7px 10px;
+    padding: var(--sp-15) var(--sp-2);
     border-radius: var(--r-sm);
     cursor: pointer;
     color: var(--fg);
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--sp-4);
   }
 
   .mi:hover {
@@ -126,13 +126,13 @@
 
   /* Each family previews itself, mirroring the sheets' rendering stack. */
   .pv {
-    font-size: 14px;
+    font-size: var(--t-ui);
     color: var(--fg);
     white-space: nowrap;
   }
 
   .pt {
-    font-size: 11px;
+    font-size: var(--t-caption);
     color: var(--muted);
   }
 </style>

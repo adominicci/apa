@@ -117,8 +117,8 @@ describe("shared modal accessibility", () => {
 
     expect(dialog.contains(markdown)).toBe(true);
     expect(markdown.textContent).toContain("Formatted item");
-    expect(modalCss).toMatch(/width:\s*min\(460px,\s*100%\)/);
-    expect(modalCss).toMatch(/max-height:\s*calc\(100vh\s*-\s*40px\)/);
+    expect(modalCss).toMatch(/width:\s*min\(520px,\s*100%\)/);
+    expect(modalCss).toMatch(/max-height:\s*calc\(100vh\s*-\s*var\(--sp-8\)\)/);
     expect(modalCss).toMatch(/\.modal-body\s*\{[^}]*overflow-y:\s*auto/s);
     expect(markdownSource).toMatch(
       /\.markdown-content\s*\{[^}]*min-width:\s*0[^}]*overflow-wrap:\s*anywhere/s,

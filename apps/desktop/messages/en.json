@@ -520,6 +520,8 @@
   "bk_settings_title": "Backup settings",
   "bk_settings_entry": "Backups",
   "bk_location": "Location: {path}",
+  "bk_section_folder": "Folder",
+  "bk_section_advanced": "Advanced",
   "bk_backup_now": "Back up now",
   "bk_restore": "Restore by merging",
   "bk_open_folder": "Open backup folder",

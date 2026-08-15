@@ -150,12 +150,12 @@
   }
 
   .markdown-content :global(h4) {
-    font-size: 1.05rem;
+    font-size: var(--t-h3);
   }
 
   .markdown-content :global(h5),
   .markdown-content :global(h6) {
-    font-size: 0.98rem;
+    font-size: var(--t-h3);
   }
 
   .markdown-content :global(p) {

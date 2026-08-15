@@ -158,19 +158,19 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 10px;
+    padding: var(--sp-2);
     box-shadow: var(--elev-raised);
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    font-size: 0.82rem;
+    gap: var(--sp-2);
+    font-size: var(--t-body);
     color: var(--fg);
   }
 
   .row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--sp-2);
   }
 
   .head {
@@ -180,7 +180,7 @@
   .close {
     border: none;
     background: transparent;
-    font-size: 1rem;
+    font-size: var(--t-h3);
     cursor: pointer;
     color: var(--muted);
   }
@@ -188,7 +188,7 @@
   input[type="search"],
   input[type="text"] {
     font: inherit;
-    padding: 5px 8px;
+    padding: var(--sp-1) var(--sp-2);
     border: 1px solid var(--border);
     border-radius: 6px;
     width: 100%;
@@ -200,14 +200,14 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--sp-05);
   }
 
   .item {
     display: flex;
-    gap: 8px;
+    gap: var(--sp-2);
     align-items: flex-start;
-    padding: 5px 6px;
+    padding: var(--sp-1) var(--sp-15);
     border-radius: 6px;
     cursor: pointer;
   }
@@ -223,7 +223,7 @@
 
   .empty {
     color: var(--muted);
-    margin: 4px 2px;
+    margin: var(--sp-1) var(--sp-05);
   }
 
   .seg {
@@ -237,8 +237,8 @@
     border: none;
     background: transparent;
     font: inherit;
-    font-size: 0.78rem;
-    padding: 4px 10px;
+    font-size: var(--t-small);
+    padding: var(--sp-1) var(--sp-2);
     cursor: pointer;
     color: var(--muted);
   }
@@ -257,7 +257,7 @@
   .page {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--sp-15);
     flex: 1;
     color: var(--muted);
   }
@@ -267,8 +267,8 @@
     background: var(--accent);
     color: var(--accent-on);
     font: inherit;
-    font-size: 0.82rem;
-    padding: 7px 10px;
+    font-size: var(--t-body);
+    padding: var(--sp-15) var(--sp-2);
     border-radius: 7px;
     cursor: pointer;
   }

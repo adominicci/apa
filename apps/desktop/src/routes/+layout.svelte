@@ -3,6 +3,9 @@
   // (app.html), NOT imported here — a Vite-processed @font-face kept getting
   // dropped in dev (WKWebView HMR + dev-server url() 404s). See AGENTS.md.
   import "$lib/styles/tokens.css";
+  // Buttons, fields, Select and the status panel, for every surface that
+  // carries `ui-controls` (a <Modal> already does). See the file header.
+  import "$lib/styles/controls.css";
   import { onMount, untrack } from "svelte";
   import type { Snippet } from "svelte";
   import { getVersion } from "@tauri-apps/api/app";
@@ -172,19 +175,21 @@
     top: 52px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 200;
+    /* Above the modal layer on purpose: an update notice must stay reachable
+       while a dialog is open. */
+    z-index: var(--z-toast);
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--sp-3);
     max-width: min(92vw, 560px);
-    padding: 10px 12px 10px 16px;
+    padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-4);
     border-radius: var(--r-md);
     background: var(--surface);
     color: var(--fg);
     border: 1px solid var(--accent);
     box-shadow: var(--elev-raised);
     font-family: var(--font);
-    font-size: 13px;
+    font-size: var(--t-body);
   }
 
   .update-action {
@@ -192,8 +197,8 @@
     background: var(--accent);
     color: var(--accent-on);
     border-radius: var(--r-pill);
-    padding: 6px 12px;
-    font-size: 12px;
+    padding: var(--sp-15) var(--sp-3);
+    font-size: var(--t-small);
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -208,8 +213,8 @@
     background: none;
     color: var(--muted);
     cursor: pointer;
-    font-size: 16px;
+    font-size: var(--t-h3);
     line-height: 1;
-    padding: 0 2px;
+    padding: 0 var(--sp-05);
   }
 </style>

@@ -161,6 +161,35 @@
     showCardPref = !showCardPref;
     settings.updateBackup({ setupCardDismissed: !showCardPref });
   }
+
+  const failing = $derived(settings.backup?.lastErrorCode !== undefined);
+
+  /* One status slot carries all four states. Previously each was its own
+     stray paragraph, so the dialog's first answer changed shape and position
+     depending on what had happened. */
+  const tone = $derived(
+    store.running ? "busy" : failing ? "warn" : "ok",
+  );
+
+  const statusTitle = $derived(
+    store.running
+      ? m.bk_state_running()
+      : failing
+      ? m.bk_state_warning()
+      : m.bk_state_healthy(),
+  );
+
+  const statusMeta = $derived(
+    settings.backup?.lastSuccessAt !== undefined
+      ? m.bk_last_success({ time: formatTime(settings.backup.lastSuccessAt) })
+      : m.bk_last_success_never(),
+  );
+
+  const folderPath = $derived(
+    status?.folderPath !== undefined
+      ? `${status.folderPath}/Tesina Backups`
+      : "",
+  );
 </script>
 
 <Modal title={m.bk_settings_title()} dismissOnOverlay={false} {onClose}>
@@ -168,13 +197,18 @@
     {#if !statusLoaded}
       <p role="status">{m.home_loading()}</p>
     {:else if view === "restore"}
-      <h4>{m.bk_restore_pick_title()}</h4>
-      <p class="note">{m.restore_consequences()}</p>
-      <p>{m.bk_restore_pick_body()}</p>
+      <div class="status-panel" data-tone="warn">
+        <span class="status-dot" aria-hidden="true"></span>
+        <div class="status-body">
+          <span class="status-title">{m.bk_restore_pick_title()}</span>
+          <span class="status-meta">{m.restore_consequences()}</span>
+        </div>
+      </div>
+      <p class="hint">{m.bk_restore_pick_body()}</p>
       {#if archives === null}
-        <p role="status">{m.home_loading()}</p>
+        <p class="hint" role="status">{m.home_loading()}</p>
       {:else if archives.length === 0}
-        <p role="status">{m.bk_restore_empty()}</p>
+        <p class="hint" role="status">{m.bk_restore_empty()}</p>
       {:else}
         <ul class="archive-list">
           {#each archives as archive (archive.fileName)}
@@ -193,33 +227,26 @@
         {m.bk_back()}
       </button>
     {:else if status !== null && status.configured}
-      {#if status.folderPath !== undefined}
-        <p class="path">
-          {m.bk_location({ path: `${status.folderPath}/Tesina Backups` })}
-        </p>
-      {/if}
-      <p class="detail">
-        {settings.backup?.lastSuccessAt !== undefined
-          ? m.bk_last_success({
-            time: formatTime(settings.backup.lastSuccessAt),
-          })
-          : m.bk_last_success_never()}
-      </p>
-      <p class="detail">{m.bk_next_expected()}</p>
+      <!-- The answer first: state, then when, then the schedule as fine print. -->
+      <div class="status-panel" data-tone={tone}>
+        <span class="status-dot" aria-hidden="true"></span>
+        <div class="status-body">
+          <span class="status-title" role="status">{statusTitle}</span>
+          <span class="status-meta">{statusMeta}</span>
+        </div>
+      </div>
+      <p class="hint">{m.bk_next_expected()}</p>
 
-      {#if store.running}
-        <p role="status">{m.bk_state_running()}</p>
-      {:else if notice !== null}
-        <p role="status">{notice}</p>
+      {#if notice !== null && !store.running}
+        <p class="hint" role="status">{notice}</p>
       {/if}
       {#if errorNotice !== null}
         <p class="error" role="alert">{errorNotice}</p>
       {/if}
-      {#if settings.backup?.lastErrorCode !== undefined && !store.running}
+      {#if failing && !store.running}
         <p class="error" role="alert">
-          <span aria-hidden="true">⚠</span>
-          {m.bk_state_warning()} — {describeBackupError({
-            code: settings.backup.lastErrorCode,
+          {describeBackupError({
+            code: settings.backup?.lastErrorCode,
           })}
         </p>
       {/if}
@@ -234,7 +261,7 @@
         >
           {m.bk_backup_now()}
         </button>
-        {#if settings.backup?.lastErrorCode !== undefined}
+        {#if failing}
           <button
             class="btn btn-secondary"
             disabled={store.running}
@@ -253,25 +280,29 @@
         >
           {m.bk_restore()}
         </button>
+      </div>
+
+      <div class="section"><span>{m.bk_section_folder()}</span></div>
+      <p class="path-value" title={folderPath}>{folderPath}</p>
+      <div class="actions">
         <button class="btn btn-secondary" onclick={handleOpenFolder}>
           {m.bk_open_folder()}
         </button>
         <button class="btn btn-secondary" onclick={onRunWizard}>
           {m.bk_change_folder()}
         </button>
-        <button
-          class="btn btn-danger"
-          onclick={() => (confirmingOff = true)}
-        >
-          {m.bk_turn_off()}
-        </button>
       </div>
-      <p class="note">{m.bk_change_disclosure()}</p>
+      <p class="hint">{m.bk_change_disclosure()}</p>
 
+      <div class="section"><span>{m.bk_section_advanced()}</span></div>
       {#if confirmingOff}
-        <div class="confirm-off" role="alertdialog" aria-label={m.bk_turn_off_confirm_title()}>
-          <h4>{m.bk_turn_off_confirm_title()}</h4>
-          <p>{m.bk_turn_off_body()}</p>
+        <div
+          class="confirm-off"
+          role="alertdialog"
+          aria-label={m.bk_turn_off_confirm_title()}
+        >
+          <strong class="status-title">{m.bk_turn_off_confirm_title()}</strong>
+          <p class="status-meta">{m.bk_turn_off_body()}</p>
           <div class="actions">
             <button
               class="btn btn-secondary"
@@ -280,7 +311,7 @@
               {m.bk_cancel()}
             </button>
             <button
-              class="btn btn-danger"
+              class="btn btn-danger-solid"
               onclick={() => {
                 void confirmTurnOff();
               }}
@@ -289,25 +320,38 @@
             </button>
           </div>
         </div>
+      {:else}
+        <div class="actions">
+          <button class="btn btn-danger" onclick={() => (confirmingOff = true)}>
+            {m.bk_turn_off()}
+          </button>
+        </div>
       {/if}
     {:else}
-      <p>{m.bk_not_configured()}</p>
+      <div class="status-panel" data-tone="off">
+        <span class="status-dot" aria-hidden="true"></span>
+        <div class="status-body">
+          <span class="status-title" role="status">{m.bk_not_configured()}</span>
+          <span class="status-meta">{m.bk_reenable_note()}</span>
+        </div>
+      </div>
       {#if notice !== null}
-        <p role="status">{notice}</p>
+        <p class="hint" role="status">{notice}</p>
       {/if}
       {#if errorNotice !== null}
         <p class="error" role="alert">{errorNotice}</p>
       {/if}
-      <p class="note">{m.bk_reenable_note()}</p>
       <div class="actions">
         <button class="btn btn-primary" onclick={onRunWizard}>
           {m.bk_reenable()}
         </button>
       </div>
     {/if}
+  </div>
 
+  {#snippet footer()}
     {#if statusLoaded && view === "main"}
-      <label class="pref">
+      <label class="check">
         <input
           type="checkbox"
           checked={showCardPref}
@@ -316,7 +360,8 @@
         {m.bk_card_pref()}
       </label>
     {/if}
-  </div>
+    <button class="btn btn-ghost" onclick={onClose}>{m.common_close()}</button>
+  {/snippet}
 </Modal>
 
 {#if restoreFile !== null}
@@ -330,72 +375,32 @@
 {/if}
 
 <style>
+  /*
+   * Layout only. The status panel, path well, section dividers, hints and
+   * every .btn variant come from the shared modal.css, so this dialog cannot
+   * drift from the other twelve. The private .btn/.btn-secondary/.btn-danger
+   * copies that used to live here are gone.
+   */
   .backup-settings {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    max-inline-size: 34rem;
+    gap: var(--sp-3);
   }
 
-  .backup-settings h4,
   .backup-settings p {
     margin: 0;
   }
 
-  .path {
-    font-family: var(--mono, monospace);
-    font-size: 0.85rem;
-    word-break: break-all;
-  }
-
-  .detail,
-  .note {
-    font-size: 0.85rem;
-    color: var(--muted, #666);
-  }
-
   .error {
-    color: var(--danger, #a33);
+    font-size: var(--t-small);
+    line-height: var(--lh-snug);
+    color: var(--danger);
   }
 
   .actions {
     display: flex;
-    gap: 8px;
+    gap: var(--sp-2);
     flex-wrap: wrap;
-  }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    height: 34px;
-    padding: 0 14px;
-    border-radius: var(--r-sm);
-    font-size: 13px;
-    font-weight: 600;
-    border: 1px solid transparent;
-    cursor: pointer;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: var(--accent-on);
-  }
-
-  .btn-secondary {
-    background: var(--surface);
-    color: var(--fg);
-    border-color: var(--border);
-  }
-
-  .btn-danger {
-    background: var(--surface);
-    color: var(--danger, #a33);
-    border-color: var(--border);
-  }
-
-  .btn:disabled {
-    opacity: 0.55;
-    cursor: default;
   }
 
   .archive-list {
@@ -404,7 +409,7 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--sp-1);
     max-block-size: 14rem;
     overflow-y: auto;
   }
@@ -412,34 +417,29 @@
   .archive {
     inline-size: 100%;
     text-align: left;
-    font-family: var(--mono, monospace);
-    font-size: 0.85rem;
-    padding: 8px 10px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-sm);
+    font-family: var(--mono);
+    font-size: var(--t-small);
+    padding: var(--sp-2) var(--sp-3);
+    background: var(--bg);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-xs);
     cursor: pointer;
-    color: var(--fg);
+    color: var(--fg-2);
   }
 
   .archive:hover {
-    background: var(--hover, #eee);
+    background: var(--hover);
+    border-color: var(--fg-2);
+    color: var(--fg);
   }
 
+  /* Inline confirmation, not a second dialog stacked on the first. */
   .confirm-off {
-    border: 1px solid var(--danger, #a33);
-    border-radius: var(--r-sm);
-    padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .pref {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    cursor: pointer;
+    gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4);
+    border-radius: var(--r-md);
+    background: var(--danger-soft);
   }
 </style>

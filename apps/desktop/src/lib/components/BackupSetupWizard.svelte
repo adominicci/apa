@@ -301,13 +301,13 @@
   .wizard-body {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--sp-3);
     max-inline-size: 32rem;
   }
 
   .wizard-body h4 {
     margin: 0;
-    font-size: 1rem;
+    font-size: var(--t-h3);
   }
 
   .wizard-body p {
@@ -315,13 +315,13 @@
   }
 
   .note {
-    font-size: 0.85rem;
+    font-size: var(--t-ui);
     color: var(--muted, #666);
   }
 
   .path {
     font-family: var(--mono, monospace);
-    font-size: 0.85rem;
+    font-size: var(--t-ui);
     word-break: break-all;
   }
 
@@ -332,7 +332,7 @@
   .consent {
     display: flex;
     align-items: flex-start;
-    gap: 0.5rem;
+    gap: var(--sp-2);
     cursor: pointer;
   }
 

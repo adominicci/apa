@@ -512,7 +512,7 @@
       <button class="btn btn-ghost" onclick={() => (deleteTarget = null)}>
         {m.common_close()}
       </button>
-      <button class="btn btn-danger" onclick={confirmDelete}>
+      <button class="btn btn-danger-solid" onclick={confirmDelete}>
         {m.libm_delete_confirm()}
       </button>
     {/snippet}
@@ -562,6 +562,9 @@
 {/if}
 
 <style>
+  /* Buttons come from the global styles/controls.css — .btn and its
+     variants are defined once, app-wide. Nothing button-shaped here. */
+
   .app {
     height: 100vh;
     display: flex;
@@ -575,7 +578,7 @@
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    padding: 0 12px;
+    padding: 0 var(--sp-3);
     background: var(--chrome);
     border-bottom: 1px solid var(--border);
     user-select: none;
@@ -585,7 +588,7 @@
   .tb-left {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--sp-15);
   }
 
   .traffic-space {
@@ -596,10 +599,10 @@
     border: none;
     background: none;
     font: inherit;
-    font-size: 13px;
+    font-size: var(--t-body);
     font-weight: 500;
     color: var(--fg-2);
-    padding: 6px 10px;
+    padding: var(--sp-15) var(--sp-2);
     border-radius: var(--r-sm);
     cursor: pointer;
     transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
@@ -614,8 +617,8 @@
     justify-self: center;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
+    gap: var(--sp-2);
+    font-size: var(--t-body);
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--fg-2);
@@ -629,7 +632,7 @@
     color: var(--accent-on);
     display: grid;
     place-items: center;
-    font-size: 10px;
+    font-size: var(--t-caption);
     font-weight: 700;
     font-family: var(--serif);
   }
@@ -637,7 +640,7 @@
   .tb-right {
     justify-self: end;
     display: flex;
-    gap: 6px;
+    gap: var(--sp-15);
   }
 
   .icon-btn {
@@ -669,19 +672,19 @@
   .collections {
     background: var(--chrome);
     border-right: 1px solid var(--border);
-    padding: 16px 12px;
+    padding: var(--sp-4) var(--sp-3);
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: var(--sp-05);
     overflow-y: auto;
   }
 
   .col-head {
-    font-size: 11px;
+    font-size: var(--t-caption);
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--muted);
-    padding: 4px 8px 8px;
+    padding: var(--sp-1) var(--sp-2) var(--sp-2);
     font-weight: 600;
   }
 
@@ -697,13 +700,13 @@
   .coll {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-2);
     border: none;
     background: none;
     border-radius: var(--r-sm);
     color: var(--fg-2);
-    font-size: 13.5px;
+    font-size: var(--t-body);
     font-weight: 500;
     cursor: pointer;
     text-align: left;
@@ -730,10 +733,10 @@
 
   .count {
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--t-caption);
     color: var(--muted);
     background: var(--hover);
-    padding: 1px 7px;
+    padding: 1px var(--sp-15);
     border-radius: var(--r-pill);
     flex: 0 0 auto;
   }
@@ -741,7 +744,7 @@
   .coll-actions {
     display: none;
     align-items: center;
-    gap: 2px;
+    gap: var(--sp-05);
   }
 
   .coll-row:hover .coll-actions,
@@ -754,10 +757,10 @@
     background: none;
     color: var(--muted);
     cursor: pointer;
-    padding: 4px 6px;
+    padding: var(--sp-1) var(--sp-15);
     border-radius: 6px;
     font: inherit;
-    font-size: 11.5px;
+    font-size: var(--t-caption);
     display: grid;
     place-items: center;
   }
@@ -779,8 +782,8 @@
 
   .coll-input {
     font: inherit;
-    font-size: 13.5px;
-    padding: 7px 9px;
+    font-size: var(--t-body);
+    padding: var(--sp-15) var(--sp-2);
     border: 1px solid var(--accent);
     border-radius: var(--r-sm);
     background: var(--surface);
@@ -791,14 +794,14 @@
   }
 
   .add-coll {
-    margin-top: 6px;
+    margin-top: var(--sp-15);
     border: 1px dashed var(--border);
     background: none;
     color: var(--muted);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--t-body);
     font-weight: 500;
-    padding: 8px 10px;
+    padding: var(--sp-2) var(--sp-2);
     border-radius: var(--r-sm);
     cursor: pointer;
     text-align: left;
@@ -821,19 +824,19 @@
   .list-head {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 16px 20px 8px;
+    gap: var(--sp-2);
+    padding: var(--sp-4) var(--sp-5) var(--sp-2);
   }
 
   .search {
     flex: 1 1 auto;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--sp-2);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
-    padding: 0 10px;
+    padding: 0 var(--sp-2);
     height: 38px;
     min-width: 0;
     transition: border-color var(--fast) var(--ease);
@@ -857,51 +860,15 @@
     outline: none;
     width: 100%;
     font: inherit;
-    font-size: 13.5px;
+    font-size: var(--t-body);
     color: var(--fg);
   }
 
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 38px;
-    padding: 0 16px;
-    border-radius: var(--r-sm);
-    font: inherit;
-    font-size: 13.5px;
-    font-weight: 600;
-    border: 1px solid transparent;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background var(--fast) var(--ease);
-  }
 
-  .btn :global(svg) {
-    width: 16px;
-    height: 16px;
-  }
 
-  .btn-primary {
-    background: var(--accent);
-    color: var(--accent-on);
-  }
 
-  .btn-primary:hover {
-    background: var(--accent-hover);
-  }
 
-  .btn-secondary {
-    background: transparent;
-    color: var(--fg);
-    border-color: var(--border);
-  }
 
-  .btn-secondary:hover {
-    background: var(--accent-soft);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
 
   .hidden-file {
     display: none;
@@ -909,22 +876,22 @@
 
   .bib-error {
     margin: 0;
-    padding: 6px 20px 0;
+    padding: var(--sp-15) var(--sp-5) 0;
     color: var(--warn-strong);
-    font-size: 13px;
+    font-size: var(--t-body);
   }
 
   .export-scope {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--sp-3);
     max-inline-size: 30rem;
   }
 
   .list-count {
-    padding: 0 20px 8px;
+    padding: 0 var(--sp-5) var(--sp-2);
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: var(--t-small);
     color: var(--muted);
   }
 
@@ -932,15 +899,15 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    padding: 4px 20px 24px;
+    padding: var(--sp-1) var(--sp-5) var(--sp-6);
   }
 
   .ref-card {
-    padding: 12px 14px;
+    padding: var(--sp-3) var(--sp-3);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
     background: var(--surface);
-    margin-bottom: 10px;
+    margin-bottom: var(--sp-2);
     cursor: pointer;
     text-align: left;
     transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
@@ -958,7 +925,7 @@
   .pc-entry {
     margin: 0;
     font-family: var(--serif);
-    font-size: 12.5px;
+    font-size: var(--t-small);
     line-height: 1.5;
     color: var(--fg-2);
     overflow-wrap: anywhere;
@@ -967,14 +934,14 @@
   .chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 8px;
+    gap: var(--sp-15);
+    margin-top: var(--sp-2);
   }
 
   .chip {
     font: inherit;
-    font-size: 11.5px;
-    padding: 3px 9px;
+    font-size: var(--t-caption);
+    padding: var(--sp-05) var(--sp-2);
     border-radius: var(--r-pill);
     border: 1px solid var(--border);
     background: var(--surface);
@@ -998,17 +965,17 @@
   .card-foot {
     display: flex;
     justify-content: flex-end;
-    margin-top: 8px;
+    margin-top: var(--sp-2);
   }
 
   .card-foot .del {
     font: inherit;
-    font-size: 12px;
+    font-size: var(--t-small);
     border: none;
     background: none;
     color: var(--muted);
     cursor: pointer;
-    padding: 3px 8px;
+    padding: var(--sp-05) var(--sp-2);
     border-radius: 6px;
   }
 
@@ -1044,27 +1011,20 @@
   }
 
   .cited-list {
-    margin: 10px 0 0;
-    padding-left: 20px;
+    margin: var(--sp-2) 0 0;
+    padding-left: var(--sp-5);
     color: var(--fg-2);
-    font-size: 13px;
+    font-size: var(--t-body);
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: var(--sp-05);
   }
 
   .del-note {
-    margin: 12px 0 0;
+    margin: var(--sp-3) 0 0;
     color: var(--muted);
-    font-size: 12.5px;
+    font-size: var(--t-small);
   }
 
-  .btn-danger {
-    background: var(--danger);
-    color: #fff;
-  }
 
-  .btn-danger:hover {
-    background: color-mix(in oklab, var(--danger), #000 12%);
-  }
 </style>

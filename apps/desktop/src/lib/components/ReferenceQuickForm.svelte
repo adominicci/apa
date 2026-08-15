@@ -10,6 +10,7 @@
   } from "@tesina/engine";
   import { untrack } from "svelte";
   import Modal from "$lib/components/Modal.svelte";
+  import Select, { type SelectGroup } from "$lib/components/Select.svelte";
   import { detectInput } from "$lib/autofill/detect";
   import {
     type AutofillError,
@@ -384,6 +385,30 @@
   let looking = $state(false);
   let lookupError = $state("");
   let autofilled = $state(false);
+
+  // Flat lists: one unlabelled group renders no header.
+  const creditGroups: SelectGroup[] = [{
+    label: "",
+    options: [
+      { value: "writerDirector", label: m.form_credit_writer_director() },
+      { value: "writer", label: m.form_credit_writer() },
+      { value: "director", label: m.form_credit_director() },
+    ],
+  }];
+
+  const statusGroups: SelectGroup[] = [{
+    label: "",
+    options: [
+      { value: "unpublished", label: m.form_status_unpublished() },
+      { value: "inPreparation", label: m.form_status_in_preparation() },
+      { value: "submitted", label: m.form_status_submitted() },
+    ],
+  }];
+
+  const formatGroups: SelectGroup[] = CATALOG.map((group) => ({
+    label: group.label,
+    options: group.items.map((item) => ({ value: item.id, label: item.label })),
+  }));
 
   function applyFormat(id: string) {
     const item = FORMAT_BY_ID.get(id);
@@ -790,22 +815,15 @@
       {/if}
     </div>
 
-    <label>
-      {m.form_type_label()}
-      <select
+    <div class="fld">
+      <span>{m.form_type_label()}</span>
+      <Select
+        groups={formatGroups}
         value={formatId}
-        onchange={(e) => applyFormat(e.currentTarget.value)}
-      >
-        {#each CATALOG as group (group.label)}
-          <optgroup label={group.label}>
-            {#each group.items as option (option.id)}
-              <option value={option.id}>{option.label}</option>
-            {/each}
-          </optgroup>
-        {/each}
-      </select>
-    </label>
-
+        onChange={applyFormat}
+        ariaLabel={m.form_type_label()}
+      />
+    </div>
     {#if f.type === "personalCommunication"}
       <p class="notice">
         {m.form_pc_notice()}
@@ -1168,14 +1186,15 @@
       <p class="hint-inline">{m.form_film_hint()}</p>
     {:else if f.type === "tvEpisode"}
       <div class="row">
-        <label class="grow">
-          {m.form_credit_label()}
-          <select bind:value={f.credit}>
-            <option value="writerDirector">{m.form_credit_writer_director()}</option>
-            <option value="writer">{m.form_credit_writer()}</option>
-            <option value="director">{m.form_credit_director()}</option>
-          </select>
-        </label>
+        <div class="fld grow">
+          <span>{m.form_credit_label()}</span>
+          <Select
+            groups={creditGroups}
+            value={f.credit ?? "writerDirector"}
+            onChange={(next) => (f.credit = next as typeof f.credit)}
+            ariaLabel={m.form_credit_label()}
+          />
+        </div>
         <label class="grow">
           {m.form_season()}
           <input type="text" bind:value={f.season} placeholder="2" />
@@ -1255,14 +1274,15 @@
         </label>
       </div>
     {:else if f.type === "unpublishedWork"}
-      <label>
-        {m.form_status_label()}
-        <select bind:value={f.unpubStatus}>
-          <option value="unpublished">{m.form_status_unpublished()}</option>
-          <option value="inPreparation">{m.form_status_in_preparation()}</option>
-          <option value="submitted">{m.form_status_submitted()}</option>
-        </select>
-      </label>
+      <div class="fld">
+        <span>{m.form_status_label()}</span>
+        <Select
+          groups={statusGroups}
+          value={f.unpubStatus ?? "unpublished"}
+          onChange={(next) => (f.unpubStatus = next as typeof f.unpubStatus)}
+          ariaLabel={m.form_status_label()}
+        />
+      </div>
       {#if f.unpubStatus !== "submitted"}
         <label>
           {m.form_institution()}
@@ -1302,7 +1322,11 @@
 {/snippet}
 
 {#if inline}
-  <section class="inline-form" aria-label={title}>
+  <!-- ui-controls: this same form renders as a <Modal> below and as a bare
+       panel here, so it has to opt into the shared control styles that a
+       modal gets for free. Without it the Select trigger renders unstyled
+       and its caret SVG falls back to its intrinsic size. -->
+  <section class="inline-form ui-controls" aria-label={title}>
     <header class="inline-head"><h3>{title}</h3></header>
     <div class="inline-body">{@render body()}</div>
     <footer class="inline-foot">{@render formFooter()}</footer>
@@ -1317,7 +1341,7 @@
 <style>
   .row {
     display: flex;
-    gap: 10px;
+    gap: var(--sp-2);
     align-items: end;
   }
 
@@ -1325,26 +1349,28 @@
     flex: 1;
   }
 
-  label {
+  /* .fld is the same stacked field as a <label>, for the rows whose control is
+     the custom <Select> — a <label> cannot associate with a non-form element. */
+  label,
+  .fld {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--sp-1);
     color: var(--fg-2);
   }
 
   .checkline {
     flex-direction: row;
     align-items: center;
-    gap: 6px;
-    padding-bottom: 7px;
+    gap: var(--sp-15);
+    padding-bottom: var(--sp-15);
     white-space: nowrap;
   }
 
   input[type="text"],
-  textarea,
-  select {
+  textarea {
     font: inherit;
-    padding: 6px 8px;
+    padding: var(--sp-15) var(--sp-2);
     border: 1px solid var(--border);
     border-radius: 6px;
     width: 100%;
@@ -1361,10 +1387,10 @@
   .lookup {
     border: 1px dashed color-mix(in oklab, var(--accent), transparent 50%);
     border-radius: 8px;
-    padding: 8px;
+    padding: var(--sp-2);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--sp-15);
   }
 
   .lookup.filled {
@@ -1381,8 +1407,8 @@
     background: var(--accent);
     color: var(--accent-on);
     font: inherit;
-    font-size: 0.78rem;
-    padding: 6px 12px;
+    font-size: var(--t-small);
+    padding: var(--sp-15) var(--sp-3);
     border-radius: 6px;
     cursor: pointer;
     white-space: nowrap;
@@ -1396,22 +1422,22 @@
   .lookup-error {
     margin: 0;
     color: var(--danger);
-    font-size: 0.75rem;
+    font-size: var(--t-small);
   }
 
   .lookup-ok {
     margin: 0;
     color: var(--accent);
-    font-size: 0.75rem;
+    font-size: var(--t-small);
   }
 
   .notice {
     margin: 0;
-    padding: 8px;
+    padding: var(--sp-2);
     border-radius: 8px;
     background: var(--warn-soft);
     color: var(--warn-strong);
-    font-size: 0.78rem;
+    font-size: var(--t-small);
   }
 
   .seg {
@@ -1426,8 +1452,8 @@
     border: none;
     background: transparent;
     font: inherit;
-    font-size: 0.78rem;
-    padding: 5px 12px;
+    font-size: var(--t-small);
+    padding: var(--sp-1) var(--sp-3);
     cursor: pointer;
     color: var(--muted);
   }
@@ -1442,7 +1468,7 @@
   .hint-inline {
     margin: 0;
     color: var(--muted);
-    font-size: 0.75rem;
+    font-size: var(--t-small);
   }
 
   .bibtex-link {
@@ -1467,19 +1493,19 @@
     height: 100%;
     min-height: 0;
     font-family: var(--font);
-    font-size: 13.5px;
+    font-size: var(--t-body);
     color: var(--fg);
   }
 
   .inline-head {
     flex: 0 0 auto;
-    padding: 14px 18px;
+    padding: var(--sp-3) var(--sp-4);
     border-bottom: 1px solid var(--border);
   }
 
   .inline-head h3 {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--t-ui);
     font-weight: 600;
     letter-spacing: -0.01em;
   }
@@ -1487,18 +1513,18 @@
   .inline-body {
     flex: 1 1 auto;
     overflow-y: auto;
-    padding: 16px 18px;
+    padding: var(--sp-4) var(--sp-4);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--sp-3);
   }
 
   .inline-foot {
     flex: 0 0 auto;
     display: flex;
-    gap: 8px;
+    gap: var(--sp-2);
     justify-content: flex-end;
-    padding: 12px 18px;
+    padding: var(--sp-3) var(--sp-4);
     border-top: 1px solid var(--border);
   }
 
@@ -1506,12 +1532,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 7px;
+    gap: var(--sp-15);
     height: 36px;
-    padding: 0 14px;
+    padding: 0 var(--sp-3);
     border-radius: var(--r-sm);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--t-body);
     font-weight: 600;
     border: 1px solid transparent;
     cursor: pointer;

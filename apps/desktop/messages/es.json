@@ -520,6 +520,8 @@
   "bk_settings_title": "Ajustes de respaldo",
   "bk_settings_entry": "Respaldos",
   "bk_location": "Ubicación: {path}",
+  "bk_section_folder": "Carpeta",
+  "bk_section_advanced": "Avanzado",
   "bk_backup_now": "Respaldar ahora",
   "bk_restore": "Restaurar combinando",
   "bk_open_folder": "Abrir carpeta de respaldos",

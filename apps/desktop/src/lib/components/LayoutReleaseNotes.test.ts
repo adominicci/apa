@@ -9,8 +9,7 @@ import {
 import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import LayoutReleaseNotesHarness from "./LayoutReleaseNotesHarness.test.svelte";
 
-const canonicalNotesExcerpt =
-  "Tesina now checks the correct published release feed";
+const canonicalNotesExcerpt = "Every dialog in Tesina now shares one look";
 
 const runtime = vi.hoisted(() => ({
   getVersion: vi.fn<() => Promise<string>>(),
