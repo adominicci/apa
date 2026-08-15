@@ -41,7 +41,7 @@ Revisit only if the print path proves unable to hit a hard requirement.
 
 ### What exists
 
-```
+```text
 renderEssayHtml.ts  (pure)   →  HTML + CSS  →  PrintPreview.svelte  →  Paged.js
 createStudentExportSnapshot  →  detached essay/doc/references snapshot
 exportEssay.ts               →  DOCX bytes  →  save() dialog  →  writeFile
@@ -49,28 +49,44 @@ exportEssay.ts               →  DOCX bytes  →  save() dialog  →  writeFile
 
 ### What gets added
 
-```
+```text
 exportEssayToPdf(essay, doc, references)
   ├── save() dialog                            (reused; path chosen first)
-  ├── renderEssayHtml + renderEssayCss         (reused, same snapshot as DOCX)
-  ├── inline figure images as data URLs        (new: self-contained document)
-  └── invoke("export_pdf", { html, path })     (new Rust command)
+  ├── build imageUrls: figures → data URLs     (new; PrintPreview uses blob URLs)
+  ├── build mathml: latexToMathml per equation (same as PrintPreview)
+  ├── renderEssayHtml(…, imageUrls, mathml)    (reused, same snapshot as DOCX)
+  ├── renderEssayCss(essay.settings)           (reused; carries the @page rule)
+  └── invoke("export_pdf", { html, css, path })  (new Rust command)
         ├── hidden WebviewWindow loads the HTML
-        ├── waits for Paged.js to report completion
-        ├── printOperationWithPrintInfo → temp file
-        └── atomic move temp → path
+        ├── waits for the Paged.js completion handshake, under a deadline
+        ├── printOperationWithPrintInfo → temp file beside the destination
+        └── rename temp → path (same directory, so the rename is atomic)
 ```
 
 Returns the same `ExportOutcome` union as DOCX, so the UI keeps one code path.
+
+### The asset pipeline must be carried over whole
+
+`renderEssayHtml` takes **two** asset maps (`renderEssayHtml.ts:370`):
+`imageUrls` and `mathml`. `PrintPreview.svelte` builds both, and it builds them
+defensively — a missing figure asset and a malformed LaTeX string are each
+caught individually so the page still renders, one without its image and the
+other with just its equation number.
+
+The PDF path must reproduce **both** maps and **both** fallbacks. Carrying only
+the figures would silently drop every block equation to raw LaTeX in the
+submitted PDF while the on-screen preview still looked correct — a divergence
+the student would not catch. Tests must cover equation conversion and both
+degradation paths, not just the happy figure case.
 
 ### Boundaries
 
 - `renderEssayHtml.ts` stays pure and gains **no** PDF knowledge. It already
   produces what is needed.
-- The image-inlining step is app-layer, not engine-layer: it touches the
+- Building the two asset maps is app-layer, not engine-layer: it reaches the
   filesystem through `$lib/persist/assets`, which pure packages must not do.
-- The Rust command takes HTML and a destination path. It knows nothing about
-  APA, essays, or references. That keeps the contract narrow and testable.
+- The Rust command takes HTML, CSS, and a destination path. It knows nothing
+  about APA, essays, or references. That keeps the contract narrow and testable.
 - `ExportOutcome` (`saved` / `cancelled` / `error`) is reused verbatim so the
   UI handles both formats through one code path.
 
@@ -143,12 +159,16 @@ than left to the implementation.
 4. The button reads "Exporting…" while the work happens.
 5. The footer confirms the saved path, exactly as DOCX does today.
 
-**No OS print panel. Ever.** A print panel asks the student about printers,
-copies, and scaling — none of which they want — and it is the reason
-`window.print()` is rejected as the primary path. It survives only as an
-emergency fallback if the platform call proves unworkable, and choosing it
-would be a visible downgrade worth flagging to the user, not a silent
-substitution.
+**No OS print panel on the shipping path.** A print panel asks the student
+about printers, copies, and scaling — none of which they want — which is why
+`window.print()` is rejected as the primary path.
+
+`window.print()` is **not** forbidden outright; it is a named contingency. If
+the platform call proves unworkable, shipping it would be a deliberate,
+announced downgrade — the change would say so in the CHANGELOG and this
+document would be amended to record the decision. What is forbidden is
+substituting it silently, so that a student who chose "PDF" lands in a printer
+dialog with no explanation.
 
 **Save first, then render.** `NSPrintJobSavingURL` needs a destination before
 rendering starts, which inverts the DOCX order (build bytes → save → write).
@@ -156,9 +176,21 @@ The student cannot tell the difference: one dialog, then done.
 
 **Never leave a broken file behind.** Because the path is chosen up front, a
 mid-render failure would otherwise strand a truncated PDF where the student
-expects their paper. Render to a temp path and move it into place only on
-success, honouring the atomic-write invariant in AGENTS.md. On failure the
-original file — if any — is untouched, and the footer shows the error.
+expects their paper. The write rules, honouring the atomic-write invariant in
+AGENTS.md:
+
+- Render to a **uniquely named temp file in the destination's own directory**,
+  not in the system temp directory. A rename only becomes an atomic replace
+  when source and destination share a filesystem; `/tmp` and a folder on an
+  external drive or a network share do not, and the "atomic move" would
+  silently decay into a copy that can tear.
+- Replace the destination **only after** the render reports success.
+- If the render or the rename fails, the existing file at that path — if any —
+  is left exactly as it was. A failed PDF export never destroys the student's
+  previous export.
+- Delete the temp file on **every** failure path, including timeout and
+  cancellation. A directory slowly filling with `.tesina-export-*.pdf`
+  leftovers is its own bug.
 
 **Both formats share the gate.** `studentTitlePageWarnings` is
 format-agnostic, so PDF inherits the v0.1.8 "advise, never block" behaviour for
@@ -196,42 +228,103 @@ Latin Modern (OFL, permitted by the AGENTS.md license policy) would fix
 Computer Modern and is a reasonable **separate** change. Times New Roman,
 Calibri, and Aptos are proprietary and cannot be bundled at all.
 
+## The render contract
+
+`export_pdf` is the one place where a vague spec turns into a hung UI or a
+blank file. The contract is therefore explicit.
+
+### Completion handshake
+
+The hidden webview must tell Rust when it is safe to print. `previewer.preview()`
+resolves with a flow object carrying `flow.total`
+(`PrintPreview.svelte` already reads it for the page count). The injected
+bootstrap awaits that promise and posts a single message back:
+
+- **success** — `{ ok: true, pages: flow.total }`
+- **failure** — `{ ok: false, error: <message> }`, posted from a `catch` around
+  the whole pagination, plus a `window.onerror` hook so a script failure that
+  never reaches the `catch` still reports rather than going silent.
+
+Rust prints only after an `ok: true`. `pages` is carried through so the adapter
+can assert page-count parity against what the preview showed.
+
+### Deadline and cleanup
+
+**Every failure mode must terminate in an `ExportOutcome.error`.** The one
+unacceptable outcome is a button stuck on "Exporting…" forever.
+
+- The wait is bounded by a deadline. Exceeding it is a normal, handled error,
+  not a panic.
+- On success, failure, timeout, or cancellation: destroy the hidden webview,
+  delete the temp file, and return. No path may leave either behind.
+- A JavaScript error inside the webview propagates as the error message rather
+  than being swallowed, so a broken document is diagnosable from the footer.
+
+The deadline must be generous enough for the 50-page CI fixture on a slow
+machine. Pick it from a measurement taken during step 1, not from a guess.
+
+### Page geometry
+
+The CSS owns the layout; `NSPrintInfo` must be configured not to fight it.
+
+| `NSPrintInfo` | Value | Why |
+| --- | --- | --- |
+| paper size | from `essay.settings.paperSize` | must agree with the `@page` rule at `renderEssayHtml.ts:318` |
+| top/bottom/left/right margins | `0` | APA margins are already in the CSS; non-zero here insets them twice |
+| `isHorizontallyCentered` / `isVerticallyCentered` | `false` | centering shifts an already-positioned page box |
+| orientation | portrait | APA papers are portrait |
+| scaling factor | `1.0` | any other value silently breaks 12 pt type |
+
+The webview also needs a deterministic environment before printing: a fixed
+viewport width matching the target page width, so Paged.js does not lay out
+against an arbitrary window size, and confirmation that fonts and images have
+settled (`document.fonts.ready`, plus image decode) before the handshake fires.
+Printing mid-font-load produces a PDF laid out in the fallback face.
+
 ## Testing
 
 Proportional to risk, smallest useful check first:
 
 - **Pure render** — `renderEssayHtml.test.ts` already has golden snapshots. Add
-  one covering the self-contained variant, asserting that figures arrive as
-  data URLs and that no object URL survives.
+  one covering the self-contained variant, asserting that figures arrive as data
+  URLs, that no blob URL survives, and that equations arrive as MathML.
+- **Asset fallbacks** — a missing figure asset and a malformed LaTeX string each
+  degrade exactly as `PrintPreview.svelte` degrades them, rather than failing
+  the export.
 - **Export adapter** — unit test that the PDF path consumes the same detached
   snapshot as DOCX and returns the same `ExportOutcome` shape, with the Rust
-  command mocked.
+  command mocked. Cover the error and timeout replies, asserting the UI leaves
+  the "Exporting…" state in every case.
 - **Component** — extend the `EditorScreen` suite: the menu offers both formats,
   each calls its own exporter once, and the title-page advice fires for PDF
   exactly as it does for DOCX.
-- **Rust** — unit test the command's error mapping (bad HTML, webview failure).
-  Do not attempt to assert PDF bytes; the existing native-proof harness is the
-  precedent for anything needing a real webview.
+- **Rust** — unit test error mapping and the temp-file cleanup guarantee
+  (failure leaves no temp file and does not touch an existing destination).
+- **Native proof** — the existing harness under
+  `src/lib/editor/pagination/proof/` is the precedent for anything needing a
+  real webview. Extend it to assert, on a real render: the handshake fires,
+  timeout cleanup works, a US Letter and an A4 export each produce a non-blank
+  multi-page PDF at the correct point dimensions, and the page count matches
+  `flow.total`. Byte-level PDF assertions stay out of scope; dimensions and page
+  count are what actually protect the student.
 
 ## Risks
 
 Ordered by how likely they are to actually bite.
 
 1. **Paged.js completion signal.** In a hidden webview nobody is watching for
-   "done". Paged.js resolves a promise on completion, and the loaded document
-   must post that back before the print operation runs. Printing early yields a
-   blank or half-paginated file. **This is now the most likely source of a
-   subtle bug** and deserves the first test.
-2. **Page size.** `@page` is already driven by `essay.settings.paperSize`
-   (`renderEssayHtml.ts:318`), but `NSPrintInfo` carries its own paper size and
-   margins that can silently override it. Assert US Letter and A4 both come out
-   at the right dimensions, and set `NSPrintInfo` margins to zero so the CSS
-   owns the layout.
+   "done". Printing early yields a blank or half-paginated file. **This is the
+   most likely source of a subtle bug** and deserves the first test. Governed by
+   the handshake and deadline rules above.
+2. **Page size.** `NSPrintInfo` carries its own paper size, margins, and scaling
+   that silently override the CSS. Governed by the geometry table above; assert
+   US Letter and A4 dimensions in the native proof.
 3. **Hidden window behaviour.** A webview that is never shown may not lay out
    at all on macOS. If so, render off-screen (positioned outside the visible
    frame) rather than un-shown.
 4. **Large documents.** CI already paginates a 50-page fixture; a hidden webview
-   doing the same should be measured, not assumed.
+   doing the same should be measured, not assumed. That measurement also sets
+   the deadline.
 
 The earlier "the platform call may not exist" risk is retired — every symbol is
 verified present in the locked dependencies, as tabled above.
