@@ -7,28 +7,33 @@ import {
 import type { Essay, TitlePage } from "$lib/model/essay";
 
 export type TitlePageValidationMessageKey =
-  | "titlepage_error_missing_title"
-  | "titlepage_error_missing_authors"
-  | "titlepage_error_missing_affiliations"
-  | "titlepage_error_missing_course"
-  | "titlepage_error_missing_instructor"
-  | "titlepage_error_missing_due_date"
-  | "titlepage_error_ambiguous_affiliations";
+  | "titlepage_warn_missing_title"
+  | "titlepage_warn_missing_authors"
+  | "titlepage_warn_missing_affiliations"
+  | "titlepage_warn_missing_course"
+  | "titlepage_warn_missing_instructor"
+  | "titlepage_warn_missing_due_date"
+  | "titlepage_warn_ambiguous_affiliations";
 
 const MESSAGE_KEY_BY_ISSUE = {
-  missingTitle: "titlepage_error_missing_title",
-  missingAuthors: "titlepage_error_missing_authors",
-  missingAffiliations: "titlepage_error_missing_affiliations",
-  missingCourse: "titlepage_error_missing_course",
-  missingInstructor: "titlepage_error_missing_instructor",
-  missingDueDate: "titlepage_error_missing_due_date",
-  ambiguousAffiliations: "titlepage_error_ambiguous_affiliations",
+  missingTitle: "titlepage_warn_missing_title",
+  missingAuthors: "titlepage_warn_missing_authors",
+  missingAffiliations: "titlepage_warn_missing_affiliations",
+  missingCourse: "titlepage_warn_missing_course",
+  missingInstructor: "titlepage_warn_missing_instructor",
+  missingDueDate: "titlepage_warn_missing_due_date",
+  ambiguousAffiliations: "titlepage_warn_ambiguous_affiliations",
 } as const satisfies Record<
   StudentTitlePageIssue,
   TitlePageValidationMessageKey
 >;
 
-export interface StudentTitlePageBlockingIssue {
+/**
+ * One APA shortfall on the student title page. Advisory only: the engine
+ * states what APA asks for, and every surface presents it as guidance. No
+ * title-page state stops an export.
+ */
+export interface StudentTitlePageWarning {
   issue: StudentTitlePageIssue;
   messageKey: TitlePageValidationMessageKey;
 }
@@ -78,11 +83,12 @@ export function studentTitlePageMessageKey(
   return MESSAGE_KEY_BY_ISSUE[issue];
 }
 
-export function firstStudentTitlePageBlockingIssue(
+/** Every APA shortfall, in the engine's deterministic title-page order. */
+export function studentTitlePageWarnings(
   titlePage: TitlePage,
   locale: DocLocale,
-): StudentTitlePageBlockingIssue | null {
-  const [issue] = buildStudentTitlePage({
+): StudentTitlePageWarning[] {
+  return buildStudentTitlePage({
     locale,
     title: titlePage.title,
     authors: titlePage.authors,
@@ -90,26 +96,8 @@ export function firstStudentTitlePageBlockingIssue(
     course: titlePage.course ?? "",
     instructor: titlePage.instructor ?? "",
     dueDate: titlePage.dueDate ?? "",
-  }).issues;
-
-  return issue
-    ? { issue, messageKey: studentTitlePageMessageKey(issue) }
-    : null;
-}
-
-export type ValidatedStudentTitlePageExport<T> =
-  | ({ status: "blocked" } & StudentTitlePageBlockingIssue)
-  | { status: "exported"; outcome: T };
-
-export async function runStudentTitlePageValidatedExport<T>(
-  snapshot: StudentExportSnapshot,
-  exportAction: (snapshot: StudentExportSnapshot) => Promise<T>,
-): Promise<ValidatedStudentTitlePageExport<T>> {
-  const blockingIssue = firstStudentTitlePageBlockingIssue(
-    snapshot.essay.titlePage,
-    snapshot.essay.settings.documentLanguage,
-  );
-  if (blockingIssue) return { status: "blocked", ...blockingIssue };
-
-  return { status: "exported", outcome: await exportAction(snapshot) };
+  }).issues.map((issue) => ({
+    issue,
+    messageKey: studentTitlePageMessageKey(issue),
+  }));
 }

@@ -3,9 +3,8 @@ import type { Reference, StudentTitlePageIssue } from "@tesina/engine";
 import type { Essay, TitlePage } from "$lib/model/essay";
 import {
   createStudentExportSnapshot,
-  firstStudentTitlePageBlockingIssue,
-  runStudentTitlePageValidatedExport,
   studentTitlePageMessageKey,
+  studentTitlePageWarnings,
 } from "$lib/model/titlePageValidation";
 
 const completeTitlePage: TitlePage = {
@@ -53,23 +52,23 @@ function completeEssay(): Essay {
 
 describe("student title-page validation adapter", () => {
   it.each<[StudentTitlePageIssue, string]>([
-    ["missingTitle", "titlepage_error_missing_title"],
-    ["missingAuthors", "titlepage_error_missing_authors"],
-    ["missingAffiliations", "titlepage_error_missing_affiliations"],
-    ["missingCourse", "titlepage_error_missing_course"],
-    ["missingInstructor", "titlepage_error_missing_instructor"],
-    ["missingDueDate", "titlepage_error_missing_due_date"],
+    ["missingTitle", "titlepage_warn_missing_title"],
+    ["missingAuthors", "titlepage_warn_missing_authors"],
+    ["missingAffiliations", "titlepage_warn_missing_affiliations"],
+    ["missingCourse", "titlepage_warn_missing_course"],
+    ["missingInstructor", "titlepage_warn_missing_instructor"],
+    ["missingDueDate", "titlepage_warn_missing_due_date"],
     [
       "ambiguousAffiliations",
-      "titlepage_error_ambiguous_affiliations",
+      "titlepage_warn_ambiguous_affiliations",
     ],
   ])("maps %s to %s", (issue, expectedKey) => {
     expect(studentTitlePageMessageKey(issue)).toBe(expectedKey);
   });
 
-  it("returns the first engine issue in deterministic title-page order", () => {
+  it("reports every shortfall in deterministic title-page order", () => {
     expect(
-      firstStudentTitlePageBlockingIssue(
+      studentTitlePageWarnings(
         {
           title: "",
           authors: [],
@@ -77,98 +76,41 @@ describe("student title-page validation adapter", () => {
         },
         "en",
       ),
-    ).toEqual({
-      issue: "missingTitle",
-      messageKey: "titlepage_error_missing_title",
-    });
+    ).toEqual([
+      { issue: "missingTitle", messageKey: "titlepage_warn_missing_title" },
+      { issue: "missingAuthors", messageKey: "titlepage_warn_missing_authors" },
+      {
+        issue: "missingAffiliations",
+        messageKey: "titlepage_warn_missing_affiliations",
+      },
+      { issue: "missingCourse", messageKey: "titlepage_warn_missing_course" },
+      {
+        issue: "missingInstructor",
+        messageKey: "titlepage_warn_missing_instructor",
+      },
+      {
+        issue: "missingDueDate",
+        messageKey: "titlepage_warn_missing_due_date",
+      },
+    ]);
   });
 
-  it("blocks before invoking the export side effect", async () => {
-    let exportCalls = 0;
-    const essay = completeEssay();
-    essay.titlePage.authors = [];
-    const snapshot = createStudentExportSnapshot(
-      essay,
-      essay.content,
-      [reference],
-      "en",
-    );
-
-    const result = await runStudentTitlePageValidatedExport(
-      snapshot,
-      () => {
-        exportCalls += 1;
-        return Promise.resolve("saved");
-      },
-    );
-
-    expect(result).toEqual({
-      status: "blocked",
-      issue: "missingAuthors",
-      messageKey: "titlepage_error_missing_authors",
-    });
-    expect(exportCalls).toBe(0);
+  it("reports a complete title page as free of shortfalls", () => {
+    expect(studentTitlePageWarnings(completeTitlePage, "es")).toEqual([]);
   });
 
   it.each(["", "EDU 301"])(
-    "blocks incomplete course information %j before export",
-    async (course) => {
-      let exportCalls = 0;
-      const essay = completeEssay();
-      essay.titlePage.course = course;
-      const snapshot = createStudentExportSnapshot(
-        essay,
-        essay.content,
-        [reference],
-        "en",
-      );
+    "reports incomplete course information %j",
+    (course) => {
+      const titlePage: TitlePage = { ...completeTitlePage, course };
 
-      const result = await runStudentTitlePageValidatedExport(
-        snapshot,
-        () => {
-          exportCalls += 1;
-          return Promise.resolve("saved");
-        },
-      );
-
-      expect(result).toEqual({
-        status: "blocked",
-        issue: "missingCourse",
-        messageKey: "titlepage_error_missing_course",
-      });
-      expect(exportCalls).toBe(0);
+      expect(studentTitlePageWarnings(titlePage, "en")).toEqual([
+        { issue: "missingCourse", messageKey: "titlepage_warn_missing_course" },
+      ]);
     },
   );
 
-  it("invokes a valid export once and returns its outcome", async () => {
-    let exportCalls = 0;
-    const essay = completeEssay();
-    const snapshot = createStudentExportSnapshot(
-      essay,
-      essay.content,
-      [reference],
-      "es",
-    );
-
-    const result = await runStudentTitlePageValidatedExport(
-      snapshot,
-      () => {
-        exportCalls += 1;
-        return Promise.resolve({
-          status: "saved" as const,
-          path: "/tmp/paper.docx",
-        });
-      },
-    );
-
-    expect(result).toEqual({
-      status: "exported",
-      outcome: { status: "saved", path: "/tmp/paper.docx" },
-    });
-    expect(exportCalls).toBe(1);
-  });
-
-  it("uses one detached snapshot for validation and the export callback", async () => {
+  it("detaches the export snapshot from later edits to its sources", () => {
     const essay = completeEssay();
     const document = {
       type: "doc",
@@ -185,22 +127,12 @@ describe("student title-page validation adapter", () => {
       "es",
     );
 
-    const result = await runStudentTitlePageValidatedExport(
-      snapshot,
-      (exportSnapshot) => {
-        essay.titlePage.title = "";
-        essay.titlePage.authors[0] = "Changed author";
-        essay.settings.documentLanguage = "en";
-        document.content[0]!.content[0]!.text = "After";
-        references[0]!.title = "Changed reference";
-        return Promise.resolve(exportSnapshot);
-      },
-    );
+    essay.titlePage.title = "";
+    essay.titlePage.authors[0] = "Changed author";
+    essay.settings.documentLanguage = "en";
+    document.content[0]!.content[0]!.text = "After";
+    references[0]!.title = "Changed reference";
 
-    expect(result).toEqual({
-      status: "exported",
-      outcome: snapshot,
-    });
     expect(snapshot.essay.titlePage.title).toBe("Reading Habits");
     expect(snapshot.essay.titlePage.authors).toEqual(["Ana Ruiz"]);
     expect(snapshot.essay.settings).toMatchObject({

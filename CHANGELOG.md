@@ -5,6 +5,18 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-08-15
+
+### Changed
+
+- Export no longer refuses to run when the title page is incomplete. Tesina
+  now lists what APA asks for and lets you export anyway, so an unfinished
+  cover page can never hold your document hostage.
+- The course field accepts whatever you type. The number-colon-name form APA
+  expects is still shown as advice instead of being enforced.
+- The cover-page form shows every APA suggestion at once, in a yellow panel
+  that empties as you fill the fields. Saving is never disabled.
+
 ## [0.1.7] - 2026-08-14
 
 ### Changed

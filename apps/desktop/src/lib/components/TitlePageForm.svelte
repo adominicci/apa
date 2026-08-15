@@ -13,12 +13,11 @@
     TitlePage,
   } from "$lib/model/essay";
   import { APA_FONTS, APA_FONT_ORDER } from "$lib/model/fonts";
-  import { firstStudentTitlePageBlockingIssue } from "$lib/model/titlePageValidation";
+  import { studentTitlePageWarnings } from "$lib/model/titlePageValidation";
 
   interface Props {
     titlePage: TitlePage;
     settings: EssaySettings;
-    validationMessage?: string;
     onSave: (titlePage: TitlePage, settings: EssaySettings) => void;
     onClose: () => void;
   }
@@ -26,7 +25,6 @@
   let {
     titlePage,
     settings,
-    validationMessage = "",
     onSave,
     onClose,
   }: Props = $props();
@@ -81,16 +79,11 @@
     return draft;
   }
 
-  /* When export was blocked, re-validate the draft as the user types so the
-     error visibly clears once the fields are export-ready. */
-  const liveValidationError = $derived.by(() => {
-    if (!validationMessage) return "";
-    const issue = firstStudentTitlePageBlockingIssue(
-      buildDraft(),
-      settings.documentLanguage,
-    );
-    return issue ? localizeTitlePageValidation(issue.messageKey) : "";
-  });
+  /* Advisory only — nothing here disables Save. The list re-derives from the
+     draft as the user types, so an item disappears the moment it is met. */
+  const liveWarnings = $derived(
+    studentTitlePageWarnings(buildDraft(), settings.documentLanguage),
+  );
 
   function save() {
     const nextSettings: EssaySettings = {
@@ -159,8 +152,18 @@
   </label>
 
   <p class="hint">{m.titlepage_hint()}</p>
-  {#if liveValidationError}
-    <p class="hint validation-error" role="alert">{liveValidationError}</p>
+  {#if liveWarnings.length > 0}
+    <div class="status-panel" data-tone="warn">
+      <span class="status-dot" aria-hidden="true"></span>
+      <div class="status-body">
+        <span class="status-title">{m.titlepage_warn_heading()}</span>
+        <ul class="warn-list">
+          {#each liveWarnings as warning (warning.issue)}
+            <li>{localizeTitlePageValidation(warning.messageKey)}</li>
+          {/each}
+        </ul>
+      </div>
+    </div>
   {/if}
 
   {#snippet footer()}
@@ -170,9 +173,14 @@
 </Modal>
 
 <style>
-  /* p + two classes outranks modal.css's `.modal .hint` muted color. */
-  p.validation-error {
-    color: var(--danger);
-    font-weight: 600;
+  .warn-list {
+    margin: var(--sp-1) 0 0;
+    padding-left: var(--sp-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-05);
+    font-size: var(--t-small);
+    line-height: var(--lh-snug);
+    color: var(--fg-2);
   }
 </style>

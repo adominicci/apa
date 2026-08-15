@@ -30,6 +30,7 @@
   import ReferenceQuickForm from "$lib/components/ReferenceQuickForm.svelte";
   import BibImportModal from "$lib/components/BibImportModal.svelte";
   import TitlePageForm from "$lib/components/TitlePageForm.svelte";
+  import ExportWarningsDialog from "$lib/components/ExportWarningsDialog.svelte";
   import { collectCitedRefIds } from "$lib/editor/citedRefs";
   import {
     type ReferenceDecorationEnv,
@@ -78,10 +79,9 @@
   import { resolveReferencesForExport } from "$lib/export/referenceResolution";
   import {
     createStudentExportSnapshot,
-    firstStudentTitlePageBlockingIssue,
-    runStudentTitlePageValidatedExport,
+    type StudentTitlePageWarning,
+    studentTitlePageWarnings,
   } from "$lib/model/titlePageValidation";
-  import { localizeTitlePageValidation } from "$lib/components/titlePageValidationMessages";
   import { m } from "$lib/paraglide/messages";
   import {
     persistence,
@@ -137,7 +137,12 @@
   let confirmingDelete = $state<string | null>(null);
   let exporting = $state(false);
   let exportMessage = $state("");
-  let titlePageValidationError = $state("");
+  /* Non-empty while the advisory export dialog is up. Its own presence is the
+     "already warned" flag, so confirming exports without re-checking. */
+  let exportWarnings = $state<StudentTitlePageWarning[]>([]);
+  /* Set when the user leaves the advisory dialog to edit the title page, so
+     saving finishes the export they already asked for. */
+  let resumeExportAfterTitlePage = $state(false);
   let essayTitle = $state(untrack(() => essay.titlePage.title));
   let outline = $state<OutlineItem[]>(
     untrack(() => buildOutline(essay.content)),
@@ -629,12 +634,17 @@
     addMenuOpen = false;
   }
 
-  async function handleExport() {
+  /**
+   * Exports the essay. An incomplete APA title page never stops this: the
+   * first attempt surfaces the shortfalls as advice, and `skipTitlePageAdvice`
+   * carries the user's "export anyway" through the second call.
+   */
+  async function handleExport(skipTitlePageAdvice = false) {
     if (!editor || exporting) return;
     const currentEditor = editor;
     exporting = true;
     exportMessage = "";
-    titlePageValidationError = "";
+    exportWarnings = [];
     try {
       const documentSnapshot = lastDoc ?? currentEditor.getJSON();
       const exportReferences = resolveReferencesForExport(
@@ -653,26 +663,22 @@
         exportReferences.references,
         documentLanguage,
       );
-      const result = await runStudentTitlePageValidatedExport(
-        exportSnapshot,
-        async (snapshot) => {
-          return await exportEssayToDocx(
-            snapshot.essay,
-            snapshot.document,
-            snapshot.references,
-          );
-        },
-      );
-      if (result.status === "blocked") {
-        titlePageValidationError = localizeTitlePageValidation(
-          result.messageKey,
+      if (!skipTitlePageAdvice) {
+        const warnings = studentTitlePageWarnings(
+          exportSnapshot.essay.titlePage,
+          documentLanguage,
         );
-        exportMessage = titlePageValidationError;
-        titleFormOpen = true;
-        return;
+        if (warnings.length > 0) {
+          exportWarnings = warnings;
+          return;
+        }
       }
 
-      const outcome = result.outcome;
+      const outcome = await exportEssayToDocx(
+        exportSnapshot.essay,
+        exportSnapshot.document,
+        exportSnapshot.references,
+      );
       if (outcome.status === "saved") {
         exportMessage = m.editor_exported({ path: outcome.path });
       } else if (outcome.status === "error") {
@@ -764,7 +770,7 @@
   }
 
   function handleSaveTitlePage(titlePage: TitlePage, settings: EssaySettings) {
-    const wasExportBlocked = titlePageValidationError !== "";
+    const resumeExport = resumeExportAfterTitlePage;
     essay.titlePage = titlePage;
     essay.settings = {
       ...settings,
@@ -772,18 +778,14 @@
       variant: "student",
     };
     essayTitle = titlePage.title;
-    titlePageValidationError = "";
+    resumeExportAfterTitlePage = false;
     exportMessage = "";
     titleFormOpen = false;
     scheduleSave();
-    // Saving from a blocked export resumes it once the page is export-ready,
-    // so "fix and save" completes the export the user already asked for.
-    if (
-      wasExportBlocked &&
-      !firstStudentTitlePageBlockingIssue(titlePage, documentLanguage)
-    ) {
-      void handleExport();
-    }
+    /* Saving finishes the export the user already asked for. The advice is
+       skipped: they just read it in the form, so re-raising the dialog would
+       trap "fix and save" in a loop it cannot leave. */
+    if (resumeExport) void handleExport(true);
   }
 
   /** Applies an inline edit from the student title-page sheet. */
@@ -1160,7 +1162,7 @@
       <div class="fm-sep"></div>
       <button
         class="fm-btn fm-primary-action"
-        onclick={handleExport}
+        onclick={() => void handleExport()}
         disabled={!editor || exporting}
         data-tip={exporting ? m.editor_exporting() : m.editor_export()}
         aria-label={exporting ? m.editor_exporting() : m.editor_export()}
@@ -1284,17 +1286,32 @@
   </div>
 {/if}
 
+{#if exportWarnings.length > 0}
+  <ExportWarningsDialog
+    warnings={exportWarnings}
+    onExportAnyway={() => {
+      exportWarnings = [];
+      void handleExport(true);
+    }}
+    onFixTitlePage={() => {
+      exportWarnings = [];
+      resumeExportAfterTitlePage = true;
+      titleFormOpen = true;
+    }}
+    onClose={() => (exportWarnings = [])}
+  />
+{/if}
+
 {#if titleFormOpen}
   <TitlePageForm
     titlePage={essay.titlePage}
     settings={essay.settings}
-    validationMessage={titlePageValidationError}
     onSave={handleSaveTitlePage}
     onClose={() => {
       titleFormOpen = false;
-      // Dismissing the form abandons the blocked export, so a later
-      // unrelated save doesn't resume it unexpectedly.
-      titlePageValidationError = "";
+      // Dismissing the form abandons the export it was opened from, so a
+      // later unrelated save doesn't resume it unexpectedly.
+      resumeExportAfterTitlePage = false;
     }}
   />
 {/if}
