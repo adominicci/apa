@@ -7,7 +7,7 @@ in APA 7 style. It runs without an account, and your papers remain on your
 computer. The interface and each document can use English or Spanish
 independently.
 
-Version 0.1.7 supports student papers on macOS 11 or newer. It is distributed
+Version 0.1.7 supports student papers on macOS 12 or newer. It is distributed
 as a DMG through GitHub Releases, not through the Mac App Store. Windows and
 Linux builds are checked in CI but are not published or supported yet.
 

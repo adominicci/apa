@@ -225,6 +225,68 @@
   --panel: var(--chrome);
 }
 
+/*
+ * ── The document keeps its own palette ────────────────────────────
+ * The design system above is chrome only; the reference export says so in
+ * as many words. But the frozen paper path consumes the shared tokens —
+ * apa.css paints `.paper-sheet` and `.tiptap > .sec` with var(--fg) and
+ * rules its APA tables with it, and CoverSheet does the same — so retuning
+ * the chrome palette would have silently restyled the sheet on screen.
+ * (Export is unaffected either way: renderEssayCss hardcodes its ink and
+ * DOCX carries its own colors, which is why the goldens stayed green and
+ * did not catch this.)
+ *
+ * Pinning the pre-v1 values on .apa-editor keeps the document byte-identical
+ * without editing a frozen file. `.apa-editor` is the right hook because the
+ * editor sheet and CoverSheet both carry it.
+ *
+ * The derived tokens are restated rather than inherited: a custom property
+ * substitutes its var() at the element where it is DECLARED, so the :root
+ * definitions of --hover and friends would still resolve against the chrome
+ * --fg no matter what this block sets.
+ */
+.apa-editor {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --fg: #111111;
+  --fg-2: #33373e;
+  --muted: #6b6b6b;
+  --border: #e5e5e5;
+  --border-soft: #eeeeee;
+  --accent: #2f6feb;
+  --accent-on: #ffffff;
+  --success: #17a34a;
+  --warn: #eab308;
+  --danger: #dc2626;
+  --paper: #ffffff;
+
+  --canvas: color-mix(in oklab, var(--bg), var(--fg) 3%);
+  --hover: color-mix(in oklab, var(--fg), transparent 94%);
+  --accent-soft: color-mix(in oklab, var(--accent), transparent 86%);
+  --warn-soft: color-mix(in oklab, var(--warn), transparent 85%);
+  --warn-strong: color-mix(in oklab, var(--warn), var(--fg) 45%);
+  --elev-raised: 0 8px 30px color-mix(in oklab, var(--fg), transparent 86%);
+  --shadow-paper:
+    0 1px 2px color-mix(in oklab, var(--fg), transparent 90%), 0 12px 40px
+    color-mix(in oklab, var(--fg), transparent 88%);
+}
+
+:root[data-theme="dark"] .apa-editor {
+  --bg: #0f1216;
+  --surface: #171b21;
+  --fg: #e9ecf1;
+  --fg-2: #c3c9d2;
+  --muted: #8b93a1;
+  --border: #272d36;
+  --border-soft: #1e242c;
+  --accent: #5b8def;
+  --accent-on: #0b1220;
+  --success: #22c55e;
+  --warn: #eab308;
+  --danger: #f0555b;
+  --paper: #1b2027;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

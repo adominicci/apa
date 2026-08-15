@@ -69,6 +69,10 @@
     return `${listId}-opt-${index}`;
   }
 
+  function groupLabelId(index: number): string {
+    return `${listId}-grp-${index}`;
+  }
+
   async function openList(startAt = selectedIndex): Promise<void> {
     open = true;
     activeIndex = startAt >= 0 ? startAt : 0;
@@ -224,11 +228,25 @@
       aria-activedescendant={activeIndex >= 0 ? optionId(activeIndex) : undefined}
       onkeydown={onListKeydown}
     >
-      {#each groups as group (group.label)}
+      {#each groups as group, groupIndex (group.label)}
+        <!-- role="group" + aria-labelledby, so a screen reader still hears
+             "Con serifa" before the families in it. A bare heading between
+             options is not a listbox child a reader will relate to them, and
+             the native <optgroup> this replaces announced the category. An
+             unlabelled group (the flat-list case) is left ungrouped. -->
         {#if group.label !== ""}
-          <span class="select-group">{group.label}</span>
+          <span class="select-group" id={groupLabelId(groupIndex)}>
+            {group.label}
+          </span>
         {/if}
-        {#each group.options as option (option.value)}
+        <div
+          role="group"
+          aria-labelledby={group.label !== ""
+            ? groupLabelId(groupIndex)
+            : undefined}
+          class="select-group-items"
+        >
+          {#each group.options as option (option.value)}
           {@const index = flat.indexOf(option)}
           <!-- A button, not a div: focus stays on the listbox and moves by
                aria-activedescendant, but the native button keeps click and
@@ -262,7 +280,8 @@
             >{option.label}</span>
             {#if option.hint}<span class="select-hint">{option.hint}</span>{/if}
           </button>
-        {/each}
+          {/each}
+        </div>
       {/each}
     </div>
   {/if}

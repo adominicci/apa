@@ -189,6 +189,15 @@
   color: var(--muted);
 }
 
+/* The role="group" wrapper repeats the popup's own column so the options keep
+   their spacing. Not `display: contents`, which has a history of dropping the
+   element's role from the accessibility tree — the whole point of the wrapper. */
+:is(.modal, .ui-controls) .select-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
 :is(.modal, .ui-controls) .select-option {
   display: flex;
   align-items: baseline;
@@ -540,7 +549,7 @@
   color: var(--accent-on);
 }
 
-:is(.modal, .ui-controls) .btn-primary:hover:not(:disabled):not([aria-disabled="true"]) {
+.btn-primary:hover:not(:disabled):not([aria-disabled="true"]) {
   background: var(--accent-hover);
   color: var(--accent-on);
 }
