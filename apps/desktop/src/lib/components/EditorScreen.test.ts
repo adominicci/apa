@@ -331,7 +331,7 @@ describe("editor preview round trip", () => {
       `Tesina ${bundledReleaseNotes.version}`,
     );
     expect(dialog?.textContent).toContain(
-      "Every dialog in Tesina now shares one look",
+      "Export no longer refuses to run when the title page is incomplete",
     );
     document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
     flushSync();
@@ -385,7 +385,7 @@ describe("editor preview round trip", () => {
       "Las notas no están disponibles para esta versión.",
     );
     expect(dialog?.textContent).not.toContain(
-      "Every dialog in Tesina now shares one look",
+      "Export no longer refuses to run when the title page is incomplete",
     );
     globalThis.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
@@ -1027,11 +1027,12 @@ describe("editor preview round trip", () => {
   });
 });
 
-describe("APA export title-page gate", () => {
-  it("shows a live validation error and resumes the export after a fixing save", async () => {
+describe("APA export title-page advice", () => {
+  /** Mounts an essay whose course lacks the colon APA asks for. */
+  function mountIncompleteTitlePage() {
     const essay = exportableEssay(bodyDoc("Seed"));
-    essay.titlePage.course = "PSYC 232"; // no colon → blocked
-    const component = mount(EditorScreen, {
+    essay.titlePage.course = "PSYC 232"; // no colon → APA shortfall
+    return mount(EditorScreen, {
       target: document.body,
       props: {
         essay,
@@ -1041,31 +1042,37 @@ describe("APA export title-page gate", () => {
         onOpenLibrary: vi.fn(),
       },
     });
+  }
+
+  function dialogButton(label: string): HTMLButtonElement {
+    const button = [
+      ...document.querySelectorAll<HTMLButtonElement>(".modal .btn"),
+    ].find((candidate) => candidate.textContent?.trim() === label);
+    if (!button) throw new Error(`Button not found: ${label}`);
+    return button;
+  }
+
+  async function waitForAdvice() {
+    await vi.waitFor(() => {
+      expect(document.querySelector(".modal .status-panel[data-tone='warn']"))
+        .not.toBeNull();
+    });
+  }
+
+  it("exports an APA-complete title page without raising advice", async () => {
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay: exportableEssay(bodyDoc("Seed")),
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
     flushSync();
 
     exportButton().click();
-    await vi.waitFor(() => {
-      expect(document.querySelector(".modal [role='alert']")).not.toBeNull();
-    });
-    expect(runtime.exportEssayToDocx).not.toHaveBeenCalled();
-    expect(document.querySelector(".modal [role='alert']")?.textContent).toBe(
-      m.titlepage_error_missing_course(),
-    );
-
-    const courseInput = document.querySelector<HTMLInputElement>(
-      `input[placeholder="${m.titlepage_course_placeholder()}"]`,
-    );
-    if (!courseInput) throw new Error("Course input not found");
-    courseInput.value = "PSYC 232: Desarrollo humano";
-    courseInput.dispatchEvent(new Event("input", { bubbles: true }));
-    flushSync();
-    expect(document.querySelector(".modal [role='alert']")).toBeNull();
-
-    const saveButton = [
-      ...document.querySelectorAll<HTMLButtonElement>(".modal .btn-primary"),
-    ].find((button) => button.textContent === m.titlepage_save());
-    if (!saveButton) throw new Error("Save button not found");
-    saveButton.click();
     await vi.waitFor(() => {
       expect(runtime.exportEssayToDocx).toHaveBeenCalledOnce();
     });
@@ -1074,39 +1081,34 @@ describe("APA export title-page gate", () => {
     await unmount(component);
   });
 
-  it("abandons a blocked export when the form is dismissed", async () => {
-    const essay = exportableEssay(bodyDoc("Seed"));
-    essay.titlePage.course = "PSYC 232"; // no colon → blocked
-    const component = mount(EditorScreen, {
-      target: document.body,
-      props: {
-        essay,
-        newlyCreated: false,
-        onLaunchConsumed: vi.fn(),
-        onBack: vi.fn(),
-        onOpenLibrary: vi.fn(),
-      },
-    });
+  it("advises instead of blocking, then exports on confirmation", async () => {
+    const component = mountIncompleteTitlePage();
     flushSync();
 
     exportButton().click();
-    await vi.waitFor(() => {
-      expect(document.querySelector(".modal [role='alert']")).not.toBeNull();
-    });
+    await waitForAdvice();
+    expect(runtime.exportEssayToDocx).not.toHaveBeenCalled();
+    expect(document.querySelector(".modal .warn-list")?.textContent).toContain(
+      m.titlepage_warn_missing_course(),
+    );
 
-    const closeButton = [
-      ...document.querySelectorAll<HTMLButtonElement>(".modal .btn-ghost"),
-    ].find((button) => button.textContent === m.common_close());
-    if (!closeButton) throw new Error("Close button not found");
-    closeButton.click();
-    flushSync();
+    dialogButton(m.export_warn_anyway()).click();
+    await vi.waitFor(() => {
+      expect(runtime.exportEssayToDocx).toHaveBeenCalledOnce();
+    });
     expect(document.querySelector(".modal")).toBeNull();
 
-    // Reopen later for an unrelated edit: no stale error, and a valid save
-    // must not launch the abandoned export.
-    document.querySelector<HTMLButtonElement>("button.out-item")!.click();
+    await unmount(component);
+  });
+
+  it("resumes the export after the advice is acted on and saved", async () => {
+    const component = mountIncompleteTitlePage();
     flushSync();
-    expect(document.querySelector(".modal [role='alert']")).toBeNull();
+
+    exportButton().click();
+    await waitForAdvice();
+    dialogButton(m.export_warn_fix()).click();
+    flushSync();
 
     const courseInput = document.querySelector<HTMLInputElement>(
       `input[placeholder="${m.titlepage_course_placeholder()}"]`,
@@ -1115,12 +1117,35 @@ describe("APA export title-page gate", () => {
     courseInput.value = "PSYC 232: Desarrollo humano";
     courseInput.dispatchEvent(new Event("input", { bubbles: true }));
     flushSync();
+    // The live list empties as the draft satisfies APA.
+    expect(document.querySelector(".modal .warn-list")).toBeNull();
 
-    const saveButton = [
-      ...document.querySelectorAll<HTMLButtonElement>(".modal .btn-primary"),
-    ].find((button) => button.textContent === m.titlepage_save());
-    if (!saveButton) throw new Error("Save button not found");
-    saveButton.click();
+    dialogButton(m.titlepage_save()).click();
+    await vi.waitFor(() => {
+      expect(runtime.exportEssayToDocx).toHaveBeenCalledOnce();
+    });
+    expect(document.querySelector(".modal")).toBeNull();
+
+    await unmount(component);
+  });
+
+  it("abandons the export when the advice is dismissed", async () => {
+    const component = mountIncompleteTitlePage();
+    flushSync();
+
+    exportButton().click();
+    await waitForAdvice();
+
+    document.querySelector<HTMLButtonElement>(".modal .modal-close")!.click();
+    flushSync();
+    expect(document.querySelector(".modal")).toBeNull();
+    await drainMicrotasks();
+    expect(runtime.exportEssayToDocx).not.toHaveBeenCalled();
+
+    // A later unrelated title-page save must not launch the abandoned export.
+    document.querySelector<HTMLButtonElement>("button.out-item")!.click();
+    flushSync();
+    dialogButton(m.titlepage_save()).click();
     flushSync();
     await drainMicrotasks();
     expect(runtime.exportEssayToDocx).not.toHaveBeenCalled();
