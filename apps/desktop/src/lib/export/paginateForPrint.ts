@@ -1,3 +1,5 @@
+import type { Previewer as PagedPreviewer } from "pagedjs";
+
 /**
  * Runs Paged.js in the current webview and returns a standalone document.
  *
@@ -15,24 +17,31 @@ export interface PaginatedDocument {
   pages: number;
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
-
 /**
  * Paged.js writes its computed rules into `<style>` elements it appends to the
  * document head, not into the container. Dropping them would strip every page
  * box, margin box and running header from the printed output, so they are
  * collected and carried into the standalone document.
+ *
+ * The polisher is read directly rather than diffing `document.head`: a diff
+ * would also scoop up unrelated styles other code appended while pagination
+ * awaited, and it would miss the runtime counter rules Paged.js inserts
+ * through the CSSOM, which never appear in any element's textContent.
  */
-function collectInsertedStyles(before: ReadonlySet<Element>): string {
-  return [...document.head.querySelectorAll("style")]
-    .filter((element) => !before.has(element))
-    .map((element) => element.textContent ?? "")
-    .join("\n");
+function collectPreviewerStyles(previewer: PagedPreviewer): string {
+  const { base, styleSheet, inserted } = previewer.polisher;
+  const parts: string[] = [];
+  for (const element of inserted) {
+    parts.push(element.textContent ?? "");
+    // The CSSOM sheet sits right after the base styles in document order;
+    // keep that cascade order in the standalone document.
+    if (element === base && styleSheet) {
+      parts.push(
+        [...styleSheet.cssRules].map((rule) => rule.cssText).join("\n"),
+      );
+    }
+  }
+  return parts.join("\n");
 }
 
 export async function paginateForPrint(
@@ -49,17 +58,22 @@ export async function paginateForPrint(
   container.style.cssText =
     "position:absolute;left:-100000px;top:0;width:0;height:0;overflow:hidden";
   document.body.appendChild(container);
-  const stylesBefore = new Set(document.head.querySelectorAll("style"));
+  const previewer = new Previewer();
 
   try {
-    const previewer = new Previewer();
     const flow = await previewer.preview(contentHtml, [styleUrl], container);
-    const inserted = collectInsertedStyles(stylesBefore);
 
     const html = `<!doctype html>
 <html><head><meta charset="utf-8">
 <style>${css}</style>
-<style>${inserted}</style>
+<style>${collectPreviewerStyles(previewer)}</style>
+<style>
+/* The page boxes above are already full pages. The raw @page margin in the
+   first sheet would inset them a second time in the print pipeline, and the
+   default body margin would shift every box. */
+html, body { margin: 0; padding: 0; }
+@page { margin: 0; }
+</style>
 </head>
 <body class="pagedjs_root">${container.innerHTML}</body></html>`;
 
@@ -67,14 +81,9 @@ export async function paginateForPrint(
   } finally {
     container.remove();
     URL.revokeObjectURL(styleUrl);
-    // Paged.js's styles are global; leaving them behind would restyle the app.
-    for (const element of document.head.querySelectorAll("style")) {
-      if (!stylesBefore.has(element)) element.remove();
-    }
+    // Paged.js's styles are global; leaving them behind would restyle the
+    // app. Remove exactly what this Previewer inserted — a `document.head`
+    // sweep would also delete styles other code added while pagination ran.
+    if (previewer.polisher.styleSheet) previewer.polisher.destroy();
   }
-}
-
-/** Wraps a failure so the caller can surface it without leaking internals. */
-export function printDocumentError(error: unknown): string {
-  return error instanceof Error ? error.message : escapeHtml(String(error));
 }

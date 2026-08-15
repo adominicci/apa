@@ -8,6 +8,10 @@
   } from "$lib/preview/renderEssayHtml";
   import { imageObjectUrl } from "$lib/persist/assets";
   import { latexToMathml } from "$lib/editor/mathml";
+  import {
+    collectEquationLatex,
+    collectFigureSrcs,
+  } from "$lib/export/exportAssets";
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
@@ -18,24 +22,6 @@
   }
 
   let { essay, docJson, references, onPageCount }: Props = $props();
-
-  /** Collects every figure image path in the doc. */
-  function figureSrcs(node: unknown, out: Set<string>): void {
-    if (!node || typeof node !== "object") return;
-    const n = node as { type?: string; attrs?: { src?: string };
-      content?: unknown[]; };
-    if (n.type === "figureImage" && n.attrs?.src) out.add(n.attrs.src);
-    for (const child of n.content ?? []) figureSrcs(child, out);
-  }
-
-  /** Collects every block equation's LaTeX source in the doc. */
-  function equationLatexes(node: unknown, out: Set<string>): void {
-    if (!node || typeof node !== "object") return;
-    const n = node as { type?: string; attrs?: { latex?: string };
-      content?: unknown[]; };
-    if (n.type === "apaEquation" && n.attrs?.latex) out.add(n.attrs.latex);
-    for (const child of n.content ?? []) equationLatexes(child, out);
-  }
 
   let rendering = $state(true);
   let error = $state("");
@@ -50,7 +36,7 @@
         const { Previewer } = await import("pagedjs");
         if (cancelled) return;
         const srcs = new Set<string>();
-        figureSrcs(docJson, srcs);
+        collectFigureSrcs(docJson, srcs);
         const imageUrls = new Map<string, string>();
         for (const src of srcs) {
           try {
@@ -62,7 +48,7 @@
           }
         }
         const latexes = new Set<string>();
-        equationLatexes(docJson, latexes);
+        collectEquationLatex(docJson, latexes);
         const mathml = new Map<string, string>();
         for (const latex of latexes) {
           try {

@@ -36,7 +36,7 @@ sha2 = "0.10"
 same-file = "=1.0.6"
 uuid = { version = "1", features = ["v4"] }
 tauri-plugin-single-instance = "2.4.3"
-tokio = { version = "1", features = ["macros", "rt", "time"] }
+tokio = { version = "1", features = ["macros", "rt", "sync", "time"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 # Cocoa printing for the silent PDF export. These exact versions already arrive

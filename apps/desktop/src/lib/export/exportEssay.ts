@@ -10,6 +10,10 @@ import {
 import type { Essay } from "$lib/model/essay";
 import { imageKind, readImageBytes } from "$lib/persist/assets";
 import { latexToMathTree } from "$lib/editor/mathml";
+import {
+  collectEquationLatex,
+  collectFigureSrcs,
+} from "$lib/export/exportAssets";
 
 /** The formats the export menu offers. */
 export type ExportFormat = "docx" | "pdf";
@@ -22,28 +26,6 @@ export type ExportOutcome =
 export function sanitizeFilename(title: string): string {
   const clean = title.replace(/[\\/:*?"<>|]/g, "").trim();
   return clean === "" ? "ensayo" : clean;
-}
-
-function collectFigureSrcs(node: unknown, out: Set<string>): void {
-  if (!node || typeof node !== "object") return;
-  const n = node as {
-    type?: string;
-    attrs?: { src?: string };
-    content?: unknown[];
-  };
-  if (n.type === "figureImage" && n.attrs?.src) out.add(n.attrs.src);
-  for (const child of n.content ?? []) collectFigureSrcs(child, out);
-}
-
-function collectEquationLatex(node: unknown, out: Set<string>): void {
-  if (!node || typeof node !== "object") return;
-  const n = node as {
-    type?: string;
-    attrs?: { latex?: string };
-    content?: unknown[];
-  };
-  if (n.type === "apaEquation" && n.attrs?.latex) out.add(n.attrs.latex);
-  for (const child of n.content ?? []) collectEquationLatex(child, out);
 }
 
 /**

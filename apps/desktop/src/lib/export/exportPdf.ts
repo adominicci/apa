@@ -1,11 +1,21 @@
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import type { Reference } from "@tesina/engine";
-import type { Essay } from "$lib/model/essay";
+import type { Essay, PaperSize } from "$lib/model/essay";
 import { renderEssayCss, renderEssayHtml } from "$lib/preview/renderEssayHtml";
 import { buildExportAssets } from "$lib/export/exportAssets";
 import { paginateForPrint } from "$lib/export/paginateForPrint";
 import { type ExportOutcome, sanitizeFilename } from "$lib/export/exportEssay";
+
+/**
+ * Paper dimensions in PostScript points — the unit `NSPrintInfo` shares with
+ * the PDF media box. Must agree with the `@page` size in `renderEssayCss`;
+ * the print pipeline takes its paper from here, not from the CSS.
+ */
+const PAPER_POINTS: Record<PaperSize, { width: number; height: number }> = {
+  "us-letter": { width: 612, height: 792 },
+  a4: { width: 595.28, height: 841.89 },
+};
 
 /**
  * Renders the essay to PDF through the same Paged.js document the Print
@@ -42,10 +52,13 @@ export async function exportEssayToPdf(
     // temp-then-rename write. It knows nothing about APA. `pages` travels with
     // the document so the printed page count can be checked against what the
     // preview laid out rather than trusted.
+    const paper = PAPER_POINTS[essay.settings.paperSize];
     await invoke("export_pdf", {
       html,
       destination: path,
       expectedPages: pages,
+      paperWidthPt: paper.width,
+      paperHeightPt: paper.height,
     });
     return { status: "saved", path };
   } catch (err) {

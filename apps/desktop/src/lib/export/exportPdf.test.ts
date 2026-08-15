@@ -85,8 +85,26 @@ describe("PDF export adapter", () => {
       html: "<html></html>",
       destination: "/tmp/paper.pdf",
       expectedPages: 4,
+      paperWidthPt: 612,
+      paperHeightPt: 792,
     });
     expect(outcome).toEqual({ status: "saved", path: "/tmp/paper.pdf" });
+  });
+
+  it("maps A4 to its point dimensions for the print pipeline", async () => {
+    runtime.save.mockResolvedValue("/tmp/paper.pdf");
+    runtime.invoke.mockResolvedValue(4);
+    const a4 = essay();
+    a4.settings.paperSize = "a4";
+
+    await exportEssayToPdf(a4, { type: "doc" }, []);
+
+    // NSPrintInfo defaults to the locale's paper; the document's size must
+    // travel with the job or a us-letter essay can print on A4 media.
+    expect(runtime.invoke).toHaveBeenCalledWith(
+      "export_pdf",
+      expect.objectContaining({ paperWidthPt: 595.28, paperHeightPt: 841.89 }),
+    );
   });
 
   it("surfaces a render failure instead of reporting a saved file", async () => {
@@ -101,6 +119,20 @@ describe("PDF export adapter", () => {
     expect(outcome).toEqual({
       status: "error",
       message: "the PDF did not finish in time",
+    });
+  });
+
+  it("surfaces the Rust command's plain-string rejection verbatim", async () => {
+    runtime.save.mockResolvedValue("/tmp/paper.pdf");
+    // Tauri rejects with the command's serialized error — a bare string, not
+    // an Error instance. It must not degrade to "[object Object]".
+    runtime.invoke.mockRejectedValue("the PDF came out empty");
+
+    const outcome = await exportEssayToPdf(essay(), { type: "doc" }, []);
+
+    expect(outcome).toEqual({
+      status: "error",
+      message: "the PDF came out empty",
     });
   });
 
