@@ -11,12 +11,15 @@ import type { Essay } from "$lib/model/essay";
 import { imageKind, readImageBytes } from "$lib/persist/assets";
 import { latexToMathTree } from "$lib/editor/mathml";
 
+/** The formats the export menu offers. */
+export type ExportFormat = "docx" | "pdf";
+
 export type ExportOutcome =
   | { status: "saved"; path: string }
   | { status: "cancelled" }
   | { status: "error"; message: string };
 
-function sanitizeFilename(title: string): string {
+export function sanitizeFilename(title: string): string {
   const clean = title.replace(/[\\/:*?"<>|]/g, "").trim();
   return clean === "" ? "ensayo" : clean;
 }

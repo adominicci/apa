@@ -1,5 +1,6 @@
 mod backup_directory;
 mod external_files;
+mod pdf_export;
 
 use tauri::Manager;
 
@@ -44,6 +45,7 @@ pub fn run() {
             backup_directory::backup_disable,
             external_files::external_rename_no_replace,
             external_files::external_remove_if_hash_matches,
+            pdf_export::export_pdf,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
