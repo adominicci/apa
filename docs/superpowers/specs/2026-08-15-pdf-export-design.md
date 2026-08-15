@@ -1,14 +1,11 @@
 # PDF export design
 
 Date: 2026-08-15
-Status: **blocked at step 1** — the spike did not clear the gate. See
-"Spike result" below before building anything from this document.
+Status: **step 1 cleared** — a hidden webview produces a correctly paginated,
+correctly sized PDF with no print panel. Steps 2-6 are buildable. Read
+"Spike result" first; it contains two findings that will cost a day each if
+rediscovered.
 Applies to: `apps/desktop`
-
-> **Read this first.** The architecture below still stands, but the section
-> titled "The render contract" prescribes a print configuration that has now
-> been measured and does **not** work: it paginates without terminating. Do not
-> implement steps 2-6 until the runaway is understood.
 
 ## Problem
 
@@ -173,13 +170,24 @@ cargo run --example macos-pdf-proof-host --features pdf-proof-host -- /tmp/out.p
   same trap applies to `document.fonts.ready`, which can also stall off-screen;
   it too needs a timer as a second path.
 
-### What did not clear
+- **The end-to-end result is correct.** A hidden window, three stacked page
+  boxes, no print panel:
 
-**`runOperation` paginates without terminating.** The first visible run wrote a
-**3.65 GB** PDF and was still growing when the process was killed. The host now
-carries a size watchdog so a bad geometry cannot fill the disk again.
+  ```json
+  {"passed":true,"pdfPages":3,"mediaBox":[612,792],"pdfBytes":32820}
+  ```
 
-Four candidate causes were eliminated by measurement, not argument:
+  Three pages in, three pages out, at exactly 612 × 792 points, and the
+  handshake's page count matches the PDF's. 32 KB.
+
+### The expensive finding: never print from inside the event loop
+
+Calling `runOperation` synchronously from the `tao` event-loop callback
+**paginates without terminating.** The first run wrote a **3.65 GB** PDF and
+was still growing when the process was killed.
+
+Five candidate causes were eliminated by measurement before the real one
+surfaced. The print configuration was never at fault:
 
 | Hypothesis | Flag | Result |
 | --- | --- | --- |
@@ -187,33 +195,34 @@ Four candidate causes were eliminated by measurement, not argument:
 | Stacked page-box CSS | `--simple` | still runs away |
 | Resizing the view to the paper box | `--keep-frame` | still runs away |
 | Mutating the shared `NSPrintInfo` | `--shared-info` | still runs away |
+| Any geometry call at all | `--pristine` | still runs away |
+| **Blocking the event loop** | `--blocking` | **the cause** |
 
-Trivial HTML with no page CSS, printed through an unmodified print info, runs
-away too. **The fault is in how the operation is driven, not in the document.**
+The fix is the one wry itself uses in `print_with_options`:
+`runOperationModalForWindow:` with `setCanSpawnSeparateThread(true)`, so the
+handler returns and the main run loop pumps. `export_pdf` **must** drive the
+operation this way and settle asynchronously; a blocking call is not a style
+preference here, it is the bug.
 
 ### Consequences for this document
 
-- The geometry table in "The render contract" is **not** the fix it was written
-  as. Zeroed margins are not the cause of the runaway, and were never tested
-  against a working baseline; treat the whole table as unverified.
+- The geometry table in "The render contract" is not what makes this work —
+  the pristine run proves the runaway is independent of it. Keep the table for
+  layout correctness, but do not treat it as the fix for anything.
 - The stated risk order was wrong. "Paged.js completion signal" was ranked most
-  likely to bite; it was real but cheap to fix. The unranked risk — that the
-  print operation itself would not terminate — is the one that actually blocks.
-- A new hard requirement, learned the expensive way: **any code path that runs
-  a print operation must be bounded by an output-size or page-count cap.** A
-  runaway here does not merely fail, it fills the user's disk.
+  likely to bite; it was real but cheap. The risk that actually blocked was not
+  on the list at all.
+- **A hard requirement, learned the expensive way: any code path that runs a
+  print operation must be bounded by an output-size or page-count cap.** A
+  runaway does not merely fail, it fills the user's disk. The proof host caps at
+  64 MB; shipping code needs an equivalent.
+- The fallback ladder (`window.print()` with its announced UX downgrade) is not
+  needed. The good-UX path works.
 
-### Next hypothesis
+### Still unmeasured
 
-`runOperation` is called synchronously from inside the `tao` event-loop
-callback, so the main run loop never pumps and the operation cannot finish.
-wry's own `print_with_options` avoids precisely this: it calls
-`runOperationModalForWindow:...` with `setCanSpawnSeparateThread(true)` rather
-than blocking the handler. The next attempt should defer the print onto the
-main queue and settle through a completion delegate.
-
-If that fails too, the fallback ladder is: a visible-but-off-screen window, then
-`window.print()` with its announced UX downgrade.
+A4 geometry, and the 50-page fixture that should set the deadline. Both belong
+to the native-proof work in step 6, not to this gate.
 
 ## Export UX
 

@@ -12,15 +12,24 @@
 //! `createPDF` snapshots the scroll rect, which collapses stacked page boxes
 //! into a single enormous page; only the print pipeline honours `@page`.
 //!
-//! # Measured result, 2026-08-15 — the gate did NOT clear
+//! # Measured result, 2026-08-15 — the gate CLEARED
 //!
-//! The handshake works: with a timer racing `requestAnimationFrame` (which is
-//! suspended off-screen) a hidden webview reports ready in well under a second.
+//! A hidden webview produces a three-page US Letter PDF with no print panel:
+//! `{"passed":true,"pdfPages":3,"mediaBox":[612,792],"pdfBytes":32820}`.
 //!
-//! `runOperation` then **paginates without terminating**. The first run wrote a
-//! 3.65 GB PDF and was still growing when killed, which is why this host now
-//! carries a size watchdog. Four candidate causes were each eliminated by
-//! measurement rather than argument:
+//! Two findings, both non-obvious, both now encoded in this host.
+//!
+//! **1. `requestAnimationFrame` is suspended in an off-screen window.** An
+//! rAF-based ready signal never fires, and the first hidden run stalled until
+//! its deadline. The handshake races rAF against a timer and takes whichever
+//! lands. `document.fonts.ready` can stall off-screen for the same reason and
+//! gets the same treatment.
+//!
+//! **2. `runOperation` must not be called from inside the event-loop callback.**
+//! Doing so paginates without terminating: the first visible run wrote a
+//! **3.65 GB** PDF and was still growing when killed. Five candidate causes
+//! were eliminated by measurement before the real one was found — the print
+//! configuration was never at fault:
 //!
 //! | Hypothesis | Flag | Result |
 //! | --- | --- | --- |
@@ -28,17 +37,16 @@
 //! | stacked page-box CSS | `--simple` | still runs away |
 //! | resizing the view to the paper box | `--keep-frame` | still runs away |
 //! | mutating the shared `NSPrintInfo` | `--shared-info` | still runs away |
+//! | any geometry call at all | `--pristine` | still runs away |
+//! | **blocking the event loop** | `--blocking` | **the cause** |
 //!
-//! Trivial HTML with no page CSS and an unmodified print info runs away too, so
-//! the fault is in how the operation is driven, not in the document.
+//! The fix is the one wry itself uses in `print_with_options`:
+//! `runOperationModalForWindow:` with `setCanSpawnSeparateThread(true)`, so the
+//! handler returns and the main run loop pumps. That path is the default here;
+//! `--blocking` reproduces the runaway on demand.
 //!
-//! The strongest remaining hypothesis is that `runOperation` is being called
-//! synchronously from inside the `tao` event-loop callback, so the main run
-//! loop never pumps and the operation cannot finish. Note that wry's own
-//! `print_with_options` avoids exactly this: it calls
-//! `runOperationModalForWindow:...` with `setCanSpawnSeparateThread(true)`
-//! instead. The next attempt should defer the print onto the main queue and
-//! settle through a completion delegate rather than blocking the handler.
+//! The size watchdog stays regardless. A print that never terminates does not
+//! merely fail, it fills the user's disk, so shipping code must cap output too.
 
 #[cfg(target_os = "macos")]
 mod host {
@@ -193,6 +201,7 @@ mod host {
         destination: &str,
         zero_margins: bool,
         shared_info: bool,
+        pristine: bool,
     ) -> Retained<NSPrintInfo> {
         unsafe {
             // `sharedPrintInfo` is a process-wide singleton; mutating it leaks
@@ -203,6 +212,18 @@ mod host {
             } else {
                 NSPrintInfo::new()
             };
+            // `--pristine` touches nothing but the destination. Every earlier
+            // run still applied paper size, orientation, centering and scaling,
+            // so "default margins" was never actually a default print info.
+            // This is the only configuration that isolates the runaway from
+            // every geometry call made here.
+            if pristine {
+                info.setJobDisposition(NSPrintSaveJob);
+                let url = NSURL::fileURLWithPath(&NSString::from_str(destination));
+                info.dictionary()
+                    .setObject_forKey(&url, ProtocolObject::from_ref(NSPrintJobSavingURL));
+                return info;
+            }
             info.setPaperSize(LETTER_POINTS);
             info.setOrientation(NSPaperOrientation::Portrait);
             // Zeroing all four margins is what the design document currently
@@ -240,6 +261,10 @@ mod host {
         let simple = env::args().any(|argument| argument == "--simple");
         let keep_frame = env::args().any(|argument| argument == "--keep-frame");
         let shared_info = env::args().any(|argument| argument == "--shared-info");
+        let pristine = env::args().any(|argument| argument == "--pristine");
+        // The non-blocking path is the answer, so it is the default. `--blocking`
+        // reproduces the original runaway on demand.
+        let modal = !env::args().any(|argument| argument == "--blocking");
         let expected_pages = if simple { 1 } else { EXPECTED_PAGES };
         let _ = fs::remove_file(&destination);
 
@@ -331,7 +356,7 @@ mod host {
                     }
 
                     let path = destination.to_string_lossy().to_string();
-                    let info = build_print_info(&path, zero_margins, shared_info);
+                    let info = build_print_info(&path, zero_margins, shared_info, pristine);
                     // Pin the view to the paper box in points before printing.
                     // WKWebView paginates against its own frame; leaving it at
                     // the window's pixel size mixes 96 dpi CSS pixels with 72
@@ -343,6 +368,63 @@ mod host {
                     let operation = unsafe { native.printOperationWithPrintInfo(&info) };
                     operation.setShowsPrintPanel(false);
                     operation.setShowsProgressPanel(false);
+
+                    if modal {
+                        // wry's own `print_with_options` drives the operation
+                        // this way rather than calling `runOperation`. Returning
+                        // from the handler lets the main run loop pump, which a
+                        // blocking call inside the callback prevents.
+                        operation.setCanSpawnSeparateThread(true);
+                        let ns_window = webview.ns_window();
+                        unsafe {
+                            operation.runOperationModalForWindow_delegate_didRunSelector_contextInfo(
+                                &ns_window,
+                                None,
+                                None,
+                                std::ptr::null_mut(),
+                            );
+                        }
+                        // Settle from a watcher thread once the file stops
+                        // growing; there is no completion callback wired here.
+                        let watch = destination.clone();
+                        let handshake_pages = envelope["pages"].clone();
+                        thread::spawn(move || {
+                            let mut last = 0u64;
+                            let mut stable = 0;
+                            for _ in 0..240 {
+                                thread::sleep(Duration::from_millis(250));
+                                let size = fs::metadata(&watch).map(|m| m.len()).unwrap_or(0);
+                                if size > 0 && size == last {
+                                    stable += 1;
+                                    if stable >= 4 {
+                                        break;
+                                    }
+                                } else {
+                                    stable = 0;
+                                }
+                                last = size;
+                            }
+                            let bytes = fs::read(&watch).unwrap_or_default();
+                            let (pages, media_box) = inspect_pdf(&bytes);
+                            println!(
+                                "{}",
+                                json!({
+                                    "passed": !bytes.is_empty() && pages == expected_pages,
+                                    "mode": "modal",
+                                    "handshakePages": handshake_pages,
+                                    "pdfBytes": bytes.len(),
+                                    "pdfPages": pages,
+                                    "expectedPages": expected_pages,
+                                    "mediaBox": media_box.map(|(w, h)| json!([w, h])),
+                                })
+                            );
+                            let _ = fs::remove_file(&watch);
+                            process::exit(if pages == expected_pages { 0 } else { 1 });
+                        });
+                        *control_flow = ControlFlow::Wait;
+                        return;
+                    }
+
                     let ran = operation.runOperation();
 
                     let bytes = fs::read(&destination).unwrap_or_default();
