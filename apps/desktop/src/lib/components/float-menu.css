@@ -7,13 +7,13 @@
 .fm-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-15);
   height: 38px;
-  padding: 0 14px;
+  padding: 0 var(--sp-3);
   border: none;
   background: none;
   border-radius: var(--r-pill);
-  font-size: 13px;
+  font-size: var(--t-body);
   font-weight: 500;
   color: var(--fg-2);
   cursor: pointer;
@@ -36,12 +36,32 @@
   color: var(--accent-on);
 }
 
+/*
+ * Restates `color`, not just `background`. The base `.fm-btn:hover:enabled`
+ * above is (0,3,0) and outranks the plain `.fm-btn.primary` (0,2,0), so
+ * hovering the primary swapped its label to --fg while the accent
+ * background stayed: near-black on blue, measured 2.67:1 against the 4.5:1
+ * floor. Restating it puts the label back at 6.24:1.
+ * Dark mode hid the bug because --fg is near-white there.
+ */
 .fm-btn.primary:hover:enabled {
   background: var(--accent-hover);
+  color: var(--accent-on);
 }
 
 .fm-btn.on {
   background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/*
+ * Same specificity trap: without this, hovering an open menu trigger (Font,
+ * Heading, List, Table) or Focus mode replaced BOTH the accent wash and the
+ * accent label with the neutral hover, so the control stopped reading as on
+ * exactly while the pointer was on it.
+ */
+.fm-btn.on:hover:enabled {
+  background: color-mix(in oklab, var(--accent), transparent 82%);
   color: var(--accent);
 }
 
@@ -66,10 +86,10 @@
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   box-shadow: var(--elev-raised);
-  padding: 6px;
+  padding: var(--sp-15);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-05);
   z-index: 60;
   /* Colocación por defecto (barra abajo): abre hacia arriba y centrado. */
   bottom: calc(100% + 10px);
@@ -94,14 +114,23 @@
   position: fixed;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px;
+  gap: var(--sp-1);
+  padding: var(--sp-15);
   background: color-mix(in oklab, var(--surface), transparent 8%);
   backdrop-filter: blur(16px);
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
   box-shadow: var(--elev-raised);
-  z-index: 40;
+  /*
+   * The dock is the one editor layer that maps onto the app-wide z scale.
+   * Everything the editor stacks around it — menus (10/20), the citation
+   * popover (30), the selection bubble (50), popovers and toasts (60), the
+   * icon tooltips (70) — stays a raw number on purpose: it is a local ladder
+   * anchored on this 40, and the shared scale jumps straight from --z-dock to
+   * --z-overlay (100). Promoting any of them to --z-popover (120) would put a
+   * toolbar menu ON TOP of an open modal.
+   */
+  z-index: var(--z-dock);
   max-inline-size: calc(100vw - 16px);
   transition: left 220ms var(--ease), right 220ms var(--ease);
 }
@@ -230,7 +259,7 @@
 .float-menu[data-dock="right"] .fm-sep {
   width: 22px;
   height: 1px;
-  margin: 3px 0;
+  margin: var(--sp-05) 0;
 }
 
 .float-menu[data-dock="left"] .fm-btn::after,
@@ -245,8 +274,8 @@
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   box-shadow: var(--elev-raised);
-  padding: 4px 9px;
-  font-size: 12px;
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--t-small);
   font-weight: 500;
   opacity: 0;
   pointer-events: none;
@@ -295,8 +324,8 @@
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   box-shadow: var(--elev-raised);
-  padding: 4px 9px;
-  font-size: 12px;
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--t-small);
   font-weight: 500;
   opacity: 0;
   pointer-events: none;
@@ -360,7 +389,7 @@
   .float-menu[data-dock="left"] .fm-btn,
   .float-menu[data-dock="right"] .fm-btn {
     width: auto;
-    padding: 0 14px;
+    padding: 0 var(--sp-3);
   }
 
   /*
@@ -387,7 +416,7 @@
   .float-menu[data-dock="right"] .fm-sep {
     width: 1px;
     height: 22px;
-    margin: 0 3px;
+    margin: 0 var(--sp-05);
   }
 
   .float-menu[data-dock="left"] .menu-pop,
@@ -441,8 +470,8 @@
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
     box-shadow: var(--elev-raised);
-    padding: 4px 9px;
-    font-size: 12px;
+    padding: var(--sp-1) var(--sp-2);
+    font-size: var(--t-small);
     font-weight: 500;
     opacity: 0;
     pointer-events: none;

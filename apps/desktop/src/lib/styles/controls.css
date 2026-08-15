@@ -1,0 +1,654 @@
+/*
+ * Shared UI controls — Tesina Design System v1.
+ * Source of truth: docs/design/new-paper-modal.reference.html.
+ *
+ * Buttons, form fields, the segmented control, the custom Select listbox and
+ * the status panel. Imported once, globally, from routes/+layout.svelte.
+ *
+ * Scope hook: every rule is `:is(.modal, .ui-controls)`. Opt in by putting
+ * `ui-controls` on a surface; <Modal> opts in for free. It is NOT unscoped
+ * because `.btn`, `.field` and `.seg` are already live class names elsewhere
+ * in the app (EssayHome's and CitationPopover's `.seg`, the toolbar) and on
+ * the APA paper sheet, and a bare `.btn { }` would silently restyle all of
+ * them. `:is()` keeps the exact (0,2,0) specificity the `.modal `-prefixed
+ * rules had, so nothing already styled shifts.
+ */
+
+/* ── Fields ── */
+:is(.modal, .ui-controls) .field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-15);
+}
+
+:is(.modal, .ui-controls) .field > span,
+:is(.modal, .ui-controls) .field > label {
+  font-size: var(--t-small);
+  font-weight: var(--w-medium);
+  /* --fg-2, not --muted: a label names a control the user is about to
+     type into, so it is content, not metadata. */
+  color: var(--fg-2);
+  letter-spacing: 0.004em;
+}
+
+/* Explicit two-up row — never auto-fill/auto-fit, so a pair cannot reflow
+   into a stray third column or strand a lone control. */
+:is(.modal, .ui-controls) .field-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-3);
+  align-items: start;
+}
+
+:is(.modal, .ui-controls) .field-row > * {
+  min-width: 0;
+}
+
+:is(.modal, .ui-controls) input[type="text"],
+:is(.modal, .ui-controls) input[type="number"],
+:is(.modal, .ui-controls) input[type="date"],
+:is(.modal, .ui-controls) select,
+:is(.modal, .ui-controls) textarea,
+:is(.modal, .ui-controls) .select-trigger {
+  font: inherit;
+  font-size: var(--t-ui);
+  width: 100%;
+  color: var(--fg);
+  background: var(--bg);
+  /* --border-strong is for text-entry edges only (3.2:1). The structural
+     --border is 1.37:1 and leaves an empty field with no visible boundary.
+     Buttons and the .seg track keep the hairline — a heavier edge there
+     would start competing with the primary button. */
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  padding: 9px 11px;
+  outline: none;
+  /*
+   * Pin the box instead of letting each control size itself. A native select
+   * and a date input measure from their own platform metrics and ignore the
+   * inherited line-height, so on macOS they rendered several pixels shorter
+   * than the text inputs stacked right above them.
+   */
+  min-height: var(--ctl-h-lg);
+  line-height: var(--lh-snug);
+  transition:
+    border-color var(--fast) var(--ease),
+    background var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+:is(.modal, .ui-controls) textarea {
+  resize: vertical;
+  min-height: 62px;
+}
+
+:is(.modal, .ui-controls) input::placeholder,
+:is(.modal, .ui-controls) textarea::placeholder {
+  color: color-mix(in oklab, var(--muted), transparent 18%);
+}
+
+:is(.modal, .ui-controls) input:hover:not(:focus),
+:is(.modal, .ui-controls) select:hover:not(:focus),
+:is(.modal, .ui-controls) textarea:hover:not(:focus),
+:is(.modal, .ui-controls) .select-trigger:hover:not(:focus-visible) {
+  border-color: var(--fg-2);
+}
+
+:is(.modal, .ui-controls) input:focus,
+:is(.modal, .ui-controls) select:focus,
+:is(.modal, .ui-controls) textarea:focus,
+:is(.modal, .ui-controls) .select-trigger:focus-visible,
+:is(.modal, .ui-controls) .select-trigger.is-open {
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+
+/* ── Select (custom listbox; replaces the native <select>) ── */
+:is(.modal, .ui-controls) .select-wrap {
+  position: relative;
+}
+
+/* Shares the input rule above for its box, so the two never drift apart. */
+:is(.modal, .ui-controls) .select-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Sits inside a sentence-like row rather than stacked as a form field, so it
+   drops to the hairline border and shrink-wraps its label. */
+:is(.modal, .ui-controls) .select-wrap.is-compact {
+  display: inline-block;
+}
+
+:is(.modal, .ui-controls) .select-trigger.is-compact {
+  width: auto;
+  min-height: 0;
+  padding: var(--sp-1) var(--sp-2);
+  border-color: var(--border);
+  font-size: var(--t-body);
+}
+
+:is(.modal, .ui-controls) .select-wrap.is-compact .select-pop {
+  right: auto;
+  min-width: 100%;
+  width: max-content;
+  max-width: 280px;
+}
+
+:is(.modal, .ui-controls) .select-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(.modal, .ui-controls) .select-value.is-placeholder {
+  color: color-mix(in oklab, var(--muted), transparent 18%);
+}
+
+:is(.modal, .ui-controls) .select-caret {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+}
+
+:is(.modal, .ui-controls) .select-pop {
+  position: absolute;
+  top: calc(100% + var(--sp-1));
+  left: 0;
+  right: 0;
+  z-index: var(--z-popover);
+  max-height: 264px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--sp-15);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow:
+    var(--elev-3),
+    inset 0 1px 0 var(--edge-hi);
+  outline: none;
+}
+
+:is(.modal, .ui-controls) .select-group {
+  padding: var(--sp-15) var(--sp-2) var(--sp-05);
+  font-size: var(--t-caption);
+  font-weight: var(--w-medium);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* The role="group" wrapper repeats the popup's own column so the options keep
+   their spacing. Not `display: contents`, which has a history of dropping the
+   element's role from the accessibility tree — the whole point of the wrapper. */
+:is(.modal, .ui-controls) .select-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+:is(.modal, .ui-controls) .select-option {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-15) var(--sp-2);
+  border: none;
+  background: none;
+  border-radius: var(--r-xs);
+  font: inherit;
+  font-size: var(--t-ui);
+  text-align: left;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+/* Driven by pointer move and arrow keys alike, so there is exactly one
+   highlighted row however the list is being driven. */
+:is(.modal, .ui-controls) .select-option.is-active {
+  background: var(--hover-strong);
+}
+
+:is(.modal, .ui-controls) .select-option[aria-selected="true"] {
+  font-weight: var(--w-medium);
+}
+
+:is(.modal, .ui-controls) .select-option[aria-selected="true"].is-active {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+:is(.modal, .ui-controls) .select-tick {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  align-self: center;
+  color: var(--accent);
+}
+
+:is(.modal, .ui-controls) .select-option[aria-selected="true"].is-active .select-tick {
+  color: var(--accent-on);
+}
+
+:is(.modal, .ui-controls) .select-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(.modal, .ui-controls) .select-hint {
+  flex: 0 0 auto;
+  font-size: var(--t-caption);
+  color: var(--muted);
+}
+
+:is(.modal, .ui-controls) .select-option[aria-selected="true"].is-active .select-hint {
+  color: var(--accent-on);
+}
+
+:is(.modal, .ui-controls) input:disabled,
+:is(.modal, .ui-controls) select:disabled,
+:is(.modal, .ui-controls) textarea:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+:is(.modal, .ui-controls) .check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--fg-2);
+  font-size: var(--t-body);
+  white-space: nowrap;
+}
+
+:is(.modal, .ui-controls) .check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+:is(.modal, .ui-controls) .hint {
+  margin: 0;
+  font-size: var(--t-caption);
+  color: var(--muted);
+  line-height: var(--lh-snug);
+}
+
+/* ── Validation ── */
+:is(.modal, .ui-controls) input[aria-invalid="true"],
+:is(.modal, .ui-controls) select[aria-invalid="true"],
+:is(.modal, .ui-controls) textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+:is(.modal, .ui-controls) input[aria-invalid="true"]:focus,
+:is(.modal, .ui-controls) select[aria-invalid="true"]:focus,
+:is(.modal, .ui-controls) textarea[aria-invalid="true"]:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--danger), transparent 74%);
+}
+
+/* Hidden until shown so a role="alert" container can be written at the
+   moment it fires; copy already sitting in the DOM may not re-announce. */
+:is(.modal, .ui-controls) .field-error {
+  display: none;
+  align-items: flex-start;
+  gap: var(--sp-15);
+  margin: 0;
+  font-size: var(--t-caption);
+  line-height: var(--lh-snug);
+  color: var(--danger); /* 5.99:1 light · 5.21:1 dark */
+}
+
+:is(.modal, .ui-controls) .field-error[data-shown="true"] {
+  display: flex;
+}
+
+:is(.modal, .ui-controls) .field-error svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  margin-top: 1px;
+}
+
+:is(.modal, .ui-controls) .spinner {
+  width: 13px;
+  height: 13px;
+  border-radius: var(--r-pill);
+  border: 2px solid color-mix(in oklab, var(--accent-on), transparent 64%);
+  border-top-color: var(--accent-on);
+  animation: modal-spin 640ms linear infinite;
+}
+
+@keyframes modal-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Reduced motion: drop the spinner and let the label carry the state,
+   rather than leaving a frozen ring behind. */
+@media (prefers-reduced-motion: reduce) {
+  :is(.modal, .ui-controls) .spinner {
+    display: none;
+  }
+}
+
+/*
+ * ── Status panel ──
+ * One slot that answers "is this working?" before anything else on the
+ * dialog. Tone comes from data-tone, so the four states share one layout
+ * instead of scattering four differently-shaped paragraphs down the body.
+ */
+:is(.modal, .ui-controls) .status-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--hover);
+}
+
+:is(.modal, .ui-controls) .status-panel[data-tone="ok"] {
+  background: var(--success-soft);
+}
+
+:is(.modal, .ui-controls) .status-panel[data-tone="busy"] {
+  background: var(--accent-soft);
+}
+
+:is(.modal, .ui-controls) .status-panel[data-tone="warn"] {
+  background: var(--warn-soft);
+}
+
+:is(.modal, .ui-controls) .status-panel[data-tone="off"] {
+  background: var(--hover);
+}
+
+:is(.modal, .ui-controls) .status-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  margin-top: 5px;
+  border-radius: var(--r-pill);
+  background: var(--muted);
+}
+
+:is(.modal, .ui-controls) .status-panel[data-tone="ok"] .status-dot {
+  background: var(--success);
+}
+
+:is(.modal, .ui-controls) .status-panel[data-tone="busy"] .status-dot {
+  background: var(--accent);
+}
+
+:is(.modal, .ui-controls) .status-panel[data-tone="warn"] .status-dot {
+  background: var(--warn-strong);
+}
+
+:is(.modal, .ui-controls) .status-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-05);
+  min-width: 0;
+}
+
+:is(.modal, .ui-controls) .status-title {
+  font-size: var(--t-ui);
+  font-weight: var(--w-strong);
+  line-height: var(--lh-snug);
+  color: var(--fg);
+}
+
+:is(.modal, .ui-controls) .status-meta {
+  font-size: var(--t-small);
+  line-height: var(--lh-snug);
+  color: var(--fg-2);
+}
+
+/* A filesystem path is a value, not prose: it gets a well of its own so a
+   long one can wrap without reading as a paragraph. */
+:is(.modal, .ui-controls) .path-value {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-xs);
+  background: var(--bg);
+  border: 1px solid var(--border-soft);
+  font-family: var(--mono);
+  font-size: var(--t-small);
+  line-height: var(--lh-snug);
+  color: var(--fg-2);
+  overflow-wrap: anywhere;
+}
+
+/* ── Section divider ── */
+:is(.modal, .ui-controls) .section {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-1);
+}
+
+:is(.modal, .ui-controls) .section span {
+  font-size: var(--t-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: var(--w-medium);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+:is(.modal, .ui-controls) .section::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-soft);
+}
+
+/* ── Segmented control ── */
+:is(.modal, .ui-controls) .seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  align-self: start;
+}
+
+:is(.modal, .ui-controls) .seg button {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: var(--w-medium);
+  color: var(--muted);
+  padding: 5px var(--sp-3);
+  border-radius: var(--r-xs);
+  cursor: pointer;
+  transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+:is(.modal, .ui-controls) .seg button:hover:not([aria-pressed="true"]):not(.active) {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+/*
+ * Selected is a SOLID accent fill (4.57:1 light / 5.81:1 dark), not a soft
+ * wash: on a white modal surface a --accent-soft pill and an unselected
+ * item are nearly indistinguishable. `.active` is the existing class-based
+ * alias, kept so no component logic has to change.
+ */
+:is(.modal, .ui-controls) .seg button[aria-pressed="true"],
+:is(.modal, .ui-controls) .seg button.active {
+  background: var(--accent);
+  color: var(--accent-on);
+  font-weight: var(--w-strong);
+  box-shadow: var(--elev-1);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Buttons — the one block here that is NOT scope-gated.
+   Verified safe to make global: 53 elements across 14 files carry a bare
+   `btn` class and every one of them is an actual button. The APA paper
+   sheet uses `cover-form-btn` and the editor dock uses `fm-btn`, so
+   neither is reachable from these selectors.
+   ────────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-15);
+  height: var(--ctl-h);
+  padding: 0 var(--sp-4);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  font: inherit;
+  font-size: var(--t-body);
+  font-weight: var(--w-strong);
+  letter-spacing: 0.004em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    transform 90ms var(--ease);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+}
+
+.btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.btn-primary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--accent-hover);
+  color: var(--accent-on);
+}
+
+/*
+ * Blocked still has to read as THE primary — a washed accent, not a neutral
+ * chip, or the ghost Cancel visually outranks it. This is the only state
+ * permitted to lower contrast.
+ */
+.btn-primary[aria-disabled="true"],
+.btn-primary:disabled {
+  background: color-mix(in oklab, var(--accent), var(--bg) 58%);
+  color: var(--accent-on);
+  border-color: transparent;
+  cursor: not-allowed;
+}
+
+.btn-primary[aria-disabled="true"]:hover {
+  background: color-mix(in oklab, var(--accent), var(--bg) 48%);
+}
+
+/* Hairline, not --border-strong: a labelled button is identified by its
+   text, so a heavy edge only competes with the primary.
+   .btn-secondary is the same button under the name four components already
+   use; they can drop their private copies rather than redefining it. */
+.btn-ghost,
+.btn-secondary {
+  background: var(--surface);
+  color: var(--fg-2);
+  border-color: var(--border);
+}
+
+.btn-ghost:hover:not(:disabled),
+.btn-secondary:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--fg);
+  border-color: var(--fg-2);
+}
+
+.btn-ghost:disabled,
+.btn-secondary:disabled {
+  opacity: 0.5;
+}
+
+/* Destructive, but still quiet: the label carries the warning, so it stays a
+   bordered button and never a filled red slab competing with the primary. */
+.btn-danger {
+  background: var(--surface);
+  color: var(--danger);
+  border-color: var(--border);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+}
+
+.btn-block {
+  width: 100%;
+  height: var(--ctl-h-lg);
+  font-size: var(--t-ui);
+}
+
+/* Size variants, so a denser surface asks for a smaller button instead of
+   redefining the whole thing. */
+.btn-sm {
+  height: var(--ctl-h-sm);
+  padding: 0 var(--sp-3);
+  font-size: var(--t-small);
+}
+
+/* The commit step of a destructive confirmation, where the button IS the
+   consequence. .btn-danger stays bordered for the control that only opens
+   such a flow.
+   --accent-on rather than a literal white: it is the token that already
+   flips with the theme, giving 5.97:1 light and 6.05:1 dark on --danger. */
+.btn-danger-solid {
+  background: var(--danger);
+  color: var(--accent-on);
+  border-color: transparent;
+}
+
+.btn-danger-solid:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--danger), var(--fg) 14%);
+}
+
+.btn-danger-solid:disabled {
+  opacity: 0.5;
+}
+/* ── Narrow windows ── */
+@media (max-width: 620px) {
+  /* The only narrow rule that belongs to the controls: a two-up row has no
+     business staying two-up. The rest of the narrow layout is modal chrome
+     and lives in modal.css. */
+  :is(.modal, .ui-controls) .field-row {
+    grid-template-columns: 1fr;
+  }
+}

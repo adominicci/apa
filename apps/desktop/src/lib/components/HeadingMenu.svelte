@@ -92,7 +92,7 @@
     border: none;
     background: none;
     text-align: left;
-    padding: 7px 10px;
+    padding: var(--sp-15) var(--sp-2);
     border-radius: var(--r-sm);
     cursor: pointer;
     color: var(--fg);
@@ -111,13 +111,13 @@
   /* Style previews mirror the APA heading rules in apa.css. */
   .pv {
     font-family: var(--serif);
-    font-size: 14px;
+    font-size: var(--t-ui);
     color: var(--fg);
   }
 
   .pv-normal {
     font-family: var(--font);
-    font-size: 13px;
+    font-size: var(--t-body);
     color: var(--fg-2);
   }
 
@@ -138,12 +138,12 @@
 
   .pv-h4 {
     font-weight: 700;
-    padding-left: 18px;
+    padding-left: var(--sp-4);
   }
 
   .pv-h5 {
     font-weight: 700;
     font-style: italic;
-    padding-left: 18px;
+    padding-left: var(--sp-4);
   }
 </style>

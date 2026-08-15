@@ -331,7 +331,7 @@ describe("editor preview round trip", () => {
       `Tesina ${bundledReleaseNotes.version}`,
     );
     expect(dialog?.textContent).toContain(
-      "Tesina now checks the correct published release feed",
+      "Every dialog in Tesina now shares one look",
     );
     document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
     flushSync();
@@ -385,7 +385,7 @@ describe("editor preview round trip", () => {
       "Las notas no están disponibles para esta versión.",
     );
     expect(dialog?.textContent).not.toContain(
-      "Tesina now checks the correct published release feed",
+      "Every dialog in Tesina now shares one look",
     );
     globalThis.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),

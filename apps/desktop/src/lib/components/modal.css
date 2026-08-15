@@ -1,42 +1,60 @@
 /*
- * Shared modal chrome + form controls (from Andrés's Open Design prototype),
- * all on design tokens. Global so any modal body — rendered inside the
- * <Modal> component — gets the same fields, buttons, and footer. Import once
- * (Modal.svelte does). See AGENTS.md.
+ * Shared modal chrome + form controls — Tesina Design System v1.
+ * Source of truth: docs/design/new-paper-modal.reference.html.
+ *
+ * Global (not scoped) so every modal body rendered inside the <Modal>
+ * component gets the same fields, buttons, footer and states. Import once
+ * (Modal.svelte does). Form controls stay scoped under `.modal` so they
+ * cannot leak into the surrounding chrome. See AGENTS.md.
  */
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
 
 @keyframes modal-rise {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px) scale(0.985);
   }
 }
 
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 100;
-  background: color-mix(in oklab, var(--fg), transparent 55%);
-  backdrop-filter: blur(3px);
+  z-index: var(--z-overlay);
+  background: var(--overlay-tint);
+  /* saturate() as well as blur(): desaturating the backdrop is what makes
+     the dialog's own accent read as the only live color on screen. */
+  backdrop-filter: blur(3px) saturate(0.9);
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding: var(--sp-5);
+  animation: overlay-in var(--slow) var(--ease-out);
 }
 
 .modal {
-  width: min(460px, 100%);
-  max-height: calc(100vh - 40px);
+  position: relative;
+  z-index: var(--z-modal);
+  width: min(520px, 100%);
+  max-height: calc(100vh - var(--sp-8));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--surface);
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  box-shadow: var(--elev-lg);
-  animation: modal-rise 200ms var(--ease);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  /* The inset hairline is what lifts the dialog off the canvas in dark
+     mode, where a drop shadow alone has nothing to darken. */
+  box-shadow:
+    var(--elev-3),
+    inset 0 1px 0 var(--edge-hi);
   font-family: var(--font);
-  font-size: 13.5px;
+  font-size: var(--t-body);
+  animation: modal-rise var(--slow) var(--ease-out);
 }
 
 /* The dialog itself takes programmatic focus on open (tabindex="-1"). */
@@ -54,224 +72,121 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--border);
+  gap: var(--sp-3);
+  padding: var(--sp-5) var(--sp-6) var(--sp-4);
+  border-bottom: 1px solid var(--border-soft);
 }
 
+/* h2 and h3 both: the component renders h3 to keep the screen's heading
+   order intact, the reference markup uses h2. Same treatment either way. */
+.modal-head h2,
 .modal-head h3 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: var(--t-h2);
+  font-weight: var(--w-strong);
+  letter-spacing: -0.018em;
+  line-height: var(--lh-tight);
 }
 
 .modal-head .sub {
-  margin: 4px 0 0;
+  margin: var(--sp-15) 0 0;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--t-small);
+  line-height: var(--lh-snug);
 }
 
 .modal-close {
   flex: 0 0 auto;
   width: 30px;
   height: 30px;
+  margin: -2px -6px 0 0;
   display: grid;
   place-items: center;
   border: none;
   background: none;
-  border-radius: var(--r-sm);
+  border-radius: var(--r-xs);
   color: var(--muted);
   cursor: pointer;
   transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
 }
 
 .modal-close:hover {
-  background: var(--hover);
+  background: var(--hover-strong);
   color: var(--fg);
 }
 
 .modal-close svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }
 
 .modal-body {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 18px 22px;
+  overscroll-behavior: contain;
+  padding: var(--sp-5) var(--sp-6);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--sp-4);
 }
 
 .modal-foot {
   flex: 0 0 auto;
   display: flex;
-  gap: 8px;
+  align-items: center;
   justify-content: flex-end;
-  padding: 14px 22px;
-  border-top: 1px solid var(--border);
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-6);
+  border-top: 1px solid var(--border-soft);
+  background: var(--chrome);
 }
 
-/* ── Form controls shared by every modal body ── */
-.modal .field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.modal .field > span,
-.modal .field > label {
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.modal .field-row {
-  display: flex;
-  gap: 12px;
-  align-items: flex-end;
-}
-
-.modal .field-row > * {
-  flex: 1;
-  min-width: 0;
-}
-
-.modal input[type="text"],
-.modal input[type="number"],
-.modal input[type="date"],
-.modal select,
-.modal textarea {
-  font: inherit;
-  width: 100%;
-  box-sizing: border-box;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  padding: 9px 11px;
-  font-size: 13.5px;
-  color: var(--fg);
-  outline: none;
-  transition: border-color var(--fast) var(--ease);
-}
-
-.modal textarea {
-  resize: vertical;
-  font-size: 13px;
-}
-
-.modal input:focus,
-.modal select:focus,
-.modal textarea:focus {
-  border-color: var(--accent);
-  box-shadow: var(--focus-ring);
-}
-
-.modal input:disabled,
-.modal select:disabled,
-.modal textarea:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.modal .check {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--fg-2);
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.modal .check input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-}
-
-.modal .hint {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.modal .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  height: 36px;
-  padding: 0 14px;
-  border-radius: var(--r-sm);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid transparent;
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    background var(--fast) var(--ease),
-    border-color var(--fast) var(--ease);
-}
-
-.modal .btn svg {
-  width: 15px;
-  height: 15px;
-}
-
-.modal .btn-primary {
-  background: var(--accent);
-  color: var(--accent-on);
-}
-
-.modal .btn-primary:hover:enabled {
-  background: var(--accent-hover);
-}
-
-.modal .btn-primary:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.modal .btn-ghost {
-  color: var(--fg-2);
-  border-color: var(--border);
-  background: var(--surface);
-}
-
-.modal .btn-ghost:hover:enabled {
-  border-color: var(--muted);
-}
-
-.modal .btn-block {
-  width: 100%;
-  height: 42px;
-  font-size: 14px;
-}
-
-/* Segmented control (variant pickers). */
-.modal .seg {
-  display: flex;
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  overflow: hidden;
-  align-self: start;
-}
-
-.modal .seg button {
-  border: none;
-  background: transparent;
-  font: inherit;
-  font-size: 12.5px;
-  padding: 6px 12px;
-  cursor: pointer;
+/* Left-aligned footer note; pushes the buttons to the trailing edge. */
+.modal-foot .foot-note {
+  margin: 0 auto 0 0;
+  font-size: var(--t-caption);
   color: var(--muted);
 }
 
-.modal .seg button.active {
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 600;
+/* A real control can also hold the leading slot — it keeps its own type. */
+.modal-foot .check {
+  margin-right: auto;
+}
+
+/* ── Submitting ── */
+.modal[data-busy="true"] .modal-body {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* ── Narrow windows ── */
+@media (max-width: 620px) {
+  .modal-overlay {
+    padding: var(--sp-2);
+    align-items: end;
+  }
+
+  .modal {
+    max-height: calc(100vh - var(--sp-4));
+  }
+
+  .modal-head,
+  .modal-body,
+  .modal-foot {
+    padding-inline: var(--sp-4);
+  }
+
+  .modal-foot {
+    flex-wrap: wrap;
+  }
+
+  .modal-foot .foot-note {
+    flex: 1 0 100%;
+    margin: 0 0 var(--sp-2);
+  }
+
+  /* Footer buttons share the row once it wraps. */
+  .modal-foot .btn {
+    flex: 1;
+  }
 }

@@ -280,31 +280,31 @@
 
   .recovery-card {
     max-inline-size: 32rem;
-    padding: 2rem;
+    padding: var(--sp-7);
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--sp-3);
   }
 
   .recovery-card h1 {
-    font-size: 1.25rem;
+    font-size: var(--t-h2);
     margin: 0;
   }
 
   .recovery-actions {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--sp-3);
     justify-content: flex-end;
   }
 
   .recovery-notice {
     margin: 0;
-    padding: 0.5rem 1rem;
-    background: var(--panel, #f4f1ea);
+    padding: var(--sp-2) var(--sp-4);
+    background: var(--panel);
     font-family: var(--font);
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: var(--sp-4);
   }
 
   .notice-dismiss {

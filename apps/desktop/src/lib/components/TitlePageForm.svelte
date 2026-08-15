@@ -2,6 +2,10 @@
   import { untrack } from "svelte";
   import { m } from "$lib/paraglide/messages";
   import Modal from "$lib/components/Modal.svelte";
+  import Select, {
+    type SelectGroup,
+    type SelectOption,
+  } from "$lib/components/Select.svelte";
   import { localizeTitlePageValidation } from "$lib/components/titlePageValidationMessages";
   import type {
     EssaySettings,
@@ -38,12 +42,21 @@
   let dueDate = $state(untrack(() => titlePage.dueDate ?? ""));
   let font = $state<FontChoice>(untrack(() => settings.font));
 
-  const serifFonts = APA_FONT_ORDER.filter((f) => APA_FONTS[f].kind === "serif");
-  const sansFonts = APA_FONT_ORDER.filter((f) => APA_FONTS[f].kind === "sans");
-
-  function fontLabel(f: FontChoice): string {
-    return `${APA_FONTS[f].family}, ${APA_FONTS[f].sizePt} pt`;
+  /* Each family previews itself in the list, mirroring how the sheet will
+     render it — the same affordance the toolbar's FontMenu offers. */
+  function fontOptions(kind: "serif" | "sans"): SelectOption[] {
+    return APA_FONT_ORDER.filter((f) => APA_FONTS[f].kind === kind).map((f) => ({
+      value: f,
+      label: APA_FONTS[f].family,
+      hint: `${APA_FONTS[f].sizePt} pt`,
+      preview: APA_FONTS[f].stack,
+    }));
   }
+
+  const fontGroups: SelectGroup[] = [
+    { label: m.font_group_serif(), options: fontOptions("serif") },
+    { label: m.font_group_sans(), options: fontOptions("sans") },
+  ];
 
   function lines(text: string): string[] {
     return text
@@ -90,21 +103,15 @@
 </script>
 
 <Modal title={m.titlepage_title()} {onClose} dismissOnOverlay={false}>
-  <label class="field">
-    <span>{m.titlepage_font()}</span>
-    <select bind:value={font}>
-      <optgroup label={m.font_group_serif()}>
-        {#each serifFonts as f (f)}
-          <option value={f}>{fontLabel(f)}</option>
-        {/each}
-      </optgroup>
-      <optgroup label={m.font_group_sans()}>
-        {#each sansFonts as f (f)}
-          <option value={f}>{fontLabel(f)}</option>
-        {/each}
-      </optgroup>
-    </select>
-  </label>
+  <div class="field">
+    <span id="titlepage-font-label">{m.titlepage_font()}</span>
+    <Select
+      groups={fontGroups}
+      value={font}
+      onChange={(next) => (font = next as FontChoice)}
+      ariaLabel={m.titlepage_font()}
+    />
+  </div>
 
   <label class="field">
     <span>{m.titlepage_essay_title()}</span>
@@ -129,20 +136,22 @@
     ></textarea>
   </label>
 
-  <div class="field-row">
-    <label class="field">
-      <span>{m.titlepage_course()}</span>
-      <input
-        type="text"
-        bind:value={course}
-        placeholder={m.titlepage_course_placeholder()}
-      />
-    </label>
-    <label class="field">
-      <span>{m.titlepage_instructor()}</span>
-      <input type="text" bind:value={instructor} />
-    </label>
-  </div>
+  <!-- Full width, not a two-up row: the course placeholder is a real course
+       code plus title ("EDU 301: Fundamentos de la educación") and gets
+       clipped mid-word at half the dialog's width. -->
+  <label class="field">
+    <span>{m.titlepage_course()}</span>
+    <input
+      type="text"
+      bind:value={course}
+      placeholder={m.titlepage_course_placeholder()}
+    />
+  </label>
+
+  <label class="field">
+    <span>{m.titlepage_instructor()}</span>
+    <input type="text" bind:value={instructor} />
+  </label>
 
   <label class="field">
     <span>{m.titlepage_due_date()}</span>

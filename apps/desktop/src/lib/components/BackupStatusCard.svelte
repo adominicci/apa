@@ -96,22 +96,22 @@
 </script>
 
 {#if status !== null && !status.configured && !dismissed}
-  <section class="backup-card setup" aria-label={m.bk_card_title()}>
+  <section class="backup-card setup ui-controls" aria-label={m.bk_card_title()}>
     <div class="text">
       <h3>{m.bk_card_title()}</h3>
       <p>{m.bk_card_body()}</p>
     </div>
     <div class="actions">
-      <button class="btn btn-primary" onclick={onSetup}>
+      <button class="btn btn-sm btn-primary" onclick={onSetup}>
         {m.bk_card_setup()}
       </button>
-      <button class="btn btn-secondary" onclick={dismiss}>
+      <button class="btn btn-sm btn-secondary" onclick={dismiss}>
         {m.bk_card_dismiss()}
       </button>
     </div>
   </section>
 {:else if status !== null && status.configured}
-  <section class="backup-card" aria-label={m.bk_status_title()}>
+  <section class="backup-card ui-controls" aria-label={m.bk_status_title()}>
     <div class="text" role="status" aria-live="polite">
       {#if health === "running"}
         <p class="state">
@@ -150,17 +150,17 @@
     <div class="actions">
       {#if health === "warning"}
         <button
-          class="btn btn-secondary"
+          class="btn btn-sm btn-secondary"
           disabled={store.running}
           onclick={retry}
         >
           {m.bk_retry()}
         </button>
-        <button class="btn btn-secondary" onclick={onSetup}>
+        <button class="btn btn-sm btn-secondary" onclick={onSetup}>
           {m.bk_choose_another()}
         </button>
       {/if}
-      <button class="btn btn-secondary" onclick={onOpenSettings}>
+      <button class="btn btn-sm btn-secondary" onclick={onOpenSettings}>
         {m.bk_open_settings()}
       </button>
     </div>
@@ -169,12 +169,12 @@
 
 <style>
   .backup-card {
-    margin: 0 clamp(20px, 4vw, 48px) 12px;
-    padding: 14px 18px;
+    margin: 0 clamp(var(--sp-5), 4vw, 48px) var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--sp-4);
     flex-wrap: wrap;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -184,7 +184,7 @@
   .text {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--sp-1);
     min-inline-size: 0;
   }
 
@@ -194,21 +194,21 @@
   }
 
   .text h3 {
-    font-size: 14.5px;
+    font-size: var(--t-ui);
   }
 
   .setup p,
   .detail,
   .reason {
-    font-size: 12.5px;
+    font-size: var(--t-small);
     color: var(--muted);
   }
 
   .state {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 13.5px;
+    gap: var(--sp-15);
+    font-size: var(--t-body);
     font-weight: 600;
   }
 
@@ -217,7 +217,7 @@
   }
 
   .glyph {
-    font-size: 13px;
+    font-size: var(--t-body);
   }
 
   .glyph.ok {
@@ -226,35 +226,10 @@
 
   .actions {
     display: flex;
-    gap: 8px;
+    gap: var(--sp-2);
     flex-wrap: wrap;
   }
 
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    height: 32px;
-    padding: 0 12px;
-    border-radius: var(--r-sm);
-    font-size: 12.5px;
-    font-weight: 600;
-    border: 1px solid transparent;
-    cursor: pointer;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: var(--accent-on);
-  }
-
-  .btn-secondary {
-    background: var(--surface);
-    color: var(--fg);
-    border-color: var(--border);
-  }
-
-  .btn:disabled {
-    opacity: 0.55;
-    cursor: default;
-  }
+  /* .btn and its variants come from the shared styles/controls.css; this card
+     opts in with `ui-controls` and asks for the small size with .btn-sm. */
 </style>

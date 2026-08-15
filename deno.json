@@ -19,7 +19,8 @@
       "apps/desktop/src-tauri/target",
       "apps/desktop/src-tauri/gen",
       "apps/desktop/src/lib/paraglide",
-      "**/*.md"
+      "**/*.md",
+      "docs/design"
     ]
   },
   "lint": {

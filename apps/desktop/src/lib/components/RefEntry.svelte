@@ -23,9 +23,9 @@
 
 <style>
   .rtxt {
-    margin: 0 0 8px;
+    margin: 0 0 var(--sp-2);
     font-family: var(--serif);
-    font-size: 12.5px;
+    font-size: var(--t-small);
     line-height: 1.5;
     color: var(--fg-2);
     overflow-wrap: anywhere;

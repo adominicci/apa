@@ -155,7 +155,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    font-size: 0.8rem;
+    font-size: var(--t-body);
     color: var(--fg);
   }
 
@@ -163,11 +163,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 12px 6px;
+    padding: var(--sp-2) var(--sp-3) var(--sp-15);
   }
 
   .head strong {
-    font-size: 11px;
+    font-size: var(--t-caption);
     font-weight: 600;
     letter-spacing: 0.07em;
     text-transform: uppercase;
@@ -179,8 +179,8 @@
     background: transparent;
     border-radius: 7px;
     font: inherit;
-    font-size: 0.75rem;
-    padding: 3px 8px;
+    font-size: var(--t-small);
+    padding: var(--sp-05) var(--sp-2);
     cursor: pointer;
     color: var(--fg-2);
   }
@@ -188,8 +188,8 @@
   .toggle {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 12px 8px;
+    gap: var(--sp-15);
+    padding: 0 var(--sp-3) var(--sp-2);
     color: var(--muted);
     border-bottom: 1px solid var(--border);
   }
@@ -200,7 +200,7 @@
   }
 
   .entry {
-    padding: 8px 12px;
+    padding: var(--sp-2) var(--sp-3);
     border-bottom: 1px solid var(--border-soft);
   }
 
@@ -211,9 +211,9 @@
   .runs {
     margin: 0;
     font-family: var(--serif);
-    font-size: 0.78rem;
+    font-size: var(--t-small);
     line-height: 1.5;
-    padding-left: 14px;
+    padding-left: var(--sp-3);
     text-indent: -14px;
     overflow-wrap: anywhere;
   }
@@ -221,17 +221,17 @@
   .meta {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 4px;
+    gap: var(--sp-2);
+    margin-top: var(--sp-1);
     color: var(--muted);
-    font-size: 0.72rem;
+    font-size: var(--t-small);
   }
 
   .pill {
     background: var(--warn-soft);
     color: var(--warn-strong);
     border-radius: 999px;
-    padding: 0 7px;
+    padding: 0 var(--sp-15);
   }
 
   .pill.blue {
@@ -242,17 +242,17 @@
   .actions {
     margin-left: auto;
     display: flex;
-    gap: 6px;
+    gap: var(--sp-15);
   }
 
   .actions button {
     border: none;
     background: transparent;
     font: inherit;
-    font-size: 0.72rem;
+    font-size: var(--t-small);
     cursor: pointer;
     color: var(--accent);
-    padding: 2px 4px;
+    padding: var(--sp-05) var(--sp-1);
   }
 
   .actions .danger {
@@ -261,7 +261,7 @@
 
   .empty {
     color: var(--muted);
-    padding: 12px;
+    padding: var(--sp-3);
     margin: 0;
   }
 

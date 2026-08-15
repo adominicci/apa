@@ -104,14 +104,14 @@
     border: none;
     background: none;
     text-align: left;
-    padding: 8px 10px;
+    padding: var(--sp-2) var(--sp-2);
     border-radius: var(--r-sm);
     cursor: pointer;
     color: var(--fg);
-    font-size: 13px;
+    font-size: var(--t-body);
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: var(--sp-2);
   }
 
   .mi :global(svg) {
@@ -136,6 +136,6 @@
   .mi-sep {
     height: 1px;
     background: var(--border);
-    margin: 4px 2px;
+    margin: var(--sp-1) var(--sp-05);
   }
 </style>

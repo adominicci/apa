@@ -1328,6 +1328,9 @@
 {/if}
 
 <style>
+  /* Buttons come from the global styles/controls.css — .btn and its
+     variants are defined once, app-wide. Nothing button-shaped here. */
+
   .app {
     height: 100vh;
     display: flex;
@@ -1357,7 +1360,7 @@
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    padding: 0 12px;
+    padding: 0 var(--sp-3);
     background: var(--chrome);
     border-bottom: 1px solid var(--border);
     user-select: none;
@@ -1367,7 +1370,7 @@
   .tb-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--sp-2);
   }
 
   .traffic-space {
@@ -1378,8 +1381,8 @@
     justify-self: center;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
+    gap: var(--sp-2);
+    font-size: var(--t-body);
     color: var(--muted);
     max-width: 46vw;
     overflow: hidden;
@@ -1404,13 +1407,13 @@
     place-items: center;
     font-family: var(--serif);
     font-weight: 700;
-    font-size: 10px;
+    font-size: var(--t-caption);
   }
 
   .tb-actions {
     justify-self: end;
     display: flex;
-    gap: 4px;
+    gap: var(--sp-1);
   }
 
   .icon-btn {
@@ -1453,7 +1456,7 @@
     background: var(--chrome);
     border-right: 1px solid var(--border);
     overflow: hidden auto;
-    padding: 20px 14px;
+    padding: var(--sp-5) var(--sp-3);
     transition: opacity 220ms var(--ease);
   }
 
@@ -1467,12 +1470,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 14px;
+    margin-bottom: var(--sp-3);
   }
 
   .panel-head h4 {
     margin: 0;
-    font-size: 11px;
+    font-size: var(--t-caption);
     letter-spacing: 0.07em;
     text-transform: uppercase;
     color: var(--muted);
@@ -1482,25 +1485,11 @@
   .panel-head-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--sp-15);
   }
 
-  .btn-ghost {
-    background: var(--surface);
-    color: var(--fg-2);
-    border-color: var(--border);
-  }
 
-  .btn-ghost:hover {
-    border-color: var(--muted);
-    color: var(--fg);
-  }
 
-  .btn-sm {
-    height: 30px;
-    padding: 0 10px;
-    font-size: 12px;
-  }
 
   .add-wrap {
     position: relative;
@@ -1543,9 +1532,9 @@
   .menu button {
     border: none;
     background: none;
-    font-size: 12.5px;
+    font-size: var(--t-small);
     text-align: left;
-    padding: 8px 12px;
+    padding: var(--sp-2) var(--sp-3);
     cursor: pointer;
     color: var(--fg);
     white-space: nowrap;
@@ -1558,15 +1547,15 @@
   .out-item {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: var(--sp-2);
     width: 100%;
     text-align: left;
-    padding: 7px 10px;
+    padding: var(--sp-15) var(--sp-2);
     border: none;
     background: none;
     border-radius: var(--r-sm);
     color: var(--fg-2);
-    font-size: 13px;
+    font-size: var(--t-body);
     cursor: pointer;
     transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
   }
@@ -1583,7 +1572,7 @@
 
   .out-item .n {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--t-caption);
     color: var(--muted);
     width: 16px;
     flex: 0 0 auto;
@@ -1596,31 +1585,31 @@
   .out-item .wc {
     margin-left: auto;
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--t-caption);
     color: var(--muted);
   }
 
   .out-item.sub {
-    padding-left: 26px;
-    font-size: 12.5px;
+    padding-left: var(--sp-6);
+    font-size: var(--t-small);
     color: var(--muted);
   }
 
   .out-progress {
-    margin-top: 20px;
-    padding: 14px;
+    margin-top: var(--sp-5);
+    padding: var(--sp-3);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
     background: var(--surface);
   }
 
   .out-progress .pl {
-    font-size: 11px;
+    font-size: var(--t-caption);
     color: var(--muted);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: var(--sp-2);
   }
 
   .out-progress .goal-btn {
@@ -1642,7 +1631,7 @@
   .out-progress .goal-input {
     font: inherit;
     width: 6.5em;
-    padding: 1px 5px;
+    padding: 1px var(--sp-1);
     border: 1px solid var(--accent);
     border-radius: var(--r-sm);
     background: var(--bg);
@@ -1669,7 +1658,7 @@
     overflow-y: auto;
     scroll-behavior: smooth;
     min-width: 0;
-    padding: 2.5rem 1.5rem 8rem;
+    padding: var(--sp-8) var(--sp-6) 8rem;
     box-sizing: border-box;
   }
 
@@ -1706,7 +1695,7 @@
     background: var(--chrome);
     border-left: 1px solid var(--border);
     overflow: hidden auto;
-    padding: 20px 16px;
+    padding: var(--sp-5) var(--sp-4);
     transition: opacity 220ms var(--ease);
   }
 
@@ -1716,44 +1705,20 @@
     pointer-events: none;
   }
 
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    height: 32px;
-    padding: 0 12px;
-    border-radius: var(--r-sm);
-    font-size: 12.5px;
-    font-weight: 600;
-    border: 1px solid transparent;
-    cursor: pointer;
-    white-space: nowrap;
-  }
 
-  .btn :global(svg) {
-    width: 15px;
-    height: 15px;
-  }
 
-  .btn-primary {
-    background: var(--accent);
-    color: var(--accent-on);
-  }
 
-  .btn-primary:hover {
-    background: var(--accent-hover);
-  }
 
   .search-ref {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--sp-2);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
-    padding: 0 10px;
+    padding: 0 var(--sp-2);
     height: 34px;
-    margin: 14px 0;
+    margin: var(--sp-3) 0;
   }
 
   .search-ref :global(svg) {
@@ -1767,16 +1732,16 @@
     background: none;
     outline: none;
     width: 100%;
-    font-size: 13px;
+    font-size: var(--t-body);
     color: var(--fg);
   }
 
   .ref-card {
-    padding: 12px;
+    padding: var(--sp-3);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
     background: var(--surface);
-    margin-bottom: 10px;
+    margin-bottom: var(--sp-2);
     transition: border-color var(--fast) var(--ease);
   }
 
@@ -1786,9 +1751,9 @@
 
   .rtxt,
   .ref-card :global(.rtxt) {
-    margin: 0 0 8px;
+    margin: 0 0 var(--sp-2);
     font-family: var(--serif);
-    font-size: 12.5px;
+    font-size: var(--t-small);
     line-height: 1.5;
     color: var(--fg-2);
     overflow-wrap: anywhere;
@@ -1797,16 +1762,16 @@
   .ref-foot {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--sp-2);
   }
 
   .status {
     font-family: var(--mono);
-    font-size: 9.5px;
+    font-size: var(--t-caption);
     letter-spacing: 0.04em;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--sp-1);
     color: var(--accent);
   }
 
@@ -1830,9 +1795,9 @@
     border: none;
     background: none;
     color: var(--muted);
-    font-size: 12px;
+    font-size: var(--t-small);
     cursor: pointer;
-    padding: 2px 6px;
+    padding: var(--sp-05) var(--sp-15);
     border-radius: 5px;
   }
 
@@ -1845,7 +1810,7 @@
     border: none;
     background: none;
     color: var(--accent);
-    font-size: 12px;
+    font-size: var(--t-small);
     font-weight: 600;
     cursor: pointer;
   }
@@ -1857,14 +1822,14 @@
     width: 1px;
     height: 22px;
     background: var(--border);
-    margin: 0 3px;
+    margin: 0 var(--sp-05);
   }
 
   .fm-count {
     font-family: var(--mono);
-    font-size: 11.5px;
+    font-size: var(--t-caption);
     color: var(--muted);
-    padding: 0 12px 0 8px;
+    padding: 0 var(--sp-3) 0 var(--sp-2);
     white-space: nowrap;
   }
 
@@ -1877,8 +1842,8 @@
     z-index: 50;
     display: flex;
     align-items: center;
-    gap: 2px;
-    padding: 5px;
+    gap: var(--sp-05);
+    padding: var(--sp-1);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--r-pill);
@@ -1900,14 +1865,14 @@
   .bb {
     min-width: 30px;
     height: 30px;
-    padding: 0 9px;
+    padding: 0 var(--sp-2);
     border: none;
     background: none;
     border-radius: var(--r-pill);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: var(--t-body);
     font-weight: 600;
     color: var(--fg-2);
     cursor: pointer;
@@ -1931,18 +1896,18 @@
     width: 1px;
     height: 18px;
     background: var(--border);
-    margin: 0 4px;
+    margin: 0 var(--sp-1);
   }
 
   .statusbar {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 16px;
+    gap: var(--sp-2);
+    padding: var(--sp-15) var(--sp-4);
     border-top: 1px solid var(--border);
     background: var(--chrome);
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--t-caption);
     color: var(--muted);
     transition: opacity 220ms var(--ease);
   }
@@ -1961,7 +1926,7 @@
     background: none;
     font: inherit;
     cursor: pointer;
-    padding: 0 2px;
+    padding: 0 var(--sp-05);
     flex: 0 0 auto;
   }
 
@@ -1989,7 +1954,7 @@
     margin-left: auto;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--sp-15);
     color: var(--success);
   }
 
@@ -2017,15 +1982,15 @@
     z-index: 60;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--sp-2);
     max-width: min(90vw, 520px);
-    padding: 10px 12px 10px 16px;
+    padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-4);
     border-radius: var(--r-md);
     background: var(--warn-soft);
     color: var(--warn-strong);
     border: 1px solid var(--warn);
     box-shadow: var(--elev-raised);
-    font-size: 13px;
+    font-size: var(--t-body);
   }
 
   .bib-error-x {
@@ -2033,8 +1998,8 @@
     background: none;
     color: inherit;
     cursor: pointer;
-    font-size: 16px;
+    font-size: var(--t-h3);
     line-height: 1;
-    padding: 0 2px;
+    padding: 0 var(--sp-05);
   }
 </style>

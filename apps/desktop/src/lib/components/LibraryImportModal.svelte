@@ -177,7 +177,7 @@
   .import-body {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--sp-3);
     max-inline-size: 34rem;
   }
   .counts {
@@ -185,10 +185,10 @@
     padding-inline-start: 1.25rem;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: var(--sp-15);
   }
   .note {
-    font-size: 0.85rem;
+    font-size: var(--t-ui);
     color: var(--muted, #666);
   }
 </style>

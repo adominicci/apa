@@ -72,8 +72,8 @@
   .grid-preview {
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    padding: 6px;
+    gap: var(--sp-05);
+    padding: var(--sp-15);
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
     background: var(--chrome);
@@ -81,7 +81,7 @@
 
   .pv-row {
     display: flex;
-    gap: 3px;
+    gap: var(--sp-05);
   }
 
   .pv-cell {

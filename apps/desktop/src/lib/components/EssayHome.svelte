@@ -407,6 +407,9 @@
 {/if}
 
 <style>
+  /* Buttons come from the global styles/controls.css — .btn and its
+     variants are defined once, app-wide. Nothing button-shaped here. */
+
   .app {
     height: 100vh;
     display: flex;
@@ -420,7 +423,7 @@
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    padding: 0 12px;
+    padding: 0 var(--sp-3);
     background: var(--chrome);
     border-bottom: 1px solid var(--border);
     user-select: none;
@@ -435,8 +438,8 @@
     justify-self: center;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
+    gap: var(--sp-2);
+    font-size: var(--t-body);
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--fg-2);
@@ -450,7 +453,7 @@
     color: var(--accent-on);
     display: grid;
     place-items: center;
-    font-size: 10px;
+    font-size: var(--t-caption);
     font-weight: 700;
     font-family: var(--serif);
   }
@@ -458,7 +461,7 @@
   .titlebar-actions {
     justify-self: end;
     display: flex;
-    gap: 6px;
+    gap: var(--sp-15);
   }
 
   .icon-btn {
@@ -489,18 +492,18 @@
   .sidebar {
     background: var(--chrome);
     border-right: 1px solid var(--border);
-    padding: 18px 12px;
+    padding: var(--sp-4) var(--sp-3);
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--sp-1);
     overflow-y: auto;
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 8px 16px;
+    gap: var(--sp-2);
+    padding: var(--sp-15) var(--sp-2) var(--sp-4);
   }
 
   .brand .logo {
@@ -513,33 +516,33 @@
     place-items: center;
     font-family: var(--serif);
     font-weight: 700;
-    font-size: 17px;
+    font-size: var(--t-h3);
   }
 
   .brand b {
-    font-size: 16px;
+    font-size: var(--t-h3);
     letter-spacing: -0.02em;
   }
 
   .nav-label {
-    font-size: 11px;
+    font-size: var(--t-caption);
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--muted);
-    padding: 14px 8px 6px;
+    padding: var(--sp-3) var(--sp-2) var(--sp-15);
     font-weight: 600;
   }
 
   .nav-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-2);
     border: none;
     background: none;
     border-radius: var(--r-sm);
     color: var(--fg-2);
-    font-size: 13.5px;
+    font-size: var(--t-body);
     font-weight: 500;
     cursor: pointer;
     text-align: left;
@@ -570,10 +573,10 @@
   .count {
     margin-left: auto;
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--t-caption);
     color: var(--muted);
     background: var(--hover);
-    padding: 1px 7px;
+    padding: 1px var(--sp-15);
     border-radius: var(--r-pill);
   }
 
@@ -582,13 +585,13 @@
   }
 
   .foot {
-    padding: 8px;
+    padding: var(--sp-2);
     color: var(--muted);
-    font-size: 11.5px;
+    font-size: var(--t-caption);
     font-family: var(--mono);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--sp-15);
   }
 
   .foot button {
@@ -613,42 +616,43 @@
   }
 
   .home-head {
-    padding: 30px clamp(20px, 4vw, 48px) 18px;
+    padding: var(--sp-7) clamp(var(--sp-5), 4vw, 48px) var(--sp-4);
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 20px;
+    gap: var(--sp-5);
     flex-wrap: wrap;
   }
 
   .home-head h1 {
-    margin: 0 0 4px;
-    font-size: clamp(24px, 3vw, 30px);
-    letter-spacing: -0.025em;
-    font-weight: 600;
+    margin: 0 0 var(--sp-1);
+    font-size: var(--t-h1);
+    font-weight: var(--w-strong);
+    letter-spacing: -0.024em;
+    line-height: var(--lh-tight);
   }
 
   .home-head p {
     margin: 0;
     color: var(--muted);
-    font-size: 14px;
+    font-size: var(--t-ui);
   }
 
   .head-tools {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--sp-2);
     flex-wrap: wrap;
   }
 
   .search {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--sp-2);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
-    padding: 0 10px;
+    padding: 0 var(--sp-2);
     height: 38px;
     min-width: 200px;
     transition: border-color var(--fast) var(--ease);
@@ -671,7 +675,7 @@
     background: none;
     outline: none;
     width: 100%;
-    font-size: 13.5px;
+    font-size: var(--t-body);
     color: var(--fg);
   }
 
@@ -680,15 +684,15 @@
     background: var(--hover);
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
-    padding: 3px;
+    padding: var(--sp-05);
   }
 
   .segmented button {
-    padding: 6px 12px;
+    padding: var(--sp-15) var(--sp-3);
     border: none;
     background: none;
     border-radius: 6px;
-    font-size: 12.5px;
+    font-size: var(--t-small);
     font-weight: 600;
     color: var(--muted);
     cursor: pointer;
@@ -702,34 +706,9 @@
     box-shadow: var(--elev-raised);
   }
 
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 38px;
-    padding: 0 16px;
-    border-radius: var(--r-sm);
-    font-size: 13.5px;
-    font-weight: 600;
-    border: 1px solid transparent;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background var(--fast) var(--ease);
-  }
 
-  .btn :global(svg) {
-    width: 16px;
-    height: 16px;
-  }
 
-  .btn-primary {
-    background: var(--accent);
-    color: var(--accent-on);
-  }
 
-  .btn-primary:hover {
-    background: var(--accent-hover);
-  }
 
   .new-wrap {
     position: relative;
@@ -753,9 +732,9 @@
   .menu button {
     border: none;
     background: none;
-    font-size: 13px;
+    font-size: var(--t-body);
     text-align: left;
-    padding: 8px 12px;
+    padding: var(--sp-2) var(--sp-3);
     cursor: pointer;
     color: var(--fg);
   }
@@ -765,21 +744,21 @@
   }
 
   .lib {
-    padding: 8px clamp(20px, 4vw, 48px) 48px;
+    padding: var(--sp-2) clamp(var(--sp-5), 4vw, 48px) 48px;
   }
 
   .lib-filters {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 18px;
+    gap: var(--sp-2);
+    margin-bottom: var(--sp-4);
     flex-wrap: wrap;
   }
 
   .chip {
-    padding: 5px 12px;
+    padding: var(--sp-1) var(--sp-3);
     border-radius: var(--r-pill);
-    font-size: 12.5px;
+    font-size: var(--t-small);
     font-weight: 500;
     border: 1px solid var(--border);
     color: var(--muted);
@@ -802,24 +781,24 @@
   .lib-count {
     margin-left: auto;
     font-family: var(--mono);
-    font-size: 12px;
+    font-size: var(--t-small);
     color: var(--muted);
   }
 
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 16px;
+    gap: var(--sp-4);
   }
 
   .essay {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
-    padding: 18px 18px 14px;
+    padding: var(--sp-4) var(--sp-4) var(--sp-3);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--sp-3);
     cursor: pointer;
     position: relative;
     text-align: left;
@@ -838,7 +817,7 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 10px;
+    gap: var(--sp-2);
   }
 
   .essay-thumb {
@@ -846,7 +825,7 @@
     border-radius: var(--r-sm);
     background: linear-gradient(180deg, var(--paper), color-mix(in oklab, var(--paper), var(--fg) 4%));
     border: 1px solid var(--border-soft);
-    padding: 12px 14px;
+    padding: var(--sp-3) var(--sp-3);
     overflow: hidden;
   }
 
@@ -854,14 +833,14 @@
     height: 4px;
     border-radius: 2px;
     background: color-mix(in oklab, var(--fg), transparent 86%);
-    margin-bottom: 6px;
+    margin-bottom: var(--sp-15);
   }
 
   .ln.title {
     width: 60%;
     background: color-mix(in oklab, var(--fg), transparent 70%);
     height: 6px;
-    margin-bottom: 9px;
+    margin-bottom: var(--sp-2);
   }
 
   .ln.short {
@@ -872,7 +851,7 @@
   .thumb-text {
     margin: 0;
     font-family: var(--serif);
-    font-size: 11px;
+    font-size: var(--t-caption);
     line-height: 1.45;
     color: var(--fg-2);
     display: -webkit-box;
@@ -884,14 +863,14 @@
 
   .thumb-empty {
     margin: 0;
-    font-size: 11px;
+    font-size: var(--t-caption);
     color: var(--muted);
     font-style: italic;
   }
 
   .course-line {
-    margin: 2px 0 0;
-    font-size: 12px;
+    margin: var(--sp-05) 0 0;
+    font-size: var(--t-small);
     color: var(--muted);
     white-space: nowrap;
     overflow: hidden;
@@ -900,10 +879,10 @@
 
   .badge {
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: var(--t-caption);
     font-weight: 600;
     letter-spacing: 0.04em;
-    padding: 2px 7px;
+    padding: var(--sp-05) var(--sp-15);
     border-radius: 5px;
     background: var(--accent-soft);
     color: var(--accent);
@@ -912,7 +891,7 @@
 
   .essay h3 {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--t-ui);
     font-weight: 600;
     letter-spacing: -0.01em;
     line-height: 1.3;
@@ -920,30 +899,30 @@
 
   .meta {
     font-family: var(--mono);
-    font-size: 11.5px;
+    font-size: var(--t-caption);
     color: var(--muted);
     display: flex;
-    gap: 10px;
+    gap: var(--sp-2);
     flex-wrap: wrap;
   }
 
   .essay-actions {
     display: flex;
-    gap: 2px;
+    gap: var(--sp-05);
     border-top: 1px solid var(--border-soft);
-    padding-top: 10px;
-    margin-top: 2px;
+    padding-top: var(--sp-2);
+    margin-top: var(--sp-05);
     align-items: center;
   }
 
   .essay-actions button,
   .essay-actions .use {
-    font-size: 12px;
+    font-size: var(--t-small);
     font-weight: 500;
     border: none;
     background: none;
     color: var(--muted);
-    padding: 5px 8px;
+    padding: var(--sp-1) var(--sp-2);
     border-radius: 6px;
     cursor: pointer;
     transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
@@ -973,7 +952,7 @@
     text-align: center;
     border-style: dashed;
     color: var(--muted);
-    gap: 8px;
+    gap: var(--sp-2);
     min-height: 190px;
   }
 
@@ -994,14 +973,14 @@
   }
 
   .essay.new .sub {
-    font-size: 12.5px;
+    font-size: var(--t-small);
   }
 
   .rename {
     font: inherit;
     font-weight: 600;
-    font-size: 15px;
-    padding: 2px 6px;
+    font-size: var(--t-ui);
+    padding: var(--sp-05) var(--sp-15);
     width: 100%;
     border: 1px solid color-mix(in oklab, var(--accent), transparent 50%);
     border-radius: 6px;

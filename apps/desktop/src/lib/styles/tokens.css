@@ -1,8 +1,15 @@
 /*
- * Tesina design tokens — from Andrés's Open Design prototype.
+ * Tesina design tokens — Tesina Design System v1.
+ * Source of truth: docs/design/new-paper-modal.reference.html (chrome only).
  * All color flows through tokens; raw hex lives only in the two theme
  * blocks. Theme is driven by :root[data-theme] (set from the settings
  * store; "system" resolves via matchMedia in the layout).
+ *
+ * Color is authored in OKLCH, not hex: the light surfaces carry a
+ * deliberate sub-perceptual warmth (chroma <= 0.0025 at hue 85) so they
+ * read as paper stock rather than as screen gray. In sRGB hex those
+ * values round to neutral and the effect disappears, which is why the
+ * previous hex ramp looked flat next to the reference.
  */
 
 /*
@@ -14,7 +21,231 @@
  * @font-face back into this file or any imported CSS, and do NOT switch to a
  * bare `import "@fontsource-*"`. See AGENTS.md → Fonts.
  */
+
+/* ── Color — light ────────────────────────────────────────────────── */
 :root {
+  color-scheme: light;
+  accent-color: var(--accent);
+
+  --canvas: oklch(0.967 0.0022 85);
+  --bg: oklch(0.979 0.0018 85);
+  --surface: oklch(1 0 0);
+  --chrome: oklch(0.988 0.002 85);
+  --elevated: oklch(1 0 0);
+
+  --fg: oklch(0.235 0.01 265);
+  --fg-2: oklch(0.415 0.012 265);
+  --muted: oklch(0.485 0.012 265);
+
+  --border: oklch(0.895 0.004 85);
+  --border-soft: oklch(0.945 0.003 85);
+  /* Text-entry boundaries only — 3.2:1 against the input well. The
+     structural --border is 1.37:1 and cannot carry an empty field's edge. */
+  --border-strong: oklch(0.64 0.005 85);
+
+  /* The app's existing blue, unchanged: #2f6feb. --accent-on is pure white
+     on purpose — an off-white drops the button label below 4.5:1. */
+  --accent: oklch(0.5726 0.1989 261.8);
+  --accent-on: oklch(1 0 0);
+  --accent-hover: oklch(0.5 0.1989 261.8);
+
+  --success: oklch(0.52 0.115 152);
+  --warn: oklch(0.56 0.115 68);
+  --danger: oklch(0.52 0.165 27);
+  --paper: oklch(1 0 0);
+
+  --tl-red: #ff5f57;
+  --tl-yellow: #febc2e;
+  --tl-green: #28c840;
+
+  --overlay-tint: oklch(0.235 0.01 265 / 0.34);
+  /* Inset top highlight on lifted surfaces. Light mode needs none: the
+     shadow alone already separates a white card from a warm canvas. */
+  --edge-hi: transparent;
+
+  --elev-1:
+    0 1px 1px oklch(0.235 0.01 265 / 0.05), 0 1px 3px oklch(
+    0.235
+    0.01
+    265
+    /
+    0.05
+  );
+  --elev-2:
+    0 1px 2px oklch(0.235 0.01 265 / 0.06), 0 6px 16px oklch(
+    0.235
+    0.01
+    265
+    /
+    0.07
+  );
+  --elev-3:
+    0 1px 2px oklch(0.235 0.01 265 / 0.07), 0 12px 28px oklch(
+    0.235
+    0.01
+    265
+    /
+    0.1
+  ), 0 40px 76px oklch(0.235 0.01 265 / 0.1);
+}
+
+/* ── Color — dark ─────────────────────────────────────────────────── */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --canvas: oklch(0.185 0.008 265);
+  --bg: oklch(0.215 0.009 265);
+  --surface: oklch(0.248 0.01 265);
+  --chrome: oklch(0.222 0.009 265);
+  --elevated: oklch(0.278 0.011 265);
+
+  --fg: oklch(0.948 0.004 85);
+  --fg-2: oklch(0.815 0.008 265);
+  --muted: oklch(0.675 0.01 265);
+
+  --border: oklch(0.33 0.012 265);
+  --border-soft: oklch(0.282 0.01 265);
+  --border-strong: oklch(0.53 0.014 265);
+
+  /* The app's existing dark blue, unchanged: #5b8def. --accent-hover goes
+     LIGHTER here, not darker: on a dark surface a darkened hover reads as
+     pressed-or-disabled instead of as a response. */
+  --accent: oklch(0.6545 0.1562 262.5);
+  --accent-on: oklch(0.18 0.012 265);
+  --accent-hover: oklch(0.72 0.1562 262.5);
+
+  --success: oklch(0.72 0.135 152);
+  --warn: oklch(0.78 0.12 75);
+  --danger: oklch(0.68 0.155 25);
+  --paper: oklch(0.26 0.01 265);
+
+  --overlay-tint: oklch(0.12 0.01 265 / 0.62);
+  --edge-hi: oklch(1 0 0 / 0.07);
+
+  --elev-1: 0 1px 2px oklch(0 0 0 / 0.32);
+  --elev-2: 0 2px 4px oklch(0 0 0 / 0.34), 0 8px 20px oklch(0 0 0 / 0.3);
+  --elev-3:
+    0 2px 4px oklch(0 0 0 / 0.4), 0 16px 34px oklch(0 0 0 / 0.42), 0 48px 90px
+    oklch(0 0 0 / 0.44);
+}
+
+/* ── Derived, scales and motion (theme-independent) ───────────────── */
+:root {
+  --hover: color-mix(in oklab, var(--fg), transparent 94%);
+  --hover-strong: color-mix(in oklab, var(--fg), transparent 89%);
+  --raise: color-mix(in oklab, var(--fg), transparent 88%);
+  /* Status washes. All four semantic colors get one, so a status surface can
+     change tone without reaching for a literal. */
+  --accent-soft: color-mix(in oklab, var(--accent), transparent 88%);
+  --success-soft: color-mix(in oklab, var(--success), transparent 88%);
+  --warn-soft: color-mix(in oklab, var(--warn), transparent 86%);
+  --danger-soft: color-mix(in oklab, var(--danger), transparent 88%);
+  --warn-strong: color-mix(in oklab, var(--warn), var(--fg) 45%);
+  --focus-ring: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 72%);
+
+  --shadow-paper:
+    0 1px 2px color-mix(in oklab, var(--fg), transparent 90%), 0 12px 40px
+    color-mix(in oklab, var(--fg), transparent 88%);
+
+  /* The print preview's sheet. Deliberately theme-INDEPENDENT (no dark
+     override): the preview shows the page as it will print, and the document
+     CSS hardcodes near-black text (`color: #131313` in renderEssayCss, which
+     also drives @media print). Following --surface/--paper here would darken
+     the sheet in dark mode while the text stayed near-black — unreadable.
+     The editor sheet is a different surface and does follow --paper. */
+  --paper-print: #ffffff;
+
+  /*
+   * ONE family for all chrome — hierarchy comes from size, weight and
+   * tracking, never from a second face. --serif is for the DOCUMENT only
+   * (the paper sheet, where it is the fallback before the user picks an
+   * APA font). Do not reference --serif from chrome.
+   */
+  --font:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+    sans-serif;
+  --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --serif: "Iowan Old Style", "Charter", Georgia, "Times New Roman", serif;
+
+  --t-caption: 11px;
+  --t-small: 12px;
+  --t-body: 13px;
+  --t-ui: 14px;
+  --t-h3: 16px;
+  --t-h2: 20px;
+  --t-h1: 26px;
+
+  --lh-tight: 1.15;
+  --lh-snug: 1.35;
+  --lh-body: 1.55;
+
+  --w-read: 400;
+  --w-medium: 530;
+  --w-strong: 600;
+
+  --sp-05: 2px;
+  --sp-1: 4px;
+  --sp-15: 6px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  --z-base: 0;
+  --z-sticky: 20;
+  --z-dock: 40;
+  --z-overlay: 100;
+  --z-modal: 110;
+  --z-popover: 120;
+  --z-toast: 200;
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --fast: 150ms;
+  --slow: 260ms;
+
+  --ctl-h-sm: 32px;
+  --ctl-h: 36px;
+  --ctl-h-lg: 42px;
+
+  /* Aliases so existing call sites keep working. */
+  --elev-raised: var(--elev-2);
+  --elev-lg: var(--elev-3);
+  /* Resolves the orphan at routes/+page.svelte, which was falling back to a
+     hardcoded cream in BOTH themes because --panel was never defined. */
+  --panel: var(--chrome);
+}
+
+/*
+ * ── The document keeps its own palette ────────────────────────────
+ * The design system above is chrome only; the reference export says so in
+ * as many words. But the frozen paper path consumes the shared tokens —
+ * apa.css paints `.paper-sheet` and `.tiptap > .sec` with var(--fg) and
+ * rules its APA tables with it, and CoverSheet does the same — so retuning
+ * the chrome palette would have silently restyled the sheet on screen.
+ * (Export is unaffected either way: renderEssayCss hardcodes its ink and
+ * DOCX carries its own colors, which is why the goldens stayed green and
+ * did not catch this.)
+ *
+ * Pinning the pre-v1 values on .apa-editor keeps the document byte-identical
+ * without editing a frozen file. `.apa-editor` is the right hook because the
+ * editor sheet and CoverSheet both carry it.
+ *
+ * The derived tokens are restated rather than inherited: a custom property
+ * substitutes its var() at the element where it is DECLARED, so the :root
+ * definitions of --hover and friends would still resolve against the chrome
+ * --fg no matter what this block sets.
+ */
+.apa-editor {
   --bg: #fafafa;
   --surface: #ffffff;
   --fg: #111111;
@@ -29,12 +260,18 @@
   --danger: #dc2626;
   --paper: #ffffff;
 
-  --tl-red: #ff5f57;
-  --tl-yellow: #febc2e;
-  --tl-green: #28c840;
+  --canvas: color-mix(in oklab, var(--bg), var(--fg) 3%);
+  --hover: color-mix(in oklab, var(--fg), transparent 94%);
+  --accent-soft: color-mix(in oklab, var(--accent), transparent 86%);
+  --warn-soft: color-mix(in oklab, var(--warn), transparent 85%);
+  --warn-strong: color-mix(in oklab, var(--warn), var(--fg) 45%);
+  --elev-raised: 0 8px 30px color-mix(in oklab, var(--fg), transparent 86%);
+  --shadow-paper:
+    0 1px 2px color-mix(in oklab, var(--fg), transparent 90%), 0 12px 40px
+    color-mix(in oklab, var(--fg), transparent 88%);
 }
 
-:root[data-theme="dark"] {
+:root[data-theme="dark"] .apa-editor {
   --bg: #0f1216;
   --surface: #171b21;
   --fg: #e9ecf1;
@@ -50,42 +287,13 @@
   --paper: #1b2027;
 }
 
-:root {
-  --canvas: color-mix(in oklab, var(--bg), var(--fg) 3%);
-  --chrome: color-mix(in oklab, var(--surface), var(--fg) 3%);
-  --raise: color-mix(in oklab, var(--fg), transparent 88%);
-  --hover: color-mix(in oklab, var(--fg), transparent 94%);
-  --accent-soft: color-mix(in oklab, var(--accent), transparent 86%);
-  --accent-hover: color-mix(in oklab, var(--accent), black 8%);
-  --warn-soft: color-mix(in oklab, var(--warn), transparent 85%);
-  --warn-strong: color-mix(in oklab, var(--warn), var(--fg) 45%);
-  --overlay: color-mix(in oklab, var(--fg), transparent 55%);
-  --focus-ring: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 68%);
-  --elev-raised: 0 8px 30px color-mix(in oklab, var(--fg), transparent 86%);
-  --elev-lg: 0 18px 50px color-mix(in oklab, var(--fg), transparent 80%);
-  --shadow-paper:
-    0 1px 2px color-mix(in oklab, var(--fg), transparent 90%), 0 12px 40px
-    color-mix(in oklab, var(--fg), transparent 88%);
-
-  /* The print preview's sheet. Deliberately theme-INDEPENDENT (no dark
-     override): the preview shows the page as it will print, and the document
-     CSS hardcodes near-black text (`color: #131313` in renderEssayCss, which
-     also drives @media print). Following --surface/--paper here would darken
-     the sheet in dark mode while the text stayed near-black — unreadable.
-     The editor sheet is a different surface and does follow --paper. */
-  --paper-print: #ffffff;
-
-  --font: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
-  --serif: "Iowan Old Style", "Charter", Georgia, "Times New Roman", serif;
-
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
-  --r-pill: 999px;
-
-  --ease: cubic-bezier(0.2, 0, 0, 1);
-  --fast: 150ms;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
 }
 
 *,
@@ -105,8 +313,8 @@ body {
   background: var(--canvas);
   color: var(--fg);
   font-family: var(--font);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: var(--t-body);
+  line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -114,10 +322,14 @@ body {
   background: color-mix(in oklab, var(--accent), transparent 74%);
 }
 
+/*
+ * No border-radius here on purpose: the ring is a box-shadow, so it already
+ * follows each control's own radius. Forcing --r-sm squared off the pill
+ * buttons and rounded the square ones the moment they took focus.
+ */
 :focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
-  border-radius: var(--r-sm);
 }
 
 button,

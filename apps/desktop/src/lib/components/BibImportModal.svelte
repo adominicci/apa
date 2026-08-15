@@ -8,6 +8,7 @@
   import { buildImportPlan, type ImportPlan, parseBib } from "$lib/bibtex/plan";
   import RefEntry from "$lib/components/RefEntry.svelte";
   import Modal from "$lib/components/Modal.svelte";
+  import Select, { type SelectGroup } from "$lib/components/Select.svelte";
   import { m } from "$lib/paraglide/messages";
 
   interface Props {
@@ -24,6 +25,16 @@
   let plan = $state<ImportPlan | null>(null);
   const checked = new SvelteSet<string>();
   let collectionId = $state("");
+
+  // Derived, not const: the library's collections can change while the dialog
+  // is open.
+  const collectionGroups = $derived<SelectGroup[]>([{
+    label: "",
+    options: [
+      { value: "", label: m.bib_collection_none() },
+      ...library.collections.map((c) => ({ value: c.id, label: c.name })),
+    ],
+  }]);
 
   /** A row starts checked unless it's a duplicate or has no title. */
   function defaultChecked(row: ImportPlan["rows"][number]): boolean {
@@ -172,15 +183,16 @@
       </span>
     </div>
 
-    <label class="bib-collection">
-      {m.bib_collection_label()}
-      <select bind:value={collectionId}>
-        <option value="">{m.bib_collection_none()}</option>
-        {#each library.collections as c (c.id)}
-          <option value={c.id}>{c.name}</option>
-        {/each}
-      </select>
-    </label>
+    <div class="bib-collection">
+      <span>{m.bib_collection_label()}</span>
+      <Select
+        compact
+        groups={collectionGroups}
+        value={collectionId}
+        onChange={(next) => (collectionId = next)}
+        ariaLabel={m.bib_collection_label()}
+      />
+    </div>
 
     <ul class="bib-list">
       {#each plan.rows as row (row.ref.id)}
@@ -233,32 +245,32 @@
 
 <style>
   .bib-status {
-    margin: 8px 0;
+    margin: var(--sp-2) 0;
     color: var(--fg-2);
-    font-size: 14px;
+    font-size: var(--t-ui);
   }
 
   .bib-errbanner {
-    margin: 0 0 12px;
-    padding: 8px 12px;
+    margin: 0 0 var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
     border-radius: 8px;
     background: var(--warn-soft);
     color: var(--warn-strong);
-    font-size: 13px;
+    font-size: var(--t-body);
   }
 
   .bib-toolbar {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 10px;
+    gap: var(--sp-3);
+    margin-bottom: var(--sp-2);
   }
 
   .bib-selectors {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: var(--sp-2);
   }
 
   .linkbtn {
@@ -267,7 +279,7 @@
     padding: 0;
     color: var(--accent);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--t-body);
     cursor: pointer;
   }
 
@@ -281,28 +293,19 @@
 
   .bib-count {
     color: var(--fg-2);
-    font-size: 13px;
+    font-size: var(--t-body);
     font-variant-numeric: tabular-nums;
   }
 
   .bib-collection {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-    font-size: 13px;
+    gap: var(--sp-2);
+    margin-bottom: var(--sp-3);
+    font-size: var(--t-body);
     color: var(--fg-2);
   }
 
-  .bib-collection select {
-    padding: 5px 8px;
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    background: var(--bg);
-    color: var(--fg);
-    font: inherit;
-    font-size: 13px;
-  }
 
   .bib-list {
     list-style: none;
@@ -310,13 +313,13 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--sp-15);
   }
 
   .bib-row {
     display: flex;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
     border: 1px solid var(--border-soft);
     border-radius: 9px;
     cursor: pointer;
@@ -331,7 +334,7 @@
   }
 
   .bib-row input[type="checkbox"] {
-    margin-top: 3px;
+    margin-top: var(--sp-05);
     flex: none;
   }
 
@@ -343,16 +346,16 @@
   .bib-top {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 5px;
+    gap: var(--sp-15);
+    margin-bottom: var(--sp-1);
   }
 
   .pill {
-    padding: 1px 8px;
+    padding: 1px var(--sp-2);
     border-radius: 999px;
     background: var(--accent-soft);
     color: var(--accent);
-    font-size: 11px;
+    font-size: var(--t-caption);
     font-weight: 600;
     white-space: nowrap;
   }
@@ -364,7 +367,7 @@
 
   .bibkey {
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--t-caption);
     color: var(--fg-2);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -373,8 +376,8 @@
 
   .bib-note,
   .bib-warn {
-    margin: 4px 0 0;
-    font-size: 12px;
+    margin: var(--sp-1) 0 0;
+    font-size: var(--t-small);
   }
 
   .bib-note {
