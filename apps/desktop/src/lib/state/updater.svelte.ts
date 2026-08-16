@@ -55,6 +55,9 @@ const defaultDependencies: UpdaterDependencies = {
  */
 type UpdaterStatus = "idle" | "available" | "downloading" | "error";
 
+/** Background re-check cadence; matches T3 Code's desktop poll interval. */
+export const AUTO_CHECK_INTERVAL_MS = 4 * 60 * 1000;
+
 export class UpdaterStore {
   status = $state<UpdaterStatus>("idle");
   /** Version offered by the manifest, shown in the banner. */
@@ -92,6 +95,18 @@ export class UpdaterStore {
       // No published release yet (404), offline, or not in the Tauri runtime.
       console.error("No se pudo comprobar actualizaciones:", err);
     }
+  }
+
+  /**
+   * Re-check on a timer so an update published while the app stays open still
+   * surfaces. `check()` already guards active downloads and pending relaunches.
+   * Returns a stop function for component teardown.
+   */
+  startPeriodicChecks(intervalMs: number = AUTO_CHECK_INTERVAL_MS): () => void {
+    const timer = setInterval(() => {
+      void this.check();
+    }, intervalMs);
+    return () => clearInterval(timer);
   }
 
   /** Download + install the pending update, then relaunch. Never throws. */

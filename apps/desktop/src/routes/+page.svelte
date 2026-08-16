@@ -91,9 +91,12 @@
   }
 
   let stopBackup: (() => void) | null = null;
+  let stopUpdateChecks: (() => void) | null = null;
   onDestroy(() => {
     stopBackup?.();
     stopBackup = null;
+    stopUpdateChecks?.();
+    stopUpdateChecks = null;
   });
 
   async function finishStartup(reload = false): Promise<void> {
@@ -117,8 +120,10 @@
         console.error("No se pudo iniciar el coordinador de respaldo:", err);
       }
     }
-    // Non-blocking: never delay first paint on the network check.
+    // Non-blocking: never delay first paint on the network check. The timer
+    // keeps re-checking while the app stays open (T3 Code cadence).
     void updater.check();
+    stopUpdateChecks ??= updater.startPeriodicChecks();
   }
 
   onMount(async () => {
