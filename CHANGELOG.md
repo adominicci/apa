@@ -5,6 +5,15 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-08-16
+
+### Changed
+
+- Installing Tesina on a Mac is now a single step. The app is signed with an
+  Apple Developer ID certificate and notarized by Apple, so the first launch
+  only asks whether you want to open an app downloaded from the internet.
+  Nobody has to visit System Settings to allow a blocked app anymore.
+
 ## [0.1.9] - 2026-08-16
 
 ### Added
@@ -174,7 +183,8 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.10...HEAD
+[0.1.10]: https://github.com/adominicci/tesina/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/adominicci/tesina/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/adominicci/tesina/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/adominicci/tesina/compare/v0.1.6...v0.1.7
