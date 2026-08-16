@@ -8,14 +8,14 @@
   const releaseNotes = useReleaseNotesController();
 
   let cardOpen = $state(false);
+  /** A user-triggered re-check; the launch check never surfaces "up to date". */
+  let manualCheck = $state<"none" | "checking" | "uptodate">("none");
 
   // The release-notes modal wins: the pill stays hidden until the runtime
   // version is resolved and no notes dialog is on screen (same precedence the
   // old layout banner enforced).
   const visible = $derived(
-    updater.status !== "idle" &&
-      !releaseNotes.resolutionPending &&
-      !releaseNotes.presentation,
+    !releaseNotes.resolutionPending && !releaseNotes.presentation,
   );
 
   const label = $derived.by(() => {
@@ -24,8 +24,15 @@
       return m.update_downloading({ percent: updater.progress }, opts);
     }
     if (updater.status === "error") return m.update_error(undefined, opts);
+    if (updater.status === "idle") return m.update_check(undefined, opts);
     return m.update_ready({ version: updater.version ?? "" }, opts);
   });
+
+  const cardVisible = $derived(
+    cardOpen &&
+      (updater.status === "available" || updater.status === "error" ||
+        (updater.status === "idle" && manualCheck === "uptodate")),
+  );
 
   // r=9.5 in a 22px viewBox; circumference 2πr.
   const RING = 2 * Math.PI * 9.5;
@@ -35,9 +42,22 @@
       : RING,
   );
 
-  function install() {
+  async function handleClick() {
     if (updater.status === "downloading") return;
+    if (updater.status === "idle") {
+      if (manualCheck === "checking") return;
+      manualCheck = "checking";
+      await updater.check();
+      manualCheck = updater.status === "idle" ? "uptodate" : "none";
+      if (manualCheck === "uptodate") cardOpen = true;
+      return;
+    }
     void updater.install();
+  }
+
+  function closeCard() {
+    cardOpen = false;
+    if (manualCheck === "uptodate") manualCheck = "none";
   }
 </script>
 
@@ -47,7 +67,7 @@
     class="anchor"
     role="presentation"
     onmouseenter={() => (cardOpen = true)}
-    onmouseleave={() => (cardOpen = false)}
+    onmouseleave={closeCard}
   >
     <button
       type="button"
@@ -56,9 +76,9 @@
       disabled={updater.status === "downloading"}
       aria-label={label}
       title={label}
-      onclick={install}
+      onclick={handleClick}
       onfocus={() => (cardOpen = true)}
-      onblur={() => (cardOpen = false)}
+      onblur={closeCard}
     >
       <svg class="ring" viewBox="0 0 22 22" aria-hidden="true">
         <circle class="track" cx="11" cy="11" r="9.5" />
@@ -73,6 +93,19 @@
       </svg>
       {#if updater.status === "error"}
         <span class="warn" aria-hidden="true">!</span>
+      {:else if updater.status === "idle"}
+        <svg
+          class="arrow"
+          class:spin={manualCheck === "checking"}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          aria-hidden="true"
+        >
+          <path d="M18.4 6.7A7 7 0 1 0 19 12" />
+          <path d="M19 4v4h-4" />
+        </svg>
       {:else}
         <svg
           class="arrow"
@@ -91,18 +124,26 @@
       {/if}
     </button>
 
-    {#if cardOpen && updater.status !== "downloading"}
+    {#if cardVisible}
       <div data-update-card class="card" role="status">
-        <div class="title">{label}</div>
-        {#if updater.status !== "error" && updater.body}
+        {#if updater.status === "idle"}
+          <div class="title">
+            {m.update_up_to_date(undefined, { locale: uiLocale.current })}
+          </div>
+        {:else}
+          <div class="title">{label}</div>
+        {/if}
+        {#if updater.status === "available" && updater.body}
           <div class="head">
             {m.release_notes_title(undefined, { locale: uiLocale.current })}
           </div>
           <div class="notes"><MarkdownContent source={updater.body} /></div>
         {/if}
-        <p class="hint">
-          {m.update_click_hint(undefined, { locale: uiLocale.current })}
-        </p>
+        {#if updater.status !== "idle"}
+          <p class="hint">
+            {m.update_click_hint(undefined, { locale: uiLocale.current })}
+          </p>
+        {/if}
       </div>
     {/if}
   </span>
@@ -169,6 +210,16 @@
   .arrow {
     width: 11px;
     height: 11px;
+  }
+
+  .arrow.spin {
+    animation: pill-spin 0.9s linear infinite;
+  }
+
+  @keyframes pill-spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .warn {

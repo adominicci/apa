@@ -13,6 +13,7 @@ const runtime = vi.hoisted(() => ({
     body: undefined as string | undefined,
     progress: 0,
     install: vi.fn(),
+    check: vi.fn(() => Promise.resolve()),
   },
 }));
 
@@ -79,6 +80,8 @@ beforeEach(() => {
   runtime.updater.body = undefined;
   runtime.updater.progress = 0;
   runtime.updater.install.mockReset();
+  runtime.updater.check.mockReset();
+  runtime.updater.check.mockResolvedValue(undefined);
 });
 
 afterEach(async () => {
@@ -88,9 +91,27 @@ afterEach(async () => {
 });
 
 describe("UpdatePill", () => {
-  it("stays hidden while the updater is idle", async () => {
+  it("offers a manual check while the updater is idle", async () => {
     mountPill(await readyController());
-    expect(pill()).toBeNull();
+
+    const button = pillButton();
+    expect(button).not.toBeNull();
+    expect(button!.getAttribute("aria-label")).toBe("Check for updates");
+    hoverPill();
+    expect(card()).toBeNull();
+
+    button!.click();
+    await vi.waitFor(() => {
+      flushSync();
+      expect(runtime.updater.check).toHaveBeenCalledTimes(1);
+      expect(card()).not.toBeNull();
+    });
+    expect(card()!.textContent).toContain("You're up to date.");
+    expect(runtime.updater.install).not.toHaveBeenCalled();
+
+    pill()!.dispatchEvent(new MouseEvent("mouseleave"));
+    flushSync();
+    expect(card()).toBeNull();
   });
 
   it("offers the available update and installs on click", async () => {

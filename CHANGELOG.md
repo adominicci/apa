@@ -12,7 +12,8 @@ and [Semantic Versioning](https://semver.org/).
 - The update notice is now a small icon beside the version number, at the
   bottom of the sidebar and in the editor status bar, instead of a banner
   across the top of the window. Hover the icon to read what is new; click it
-  to update and restart. Tesina saves your work before restarting.
+  to update and restart. Tesina saves your work before restarting. When you
+  are already up to date, the same icon checks for new updates on click.
 
 ## [0.1.12] - 2026-08-16
 
