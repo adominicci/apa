@@ -5,6 +5,22 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-08-16
+
+### Fixed
+
+- The close button works on Windows again. Closing now asks whether you want
+  to quit, saves your paper, and ends the app. If saving cannot finish, Tesina
+  says so and lets you leave anyway instead of refusing to close, which used
+  to force people into the Task Manager.
+
+### Changed
+
+- Closing the window on a Mac now leaves Tesina in the Dock, the way Mac apps
+  behave. Click the Dock icon to bring your work back.
+- Settings has a **Quit Tesina** entry. It asks for confirmation first, and
+  works the same way on both systems.
+
 ## [0.1.11] - 2026-08-16
 
 ### Added
@@ -193,7 +209,8 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.11...HEAD
+[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.12...HEAD
+[0.1.12]: https://github.com/adominicci/tesina/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/adominicci/tesina/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/adominicci/tesina/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/adominicci/tesina/compare/v0.1.8...v0.1.9

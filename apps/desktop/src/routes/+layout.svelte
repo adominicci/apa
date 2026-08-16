@@ -24,6 +24,10 @@
   import { persistence } from "$lib/persist/coordinator";
   import { operations } from "$lib/persist/operationCoordinator";
   import { createCloseRequestHandler } from "$lib/persist/windowClose";
+  import { shutdown } from "$lib/state/shutdown.svelte";
+  import { invoke } from "@tauri-apps/api/core";
+  import { exit } from "@tauri-apps/plugin-process";
+  import Modal from "$lib/components/Modal.svelte";
 
   interface Props {
     children: Snippet;
@@ -33,6 +37,30 @@
 
   // Per-session dismissal; the banner returns next launch if still available.
   let updateDismissed = $state(false);
+
+  /**
+   * The quit confirmations are ordinary modals rather than native dialogs, so
+   * they match every other decision in the app. Each one is a promise the
+   * shutdown path awaits, resolved by whichever button is pressed.
+   */
+  interface QuitPrompt {
+    kind: "quit" | "unsaved";
+    resolve: (confirmed: boolean) => void;
+  }
+
+  let quitPrompt = $state<QuitPrompt | null>(null);
+
+  function askQuit(kind: QuitPrompt["kind"]): Promise<boolean> {
+    return new Promise((resolve) => {
+      quitPrompt = { kind, resolve };
+    });
+  }
+
+  function answerQuit(confirmed: boolean): void {
+    const pending = quitPrompt;
+    quitPrompt = null;
+    pending?.resolve(confirmed);
+  }
 
   function browserStorage(): ReleaseNotesStorage | null {
     try {
@@ -74,7 +102,11 @@
 
     if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) {
       const appWindow = getCurrentWindow();
-      const close = createCloseRequestHandler({
+      const onError = (error: unknown) => {
+        console.error("Could not shut the application down cleanly:", error);
+      };
+
+      shutdown.configure({
         // Flush persistence first, then wait for active export/backup/import
         // operations to reach their safe points (cancel-and-clean or a
         // persisted recoverable journal) — design §13, task 6.7.
@@ -83,19 +115,35 @@
           await operations.awaitSafeShutdown();
           await persistence.flushPending();
         },
-        destroy: () => appWindow.destroy(),
+        // The whole process ends, not just this window: on Windows and Linux
+        // a destroyed main window would leave the app running with nothing on
+        // screen, and on macOS Quit has to mean Quit.
+        exitApp: () => exit(0),
+        confirmQuit: () => askQuit("quit"),
+        confirmQuitWithoutSaving: () => askQuit("unsaved"),
         resumeAfterFailedShutdown: () => operations.resumeAfterFailedShutdown(),
-        onError: (error) => {
-          console.error("No se pudo cerrar la aplicación:", error);
-        },
+        onError,
       });
-      void appWindow.onCloseRequested((event) => {
-        void close(event);
-      }).then((stop) => {
-        if (disposed) stop();
-        else unlisten = stop;
+
+      // Resolved before the listener is attached so the first close request
+      // already knows which convention to follow; "macos" is only assumed when
+      // the host actually says so.
+      void invoke<string>("host_os").catch(() => "").then((hostOs) => {
+        if (disposed) return;
+        const close = createCloseRequestHandler({
+          hostOs,
+          hideWindow: () => appWindow.hide(),
+          quit: () => shutdown.request(),
+          onError,
+        });
+        return appWindow.onCloseRequested((event) => {
+          void close(event);
+        }).then((stop) => {
+          if (disposed) stop();
+          else unlisten = stop;
+        });
       }).catch((error) => {
-        console.error("No se pudo preparar el cierre seguro:", error);
+        console.error("Could not prepare the safe close path:", error);
       });
     }
 
@@ -165,6 +213,32 @@
     body={releaseNotes.presentation.body}
     onClose={() => releaseNotes.dismiss()}
   />
+{/if}
+
+{#if quitPrompt}
+  <Modal
+    title={quitPrompt.kind === "unsaved"
+      ? m.quit_unsaved_title()
+      : m.quit_confirm_title()}
+    dismissOnOverlay={false}
+    onClose={() => answerQuit(false)}
+  >
+    <p class="quit-body">
+      {quitPrompt.kind === "unsaved"
+        ? m.quit_unsaved_body()
+        : m.quit_confirm_body()}
+    </p>
+    {#snippet footer()}
+      <button class="btn btn-secondary" onclick={() => answerQuit(false)}>
+        {m.quit_cancel()}
+      </button>
+      <button class="btn btn-primary" onclick={() => answerQuit(true)}>
+        {quitPrompt?.kind === "unsaved"
+          ? m.quit_unsaved_action()
+          : m.quit_confirm_action()}
+      </button>
+    {/snippet}
+  </Modal>
 {/if}
 
 {@render children()}

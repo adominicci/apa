@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Essay } from "$lib/model/essay";
 import { m } from "$lib/paraglide/messages";
 import { persistence } from "$lib/persist/coordinator";
-import { createCloseRequestHandler } from "$lib/persist/windowClose";
+import { createQuitRequest } from "$lib/persist/windowClose";
 import { UpdaterStore } from "$lib/state/updater.svelte";
 import {
   readPendingReleaseNotes,
@@ -217,6 +217,25 @@ function docText(doc: unknown): string {
   return [node.text ?? "", ...(node.content ?? []).map(docText)].join("");
 }
 
+/**
+ * The persistence barrier these tests exercise lives in the quit request; the
+ * native close button only routes to it. Confirmation is pre-answered and the
+ * deadline never elapses, so each test measures the flush alone.
+ */
+function quitRequest(
+  flushPending: () => Promise<void>,
+  exitApp: () => Promise<void>,
+): () => Promise<void> {
+  return createQuitRequest({
+    flushPending,
+    exitApp,
+    confirmQuit: () => Promise.resolve(true),
+    confirmQuitWithoutSaving: () => Promise.resolve(false),
+    onError: vi.fn(),
+    delay: () => new Promise<void>(() => {}),
+  });
+}
+
 function essayWithBody(text: string): Essay {
   return {
     schemaVersion: 2,
@@ -358,7 +377,7 @@ describe("editor preview round trip", () => {
       `Tesina ${bundledReleaseNotes.version}`,
     );
     expect(dialog?.textContent).toContain(
-      "Tesina now has a Windows installer",
+      "The close button works on Windows again",
     );
     document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
     flushSync();
@@ -412,7 +431,7 @@ describe("editor preview round trip", () => {
       "Las notas no están disponibles para esta versión.",
     );
     expect(dialog?.textContent).not.toContain(
-      "Tesina now has a Windows installer",
+      "The close button works on Windows again",
     );
     globalThis.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
@@ -761,12 +780,8 @@ describe("editor preview round trip", () => {
 
     runtime.editors[0]!.commands.setContent(bodyDoc("First close edit"));
     const destroy = vi.fn<() => Promise<void>>().mockResolvedValue();
-    const close = createCloseRequestHandler({
-      flushPending: () => persistence.flushPending(),
-      destroy,
-      onError: vi.fn(),
-    });
-    const closing = close({ preventDefault: vi.fn() });
+    const close = quitRequest(() => persistence.flushPending(), destroy);
+    const closing = close();
     await drainMicrotasks();
     expect(runtime.persist).toHaveBeenCalledOnce();
 
@@ -902,13 +917,9 @@ describe("editor preview round trip", () => {
     flushSync();
     runtime.editors[0]!.commands.setContent(bodyDoc("Shared close edit"));
     await updater.check();
-    const close = createCloseRequestHandler({
-      flushPending: () => persistence.flushPending(),
-      destroy,
-      onError: vi.fn(),
-    });
+    const close = quitRequest(() => persistence.flushPending(), destroy);
 
-    const closing = close({ preventDefault: vi.fn() });
+    const closing = close();
     const installing = updater.install();
     await drainMicrotasks();
     expect(runtime.persist).toHaveBeenCalledOnce();
@@ -939,16 +950,9 @@ describe("editor preview round trip", () => {
     runtime.editors[0]!.commands.setContent(bodyDoc("Close-safe edit"));
     flushSync();
     const destroy = vi.fn<() => Promise<void>>().mockResolvedValue();
-    const close = createCloseRequestHandler({
-      flushPending: () => persistence.flushPending(),
-      destroy,
-      onError: vi.fn(),
-    });
-    const preventDefault = vi.fn();
+    const close = quitRequest(() => persistence.flushPending(), destroy);
+    await close();
 
-    await close({ preventDefault });
-
-    expect(preventDefault).toHaveBeenCalledOnce();
     expect(runtime.persist).toHaveBeenCalledOnce();
     expect(docText(runtime.persist.mock.calls[0]![0].content)).toContain(
       "Close-safe edit",

@@ -9,6 +9,7 @@
   import BackupSettings from "$lib/components/BackupSettings.svelte";
   import BackupSetupWizard from "$lib/components/BackupSetupWizard.svelte";
   import { m } from "$lib/paraglide/messages";
+  import { shutdown } from "$lib/state/shutdown.svelte";
   import { useReleaseNotesController } from "$lib/update/releaseNotesController.svelte";
 
   interface Props {
@@ -385,6 +386,21 @@
         </button>
       </div>
     </div>
+    {#if shutdown.available}
+      <div class="field">
+        <span>{m.settings_quit()}</span>
+        <div class="seg">
+          <button
+            onclick={() => {
+              settingsOpen = false;
+              void shutdown.request();
+            }}
+          >
+            {m.quit_confirm_action()}
+          </button>
+        </div>
+      </div>
+    {/if}
   </Modal>
 {/if}
 

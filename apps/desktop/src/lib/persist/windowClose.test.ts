@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { createCloseRequestHandler } from "./windowClose.ts";
+import {
+  createCloseRequestHandler,
+  createQuitRequest,
+  type ShutdownDependencies,
+  ShutdownTimeout,
+} from "./windowClose.ts";
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -12,45 +17,183 @@ function deferred<T>(): Deferred<T> {
   return { promise, resolve };
 }
 
-describe("native close persistence barrier", () => {
-  it("prevents duplicate close requests from destroying the window twice", async () => {
-    const flushing = deferred<void>();
-    const destroy = vi.fn<() => Promise<void>>().mockResolvedValue();
-    const close = createCloseRequestHandler({
-      flushPending: () => flushing.promise,
-      destroy,
-      onError: vi.fn(),
-    });
-    const firstPrevent = vi.fn();
-    const secondPrevent = vi.fn();
+function shutdown(
+  overrides: Partial<ShutdownDependencies> = {},
+): ShutdownDependencies {
+  return {
+    flushPending: () => Promise.resolve(),
+    exitApp: vi.fn<() => Promise<void>>().mockResolvedValue(),
+    confirmQuit: () => Promise.resolve(true),
+    confirmQuitWithoutSaving: () => Promise.resolve(false),
+    onError: vi.fn(),
+    // Never elapses unless a test asks for it.
+    delay: () => new Promise<void>(() => {}),
+    ...overrides,
+  };
+}
 
-    const first = close({ preventDefault: firstPrevent });
-    const second = close({ preventDefault: secondPrevent });
+describe("quit request", () => {
+  it("saves before exiting once the user confirms", async () => {
+    const exitApp = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const flushPending = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const quit = createQuitRequest(shutdown({ exitApp, flushPending }));
+
+    await quit();
+
+    expect(flushPending).toHaveBeenCalledOnce();
+    expect(exitApp).toHaveBeenCalledOnce();
+  });
+
+  it("does nothing when the user cancels the confirmation", async () => {
+    const exitApp = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const flushPending = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const quit = createQuitRequest(
+      shutdown({
+        exitApp,
+        flushPending,
+        confirmQuit: () => Promise.resolve(false),
+      }),
+    );
+
+    await quit();
+
+    expect(flushPending).not.toHaveBeenCalled();
+    expect(exitApp).not.toHaveBeenCalled();
+  });
+
+  it("ignores a second request while the first is still saving", async () => {
+    const flushing = deferred<void>();
+    const exitApp = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const confirmQuit = vi.fn<() => Promise<boolean>>().mockResolvedValue(true);
+    const quit = createQuitRequest(
+      shutdown({ exitApp, confirmQuit, flushPending: () => flushing.promise }),
+    );
+
+    const first = quit();
+    const second = quit();
     flushing.resolve();
     await Promise.all([first, second]);
 
-    expect(firstPrevent).toHaveBeenCalledOnce();
-    expect(secondPrevent).toHaveBeenCalledOnce();
-    expect(destroy).toHaveBeenCalledOnce();
+    expect(confirmQuit).toHaveBeenCalledOnce();
+    expect(exitApp).toHaveBeenCalledOnce();
   });
 
-  it("keeps the window open when persistence fails", async () => {
+  it("offers a way out when the save barrier outlives its deadline", async () => {
+    const exitApp = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const onError = vi.fn();
+    const confirmQuitWithoutSaving = vi.fn<
+      (error: unknown) => Promise<boolean>
+    >()
+      .mockResolvedValue(true);
+    const quit = createQuitRequest(
+      shutdown({
+        exitApp,
+        onError,
+        confirmQuitWithoutSaving,
+        // Never settles: exactly the hang this deadline exists for.
+        flushPending: () => new Promise<void>(() => {}),
+        delay: () => Promise.resolve(),
+      }),
+    );
+
+    await quit();
+
+    expect(onError.mock.calls[0][0]).toBeInstanceOf(ShutdownTimeout);
+    expect(confirmQuitWithoutSaving).toHaveBeenCalledOnce();
+    expect(exitApp).toHaveBeenCalledOnce();
+  });
+
+  it("stays open and resumes when the user declines to quit unsaved", async () => {
     const error = new Error("disk full");
-    const destroy = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const exitApp = vi.fn<() => Promise<void>>().mockResolvedValue();
     const onError = vi.fn();
     const resumeAfterFailedShutdown = vi.fn<() => Promise<void>>()
       .mockResolvedValue();
+    const quit = createQuitRequest(
+      shutdown({
+        exitApp,
+        onError,
+        resumeAfterFailedShutdown,
+        flushPending: () => Promise.reject(error),
+      }),
+    );
+
+    await quit();
+
+    expect(exitApp).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(error);
+    expect(resumeAfterFailedShutdown).toHaveBeenCalledOnce();
+  });
+
+  it("can be retried after the user declined the unsaved quit", async () => {
+    const exitApp = vi.fn<() => Promise<void>>().mockResolvedValue();
+    let failing = true;
+    const quit = createQuitRequest(
+      shutdown({
+        exitApp,
+        flushPending: () =>
+          failing ? Promise.reject(new Error("busy")) : Promise.resolve(),
+      }),
+    );
+
+    await quit();
+    expect(exitApp).not.toHaveBeenCalled();
+
+    failing = false;
+    await quit();
+    expect(exitApp).toHaveBeenCalledOnce();
+  });
+});
+
+describe("native close button", () => {
+  it("hides the window on macOS and leaves the app running", async () => {
+    const hideWindow = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const quit = vi.fn<() => Promise<void>>().mockResolvedValue();
     const close = createCloseRequestHandler({
-      flushPending: () => Promise.reject(error),
-      destroy,
-      resumeAfterFailedShutdown,
+      hostOs: "macos",
+      hideWindow,
+      quit,
+      onError: vi.fn(),
+    });
+    const preventDefault = vi.fn();
+
+    await close({ preventDefault });
+
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(hideWindow).toHaveBeenCalledOnce();
+    expect(quit).not.toHaveBeenCalled();
+  });
+
+  it("routes to the shared quit request everywhere else", async () => {
+    const hideWindow = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const quit = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const close = createCloseRequestHandler({
+      hostOs: "windows",
+      hideWindow,
+      quit,
+      onError: vi.fn(),
+    });
+    const preventDefault = vi.fn();
+
+    await close({ preventDefault });
+
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(hideWindow).not.toHaveBeenCalled();
+    expect(quit).toHaveBeenCalledOnce();
+  });
+
+  it("reports a failed hide instead of leaving the button dead", async () => {
+    const error = new Error("no window");
+    const onError = vi.fn();
+    const close = createCloseRequestHandler({
+      hostOs: "macos",
+      hideWindow: () => Promise.reject(error),
+      quit: vi.fn<() => Promise<void>>().mockResolvedValue(),
       onError,
     });
 
     await close({ preventDefault: vi.fn() });
 
-    expect(destroy).not.toHaveBeenCalled();
-    expect(resumeAfterFailedShutdown).toHaveBeenCalledOnce();
     expect(onError).toHaveBeenCalledWith(error);
   });
 });
