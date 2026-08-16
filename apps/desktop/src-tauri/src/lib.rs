@@ -5,6 +5,15 @@ pub mod pdf_export;
 
 use tauri::Manager;
 
+/// The frontend needs the host operating system to follow its close
+/// convention: on macOS the close button hides the window and leaves the app
+/// in the Dock, everywhere else it quits. Returned from here rather than
+/// sniffed from the user agent, and without pulling in another plugin.
+#[tauri::command]
+fn host_os() -> &'static str {
+    std::env::consts::OS
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // The print protocol serves each PDF export's paginated document to its
@@ -49,7 +58,24 @@ pub fn run() {
             external_files::external_rename_no_replace,
             external_files::external_remove_if_hash_matches,
             pdf_export::export_pdf,
+            host_os,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, _event| {
+            // The macOS close button hides the main window instead of
+            // destroying it, so the app stays in the Dock with no window on
+            // screen. Clicking the Dock icon has to bring it back.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen {
+                has_visible_windows: false,
+                ..
+            } = _event
+            {
+                if let Some(window) = _app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+        });
 }

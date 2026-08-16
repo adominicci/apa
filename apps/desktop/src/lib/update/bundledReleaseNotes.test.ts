@@ -7,15 +7,21 @@ import {
 
 describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
-    const expectedNotes = `### Added
+    const expectedNotes = `### Fixed
 
-- Tesina now has a Windows installer, and PDF export works there too. It is
-  marked experimental, because the Windows build has not been tested as
-  carefully as the macOS one yet. Windows shows a warning before the installer
-  runs, since it is not signed yet, and the Windows version does not update
-  itself. The README explains both.`;
+- The close button works on Windows again. Closing now asks whether you want
+  to quit, saves your paper, and ends the app. If saving cannot finish, Tesina
+  says so and lets you leave anyway instead of refusing to close, which used
+  to force people into the Task Manager.
 
-    expect(bundledReleaseNotes.version).toBe("0.1.11");
+### Changed
+
+- Closing the window on a Mac now leaves Tesina in the Dock, the way Mac apps
+  behave. Click the Dock icon to bring your work back.
+- Settings has a **Quit Tesina** entry. It asks for confirmation first, and
+  works the same way on both systems.`;
+
+    expect(bundledReleaseNotes.version).toBe("0.1.12");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");
