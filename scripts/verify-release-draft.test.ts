@@ -262,6 +262,26 @@ describe("verifyReleaseDraft", () => {
     expect(() => verifyReleaseDraft(fullContract())).not.toThrow();
   });
 
+  it("ignores surrounding whitespace on either side of a signature", () => {
+    const contract = fullContract();
+    // A downloaded asset may arrive with a trailing newline the manifest
+    // value lacks; the base64 payload is what has to match.
+    contract.signatureAsset = `${signatureAsset}\n`;
+    contract.manifest.platforms["windows-x86_64"].signature =
+      `${windowsExeSignature}\n`;
+
+    expect(() => verifyReleaseDraft(contract)).not.toThrow();
+  });
+
+  it("still rejects a signature that differs beyond whitespace", () => {
+    const contract = fullContract();
+    contract.windowsExeSignature = `${windowsExeSignature} tampered\n`;
+
+    expect(() => verifyReleaseDraft(contract)).toThrow(
+      "signature asset does not match",
+    );
+  });
+
   it("full stage rejects a missing Windows platform key", () => {
     const contract = fullContract();
     delete contract.manifest.platforms["windows-x86_64"];

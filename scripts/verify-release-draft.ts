@@ -173,7 +173,10 @@ export function verifyReleaseDraft(contract: ReleaseDraftContract): void {
       `latest.json platform ${key} signature`,
       platform.signature,
     );
-    if (signature !== expectation.signature) {
+    // Compare the base64 payload, not the framing: a downloaded asset can
+    // carry a trailing newline the manifest value does not. The archive's
+    // real cryptographic check is the separate offline verifier.
+    if (signature.trim() !== expectation.signature.trim()) {
       throw new Error(
         `signature asset does not match latest.json platform "${key}".`,
       );
