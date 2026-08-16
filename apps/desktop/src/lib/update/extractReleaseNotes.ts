@@ -3,8 +3,8 @@ function escapeRegExp(value: string): string {
 }
 
 function stripTerminalLinkDefinitions(section: string): string {
-  const lineBreak = section.includes("\r\n") ? "\r\n" : "\n";
-  const lines = section.trim().split(/\r?\n/);
+  const lineBreak = "\n";
+  const lines = section.trim().split("\n");
   let cursor = lines.length;
 
   while (cursor > 0 && lines[cursor - 1].trim() === "") cursor -= 1;
@@ -32,6 +32,10 @@ export function extractReleaseNotes(
   changelog: string,
   version: string,
 ): string {
+  // These notes become a release body on one runner and a manifest field on
+  // another, compared byte for byte by the release gate, so the output must
+  // not inherit the host's line endings (Windows checks out CRLF).
+  changelog = changelog.replace(/\r\n/g, "\n");
   const heading = new RegExp(
     `^## \\[${
       escapeRegExp(version)
