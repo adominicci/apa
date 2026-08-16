@@ -7,14 +7,14 @@ import {
 
 describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
-    const expectedNotes = `### Changed
+    const expectedNotes = `### Added
 
-- Installing Tesina on a Mac is now a single step. The app is signed with an
-  Apple Developer ID certificate and notarized by Apple, so the first launch
-  only asks whether you want to open an app downloaded from the internet.
-  Nobody has to visit System Settings to allow a blocked app anymore.`;
+- Tesina now has a Windows installer. It is marked experimental, because the
+  Windows build has not been tested as carefully as the macOS one yet. Windows
+  shows a warning before it runs, since the installer is not signed yet, and
+  the Windows version does not update itself. The README explains both.`;
 
-    expect(bundledReleaseNotes.version).toBe("0.1.10");
+    expect(bundledReleaseNotes.version).toBe("0.1.11");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");

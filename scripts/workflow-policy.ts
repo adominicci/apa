@@ -171,9 +171,9 @@ export function workflowPolicyViolations(
     const writeJobs = jobs.filter((job) =>
       permissionValue(job.permissions, "write")
     );
-    if (writeJobs.length !== 1) {
+    if (writeJobs.length === 0) {
       violations.push(
-        `${name}: exactly one release job must declare contents: write`,
+        `${name}: a release job must declare contents: write`,
       );
     }
     for (const job of jobs) {
@@ -192,28 +192,45 @@ export function workflowPolicyViolations(
       typeof step.uses === "string" &&
       step.uses.toLowerCase().startsWith("tauri-apps/tauri-action@")
     );
-    if (tauriReleaseSteps.length !== 1) {
+    if (tauriReleaseSteps.length === 0) {
       violations.push(
-        `${name}: expected exactly one tauri-apps/tauri-action release step`,
+        `${name}: expected a tauri-apps/tauri-action release step`,
       );
-    } else {
-      const inputs = tauriReleaseSteps[0].with;
-      if (!isRecord(inputs) || !booleanInput(inputs.releaseDraft, true)) {
+    }
+
+    // Only one step may create the draft. Every other platform build must
+    // upload into that same draft through releaseId, so a tag can never
+    // publish two competing releases.
+    const draftSteps = tauriReleaseSteps.filter((step) =>
+      isRecord(step.with) && booleanInput(step.with.releaseDraft, true)
+    );
+    if (draftSteps.length !== 1) {
+      violations.push(
+        `${name}: exactly one tauri release step must set releaseDraft: true`,
+      );
+    }
+    for (const step of tauriReleaseSteps) {
+      if (draftSteps.includes(step)) continue;
+      if (!isRecord(step.with) || typeof step.with.releaseId !== "string") {
         violations.push(
-          `${name}: tauri release step must set releaseDraft: true`,
+          `${name}: every additional tauri release step must upload to an existing releaseId`,
         );
       }
     }
-    if (
-      writeJobs.length === 1 &&
-      !directJobSteps(writeJobs[0]).some((step) =>
-        typeof step.uses === "string" &&
-        step.uses.toLowerCase().startsWith("tauri-apps/tauri-action@")
-      )
-    ) {
-      violations.push(
-        `${name}: contents: write and the tauri release action must be in the same job`,
-      );
+
+    // contents: write exists to upload release assets. A job that holds it
+    // without running the release action has more power than it needs.
+    for (const job of writeJobs) {
+      if (
+        !directJobSteps(job).some((step) =>
+          typeof step.uses === "string" &&
+          step.uses.toLowerCase().startsWith("tauri-apps/tauri-action@")
+        )
+      ) {
+        violations.push(
+          `${name}: contents: write and the tauri release action must be in the same job`,
+        );
+      }
     }
   } else {
     if (!permissionValue(document.permissions, "read")) {

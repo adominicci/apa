@@ -5,6 +5,15 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-08-16
+
+### Added
+
+- Tesina now has a Windows installer. It is marked experimental, because the
+  Windows build has not been tested as carefully as the macOS one yet. Windows
+  shows a warning before it runs, since the installer is not signed yet, and
+  the Windows version does not update itself. The README explains both.
+
 ## [0.1.10] - 2026-08-16
 
 ### Changed
@@ -183,7 +192,8 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.10...HEAD
+[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.11...HEAD
+[0.1.11]: https://github.com/adominicci/tesina/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/adominicci/tesina/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/adominicci/tesina/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/adominicci/tesina/compare/v0.1.7...v0.1.8

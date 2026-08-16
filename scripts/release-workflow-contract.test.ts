@@ -101,10 +101,28 @@ describe("release workflow contract", () => {
   });
 
   it("publishes only one universal macOS app and DMG build", () => {
-    expect(releaseWorkflow).toContain("runs-on: macos-latest");
+    expect(releaseWorkflow.match(/runs-on: macos-latest/g)).toHaveLength(1);
     expect(releaseWorkflow).toContain("--target universal-apple-darwin");
     expect(releaseWorkflow).toContain("--bundles app,dmg");
-    expect(releaseWorkflow).not.toMatch(/windows-latest|ubuntu-|matrix:/);
+    expect(releaseWorkflow).not.toMatch(/ubuntu-|matrix:/);
+  });
+
+  it("adds exactly one unsigned Windows installer job without updater artifacts", () => {
+    expect(releaseWorkflow.match(/runs-on: windows-latest/g)).toHaveLength(1);
+    expect(releaseWorkflow).toContain("--bundles msi,nsis");
+    expect(releaseWorkflow).toContain('"createUpdaterArtifacts":false');
+    expect(releaseWorkflow).toContain(
+      "releaseAssetNamePattern: Tesina-windows-x64[ext]",
+    );
+  });
+
+  it("keeps every Apple signing secret out of the Windows job", () => {
+    const windowsJob = recordField(
+      recordField(releaseDocument, "jobs"),
+      "windows",
+    );
+    expect(JSON.stringify(windowsJob)).not.toMatch(/APPLE_|TAURI_SIGNING/);
+    expect(windowsJob.needs).toBe("release");
   });
 
   it("pins every action used by the secret-bearing release job", () => {
@@ -175,8 +193,9 @@ describe("release workflow contract", () => {
     ).toHaveLength(1);
   });
 
-  it("gives write permission only to the release job", () => {
+  it("gives write permission only to the jobs that upload release assets", () => {
     expect(workflowPropertyValues(releaseDocument, "permissions")).toEqual([
+      { contents: "write" },
       { contents: "write" },
     ]);
   });
