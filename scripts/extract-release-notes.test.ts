@@ -239,21 +239,37 @@ describe("extractReleaseNotes", () => {
   });
 });
 
-describe("v0.1.0 release documentation", () => {
-  it("claims only the preview and export workflows available in the app", async () => {
-    const readme = await Deno.readTextFile(
-      new URL("../README.md", import.meta.url),
-    );
+describe("release documentation claims only shipped workflows", () => {
+  it("keeps the v0.1.0 notes free of the PDF claims that shipped in 0.1.9", async () => {
     const releaseNotes = extractReleaseNotes(
       await Deno.readTextFile(new URL("../CHANGELOG.md", import.meta.url)),
       "0.1.0",
     );
 
-    expect(readme).toContain("Provides a paged preview and exports `.docx`");
     expect(releaseNotes).toContain(
       "- Paged preview and Word export, with student title-page validation.",
     );
-    expect(readme).not.toMatch(/\b(?:print(?:ing)?|PDF)\b/i);
+    // A released section is history: PDF did not exist in 0.1.0 and must never
+    // be back-dated into its notes.
     expect(releaseNotes).not.toMatch(/\b(?:print(?:ing)?|PDF)\b/i);
+  });
+
+  it("advertises PDF export only as the shipped export path, never printing", async () => {
+    const readme = await Deno.readTextFile(
+      new URL("../README.md", import.meta.url),
+    );
+
+    expect(readme).toContain("Provides a paged preview and exports `.docx`");
+    expect(readme).toContain("Exports PDF from the same pages the preview");
+    // The original guard banned "PDF" outright because 0.1.0 had no PDF path.
+    // It now guards the promise instead: Tesina saves a PDF straight to a
+    // chosen folder, so the README must not offer printing as a workflow. The
+    // one allowed mention is the negative — that no print panel appears.
+    for (const line of readme.split("\n")) {
+      if (!/\bprint(?:ing|s|er)?\b/i.test(line)) continue;
+      expect(line).toMatch(
+        /without going through the macOS print panel|preview/i,
+      );
+    }
   });
 });

@@ -174,7 +174,10 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.9...HEAD
+[0.1.9]: https://github.com/adominicci/tesina/compare/v0.1.8...v0.1.9
+[0.1.8]: https://github.com/adominicci/tesina/compare/v0.1.7...v0.1.8
+[0.1.7]: https://github.com/adominicci/tesina/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/adominicci/tesina/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/adominicci/tesina/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/adominicci/tesina/compare/v0.1.3...v0.1.4

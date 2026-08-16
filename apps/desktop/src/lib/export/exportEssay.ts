@@ -10,6 +10,7 @@ import {
 import type { Essay } from "$lib/model/essay";
 import { imageKind, readImageBytes } from "$lib/persist/assets";
 import { latexToMathTree } from "$lib/editor/mathml";
+import { m } from "$lib/paraglide/messages";
 import {
   collectEquationLatex,
   collectFigureSrcs,
@@ -123,7 +124,7 @@ export async function exportEssayToDocx(
     const bytes = await exportDocx(input);
     const path = await save({
       defaultPath: `${sanitizeFilename(essay.titlePage.title)}.docx`,
-      filters: [{ name: "Documento de Word", extensions: ["docx"] }],
+      filters: [{ name: m.export_filter_docx(), extensions: ["docx"] }],
     });
     if (!path) return { status: "cancelled" };
     await writeFile(path, bytes);

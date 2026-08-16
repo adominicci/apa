@@ -5,6 +5,7 @@ import type { Essay, PaperSize } from "$lib/model/essay";
 import { renderEssayCss, renderEssayHtml } from "$lib/preview/renderEssayHtml";
 import { buildExportAssets } from "$lib/export/exportAssets";
 import { paginateForPrint } from "$lib/export/paginateForPrint";
+import { m } from "$lib/paraglide/messages";
 import { type ExportOutcome, sanitizeFilename } from "$lib/export/exportEssay";
 
 /**
@@ -33,7 +34,7 @@ export async function exportEssayToPdf(
   try {
     const path = await save({
       defaultPath: `${sanitizeFilename(essay.titlePage.title)}.pdf`,
-      filters: [{ name: "PDF", extensions: ["pdf"] }],
+      filters: [{ name: m.export_filter_pdf(), extensions: ["pdf"] }],
     });
     if (!path) return { status: "cancelled" };
 

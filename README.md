@@ -36,8 +36,8 @@ the DMG before repeating these steps. Apple documents this process in
 
 ## What it does
 
-- Builds APA 7 student title pages and checks required title-page details
-  before Word export.
+- Builds APA 7 student title pages and lists the APA details that are missing
+  before an export, without ever blocking it.
 - Keeps the editor, paged preview, and Word export aligned for headings,
   appendices, lists, tables, figures, equations, citations, and references.
 - Flows the paper automatically across US Letter pages as you write.
@@ -46,6 +46,8 @@ the DMG before repeating these steps. Apple documents this process in
   autofill, plus BibTeX import with a review step.
 - Provides a paged preview and exports `.docx` files for Microsoft Word and
   compatible editors.
+- Exports PDF from the same pages the preview shows, saved straight to the
+  folder you choose without going through the macOS print panel.
 - Saves locally with atomic autosave and creates a timestamped backup before a
   paper is deleted. Tesina has no account system or cloud service.
 - Exports and safely merges complete portable `.tesina` library archives, with

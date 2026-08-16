@@ -70,26 +70,6 @@ tao = "=0.35.3"
 url = "=2.5.8"
 wry = "=0.55.1"
 
-[target.'cfg(target_os = "macos")'.dev-dependencies]
-# Test-only Cocoa access for the silent PDF proof. These exact versions already
-# arrive through the locked Wry graph (wry holds its webview as
-# `Retained<objc2_web_kit::WKWebView>`), so nothing new enters the dependency
-# tree, and all three are `Zlib OR Apache-2.0 OR MIT`.
-objc2 = "=0.6.4"
-objc2-app-kit = { version = "=0.3.2", features = [
-  "NSGraphics",
-  "NSPrintInfo",
-  "NSPrintOperation",
-  "NSResponder",
-  "NSView",
-] }
-objc2-foundation = { version = "=0.3.2", features = [
-  "NSDictionary",
-  "NSGeometry",
-  "NSString",
-  "NSURL",
-] }
-
 [target.'cfg(windows)'.dev-dependencies]
 # Test-only OS input for the visible WebView2 proof. This exact version is
 # already locked through the Tauri/Wry graph and is MIT OR Apache-2.0.
@@ -118,3 +98,4 @@ required-features = ["pdf-proof-host"]
 [[example]]
 name = "pdf-export-live-proof"
 path = "examples/pdf-export-live-proof.rs"
+required-features = ["pdf-proof-host"]

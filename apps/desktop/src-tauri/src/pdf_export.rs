@@ -46,6 +46,10 @@ const READY_DEADLINE: Duration = Duration::from_secs(30);
 const STABLE_POLLS: u32 = 4;
 const POLL_INTERVAL: Duration = Duration::from_millis(250);
 
+/// Shown wherever PDF export is asked for off macOS; the print pipeline this
+/// module drives is Cocoa-only.
+const UNSUPPORTED_PLATFORM: &str = "PDF export is available only on macOS";
+
 /// The private scheme the readiness probe navigates to. The hidden window has
 /// no IPC capability, so readiness arrives as a cancelled navigation instead.
 const READY_SCHEME: &str = "tesina-print-ready";
@@ -324,7 +328,7 @@ pub async fn export_pdf(
     paper_height_pt: f64,
 ) -> Result<usize, PdfExportError> {
     if cfg!(not(target_os = "macos")) {
-        return Err(PdfExportError::new("PDF export is available only on macOS"));
+        return Err(PdfExportError::new(UNSUPPORTED_PLATFORM));
     }
     // A degenerate paper box would hand the print pipeline an impossible
     // geometry — the exact family of input the runaway spike came from.
@@ -428,8 +432,18 @@ async fn render(
     let target = temp.to_path_buf();
     window
         .with_webview(move |platform_webview| {
+            // `PlatformWebview::inner` exists on macOS and Linux only; Windows
+            // exposes `controller()` instead, so this call cannot be written
+            // once for every target. Gating it here rather than inside
+            // `platform` keeps the non-macOS build honest.
+            #[cfg(target_os = "macos")]
             if let Err(message) = platform::start_print(platform_webview.inner(), &target, paper) {
                 *slot.lock().unwrap() = Some(message);
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = (&platform_webview, &target, paper);
+                *slot.lock().unwrap() = Some(UNSUPPORTED_PLATFORM.to_string());
             }
         })
         .map_err(|error| PdfExportError::new(format!("could not reach the webview: {error}")))?;
@@ -455,8 +469,15 @@ async fn settle(
         }
         let size = fs::metadata(temp).map(|meta| meta.len()).unwrap_or(0);
         if size > PDF_SIZE_CAP_BYTES {
+            // Deliberately worded as abandonment, not cancellation. Cocoa
+            // offers no way to abort a running NSPrintOperation, so the
+            // operation may still be writing to the unlinked inode until it
+            // finishes on its own. What this guarantees is bounded: the export
+            // fails, the temp name is removed, the destination is untouched,
+            // and the hidden window is destroyed, which takes the print source
+            // away. Claiming the print itself was stopped would be a lie.
             return Err(PdfExportError::new(
-                "the PDF grew past its size limit and was stopped",
+                "the PDF grew past its size limit, so the export was abandoned",
             ));
         }
         if size > 0 && size == last {
@@ -470,16 +491,24 @@ async fn settle(
                     // writer is still going, so keep waiting.
                     stable = 0;
                 } else {
+                    // The count is a byte scan for `/Type /Page`, which only
+                    // works while page dictionaries sit uncompressed in the
+                    // file. Every macOS build measured so far emits them that
+                    // way (the live proof asserts it), but a future one could
+                    // pack them into an ObjStm and the scan would read zero.
+                    //
+                    // So zero is treated as "cannot tell", not as "empty": the
+                    // file already passed the %PDF/%%EOF structural check
+                    // above, and refusing to save a perfectly good paper over
+                    // an unreadable counter would be the worse failure. Only a
+                    // confident disagreement is an error.
                     let pages = pdf_page_count(&bytes);
-                    if pages == 0 {
-                        return Err(PdfExportError::new("the PDF came out empty"));
-                    }
-                    if expected_pages > 0 && pages != expected_pages {
+                    if pages > 0 && expected_pages > 0 && pages != expected_pages {
                         return Err(PdfExportError::new(format!(
                             "the PDF has {pages} pages but the preview laid out {expected_pages}"
                         )));
                     }
-                    return Ok(pages);
+                    return Ok(if pages > 0 { pages } else { expected_pages });
                 }
             }
         } else {

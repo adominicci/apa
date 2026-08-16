@@ -1,6 +1,7 @@
 //! Drives the real `export_pdf` command end to end — Tauri window creation,
-//! `about:blank`, `eval`, the `tesina-print-ready://` navigation handshake,
-//! the silent print, and the settle loop — with no UI interaction.
+//! the `tesina-print://` protocol load, the `tesina-print-ready://` navigation
+//! handshake, the silent print, the settle loop, and the temp-then-rename
+//! write — with no UI interaction.
 //!
 //! This is the step-6 native proof the design document calls for, and the
 //! harness that reproduced the first live failure. The spike host proved the
