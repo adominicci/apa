@@ -4297,7 +4297,7 @@ dependencies = [
 
 [[package]]
 name = "tesina"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "objc2",
  "objc2-app-kit",
