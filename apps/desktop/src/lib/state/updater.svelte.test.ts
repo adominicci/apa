@@ -12,7 +12,11 @@ const svelteRuntime = vi.hoisted(() => {
   return {};
 });
 
-import { type UpdaterDependencies, UpdaterStore } from "./updater.svelte.ts";
+import {
+  AUTO_CHECK_INTERVAL_MS,
+  type UpdaterDependencies,
+  UpdaterStore,
+} from "./updater.svelte.ts";
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -518,5 +522,39 @@ describe("UpdaterStore install lifecycle", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+});
+
+describe("UpdaterStore periodic checks", () => {
+  it("re-checks on the interval until stopped", () => {
+    vi.useFakeTimers();
+    try {
+      let checks = 0;
+      const store = new UpdaterStore({
+        check: () => {
+          checks += 1;
+          return Promise.resolve(null);
+        },
+        flushPending: () => Promise.resolve(),
+        relaunch: () => Promise.resolve(),
+        storage: () => null,
+      });
+
+      const stop = store.startPeriodicChecks(1000);
+      expect(checks).toBe(0);
+
+      vi.advanceTimersByTime(3500);
+      expect(checks).toBe(3);
+
+      stop();
+      vi.advanceTimersByTime(5000);
+      expect(checks).toBe(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("polls every four minutes by default, matching the T3 Code cadence", () => {
+    expect(AUTO_CHECK_INTERVAL_MS).toBe(4 * 60 * 1000);
   });
 });

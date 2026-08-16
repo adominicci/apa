@@ -10,6 +10,7 @@
   import BackupSetupWizard from "$lib/components/BackupSetupWizard.svelte";
   import { m } from "$lib/paraglide/messages";
   import { shutdown } from "$lib/state/shutdown.svelte";
+  import UpdatePill from "$lib/components/UpdatePill.svelte";
   import { useReleaseNotesController } from "$lib/update/releaseNotesController.svelte";
 
   interface Props {
@@ -185,6 +186,7 @@
         </button>
         <span aria-hidden="true">·</span>
         <span>{m.side_apa_edition(undefined, { locale: uiLocale.current })}</span>
+        <span class="update-slot"><UpdatePill /></span>
       </div>
     </aside>
 
@@ -613,6 +615,11 @@
   .foot button:hover,
   .foot button:focus-visible {
     color: var(--accent);
+  }
+
+  .foot .update-slot {
+    margin-left: auto;
+    display: inline-flex;
   }
 
   .home-main {

@@ -9,7 +9,7 @@ import {
 import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import LayoutReleaseNotesHarness from "./LayoutReleaseNotesHarness.test.svelte";
 
-const canonicalNotesExcerpt = "The close button works on Windows again";
+const canonicalNotesExcerpt = "The update notice is now a small icon";
 
 const runtime = vi.hoisted(() => ({
   getVersion: vi.fn<() => Promise<string>>(),
@@ -92,14 +92,14 @@ describe("update and release-note precedence", () => {
       "Paper list",
     );
     expect(document.documentElement.dataset.theme).toBe("light");
-    expect(document.querySelector(".update-banner")).toBeNull();
+    expect(document.querySelector("[data-update-pill]")).toBeNull();
 
     version.resolve(bundledReleaseNotes.version);
     await tick();
     flushSync();
 
     expect(document.querySelector("[role='dialog']")).not.toBeNull();
-    expect(document.querySelector(".update-banner")).toBeNull();
+    expect(document.querySelector("[data-update-pill]")).toBeNull();
     expect(document.querySelector(".markdown-content")?.textContent).toContain(
       canonicalNotesExcerpt,
     );
@@ -127,7 +127,7 @@ describe("update and release-note precedence", () => {
     flushSync();
 
     expect(document.querySelector("[role='dialog']")).toBeNull();
-    expect(document.querySelector(".update-banner")).not.toBeNull();
+    expect(document.querySelector("[data-update-pill]")).not.toBeNull();
     expect(readPendingReleaseNotes(localStorage)).toEqual({
       version: "0.3.0",
       body: "Newly installed update notes",
@@ -143,7 +143,7 @@ describe("update and release-note precedence", () => {
           "[data-open-installed-notes]",
         )?.textContent,
       ).toContain(`v${bundledReleaseNotes.version}`);
-      expect(document.querySelector(".update-banner")).not.toBeNull();
+      expect(document.querySelector("[data-update-pill]")).not.toBeNull();
     });
 
     document.querySelector<HTMLButtonElement>(
@@ -155,7 +155,7 @@ describe("update and release-note precedence", () => {
     expect(document.querySelector(".markdown-content")?.textContent).toContain(
       canonicalNotesExcerpt,
     );
-    expect(document.querySelector(".update-banner")).toBeNull();
+    expect(document.querySelector("[data-update-pill]")).toBeNull();
   });
 
   it("opens the packaged fallback while runtime lookup is still pending and gates automatic notes", async () => {
@@ -168,7 +168,7 @@ describe("update and release-note precedence", () => {
     component = mount(LayoutReleaseNotesHarness, { target: document.body });
     flushSync();
 
-    expect(document.querySelector(".update-banner")).toBeNull();
+    expect(document.querySelector("[data-update-pill]")).toBeNull();
     document.querySelector<HTMLButtonElement>(
       "[data-open-installed-notes]",
     )!.click();
@@ -178,7 +178,7 @@ describe("update and release-note precedence", () => {
       canonicalNotesExcerpt,
     );
     expect(document.body.textContent).not.toContain("Updater body");
-    expect(document.querySelector(".update-banner")).toBeNull();
+    expect(document.querySelector("[data-update-pill]")).toBeNull();
 
     version.resolve("0.3.0");
     await vi.waitFor(() => {
@@ -191,7 +191,7 @@ describe("update and release-note precedence", () => {
 
     document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
     flushSync();
-    expect(document.querySelector(".update-banner")).not.toBeNull();
+    expect(document.querySelector("[data-update-pill]")).not.toBeNull();
     expect(readPendingReleaseNotes(localStorage)?.version).toBe(
       bundledReleaseNotes.version,
     );
@@ -206,7 +206,7 @@ describe("update and release-note precedence", () => {
     component = mount(LayoutReleaseNotesHarness, { target: document.body });
 
     await vi.waitFor(() => {
-      expect(document.querySelector(".update-banner")).not.toBeNull();
+      expect(document.querySelector("[data-update-pill]")).not.toBeNull();
     });
 
     expect(document.querySelector("[role='dialog']")).toBeNull();

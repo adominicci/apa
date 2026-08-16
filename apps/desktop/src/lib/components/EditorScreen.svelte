@@ -23,6 +23,7 @@
   import TableMenu from "$lib/components/TableMenu.svelte";
   import FontMenu from "$lib/components/FontMenu.svelte";
   import TableInsertDialog from "$lib/components/TableInsertDialog.svelte";
+  import UpdatePill from "$lib/components/UpdatePill.svelte";
   import EquationDialog from "$lib/components/EquationDialog.svelte";
   import "$lib/components/float-menu.css";
   import PrintPreview from "$lib/components/PrintPreview.svelte";
@@ -1265,6 +1266,7 @@
         locale: uiLocale.current,
       })}
     </button>
+    <UpdatePill />
     {#if exportMessage}
       <span class="export-msg">{exportMessage}</span>
     {/if}
