@@ -59,6 +59,13 @@ objc2-foundation = { version = "=0.3.2", features = [
 ] }
 objc2-web-kit = { version = "=0.3.2", features = ["WKWebView"] }
 
+[target.'cfg(windows)'.dependencies]
+# WebView2 printing for the silent PDF export. Both exact versions already
+# arrive through the locked Tauri/Wry graph, so nothing new enters the
+# dependency tree, and both are `MIT OR Apache-2.0`.
+webview2-com = "=0.38.2"
+windows = "=0.61.3"
+
 [dev-dependencies]
 tempfile = "3"
 # Test-only native WebView2 host. These exact versions already back the locked

@@ -268,7 +268,7 @@ describe("release documentation claims only shipped workflows", () => {
     for (const line of readme.split("\n")) {
       if (!/\bprint(?:ing|s|er)?\b/i.test(line)) continue;
       expect(line).toMatch(
-        /without going through the macOS print panel|preview/i,
+        /without going through the system print panel|preview/i,
       );
     }
   });

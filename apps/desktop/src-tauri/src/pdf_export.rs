@@ -4,6 +4,11 @@
 //! runs in the main window; see `paginateForPrint.ts`), loads it into a hidden
 //! webview, prints it to a temp file, and moves that file into place.
 //!
+//! Two printers sit behind one `platform::start_print`: Cocoa
+//! `NSPrintOperation` on macOS and WebView2 `PrintToPdf` on Windows. Both start
+//! the job and return, and both are settled the same way, by watching the
+//! output file rather than trusting a completion signal.
+//!
 //! Three rules here are not style preferences, they were paid for in
 //! `examples/macos-pdf-proof-host.rs` and `examples/pdf-export-live-proof.rs`:
 //!
@@ -46,9 +51,9 @@ const READY_DEADLINE: Duration = Duration::from_secs(30);
 const STABLE_POLLS: u32 = 4;
 const POLL_INTERVAL: Duration = Duration::from_millis(250);
 
-/// Shown wherever PDF export is asked for off macOS; the print pipeline this
-/// module drives is Cocoa-only.
-const UNSUPPORTED_PLATFORM: &str = "PDF export is available only on macOS";
+/// Shown where neither print pipeline exists. macOS drives Cocoa printing and
+/// Windows drives WebView2 `PrintToPdf`; Linux has neither.
+const UNSUPPORTED_PLATFORM: &str = "PDF export is available only on macOS and Windows";
 
 /// The private scheme the readiness probe navigates to. The hidden window has
 /// no IPC capability, so readiness arrives as a cancelled navigation instead.
@@ -299,14 +304,92 @@ mod platform {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(windows)]
 mod platform {
     use super::*;
+    use webview2_com::Microsoft::Web::WebView2::Win32::{
+        ICoreWebView2Controller, ICoreWebView2Environment, ICoreWebView2Environment6,
+        ICoreWebView2PrintSettings, ICoreWebView2_7, COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT,
+    };
+    use webview2_com::PrintToPdfCompletedHandler;
+    use windows::core::{Interface, HSTRING, PCWSTR};
+
+    /// WebView2 states the page box in inches; every caller here works in
+    /// points, the same unit the CSS `@page` rule and the Cocoa path use.
+    const POINTS_PER_INCH: f64 = 72.0;
+
+    /// Mirrors the Cocoa `print_info` contract: the CSS page boxes own the
+    /// layout, so each value exists to stop Chromium from laying the document
+    /// out a second time. Non-zero margins would inset the CSS margins again,
+    /// and any scale factor but 1.0 would break 12 pt.
+    fn print_settings(
+        environment: &ICoreWebView2Environment,
+        paper: (f64, f64),
+    ) -> Result<ICoreWebView2PrintSettings, String> {
+        let factory: ICoreWebView2Environment6 = environment
+            .cast()
+            .map_err(|error| format!("this WebView2 runtime cannot print to PDF: {error}"))?;
+        unsafe {
+            let settings = factory
+                .CreatePrintSettings()
+                .map_err(|error| format!("print settings were refused: {error}"))?;
+            let refused =
+                |error: windows::core::Error| format!("print settings were refused: {error}");
+            settings
+                .SetOrientation(COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT)
+                .map_err(refused)?;
+            settings
+                .SetPageWidth(paper.0 / POINTS_PER_INCH)
+                .map_err(refused)?;
+            settings
+                .SetPageHeight(paper.1 / POINTS_PER_INCH)
+                .map_err(refused)?;
+            settings.SetMarginTop(0.0).map_err(refused)?;
+            settings.SetMarginBottom(0.0).map_err(refused)?;
+            settings.SetMarginLeft(0.0).map_err(refused)?;
+            settings.SetMarginRight(0.0).map_err(refused)?;
+            settings.SetScaleFactor(1.0).map_err(refused)?;
+            settings.SetShouldPrintBackgrounds(true).map_err(refused)?;
+            settings
+                .SetShouldPrintHeaderAndFooter(false)
+                .map_err(refused)?;
+            Ok(settings)
+        }
+    }
+
+    /// Starts the print and returns immediately, exactly like the Cocoa path.
+    /// `PrintToPdf` is asynchronous, so a failure that only Chromium can see
+    /// lands in `failure`, which `settle` reads on every poll.
     pub fn start_print(
-        _webview_ptr: *mut std::ffi::c_void,
-        _destination: &Path,
-        _paper: (f64, f64),
+        controller: &ICoreWebView2Controller,
+        environment: &ICoreWebView2Environment,
+        destination: &Path,
+        paper: (f64, f64),
+        failure: Arc<Mutex<Option<String>>>,
     ) -> Result<(), String> {
+        unsafe {
+            let webview = controller
+                .CoreWebView2()
+                .map_err(|error| format!("the platform webview was unavailable: {error}"))?;
+            // PrintToPdf arrived in ICoreWebView2_7. An older Evergreen
+            // runtime resolves every other call here and fails only this cast.
+            let printer: ICoreWebView2_7 = webview.cast().map_err(|_| {
+                "the installed WebView2 runtime is too old to save PDFs".to_string()
+            })?;
+            let settings = print_settings(environment, paper)?;
+            // Held in a binding: the PCWSTR borrows it for the duration of the
+            // call.
+            let path = HSTRING::from(destination.as_os_str());
+            let handler = PrintToPdfCompletedHandler::create(Box::new(move |result, succeeded| {
+                if result.is_err() || !succeeded {
+                    *failure.lock().unwrap() = Some("Windows could not write the PDF".to_string());
+                }
+                Ok(())
+            }));
+            printer
+                .PrintToPdf(PCWSTR(path.as_ptr()), &settings, &handler)
+                .map_err(|error| format!("the print request was refused: {error}"))?;
+        }
         Ok(())
     }
 }
@@ -327,7 +410,7 @@ pub async fn export_pdf(
     paper_width_pt: f64,
     paper_height_pt: f64,
 ) -> Result<usize, PdfExportError> {
-    if cfg!(not(target_os = "macos")) {
+    if cfg!(not(any(target_os = "macos", windows))) {
         return Err(PdfExportError::new(UNSUPPORTED_PLATFORM));
     }
     // A degenerate paper box would hand the print pipeline an impossible
@@ -432,18 +515,27 @@ async fn render(
     let target = temp.to_path_buf();
     window
         .with_webview(move |platform_webview| {
-            // `PlatformWebview::inner` exists on macOS and Linux only; Windows
-            // exposes `controller()` instead, so this call cannot be written
-            // once for every target. Gating it here rather than inside
-            // `platform` keeps the non-macOS build honest.
+            // `PlatformWebview` hands out a different handle per target: macOS
+            // gives the raw WKWebView pointer, Windows gives the WebView2
+            // controller and environment. Gating here rather than inside
+            // `platform` keeps every build honest.
             #[cfg(target_os = "macos")]
-            if let Err(message) = platform::start_print(platform_webview.inner(), &target, paper) {
-                *slot.lock().unwrap() = Some(message);
-            }
-            #[cfg(not(target_os = "macos"))]
-            {
+            let started = platform::start_print(platform_webview.inner(), &target, paper);
+            #[cfg(windows)]
+            let started = platform::start_print(
+                &platform_webview.controller(),
+                &platform_webview.environment(),
+                &target,
+                paper,
+                Arc::clone(&slot),
+            );
+            #[cfg(not(any(target_os = "macos", windows)))]
+            let started = {
                 let _ = (&platform_webview, &target, paper);
-                *slot.lock().unwrap() = Some(UNSUPPORTED_PLATFORM.to_string());
+                Err(UNSUPPORTED_PLATFORM.to_string())
+            };
+            if let Err(message) = started {
+                *slot.lock().unwrap() = Some(message);
             }
         })
         .map_err(|error| PdfExportError::new(format!("could not reach the webview: {error}")))?;
