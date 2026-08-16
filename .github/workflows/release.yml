@@ -355,8 +355,11 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+          # RUNNER_TEMP is a backslash path on Windows; Deno's --allow-write
+          # and the script argument must agree, so normalize the separators.
+          runner_temp="${RUNNER_TEMP//\\//}"
           version="${RELEASE_TAG#v}"
-          notes_path="$RUNNER_TEMP/tesina-release-notes.md"
+          notes_path="$runner_temp/tesina-release-notes.md"
           deno run \
             --allow-read \
             --allow-write="$notes_path" \
@@ -393,8 +396,10 @@ jobs:
           cargo build \
             --locked \
             --manifest-path scripts/updater-signature-verifier/Cargo.toml
-          verifier="$CARGO_TARGET_DIR/debug/tesina-updater-signature-verifier.exe"
-          if [[ ! -x "$verifier" ]]; then
+          target_dir="${CARGO_TARGET_DIR//\\//}"
+          verifier="$target_dir/debug/tesina-updater-signature-verifier.exe"
+          # -f rather than -x: MSYS reports .exe executability inconsistently.
+          if [[ ! -f "$verifier" ]]; then
             echo "Updater verifier binary was not built." >&2
             exit 1
           fi
@@ -442,13 +447,14 @@ jobs:
           RELEASE_ID: ${{ needs.release.outputs.release_id }}
         run: |
           set -euo pipefail
-          release_json="$RUNNER_TEMP/tesina-draft-release.json"
-          latest_json="$RUNNER_TEMP/tesina-latest.json"
-          macos_signature="$RUNNER_TEMP/Tesina-macos-universal.app.tar.gz.sig"
-          exe_path="$RUNNER_TEMP/Tesina-windows-x64.exe"
-          exe_signature="$RUNNER_TEMP/Tesina-windows-x64.exe.sig"
-          msi_path="$RUNNER_TEMP/Tesina-windows-x64.msi"
-          msi_signature="$RUNNER_TEMP/Tesina-windows-x64.msi.sig"
+          runner_temp="${RUNNER_TEMP//\\//}"
+          release_json="$runner_temp/tesina-draft-release.json"
+          latest_json="$runner_temp/tesina-latest.json"
+          macos_signature="$runner_temp/Tesina-macos-universal.app.tar.gz.sig"
+          exe_path="$runner_temp/Tesina-windows-x64.exe"
+          exe_signature="$runner_temp/Tesina-windows-x64.exe.sig"
+          msi_path="$runner_temp/Tesina-windows-x64.msi"
+          msi_signature="$runner_temp/Tesina-windows-x64.msi.sig"
 
           gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
             > "$release_json"
