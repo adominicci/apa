@@ -125,6 +125,27 @@ describe("quit request", () => {
     expect(resumeAfterFailedShutdown).toHaveBeenCalledOnce();
   });
 
+  it("stays usable when the exit call itself is refused", async () => {
+    // A missing `process:allow-exit` capability rejects every exit. The first
+    // press must not become the only press.
+    const exitApp = vi.fn<() => Promise<void>>()
+      .mockRejectedValue(new Error("process.exit not allowed"));
+    const confirmQuit = vi.fn<() => Promise<boolean>>().mockResolvedValue(true);
+    const quit = createQuitRequest(
+      shutdown({
+        exitApp,
+        confirmQuit,
+        confirmQuitWithoutSaving: () => Promise.resolve(true),
+      }),
+    );
+
+    await quit();
+    await quit();
+
+    expect(confirmQuit).toHaveBeenCalledTimes(2);
+    expect(exitApp).toHaveBeenCalledTimes(4);
+  });
+
   it("can be retried after the user declined the unsaved quit", async () => {
     const exitApp = vi.fn<() => Promise<void>>().mockResolvedValue();
     let failing = true;
