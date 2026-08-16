@@ -80,17 +80,19 @@
       onfocus={() => (cardOpen = true)}
       onblur={closeCard}
     >
-      <svg class="ring" viewBox="0 0 22 22" aria-hidden="true">
-        <circle class="track" cx="11" cy="11" r="9.5" />
-        <circle
-          class="progress"
-          cx="11"
-          cy="11"
-          r="9.5"
-          stroke-dasharray={RING}
-          stroke-dashoffset={ringOffset}
-        />
-      </svg>
+      {#if updater.status === "downloading"}
+        <svg class="ring" viewBox="0 0 22 22" aria-hidden="true">
+          <circle class="track" cx="11" cy="11" r="9.5" />
+          <circle
+            class="progress"
+            cx="11"
+            cy="11"
+            r="9.5"
+            stroke-dasharray={RING}
+            stroke-dashoffset={ringOffset}
+          />
+        </svg>
+      {/if}
       {#if updater.status === "error"}
         <span class="warn" aria-hidden="true">!</span>
       {:else if updater.status === "idle"}
@@ -208,8 +210,8 @@
   }
 
   .arrow {
-    width: 11px;
-    height: 11px;
+    width: 13px;
+    height: 13px;
   }
 
   .arrow.spin {
