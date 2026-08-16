@@ -9,10 +9,11 @@ and [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Tesina now has a Windows installer. It is marked experimental, because the
-  Windows build has not been tested as carefully as the macOS one yet. Windows
-  shows a warning before it runs, since the installer is not signed yet, and
-  the Windows version does not update itself. The README explains both.
+- Tesina now has a Windows installer, and PDF export works there too. It is
+  marked experimental, because the Windows build has not been tested as
+  carefully as the macOS one yet. Windows shows a warning before the installer
+  runs, since it is not signed yet, and the Windows version does not update
+  itself. The README explains both.
 
 ## [0.1.10] - 2026-08-16
 

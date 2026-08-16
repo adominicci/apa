@@ -9,10 +9,11 @@ describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
     const expectedNotes = `### Added
 
-- Tesina now has a Windows installer. It is marked experimental, because the
-  Windows build has not been tested as carefully as the macOS one yet. Windows
-  shows a warning before it runs, since the installer is not signed yet, and
-  the Windows version does not update itself. The README explains both.`;
+- Tesina now has a Windows installer, and PDF export works there too. It is
+  marked experimental, because the Windows build has not been tested as
+  carefully as the macOS one yet. Windows shows a warning before the installer
+  runs, since it is not signed yet, and the Windows version does not update
+  itself. The README explains both.`;
 
     expect(bundledReleaseNotes.version).toBe("0.1.11");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);

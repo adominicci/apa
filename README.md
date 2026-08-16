@@ -1,7 +1,7 @@
 # Tesina
 
 [Download Tesina for macOS](https://github.com/adominicci/tesina/releases/latest/download/Tesina-macos-universal.dmg)
-· [Download Tesina for Windows (experimental)](https://github.com/adominicci/tesina/releases/latest/download/Tesina-windows-x64-setup.exe)
+· [Download Tesina for Windows (experimental)](https://github.com/adominicci/tesina/releases/latest/download/Tesina-windows-x64.exe)
 
 Tesina is a free, local academic writing app that helps students format papers
 in APA 7 style. It runs without an account, and your papers remain on your
@@ -28,7 +28,7 @@ so no **Privacy & Security** exception is needed.
 The Windows build is not tested as carefully as the macOS build yet. Keep a copy
 of anything important before you rely on it.
 
-1. Download `Tesina-windows-x64-setup.exe` and run it.
+1. Download `Tesina-windows-x64.exe` and run it.
 2. Windows shows a blue **Windows protected your PC** message, because the
    installer is not signed with a Windows code signing certificate.
 3. Choose **More info**, then choose **Run anyway**.
@@ -51,7 +51,7 @@ attached to each release for administrators who prefer it.
 - Provides a paged preview and exports `.docx` files for Microsoft Word and
   compatible editors.
 - Exports PDF from the same pages the preview shows, saved straight to the
-  folder you choose without going through the macOS print panel.
+  folder you choose without going through the system print panel.
 - Saves locally with atomic autosave and creates a timestamped backup before a
   paper is deleted. Tesina has no account system or cloud service.
 - Exports and safely merges complete portable `.tesina` library archives, with
