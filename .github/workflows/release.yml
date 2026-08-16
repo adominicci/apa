@@ -345,33 +345,182 @@ jobs:
       - name: Install dependencies
         run: deno install
 
-      # Windows builds are unsigned and carry no updater artifacts yet, so the
-      # installers ship as plain assets and Windows users update by downloading
-      # a newer release. Keeping them out of latest.json leaves the macOS
-      # updater manifest untouched.
+      # tauri-action rebuilds latest.json's notes from its releaseBody input
+      # when it merges the Windows platforms, so this job must hand it the
+      # exact notes the macOS job extracted from the same changelog.
+      - name: Extract release notes for the Windows manifest
+        id: release-notes
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          # RUNNER_TEMP is a backslash path on Windows; Deno's --allow-write
+          # and the script argument must agree, so normalize the separators.
+          runner_temp="${RUNNER_TEMP//\\//}"
+          version="${RELEASE_TAG#v}"
+          notes_path="$runner_temp/tesina-release-notes.md"
+          deno run \
+            --allow-read \
+            --allow-write="$notes_path" \
+            scripts/verify-release-version.ts \
+            "$RELEASE_TAG" \
+            apps/desktop/src-tauri/tauri.conf.json \
+            apps/desktop/package.json \
+            apps/desktop/src-tauri/Cargo.toml \
+            apps/desktop/src-tauri/Cargo.lock \
+            CHANGELOG.md \
+            "$notes_path"
+
+          delimiter="TESINA_RELEASE_NOTES_${RANDOM}${RANDOM}${RANDOM}"
+          if grep -Fqx "$delimiter" "$notes_path"; then
+            echo "Release notes contain the generated output delimiter." >&2
+            exit 1
+          fi
+
+          {
+            echo "body<<$delimiter"
+            cat "$notes_path"
+            printf '\n%s\n' "$delimiter"
+            echo "path=$notes_path"
+            echo "version=$version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build locked updater verifier for Windows
+        id: updater-verifier
+        shell: bash
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/tesina-updater-verifier-target
+        run: |
+          set -euo pipefail
+          cargo build \
+            --locked \
+            --manifest-path scripts/updater-signature-verifier/Cargo.toml
+          target_dir="${CARGO_TARGET_DIR//\\//}"
+          verifier="$target_dir/debug/tesina-updater-signature-verifier.exe"
+          # -f rather than -x: MSYS reports .exe executability inconsistently.
+          if [[ ! -f "$verifier" ]]; then
+            echo "Updater verifier binary was not built." >&2
+            exit 1
+          fi
+          echo "binary=$verifier" >> "$GITHUB_OUTPUT"
+
+      # The installers stay unsigned by a Windows certificate, but their
+      # updater artifacts carry the same minisign signature macOS uses, so the
+      # in-app updater can verify them. tauri-action merges the windows-x86_64
+      # platforms into the latest.json the macOS job already uploaded; the
+      # NSIS setup.exe is the artifact the updater installs.
       - name: Build and upload Windows installers
         id: tauri-windows
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
           tauriScript: deno task tauri
           releaseId: ${{ needs.release.outputs.release_id }}
-          uploadUpdaterJson: false
-          uploadUpdaterSignatures: false
+          releaseBody: ${{ steps.release-notes.outputs.body }}
+          uploadUpdaterJson: true
+          uploadUpdaterSignatures: true
+          updaterJsonPreferNsis: true
           uploadWorkflowArtifacts: false
           releaseAssetNamePattern: Tesina-windows-x64[ext]
-          args: >-
-            --bundles msi,nsis
-            --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          args: --bundles msi,nsis
 
       - name: Verify Windows installer bundles
         env:
           TAURI_ARTIFACT_PATHS: ${{ steps.tauri-windows.outputs.artifactPaths }}
-          EXPECTED_INSTALLER_SUFFIXES: '[".msi","-setup.exe"]'
+          EXPECTED_INSTALLER_SUFFIXES: '[".msi",".msi.sig","-setup.exe","-setup.exe.sig"]'
         run: >-
           deno run
           --allow-env=TAURI_ARTIFACT_PATHS,EXPECTED_INSTALLER_SUFFIXES
           --allow-read
           scripts/verify-installer-artifacts.ts
+
+      - name: Download final draft release verification inputs
+        id: draft-download
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ needs.release.outputs.release_id }}
+        run: |
+          set -euo pipefail
+          runner_temp="${RUNNER_TEMP//\\//}"
+          release_json="$runner_temp/tesina-draft-release.json"
+          latest_json="$runner_temp/tesina-latest.json"
+          macos_signature="$runner_temp/Tesina-macos-universal.app.tar.gz.sig"
+          exe_path="$runner_temp/Tesina-windows-x64.exe"
+          exe_signature="$runner_temp/Tesina-windows-x64.exe.sig"
+          msi_path="$runner_temp/Tesina-windows-x64.msi"
+          msi_signature="$runner_temp/Tesina-windows-x64.msi.sig"
+
+          gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
+            > "$release_json"
+
+          download_asset() {
+            local name="$1" target="$2" asset_id
+            asset_id="$(
+              gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
+                --jq ".assets[] | select(.name == \"$name\") | .id"
+            )"
+            if [[ ! "$asset_id" =~ ^[0-9]+$ ]]; then
+              echo "Draft release is missing asset: $name" >&2
+              exit 1
+            fi
+            gh api \
+              -H "Accept: application/octet-stream" \
+              "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" \
+              > "$target"
+          }
+          download_asset "latest.json" "$latest_json"
+          download_asset "Tesina-macos-universal.app.tar.gz.sig" "$macos_signature"
+          download_asset "Tesina-windows-x64.exe" "$exe_path"
+          download_asset "Tesina-windows-x64.exe.sig" "$exe_signature"
+          download_asset "Tesina-windows-x64.msi" "$msi_path"
+          download_asset "Tesina-windows-x64.msi.sig" "$msi_signature"
+
+          {
+            echo "release_json=$release_json"
+            echo "latest_json=$latest_json"
+            echo "macos_signature=$macos_signature"
+            echo "exe=$exe_path"
+            echo "exe_signature=$exe_signature"
+            echo "msi=$msi_path"
+            echo "msi_signature=$msi_signature"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Verify final draft release and updater manifest
+        shell: bash
+        env:
+          RELEASE_JSON: ${{ steps.draft-download.outputs.release_json }}
+          LATEST_JSON: ${{ steps.draft-download.outputs.latest_json }}
+          MACOS_SIGNATURE: ${{ steps.draft-download.outputs.macos_signature }}
+          WINDOWS_EXE: ${{ steps.draft-download.outputs.exe }}
+          WINDOWS_EXE_SIGNATURE: ${{ steps.draft-download.outputs.exe_signature }}
+          WINDOWS_MSI: ${{ steps.draft-download.outputs.msi }}
+          WINDOWS_MSI_SIGNATURE: ${{ steps.draft-download.outputs.msi_signature }}
+          RELEASE_NOTES_PATH: ${{ steps.release-notes.outputs.path }}
+          RELEASE_VERSION: ${{ steps.release-notes.outputs.version }}
+          UPDATER_VERIFIER_BINARY: ${{ steps.updater-verifier.outputs.binary }}
+        run: |
+          set -euo pipefail
+          deno run --allow-read scripts/verify-release-draft.ts \
+            "$RELEASE_JSON" \
+            "$LATEST_JSON" \
+            "$RELEASE_NOTES_PATH" \
+            "$RELEASE_VERSION" \
+            "$MACOS_SIGNATURE" \
+            full \
+            "$WINDOWS_EXE_SIGNATURE" \
+            "$WINDOWS_MSI_SIGNATURE"
+
+          "$UPDATER_VERIFIER_BINARY" \
+            "$WINDOWS_EXE" \
+            "$WINDOWS_EXE_SIGNATURE" \
+            apps/desktop/src-tauri/tauri.conf.json
+          "$UPDATER_VERIFIER_BINARY" \
+            "$WINDOWS_MSI" \
+            "$WINDOWS_MSI_SIGNATURE" \
+            apps/desktop/src-tauri/tauri.conf.json

@@ -5,6 +5,15 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-08-16
+
+### Added
+
+- Tesina on Windows now updates itself. The update icon works there the same
+  way it does on a Mac: it checks for new versions while the app is open,
+  shows what changed, and installs on click. Tesina saves your work before
+  the installer runs, and the app restarts on its own.
+
 ## [0.1.13] - 2026-08-16
 
 ### Changed

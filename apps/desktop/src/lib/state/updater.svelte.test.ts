@@ -558,3 +558,49 @@ describe("UpdaterStore periodic checks", () => {
     expect(AUTO_CHECK_INTERVAL_MS).toBe(4 * 60 * 1000);
   });
 });
+
+describe("UpdaterStore Windows install ordering", () => {
+  it("flushes and stores notes after download but before the installer runs", async () => {
+    const storage = new MemoryStorage();
+    const events: string[] = [];
+    const store = new UpdaterStore({
+      hostOs: () => Promise.resolve("windows"),
+      check: () =>
+        Promise.resolve({
+          version: "0.2.0",
+          body: "Windows notes",
+          download: () => {
+            events.push("download");
+            return Promise.resolve();
+          },
+          install: () => {
+            expect(readPendingReleaseNotes(storage)).toEqual({
+              version: "0.2.0",
+              body: "Windows notes",
+            });
+            events.push("install");
+            return Promise.resolve();
+          },
+          downloadAndInstall: () => {
+            events.push("downloadAndInstall");
+            return Promise.resolve();
+          },
+        }),
+      flushPending: () => {
+        events.push("flush");
+        return Promise.resolve();
+      },
+      relaunch: () => {
+        events.push("relaunch");
+        return Promise.resolve();
+      },
+      storage: () => storage,
+    });
+
+    await store.check();
+    await store.install();
+
+    expect(events).toEqual(["download", "flush", "install"]);
+    expect(store.status).toBe("idle");
+  });
+});
