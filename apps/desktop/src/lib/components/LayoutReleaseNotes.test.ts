@@ -9,7 +9,7 @@ import {
 import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import LayoutReleaseNotesHarness from "./LayoutReleaseNotesHarness.test.svelte";
 
-const canonicalNotesExcerpt = "Installing Tesina on a Mac is now a single step";
+const canonicalNotesExcerpt = "Tesina now has a Windows installer";
 
 const runtime = vi.hoisted(() => ({
   getVersion: vi.fn<() => Promise<string>>(),

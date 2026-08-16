@@ -256,7 +256,7 @@ jobs:
     steps:
       - uses: owner/action@${SHA}
 `,
-      "expected exactly one tauri-apps/tauri-action release step",
+      "expected a tauri-apps/tauri-action release step",
     );
   });
 
