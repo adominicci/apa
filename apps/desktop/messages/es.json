@@ -282,6 +282,7 @@
   "update_action": "Actualizar y reiniciar",
   "update_downloading": "Descargando… {percent}%",
   "update_error": "No se pudo actualizar",
+  "update_click_hint": "Haz clic para actualizar y reiniciar. Tu trabajo se guarda antes.",
   "release_notes_title": "Novedades",
   "release_notes_version": "Tesina {version}",
   "release_notes_unavailable": "Las notas no están disponibles para esta versión instalada.",

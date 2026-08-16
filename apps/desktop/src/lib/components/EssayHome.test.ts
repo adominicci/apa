@@ -123,7 +123,7 @@ describe("essay launch context", () => {
       `Tesina ${bundledReleaseNotes.version}`,
     );
     expect(dialog?.textContent).toContain(
-      "The close button works on Windows again",
+      "The update notice is now a small icon",
     );
     expect(dialog?.contains(document.activeElement)).toBe(true);
     globalThis.dispatchEvent(
@@ -139,7 +139,7 @@ describe("essay launch context", () => {
     versionButton.click();
     flushSync();
     expect(document.querySelector("[role='dialog']")?.textContent).toContain(
-      "The close button works on Windows again",
+      "The update notice is now a small icon",
     );
     expect(globalThis.location.href).toBe(initialLocation);
     expect(onCreate).not.toHaveBeenCalled();
@@ -206,7 +206,7 @@ describe("essay launch context", () => {
       versionButton.click();
       flushSync();
       expect(document.querySelector("[role='dialog']")?.textContent).toContain(
-        "The close button works on Windows again",
+        "The update notice is now a small icon",
       );
       expect(document.querySelector("[role='dialog']")?.textContent).not
         .toContain("Las notas no están disponibles.");

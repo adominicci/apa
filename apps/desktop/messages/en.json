@@ -282,6 +282,7 @@
   "update_action": "Update & restart",
   "update_downloading": "Downloading… {percent}%",
   "update_error": "Update failed",
+  "update_click_hint": "Click to update & restart. Your work is saved first.",
   "release_notes_title": "What's new",
   "release_notes_version": "Tesina {version}",
   "release_notes_unavailable": "Release notes are not available for this installed version.",

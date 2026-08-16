@@ -12,7 +12,6 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import ReleaseNotesModal from "$lib/components/ReleaseNotesModal.svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
-  import { updater } from "$lib/state/updater.svelte";
   import type { ReleaseNotesStorage } from "$lib/update/releaseNotes";
   import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
   import {
@@ -34,9 +33,6 @@
   }
 
   let { children }: Props = $props();
-
-  // Per-session dismissal; the banner returns next launch if still available.
-  let updateDismissed = $state(false);
 
   /**
    * The quit confirmations are ordinary modals rather than native dialogs, so
@@ -179,34 +175,6 @@
   });
 </script>
 
-{#if !releaseNotes.resolutionPending && !releaseNotes.presentation && updater.status !== "idle" && !updateDismissed}
-  <div class="update-banner" role="status">
-    {#if updater.status === "downloading"}
-      <span>{m.update_downloading({ percent: updater.progress })}</span>
-    {:else if updater.status === "error"}
-      <span>{m.update_error()}</span>
-      <button class="update-action" onclick={() => updater.install()}>
-        {m.update_action()}
-      </button>
-      <button
-        class="update-x"
-        onclick={() => (updateDismissed = true)}
-        aria-label={m.common_close()}
-      >×</button>
-    {:else}
-      <span>{m.update_ready({ version: updater.version ?? "" })}</span>
-      <button class="update-action" onclick={() => updater.install()}>
-        {m.update_action()}
-      </button>
-      <button
-        class="update-x"
-        onclick={() => (updateDismissed = true)}
-        aria-label={m.common_close()}
-      >×</button>
-    {/if}
-  </div>
-{/if}
-
 {#if releaseNotes.presentation}
   <ReleaseNotesModal
     version={releaseNotes.presentation.version}
@@ -243,52 +211,3 @@
 
 {@render children()}
 
-<style>
-  .update-banner {
-    position: fixed;
-    top: 52px;
-    left: 50%;
-    transform: translateX(-50%);
-    /* Above the modal layer on purpose: an update notice must stay reachable
-       while a dialog is open. */
-    z-index: var(--z-toast);
-    display: flex;
-    align-items: center;
-    gap: var(--sp-3);
-    max-width: min(92vw, 560px);
-    padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-4);
-    border-radius: var(--r-md);
-    background: var(--surface);
-    color: var(--fg);
-    border: 1px solid var(--accent);
-    box-shadow: var(--elev-raised);
-    font-family: var(--font);
-    font-size: var(--t-body);
-  }
-
-  .update-action {
-    border: none;
-    background: var(--accent);
-    color: var(--accent-on);
-    border-radius: var(--r-pill);
-    padding: var(--sp-15) var(--sp-3);
-    font-size: var(--t-small);
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .update-action:hover {
-    background: var(--accent-hover);
-  }
-
-  .update-x {
-    border: none;
-    background: none;
-    color: var(--muted);
-    cursor: pointer;
-    font-size: var(--t-h3);
-    line-height: 1;
-    padding: 0 var(--sp-05);
-  }
-</style>

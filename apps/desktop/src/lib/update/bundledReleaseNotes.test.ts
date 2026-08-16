@@ -7,21 +7,14 @@ import {
 
 describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
-    const expectedNotes = `### Fixed
+    const expectedNotes = `### Changed
 
-- The close button works on Windows again. Closing now asks whether you want
-  to quit, saves your paper, and ends the app. If saving cannot finish, Tesina
-  says so and lets you leave anyway instead of refusing to close, which used
-  to force people into the Task Manager.
+- The update notice is now a small icon beside the version number, at the
+  bottom of the sidebar and in the editor status bar, instead of a banner
+  across the top of the window. Hover the icon to read what is new; click it
+  to update and restart. Tesina saves your work before restarting.`;
 
-### Changed
-
-- Closing the window on a Mac now leaves Tesina in the Dock, the way Mac apps
-  behave. Click the Dock icon to bring your work back.
-- Settings has a **Quit Tesina** entry. It asks for confirmation first, and
-  works the same way on both systems.`;
-
-    expect(bundledReleaseNotes.version).toBe("0.1.12");
+    expect(bundledReleaseNotes.version).toBe("0.1.13");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");
