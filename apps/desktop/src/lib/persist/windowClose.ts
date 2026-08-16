@@ -80,8 +80,16 @@ export function createQuitRequest(
 
     dependencies.onError(failure);
     if (await dependencies.confirmQuitWithoutSaving(failure)) {
-      await dependencies.exitApp();
-      return;
+      try {
+        await dependencies.exitApp();
+        return;
+      } catch (error) {
+        // Exiting can be refused outright — a missing `process:allow-exit`
+        // capability rejects every call. Releasing the guard here is what
+        // keeps the button alive: leaving it raised made the first press the
+        // only press, which is exactly how this shipped broken.
+        dependencies.onError(error);
+      }
     }
     inFlight = false;
     await dependencies.resumeAfterFailedShutdown?.();

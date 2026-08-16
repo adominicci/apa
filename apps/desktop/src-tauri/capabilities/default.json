@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window: app-data file access, save/open dialogs, and reference-autofill HTTP endpoints. The wildcard http(s) scopes exist because URL autofill scrapes user-pasted pages (http kept for legacy academic sites); the CrossRef/OpenLibrary entries document the primary endpoints.",
+  "description": "Capability for the main window: app-data file access, save/open dialogs, shutdown, and reference-autofill HTTP endpoints. `process:allow-exit` and `core:window:allow-hide` back the close button — neither is in a default set, and without them the close path is denied and silently does nothing. The wildcard http(s) scopes exist because URL autofill scrapes user-pasted pages (http kept for legacy academic sites); the CrossRef/OpenLibrary entries document the primary endpoints.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -9,6 +9,8 @@
     "dialog:default",
     "updater:default",
     "process:allow-restart",
+    "process:allow-exit",
+    "core:window:allow-hide",
     "fs:default",
     "fs:allow-appdata-read-recursive",
     "fs:allow-appdata-write-recursive",

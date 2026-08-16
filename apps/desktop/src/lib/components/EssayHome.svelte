@@ -161,6 +161,12 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1l2.1-2.1M17 7l2.1-2.1" /></svg>
         {m.side_settings()}
       </button>
+      {#if shutdown.available}
+        <button class="nav-item" onclick={() => void shutdown.request()}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v9" /><path d="M6.5 6.8a8 8 0 1 0 11 0" /></svg>
+          {m.settings_quit()}
+        </button>
+      {/if}
       <div class="foot">
         <button
           type="button"
@@ -386,21 +392,6 @@
         </button>
       </div>
     </div>
-    {#if shutdown.available}
-      <div class="field">
-        <span>{m.settings_quit()}</span>
-        <div class="seg">
-          <button
-            onclick={() => {
-              settingsOpen = false;
-              void shutdown.request();
-            }}
-          >
-            {m.quit_confirm_action()}
-          </button>
-        </div>
-      </div>
-    {/if}
   </Modal>
 {/if}
 
