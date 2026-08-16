@@ -7,22 +7,14 @@ import {
 
 describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
-    const expectedNotes = `### Added
+    const expectedNotes = `### Changed
 
-- Export now offers PDF as well as Word. The PDF is built from the same pages
-  the Print preview shows you, so what you hand in is what you proofread, and
-  it saves straight to the folder you pick without going through the macOS
-  print panel.
+- Installing Tesina on a Mac is now a single step. The app is signed with an
+  Apple Developer ID certificate and notarized by Apple, so the first launch
+  only asks whether you want to open an app downloaded from the internet.
+  Nobody has to visit System Settings to allow a blocked app anymore.`;
 
-### Fixed
-
-- Exporting to PDF no longer prints on the wrong paper. The page size now
-  travels with the document, so a US Letter essay cannot come out on A4
-  because of a Mac's regional settings.
-- A PDF export that fails partway can no longer leave a broken file where your
-  paper should be. The old file stays untouched until the new one is complete.`;
-
-    expect(bundledReleaseNotes.version).toBe("0.1.9");
+    expect(bundledReleaseNotes.version).toBe("0.1.10");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");

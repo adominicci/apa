@@ -7,7 +7,7 @@ in APA 7 style. It runs without an account, and your papers remain on your
 computer. The interface and each document can use English or Spanish
 independently.
 
-Version 0.1.9 supports student papers on macOS 12 or newer. It is distributed
+Version 0.1.10 supports student papers on macOS 12 or newer. It is distributed
 as a DMG through GitHub Releases, not through the Mac App Store. Windows and
 Linux builds are checked in CI but are not published or supported yet.
 
@@ -15,24 +15,11 @@ Linux builds are checked in CI but are not published or supported yet.
 
 1. Download and open the DMG.
 2. Drag Tesina to the Applications folder.
-3. Open Tesina from Applications. macOS will block this first launch because
-   version 0.1.9 is not signed or notarized with an Apple Developer certificate.
-4. In the **Tesina Not Opened** message, choose **Done**. Tesina will close. This
-   is expected. Do not choose **Move to Trash** unless you want to delete the
-   app.
-5. Open **System Settings**, select **Privacy & Security**, and scroll down to
-   **Security**.
-6. Find the message that says Tesina was blocked and choose **Open Anyway**.
+3. Open Tesina from Applications. The first launch asks whether you are sure you
+   want to open an app downloaded from the internet. Choose **Open**.
 
-   ![The Open Anyway button for Tesina in macOS Privacy and Security settings](docs/images/macos-open-anyway.png)
-
-7. Enter your Mac login password if asked, then confirm **Open**. macOS saves
-   Tesina as an exception, so later launches open normally.
-
-The **Open Anyway** option is available for about one hour after the blocked
-launch. If you already moved Tesina to Trash, restore it or copy it again from
-the DMG before repeating these steps. Apple documents this process in
-[Open a Mac app from an unknown developer](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/26/mac/26).
+Tesina is signed with an Apple Developer ID certificate and notarized by Apple,
+so no **Privacy & Security** exception is needed.
 
 ## What it does
 
@@ -63,9 +50,8 @@ installation, Tesina restarts and shows formatted release notes. You can reopen
 the installed version's notes from the version shown on the home screen or in
 the editor status bar. An app update does not replace your locally saved papers.
 
-The updater verifies release artifacts with Tesina's updater key. This is
-separate from Apple Developer signing and notarization, which are not included
-in version 0.1.9.
+The updater verifies release artifacts with Tesina's updater key. This key is
+separate from the Apple Developer ID certificate that signs the app.
 
 ## Run from source
 
@@ -92,8 +78,11 @@ deno lint
 ```
 
 `deno task build` creates local bundles after a Tauri updater signing key is
-available in `TAURI_SIGNING_PRIVATE_KEY`. Keep private keys outside the
-repository. The published macOS DMG is created by the release workflow.
+available in `TAURI_SIGNING_PRIVATE_KEY`. Local bundles use an ad-hoc signature,
+so no Apple certificate is needed to build from source. Keep private keys
+outside the repository. The published macOS DMG is created by the release
+workflow, which signs it with the Developer ID certificate and notarizes it with
+Apple.
 
 ## License and name
 

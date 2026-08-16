@@ -78,6 +78,53 @@ jobs:
           fi
           echo "binary=$verifier" >> "$GITHUB_OUTPUT"
 
+      - name: Import Apple Developer ID certificate
+        id: apple-signing
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          set -euo pipefail
+          for secret_name in \
+            APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY; do
+            if [[ -z "${!secret_name}" ]]; then
+              echo "Missing required release secret: $secret_name" >&2
+              exit 1
+            fi
+          done
+
+          keychain_path="$RUNNER_TEMP/tesina-signing.keychain-db"
+          keychain_password="$(uuidgen)"
+          certificate_path="$RUNNER_TEMP/tesina-developer-id.p12"
+
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$certificate_path"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$certificate_path" -k "$keychain_path" \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "$keychain_password" "$keychain_path" > /dev/null
+          security list-keychain -d user -s "$keychain_path" login.keychain-db
+          rm -f "$certificate_path"
+
+          identities="$(security find-identity -v -p codesigning "$keychain_path")"
+          if ! grep -Fq "$APPLE_SIGNING_IDENTITY" <<< "$identities"; then
+            echo "APPLE_SIGNING_IDENTITY was not found in the imported keychain." >&2
+            exit 1
+          fi
+
+          # The committed config keeps the ad-hoc identity so contributors can
+          # build without a certificate; only the release overrides it.
+          signing_config="$RUNNER_TEMP/tesina-signing.conf.json"
+          printf '{"bundle":{"macOS":{"signingIdentity":"%s"}}}\n' \
+            "$APPLE_SIGNING_IDENTITY" > "$signing_config"
+          echo "config=$signing_config" >> "$GITHUB_OUTPUT"
+
       - name: Build and upload macOS draft
         id: tauri-release
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1
@@ -85,6 +132,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           projectPath: apps/desktop
           tauriScript: deno task tauri
@@ -100,6 +151,7 @@ jobs:
           args: >-
             --target universal-apple-darwin
             --bundles app,dmg
+            --config ${{ steps.apple-signing.outputs.config }}
 
       - name: Verify generated macOS bundles
         id: macos-artifacts
@@ -112,10 +164,11 @@ jobs:
             --allow-write="$GITHUB_OUTPUT" \
             scripts/prepare-macos-release-artifacts.ts
 
-      - name: Verify macOS app and DMG structure
+      - name: Verify macOS app signature, notarization, and DMG structure
         env:
           APP_PATH: ${{ steps.macos-artifacts.outputs.app }}
           DMG_PATH: ${{ steps.macos-artifacts.outputs.dmg }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
           set -euo pipefail
 
@@ -150,6 +203,19 @@ jobs:
               return 1
             fi
             codesign --verify --deep --strict --verbose=2 "$app_path"
+
+            local signature_info
+            signature_info="$(codesign --display --verbose=4 "$app_path" 2>&1)"
+            if ! grep -Fq "Authority=$APPLE_SIGNING_IDENTITY" <<< "$signature_info"; then
+              echo "$app_path is not signed with the Developer ID certificate." >&2
+              return 1
+            fi
+
+            # A stapled ticket plus a Gatekeeper pass is what turns the blocked
+            # first launch into the plain "downloaded from the Internet" prompt,
+            # so a silent notarization failure must never reach a release.
+            xcrun stapler validate "$app_path"
+            spctl --assess --type execute --verbose=4 "$app_path"
           }
 
           verify_app_bundle "$APP_PATH"
@@ -247,3 +313,10 @@ jobs:
             "$UPDATER_ARCHIVE" \
             "$UPDATER_SIGNATURE" \
             apps/desktop/src-tauri/tauri.conf.json
+
+      - name: Remove the Apple signing keychain
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/tesina-developer-id.p12"
+          security delete-keychain "$RUNNER_TEMP/tesina-signing.keychain-db" \
+            2> /dev/null || true
