@@ -1,12 +1,15 @@
 mod backup_directory;
 mod external_files;
-mod pdf_export;
+// Public so the live proof example can drive the real command end to end.
+pub mod pdf_export;
 
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    // The print protocol serves each PDF export's paginated document to its
+    // hidden render window; protocols can only be registered at build time.
+    pdf_export::attach_print_protocol(tauri::Builder::default())
         // Cross-process exclusion (design §12): every safety mechanism —
         // snapshot lease, import journal, single-flight backup, ledger,
         // startup recovery — is process-local, so a second instance must

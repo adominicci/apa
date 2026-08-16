@@ -4,8 +4,8 @@
 //! runs in the main window; see `paginateForPrint.ts`), loads it into a hidden
 //! webview, prints it to a temp file, and moves that file into place.
 //!
-//! Two rules here are not style preferences, they were paid for in
-//! `examples/macos-pdf-proof-host.rs`:
+//! Three rules here are not style preferences, they were paid for in
+//! `examples/macos-pdf-proof-host.rs` and `examples/pdf-export-live-proof.rs`:
 //!
 //! 1. **Never run the print operation synchronously from the event loop.** It
 //!    paginates without terminating; the proof host wrote 3.65 GB before it was
@@ -13,19 +13,26 @@
 //!    lets the run loop pump, which is what wry's own printing does.
 //! 2. **Always cap the output.** A runaway print does not merely fail, it fills
 //!    the user's disk.
+//! 3. **Never load `about:blank` and inject with `eval`.** A Tauri window
+//!    pointed at `about:blank` never commits a document on macOS — no page, no
+//!    JS context, so eval'd scripts silently do nothing and every readiness
+//!    deadline expires (`on_navigation` records zero events, not even the
+//!    initial load). The document is served through the `tesina-print` custom
+//!    protocol instead, with the readiness probe baked into the served HTML.
 
 use std::{
+    collections::HashMap,
     fs,
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicU64, Ordering},
-        Arc, Mutex,
+        Arc, Mutex, OnceLock,
     },
     time::Duration,
 };
 
 use serde::Serialize;
-use tauri::{AppHandle, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Runtime, WebviewUrl, WebviewWindowBuilder};
 
 /// A correct student paper is well under this. Anything past it is a
 /// pagination loop, not a document.
@@ -72,6 +79,59 @@ const READY_PROBE: &str = r#"(function () {
 /// reusing one label or temp name would make the next export trip over the
 /// previous one.
 static EXPORT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+/// Documents awaiting pickup by the `tesina-print` protocol, keyed by export
+/// sequence. An entry lives exactly as long as its export: registered before
+/// the hidden window is built, removed by `DocumentLease::drop` on every path.
+static PENDING_DOCUMENTS: OnceLock<Mutex<HashMap<u64, String>>> = OnceLock::new();
+
+fn pending_documents() -> &'static Mutex<HashMap<u64, String>> {
+    PENDING_DOCUMENTS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// Removes the served document when the export ends, however it ends.
+struct DocumentLease(u64);
+
+impl Drop for DocumentLease {
+    fn drop(&mut self) {
+        pending_documents().lock().unwrap().remove(&self.0);
+    }
+}
+
+/// Serves `tesina-print://export/<sequence>` from the pending-document map.
+///
+/// Registered on the app builder in `lib.rs` (and by the live proof example);
+/// custom protocols can only be attached at build time, not per window.
+pub fn attach_print_protocol<R: Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
+    builder.register_uri_scheme_protocol("tesina-print", |_context, request| {
+        let sequence = request
+            .uri()
+            .path()
+            .trim_start_matches('/')
+            .parse::<u64>()
+            .ok();
+        let document =
+            sequence.and_then(|key| pending_documents().lock().unwrap().get(&key).cloned());
+        match document {
+            Some(html) => tauri::http::Response::builder()
+                .header("Content-Type", "text/html; charset=utf-8")
+                .body(html.into_bytes())
+                .unwrap(),
+            None => tauri::http::Response::builder()
+                .status(404)
+                .body(Vec::new())
+                .unwrap(),
+        }
+    })
+}
+
+/// The served document: the paginated HTML with the readiness probe appended.
+/// Appended rather than spliced into `</body>` — the parser hoists a trailing
+/// script into the body, and not depending on the exact closing tags keeps
+/// this robust against whatever `paginateForPrint` emits.
+fn printable_document(html: &str) -> String {
+    format!("{html}<script>{READY_PROBE}</script>")
+}
 
 #[derive(Debug, Serialize)]
 // Serialized as the bare message so the frontend's `String(err)` reads it,
@@ -280,16 +340,24 @@ pub async fn export_pdf(
     let temp = temp_path_beside(&destination, sequence)?;
     let _ = fs::remove_file(&temp);
 
+    // Registered before the window exists so the protocol can answer the
+    // window's very first request; the lease removes it on every exit path.
+    pending_documents()
+        .lock()
+        .unwrap()
+        .insert(sequence, printable_document(&html));
+    let _lease = DocumentLease(sequence);
+
     let label = format!("pdf-render-{sequence}");
-    let blank = "about:blank"
+    let document_url = format!("tesina-print://export/{sequence}")
         .parse()
-        .map_err(|error| PdfExportError::new(format!("about:blank did not parse: {error}")))?;
+        .map_err(|error| PdfExportError::new(format!("print url did not parse: {error}")))?;
     let (ready_tx, mut ready_rx) = tokio::sync::mpsc::channel::<()>(1);
     // Hidden, exactly as the proof host ran: it showed a hidden window does
-    // lay out and print. about:blank rather than the app URL — the document
-    // is injected wholesale, and booting a second copy of the app just to
-    // overwrite it would race its startup work.
-    let window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(blank))
+    // lay out and print. The document arrives as a real page load through the
+    // custom protocol — rule 3 in the module header is why nothing here goes
+    // near about:blank or eval.
+    let window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(document_url))
         .visible(false)
         .decorations(false)
         .skip_taskbar(true)
@@ -307,7 +375,6 @@ pub async fn export_pdf(
 
     let result = render(
         &window.0,
-        &html,
         &temp,
         expected_pages,
         (paper_width_pt, paper_height_pt),
@@ -335,28 +402,15 @@ pub async fn export_pdf(
 
 async fn render(
     window: &tauri::WebviewWindow,
-    html: &str,
     temp: &Path,
     expected_pages: usize,
     paper: (f64, f64),
     ready: &mut tokio::sync::mpsc::Receiver<()>,
 ) -> Result<usize, PdfExportError> {
-    let document = serde_json::to_string(html)
-        .map_err(|error| PdfExportError::new(format!("could not encode the document: {error}")))?;
-    // `document.write` rather than a data URL: a whole paper with inlined
-    // figures overruns practical URL limits.
-    window
-        .eval(&format!(
-            "document.open();document.write({document});document.close();"
-        ))
-        .map_err(|error| PdfExportError::new(format!("could not load the document: {error}")))?;
-    window
-        .eval(READY_PROBE)
-        .map_err(|error| PdfExportError::new(format!("could not probe the document: {error}")))?;
-
-    // Static markup, so readiness is fonts plus decoded images. The probe
-    // reports through the navigation handshake; waiting a fixed interval
-    // instead would race a slow parse of a long document.
+    // The document and its probe arrived with the page load; readiness is
+    // fonts plus decoded images, reported through the navigation handshake.
+    // Waiting a fixed interval instead would race a slow parse of a long
+    // document with inlined figures.
     if tokio::time::timeout(READY_DEADLINE, ready.recv())
         .await
         .is_err()
@@ -493,5 +547,23 @@ mod tests {
     #[test]
     fn rejects_a_destination_without_a_parent() {
         assert!(temp_path_beside(Path::new("/"), 0).is_err());
+    }
+
+    #[test]
+    fn served_document_carries_the_readiness_probe() {
+        let served = printable_document("<html><body>paper</body></html>");
+        assert!(served.starts_with("<html><body>paper</body></html>"));
+        assert!(served.contains(READY_SCHEME));
+        assert!(served.contains("document.fonts"));
+    }
+
+    #[test]
+    fn document_lease_removes_its_entry_on_drop() {
+        pending_documents()
+            .lock()
+            .unwrap()
+            .insert(u64::MAX, "doc".into());
+        drop(DocumentLease(u64::MAX));
+        assert!(!pending_documents().lock().unwrap().contains_key(&u64::MAX));
     }
 }

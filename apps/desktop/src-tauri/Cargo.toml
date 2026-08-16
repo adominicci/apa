@@ -114,3 +114,7 @@ required-features = ["native-proof-host"]
 name = "macos-pdf-proof-host"
 path = "examples/macos-pdf-proof-host.rs"
 required-features = ["pdf-proof-host"]
+
+[[example]]
+name = "pdf-export-live-proof"
+path = "examples/pdf-export-live-proof.rs"

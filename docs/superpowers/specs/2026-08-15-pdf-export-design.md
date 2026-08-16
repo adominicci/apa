@@ -224,6 +224,32 @@ preference here, it is the bug.
 A4 geometry, and the 50-page fixture that should set the deadline. Both belong
 to the native-proof work in step 6, not to this gate.
 
+## Live failure and third finding — 2026-08-16
+
+The first real in-app export hung on "Exportando…" and saved nothing. The
+diagnosis is recorded because it invalidates a mechanism this document
+previously described.
+
+**A Tauri window pointed at `about:blank` never commits a document on macOS.**
+`on_navigation` records zero events — not even the initial load. With no
+document there is no JS context: `eval` is a silent no-op, so the injected
+document and readiness probe never existed and the ready deadline expired.
+An identical window pointed at a real HTTP URL loads, runs initialization
+scripts, runs eval'd code, and delivers the `tesina-print-ready://` navigation
+to `on_navigation` — the handshake itself was never the problem.
+
+The fix: the paginated document is served through a `tesina-print://` custom
+protocol (`attach_print_protocol` in `pdf_export.rs`, registered at builder
+time in `lib.rs`), with the readiness probe appended to the served HTML. This
+removed `about:blank`, `document.write`, and both `eval` calls — the document
+now arrives as a normal page load with a real lifecycle.
+
+`examples/pdf-export-live-proof.rs` drives the real `export_pdf` command end to
+end with no UI — Tauri window creation, protocol load, handshake, silent
+print, settle, rename — and is the regression harness for this class of
+failure. It reproduced the hang before the fix and passes after:
+`{"ok":true,"pages":3}` with a correct three-page PDF on disk.
+
 ## Export UX
 
 The student's experience is the point of this work, so it is specified rather
