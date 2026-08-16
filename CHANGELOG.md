@@ -5,6 +5,23 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-08-16
+
+### Added
+
+- Export now offers PDF as well as Word. The PDF is built from the same pages
+  the Print preview shows you, so what you hand in is what you proofread, and
+  it saves straight to the folder you pick without going through the macOS
+  print panel.
+
+### Fixed
+
+- Exporting to PDF no longer prints on the wrong paper. The page size now
+  travels with the document, so a US Letter essay cannot come out on A4
+  because of a Mac's regional settings.
+- A PDF export that fails partway can no longer leave a broken file where your
+  paper should be. The old file stays untouched until the new one is complete.
+
 ## [0.1.8] - 2026-08-15
 
 ### Changed
@@ -157,7 +174,10 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.9...HEAD
+[0.1.9]: https://github.com/adominicci/tesina/compare/v0.1.8...v0.1.9
+[0.1.8]: https://github.com/adominicci/tesina/compare/v0.1.7...v0.1.8
+[0.1.7]: https://github.com/adominicci/tesina/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/adominicci/tesina/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/adominicci/tesina/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/adominicci/tesina/compare/v0.1.3...v0.1.4

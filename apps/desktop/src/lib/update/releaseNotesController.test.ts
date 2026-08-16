@@ -47,8 +47,8 @@ function controller(
 }
 
 describe("release notes controller", () => {
-  it("uses the exact canonical 0.1.8 Markdown for automatic and manual presentation", async () => {
-    expect(bundledReleaseNotes.version).toBe("0.1.8");
+  it("uses the exact canonical 0.1.9 Markdown for automatic and manual presentation", async () => {
+    expect(bundledReleaseNotes.version).toBe("0.1.9");
     const storage = new MemoryStorage();
     savePendingReleaseNotes(storage, {
       version: bundledReleaseNotes.version,
@@ -65,7 +65,7 @@ describe("release notes controller", () => {
 
     expect(notes.presentation).toEqual({
       kind: "automatic",
-      version: "0.1.8",
+      version: "0.1.9",
       body: bundledReleaseNotes.body,
     });
     const automaticBody = notes.presentation?.body;
@@ -75,7 +75,7 @@ describe("release notes controller", () => {
 
     expect(notes.presentation).toEqual({
       kind: "manual",
-      version: "0.1.8",
+      version: "0.1.9",
       body: automaticBody,
     });
     expect(notes.presentation?.body).toBe(bundledReleaseNotes.body);

@@ -1,11 +1,15 @@
 mod backup_directory;
 mod external_files;
+// Public so the live proof example can drive the real command end to end.
+pub mod pdf_export;
 
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    // The print protocol serves each PDF export's paginated document to its
+    // hidden render window; protocols can only be registered at build time.
+    pdf_export::attach_print_protocol(tauri::Builder::default())
         // Cross-process exclusion (design §12): every safety mechanism —
         // snapshot lease, import journal, single-flight backup, ledger,
         // startup recovery — is process-local, so a second instance must
@@ -44,6 +48,7 @@ pub fn run() {
             backup_directory::backup_disable,
             external_files::external_rename_no_replace,
             external_files::external_remove_if_hash_matches,
+            pdf_export::export_pdf,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

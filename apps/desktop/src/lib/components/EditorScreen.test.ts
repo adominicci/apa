@@ -29,6 +29,7 @@ const runtime = vi.hoisted(() => ({
   persistedDocs: [] as unknown[],
   libraryReferences: [] as Reference[],
   exportEssayToDocx: vi.fn(),
+  exportEssayToPdf: vi.fn(),
   paginationEnvs: [] as PaginationEnvironment[],
   paginationInvalidations: [] as string[],
 }));
@@ -117,8 +118,17 @@ vi.mock("$lib/state/library.svelte", () => ({
   },
 }));
 
-vi.mock("$lib/export/exportEssay", () => ({
-  exportEssayToDocx: runtime.exportEssayToDocx,
+vi.mock("$lib/export/exportEssay", async () => {
+  const actual = await vi.importActual<
+    typeof import("$lib/export/exportEssay")
+  >(
+    "$lib/export/exportEssay",
+  );
+  return { ...actual, exportEssayToDocx: runtime.exportEssayToDocx };
+});
+
+vi.mock("$lib/export/exportPdf", () => ({
+  exportEssayToPdf: runtime.exportEssayToPdf,
 }));
 
 vi.mock("$lib/state/uiLocale.svelte", () => ({
@@ -250,6 +260,21 @@ function exportButton(): HTMLButtonElement {
   return button;
 }
 
+/** Opens the export menu and picks a format, as a user must. */
+function exportAs(format: "docx" | "pdf"): void {
+  exportButton().click();
+  flushSync();
+  const label = format === "pdf"
+    ? m.editor_export_pdf()
+    : m.editor_export_docx();
+  const item = [
+    ...document.querySelectorAll<HTMLButtonElement>(".export-menu button"),
+  ].find((button) => button.textContent?.trim() === label);
+  if (!item) throw new Error(`Export menu item not found: ${label}`);
+  item.click();
+  flushSync();
+}
+
 afterEach(() => {
   vi.useRealTimers();
   runtime.editors = [];
@@ -258,6 +283,8 @@ afterEach(() => {
   runtime.libraryReferences = [];
   runtime.exportEssayToDocx.mockReset();
   runtime.exportEssayToDocx.mockResolvedValue({ status: "cancelled" });
+  runtime.exportEssayToPdf.mockReset();
+  runtime.exportEssayToPdf.mockResolvedValue({ status: "cancelled" });
   runtime.paginationEnvs = [];
   runtime.paginationInvalidations = [];
   document.body.replaceChildren();
@@ -331,7 +358,7 @@ describe("editor preview round trip", () => {
       `Tesina ${bundledReleaseNotes.version}`,
     );
     expect(dialog?.textContent).toContain(
-      "Export no longer refuses to run when the title page is incomplete",
+      "Export now offers PDF as well as Word",
     );
     document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
     flushSync();
@@ -385,7 +412,7 @@ describe("editor preview round trip", () => {
       "Las notas no están disponibles para esta versión.",
     );
     expect(dialog?.textContent).not.toContain(
-      "Export no longer refuses to run when the title page is incomplete",
+      "Export now offers PDF as well as Word",
     );
     globalThis.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
@@ -1072,7 +1099,7 @@ describe("APA export title-page advice", () => {
     });
     flushSync();
 
-    exportButton().click();
+    exportAs("docx");
     await vi.waitFor(() => {
       expect(runtime.exportEssayToDocx).toHaveBeenCalledOnce();
     });
@@ -1085,7 +1112,7 @@ describe("APA export title-page advice", () => {
     const component = mountIncompleteTitlePage();
     flushSync();
 
-    exportButton().click();
+    exportAs("docx");
     await waitForAdvice();
     expect(runtime.exportEssayToDocx).not.toHaveBeenCalled();
     expect(document.querySelector(".modal .warn-list")?.textContent).toContain(
@@ -1105,7 +1132,7 @@ describe("APA export title-page advice", () => {
     const component = mountIncompleteTitlePage();
     flushSync();
 
-    exportButton().click();
+    exportAs("docx");
     await waitForAdvice();
     dialogButton(m.export_warn_fix()).click();
     flushSync();
@@ -1129,11 +1156,78 @@ describe("APA export title-page advice", () => {
     await unmount(component);
   });
 
+  it("routes PDF through its own exporter and leaves DOCX untouched", async () => {
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay: exportableEssay(bodyDoc("Seed")),
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    exportAs("pdf");
+    await vi.waitFor(() => {
+      expect(runtime.exportEssayToPdf).toHaveBeenCalledOnce();
+    });
+    expect(runtime.exportEssayToDocx).not.toHaveBeenCalled();
+
+    await unmount(component);
+  });
+
+  it("keeps the PDF format through the advice dialog", async () => {
+    const component = mountIncompleteTitlePage();
+    flushSync();
+
+    exportAs("pdf");
+    await waitForAdvice();
+    expect(runtime.exportEssayToPdf).not.toHaveBeenCalled();
+
+    // Confirming must honour the format chosen before the advice appeared,
+    // not silently fall back to the default.
+    dialogButton(m.export_warn_anyway()).click();
+    await vi.waitFor(() => {
+      expect(runtime.exportEssayToPdf).toHaveBeenCalledOnce();
+    });
+    expect(runtime.exportEssayToDocx).not.toHaveBeenCalled();
+
+    await unmount(component);
+  });
+
+  it("keeps the PDF format across a fix-the-title-page detour", async () => {
+    const component = mountIncompleteTitlePage();
+    flushSync();
+
+    exportAs("pdf");
+    await waitForAdvice();
+    dialogButton(m.export_warn_fix()).click();
+    flushSync();
+
+    const courseInput = document.querySelector<HTMLInputElement>(
+      `input[placeholder="${m.titlepage_course_placeholder()}"]`,
+    );
+    if (!courseInput) throw new Error("Course input not found");
+    courseInput.value = "PSYC 232: Desarrollo humano";
+    courseInput.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+
+    dialogButton(m.titlepage_save()).click();
+    await vi.waitFor(() => {
+      expect(runtime.exportEssayToPdf).toHaveBeenCalledOnce();
+    });
+    expect(runtime.exportEssayToDocx).not.toHaveBeenCalled();
+
+    await unmount(component);
+  });
+
   it("abandons the export when the advice is dismissed", async () => {
     const component = mountIncompleteTitlePage();
     flushSync();
 
-    exportButton().click();
+    exportAs("docx");
     await waitForAdvice();
 
     document.querySelector<HTMLButtonElement>(".modal .modal-close")!.click();
@@ -1183,7 +1277,7 @@ describe("APA export reference integrity", () => {
     const persisted = runtime.persist.mock.calls[0]![0] as Essay;
     expect(persisted.referencesSnapshot).toEqual([cited]);
 
-    exportButton().click();
+    exportAs("docx");
     await vi.waitFor(() => {
       expect(runtime.exportEssayToDocx).toHaveBeenCalledOnce();
     });
@@ -1209,7 +1303,7 @@ describe("APA export reference integrity", () => {
     });
     flushSync();
 
-    exportButton().click();
+    exportAs("docx");
     await vi.waitFor(() => {
       expect(runtime.exportEssayToDocx).toHaveBeenCalledOnce();
     });
@@ -1251,7 +1345,7 @@ describe("APA export reference integrity", () => {
     });
     flushSync();
 
-    exportButton().click();
+    exportAs("docx");
     await tick();
 
     expect(runtime.exportEssayToDocx).not.toHaveBeenCalled();
@@ -1293,7 +1387,7 @@ describe("APA export reference integrity", () => {
     });
     flushSync();
 
-    exportButton().click();
+    exportAs("docx");
     await vi.waitFor(() => {
       expect(runtime.exportEssayToDocx).toHaveBeenCalledOnce();
     });

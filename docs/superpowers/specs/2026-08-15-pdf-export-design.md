@@ -1,7 +1,10 @@
 # PDF export design
 
 Date: 2026-08-15
-Status: proposed — awaiting review
+Status: **step 1 cleared** — a hidden webview produces a correctly paginated,
+correctly sized PDF with no print panel. Steps 2-6 are buildable. Read
+"Spike result" first; it contains two findings that will cost a day each if
+rediscovered.
 Applies to: `apps/desktop`
 
 ## Problem
@@ -143,6 +146,109 @@ a path with no panel and no user interaction.
 This distinction is the single most important implementation detail in this
 document. Getting it wrong produces a file that looks plausible in a thumbnail
 and is unusable when submitted.
+
+## Spike result — 2026-08-15
+
+Step 1 ran. Host:
+`apps/desktop/src-tauri/examples/macos-pdf-proof-host.rs`, behind the
+`pdf-proof-host` feature. It prints one JSON envelope and exits non-zero on
+failure, following the `webview2-proof-host` precedent.
+
+```bash
+cargo run --example macos-pdf-proof-host --features pdf-proof-host -- /tmp/out.pdf
+```
+
+### What cleared
+
+- **Every API in the table above is real and callable from Rust.** The host
+  compiles and runs against the locked `objc2` crates. Nothing new was needed
+  in the dependency graph, exactly as predicted.
+- **The completion handshake works in a hidden window** — but only after a fix
+  the design did not anticipate. `requestAnimationFrame` is **suspended in an
+  off-screen window**, so an rAF-based ready signal never fires and the host
+  stalled until its deadline. Racing rAF against a `setTimeout` fixes it. The
+  same trap applies to `document.fonts.ready`, which can also stall off-screen;
+  it too needs a timer as a second path.
+
+- **The end-to-end result is correct.** A hidden window, three stacked page
+  boxes, no print panel:
+
+  ```json
+  {"passed":true,"pdfPages":3,"mediaBox":[612,792],"pdfBytes":32820}
+  ```
+
+  Three pages in, three pages out, at exactly 612 × 792 points, and the
+  handshake's page count matches the PDF's. 32 KB.
+
+### The expensive finding: never print from inside the event loop
+
+Calling `runOperation` synchronously from the `tao` event-loop callback
+**paginates without terminating.** The first run wrote a **3.65 GB** PDF and
+was still growing when the process was killed.
+
+Five candidate causes were eliminated by measurement before the real one
+surfaced. The print configuration was never at fault:
+
+| Hypothesis | Flag | Result |
+| --- | --- | --- |
+| Zeroed `NSPrintInfo` margins | `--default-margins` | still runs away |
+| Stacked page-box CSS | `--simple` | still runs away |
+| Resizing the view to the paper box | `--keep-frame` | still runs away |
+| Mutating the shared `NSPrintInfo` | `--shared-info` | still runs away |
+| Any geometry call at all | `--pristine` | still runs away |
+| **Blocking the event loop** | `--blocking` | **the cause** |
+
+The fix is the one wry itself uses in `print_with_options`:
+`runOperationModalForWindow:` with `setCanSpawnSeparateThread(true)`, so the
+handler returns and the main run loop pumps. `export_pdf` **must** drive the
+operation this way and settle asynchronously; a blocking call is not a style
+preference here, it is the bug.
+
+### Consequences for this document
+
+- The geometry table in "The render contract" is not what makes this work —
+  the pristine run proves the runaway is independent of it. Keep the table for
+  layout correctness, but do not treat it as the fix for anything.
+- The stated risk order was wrong. "Paged.js completion signal" was ranked most
+  likely to bite; it was real but cheap. The risk that actually blocked was not
+  on the list at all.
+- **A hard requirement, learned the expensive way: any code path that runs a
+  print operation must be bounded by an output-size or page-count cap.** A
+  runaway does not merely fail, it fills the user's disk. The proof host caps at
+  64 MB; shipping code needs an equivalent.
+- The fallback ladder (`window.print()` with its announced UX downgrade) is not
+  needed. The good-UX path works.
+
+### Still unmeasured
+
+A4 geometry, and the 50-page fixture that should set the deadline. Both belong
+to the native-proof work in step 6, not to this gate.
+
+## Live failure and third finding — 2026-08-16
+
+The first real in-app export hung on "Exportando…" and saved nothing. The
+diagnosis is recorded because it invalidates a mechanism this document
+previously described.
+
+**A Tauri window pointed at `about:blank` never commits a document on macOS.**
+`on_navigation` records zero events — not even the initial load. With no
+document there is no JS context: `eval` is a silent no-op, so the injected
+document and readiness probe never existed and the ready deadline expired.
+An identical window pointed at a real HTTP URL loads, runs initialization
+scripts, runs eval'd code, and delivers the `tesina-print-ready://` navigation
+to `on_navigation` — the handshake itself was never the problem.
+
+The fix: the paginated document is served through a `tesina-print://` custom
+protocol (`attach_print_protocol` in `pdf_export.rs`, registered at builder
+time in `lib.rs`), with the readiness probe appended to the served HTML. This
+removed `about:blank`, `document.write`, and both `eval` calls — the document
+now arrives as a normal page load with a real lifecycle.
+
+`examples/pdf-export-live-proof.rs` drives the real `export_pdf` command end to
+end with no UI — Tauri window creation, protocol load, handshake, silent
+print, settle, rename — and is the regression harness for this class of
+failure. It reproduced the hang before the fix and passes after:
+`{"ok":true,"pages":3}` with a correct three-page PDF on disk.
 
 ## Export UX
 

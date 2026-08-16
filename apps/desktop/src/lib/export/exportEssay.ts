@@ -10,37 +10,23 @@ import {
 import type { Essay } from "$lib/model/essay";
 import { imageKind, readImageBytes } from "$lib/persist/assets";
 import { latexToMathTree } from "$lib/editor/mathml";
+import { m } from "$lib/paraglide/messages";
+import {
+  collectEquationLatex,
+  collectFigureSrcs,
+} from "$lib/export/exportAssets";
+
+/** The formats the export menu offers. */
+export type ExportFormat = "docx" | "pdf";
 
 export type ExportOutcome =
   | { status: "saved"; path: string }
   | { status: "cancelled" }
   | { status: "error"; message: string };
 
-function sanitizeFilename(title: string): string {
+export function sanitizeFilename(title: string): string {
   const clean = title.replace(/[\\/:*?"<>|]/g, "").trim();
   return clean === "" ? "ensayo" : clean;
-}
-
-function collectFigureSrcs(node: unknown, out: Set<string>): void {
-  if (!node || typeof node !== "object") return;
-  const n = node as {
-    type?: string;
-    attrs?: { src?: string };
-    content?: unknown[];
-  };
-  if (n.type === "figureImage" && n.attrs?.src) out.add(n.attrs.src);
-  for (const child of n.content ?? []) collectFigureSrcs(child, out);
-}
-
-function collectEquationLatex(node: unknown, out: Set<string>): void {
-  if (!node || typeof node !== "object") return;
-  const n = node as {
-    type?: string;
-    attrs?: { latex?: string };
-    content?: unknown[];
-  };
-  if (n.type === "apaEquation" && n.attrs?.latex) out.add(n.attrs.latex);
-  for (const child of n.content ?? []) collectEquationLatex(child, out);
 }
 
 /**
@@ -138,7 +124,7 @@ export async function exportEssayToDocx(
     const bytes = await exportDocx(input);
     const path = await save({
       defaultPath: `${sanitizeFilename(essay.titlePage.title)}.docx`,
-      filters: [{ name: "Documento de Word", extensions: ["docx"] }],
+      filters: [{ name: m.export_filter_docx(), extensions: ["docx"] }],
     });
     if (!path) return { status: "cancelled" };
     await writeFile(path, bytes);

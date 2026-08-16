@@ -75,7 +75,11 @@
   import { essays } from "$lib/state/essays.svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { dismissable } from "$lib/dom/dismiss";
-  import { exportEssayToDocx } from "$lib/export/exportEssay";
+  import {
+    type ExportFormat,
+    exportEssayToDocx,
+  } from "$lib/export/exportEssay";
+  import { exportEssayToPdf } from "$lib/export/exportPdf";
   import { resolveReferencesForExport } from "$lib/export/referenceResolution";
   import {
     createStudentExportSnapshot,
@@ -137,6 +141,11 @@
   let confirmingDelete = $state<string | null>(null);
   let exporting = $state(false);
   let exportMessage = $state("");
+  let exportMenuOpen = $state(false);
+  /* The format the current export is for. Carried through the advisory dialog
+     and through a fix-the-title-page detour so the resumed export still writes
+     the format the user actually asked for. */
+  let exportFormat = $state<ExportFormat>("docx");
   /* Non-empty while the advisory export dialog is up. Its own presence is the
      "already warned" flag, so confirming exports without re-checking. */
   let exportWarnings = $state<StudentTitlePageWarning[]>([]);
@@ -639,9 +648,14 @@
    * first attempt surfaces the shortfalls as advice, and `skipTitlePageAdvice`
    * carries the user's "export anyway" through the second call.
    */
-  async function handleExport(skipTitlePageAdvice = false) {
+  async function handleExport(
+    format: ExportFormat = exportFormat,
+    skipTitlePageAdvice = false,
+  ) {
     if (!editor || exporting) return;
     const currentEditor = editor;
+    exportFormat = format;
+    exportMenuOpen = false;
     exporting = true;
     exportMessage = "";
     exportWarnings = [];
@@ -674,7 +688,10 @@
         }
       }
 
-      const outcome = await exportEssayToDocx(
+      const exportForFormat = format === "pdf"
+        ? exportEssayToPdf
+        : exportEssayToDocx;
+      const outcome = await exportForFormat(
         exportSnapshot.essay,
         exportSnapshot.document,
         exportSnapshot.references,
@@ -785,7 +802,7 @@
     /* Saving finishes the export the user already asked for. The advice is
        skipped: they just read it in the form, so re-raising the dialog would
        trap "fix and save" in a loop it cannot leave. */
-    if (resumeExport) void handleExport(true);
+    if (resumeExport) void handleExport(exportFormat, true);
   }
 
   /** Applies an inline edit from the student title-page sheet. */
@@ -1160,16 +1177,30 @@
         <span class="fm-label">{m.fab_focus()}</span>
       </button>
       <div class="fm-sep"></div>
-      <button
-        class="fm-btn fm-primary-action"
-        onclick={() => void handleExport()}
-        disabled={!editor || exporting}
-        data-tip={exporting ? m.editor_exporting() : m.editor_export()}
-        aria-label={exporting ? m.editor_exporting() : m.editor_export()}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M8 11l4 4 4-4M5 21h14" /></svg>
-        <span class="fm-label">{exporting ? m.editor_exporting() : m.editor_export()}</span>
-      </button>
+      <div class="fm-export-wrap" {@attach dismissable(() => (exportMenuOpen = false))}>
+        <button
+          class="fm-btn fm-primary-action"
+          onclick={() => (exportMenuOpen = !exportMenuOpen)}
+          disabled={!editor || exporting}
+          data-tip={exporting ? m.editor_exporting() : m.editor_export()}
+          aria-label={exporting ? m.editor_exporting() : m.editor_export()}
+          aria-haspopup="menu"
+          aria-expanded={exportMenuOpen}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M8 11l4 4 4-4M5 21h14" /></svg>
+          <span class="fm-label">{exporting ? m.editor_exporting() : m.editor_export()}</span>
+        </button>
+        {#if exportMenuOpen}
+          <div class="menu export-menu" role="menu" aria-label={m.editor_export_format()}>
+            <button role="menuitem" onclick={() => void handleExport("docx")}>
+              {m.editor_export_docx()}
+            </button>
+            <button role="menuitem" onclick={() => void handleExport("pdf")}>
+              {m.editor_export_pdf()}
+            </button>
+          </div>
+        {/if}
+      </div>
       <span class="fm-count">
         {m.fab_words({ count: words.toLocaleString(uiLocale.current) })}
       </span>
@@ -1291,7 +1322,7 @@
     warnings={exportWarnings}
     onExportAnyway={() => {
       exportWarnings = [];
-      void handleExport(true);
+      void handleExport(exportFormat, true);
     }}
     onFixTitlePage={() => {
       exportWarnings = [];
@@ -1510,6 +1541,20 @@
 
   .add-wrap {
     position: relative;
+  }
+
+  .fm-export-wrap {
+    position: relative;
+    display: flex;
+  }
+
+  /* Opens upward: the export control sits on the bottom dock, so a menu
+     anchored below it would render off-screen. */
+  .fm-export-wrap .export-menu {
+    top: auto;
+    bottom: 115%;
+    right: 0;
+    min-width: 150px;
   }
 
   .mini {

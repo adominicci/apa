@@ -1,6 +1,6 @@
 [package]
 name = "tesina"
-version = "0.1.8"
+version = "0.1.9"
 description = "Tesina: APA 7 academic writing app"
 authors = ["Andres Dominicci and Tesina contributors"]
 license = "MIT"
@@ -20,6 +20,7 @@ tauri-build = { version = "2", features = [] }
 
 [features]
 native-proof-host = []
+pdf-proof-host = []
 
 [dependencies]
 tauri = { version = "2", features = [] }
@@ -35,7 +36,28 @@ sha2 = "0.10"
 same-file = "=1.0.6"
 uuid = { version = "1", features = ["v4"] }
 tauri-plugin-single-instance = "2.4.3"
-tokio = { version = "1", features = ["macros", "rt", "time"] }
+tokio = { version = "1", features = ["macros", "rt", "sync", "time"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# Cocoa printing for the silent PDF export. These exact versions already arrive
+# through the locked Wry graph, so nothing new enters the dependency tree, and
+# all are `Zlib OR Apache-2.0 OR MIT`.
+objc2 = "=0.6.4"
+objc2-app-kit = { version = "=0.3.2", features = [
+  "NSGraphics",
+  "NSPrintInfo",
+  "NSPrintOperation",
+  "NSResponder",
+  "NSView",
+  "NSWindow",
+] }
+objc2-foundation = { version = "=0.3.2", features = [
+  "NSDictionary",
+  "NSGeometry",
+  "NSString",
+  "NSURL",
+] }
+objc2-web-kit = { version = "=0.3.2", features = ["WKWebView"] }
 
 [dev-dependencies]
 tempfile = "3"
@@ -67,3 +89,13 @@ windows-sys = { version = "=0.61.2", features = [
 name = "webview2-proof-host"
 path = "examples/webview2-proof-host.rs"
 required-features = ["native-proof-host"]
+
+[[example]]
+name = "macos-pdf-proof-host"
+path = "examples/macos-pdf-proof-host.rs"
+required-features = ["pdf-proof-host"]
+
+[[example]]
+name = "pdf-export-live-proof"
+path = "examples/pdf-export-live-proof.rs"
+required-features = ["pdf-proof-host"]

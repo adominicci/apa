@@ -7,7 +7,7 @@ in APA 7 style. It runs without an account, and your papers remain on your
 computer. The interface and each document can use English or Spanish
 independently.
 
-Version 0.1.8 supports student papers on macOS 12 or newer. It is distributed
+Version 0.1.9 supports student papers on macOS 12 or newer. It is distributed
 as a DMG through GitHub Releases, not through the Mac App Store. Windows and
 Linux builds are checked in CI but are not published or supported yet.
 
@@ -16,7 +16,7 @@ Linux builds are checked in CI but are not published or supported yet.
 1. Download and open the DMG.
 2. Drag Tesina to the Applications folder.
 3. Open Tesina from Applications. macOS will block this first launch because
-   version 0.1.8 is not signed or notarized with an Apple Developer certificate.
+   version 0.1.9 is not signed or notarized with an Apple Developer certificate.
 4. In the **Tesina Not Opened** message, choose **Done**. Tesina will close. This
    is expected. Do not choose **Move to Trash** unless you want to delete the
    app.
@@ -36,8 +36,8 @@ the DMG before repeating these steps. Apple documents this process in
 
 ## What it does
 
-- Builds APA 7 student title pages and checks required title-page details
-  before Word export.
+- Builds APA 7 student title pages and lists the APA details that are missing
+  before an export, without ever blocking it.
 - Keeps the editor, paged preview, and Word export aligned for headings,
   appendices, lists, tables, figures, equations, citations, and references.
 - Flows the paper automatically across US Letter pages as you write.
@@ -46,6 +46,8 @@ the DMG before repeating these steps. Apple documents this process in
   autofill, plus BibTeX import with a review step.
 - Provides a paged preview and exports `.docx` files for Microsoft Word and
   compatible editors.
+- Exports PDF from the same pages the preview shows, saved straight to the
+  folder you choose without going through the macOS print panel.
 - Saves locally with atomic autosave and creates a timestamped backup before a
   paper is deleted. Tesina has no account system or cloud service.
 - Exports and safely merges complete portable `.tesina` library archives, with
@@ -63,7 +65,7 @@ the editor status bar. An app update does not replace your locally saved papers.
 
 The updater verifies release artifacts with Tesina's updater key. This is
 separate from Apple Developer signing and notarization, which are not included
-in version 0.1.8.
+in version 0.1.9.
 
 ## Run from source
 
