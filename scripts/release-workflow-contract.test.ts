@@ -107,13 +107,14 @@ describe("release workflow contract", () => {
     expect(releaseWorkflow).not.toMatch(/ubuntu-|matrix:/);
   });
 
-  it("adds exactly one unsigned Windows installer job without updater artifacts", () => {
+  it("builds signed Windows updater artifacts in exactly one job", () => {
     expect(releaseWorkflow.match(/runs-on: windows-latest/g)).toHaveLength(1);
     expect(releaseWorkflow).toContain("--bundles msi,nsis");
-    expect(releaseWorkflow).toContain('"createUpdaterArtifacts":false');
+    expect(releaseWorkflow).not.toContain('"createUpdaterArtifacts":false');
     expect(releaseWorkflow).toContain(
       "releaseAssetNamePattern: Tesina-windows-x64[ext]",
     );
+    expect(releaseWorkflow).toContain("updaterJsonPreferNsis: true");
   });
 
   it("keeps every Apple signing secret out of the Windows job", () => {
@@ -121,8 +122,61 @@ describe("release workflow contract", () => {
       recordField(releaseDocument, "jobs"),
       "windows",
     );
-    expect(JSON.stringify(windowsJob)).not.toMatch(/APPLE_|TAURI_SIGNING/);
+    expect(JSON.stringify(windowsJob)).not.toMatch(/APPLE_/);
     expect(windowsJob.needs).toBe("release");
+  });
+
+  it("hands the Windows manifest merge the same extracted notes", () => {
+    const tauriSteps = actionSteps(releaseDocument, "tauri-apps/tauri-action");
+    expect(tauriSteps).toHaveLength(2);
+    const windowsStep = tauriSteps.find((step) =>
+      "releaseId" in recordField(step, "with")
+    );
+    if (!windowsStep) throw new Error("Windows job has no tauri-action step.");
+    const inputs = recordField(windowsStep, "with");
+    expect(inputs.releaseBody).toBe(
+      "${{ steps.release-notes.outputs.body }}",
+    );
+    expect(inputs.uploadUpdaterJson).toBe(true);
+    expect(inputs.uploadUpdaterSignatures).toBe(true);
+    expect(workflowSteps(releaseDocument).map((step) => step.name)).toContain(
+      "Extract release notes for the Windows manifest",
+    );
+  });
+
+  it("verifies the final manifest and Windows updater signatures offline", () => {
+    const download = workflowStep(
+      "Download final draft release verification inputs",
+    );
+    expect(recordField(download, "env").GH_TOKEN).toBe(
+      "${{ secrets.GITHUB_TOKEN }}",
+    );
+    const downloadRun = stringField(download, "run");
+    expect(downloadRun).not.toMatch(/\b(?:cargo|deno)\b/);
+    for (
+      const asset of [
+        "latest.json",
+        "Tesina-macos-universal.app.tar.gz.sig",
+        "Tesina-windows-x64.exe",
+        "Tesina-windows-x64.exe.sig",
+        "Tesina-windows-x64.msi",
+        "Tesina-windows-x64.msi.sig",
+      ]
+    ) {
+      expect(downloadRun).toContain(`download_asset "${asset}"`);
+    }
+
+    const verification = workflowStep(
+      "Verify final draft release and updater manifest",
+    );
+    const env = recordField(verification, "env");
+    expect(env).not.toHaveProperty("GH_TOKEN");
+    expect(env).not.toHaveProperty("GITHUB_TOKEN");
+    const run = stringField(verification, "run");
+    expect(run).toContain("scripts/verify-release-draft.ts");
+    expect(run).toContain("full");
+    expect(run).not.toMatch(/\bcargo\s+run\b/);
+    expect(run.match(/"\$UPDATER_VERIFIER_BINARY"/g)).toHaveLength(2);
   });
 
   it("pins every action used by the secret-bearing release job", () => {
@@ -186,11 +240,11 @@ describe("release workflow contract", () => {
       "secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}",
     );
     expect(releaseWorkflow.match(/TAURI_SIGNING_PRIVATE_KEY:/g)).toHaveLength(
-      1,
+      2,
     );
     expect(
       releaseWorkflow.match(/TAURI_SIGNING_PRIVATE_KEY_PASSWORD:/g),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
   });
 
   it("gives write permission only to the jobs that upload release assets", () => {
@@ -203,6 +257,7 @@ describe("release workflow contract", () => {
   it("configures updater artifacts and documented ad-hoc macOS signing", () => {
     expect(tauriConfig.bundle.createUpdaterArtifacts).toBe(true);
     expect(tauriConfig.bundle.macOS.signingIdentity).toBe("-");
+    expect(tauriConfig.plugins.updater.windows.installMode).toBe("passive");
   });
 
   it("checks the Tesina GitHub release feed for updates", () => {

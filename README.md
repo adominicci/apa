@@ -8,7 +8,7 @@ in APA 7 style. It runs without an account, and your papers remain on your
 computer. The interface and each document can use English or Spanish
 independently.
 
-Version 0.1.13 supports student papers on macOS 12 or newer, and ships an
+Version 0.1.14 supports student papers on macOS 12 or newer, and ships an
 experimental Windows 10 or newer build. Both are distributed through GitHub
 Releases, not through an app store. Linux builds are checked in CI but are not
 published yet.
@@ -34,8 +34,8 @@ of anything important before you rely on it.
 3. Choose **More info**, then choose **Run anyway**.
 4. Follow the installer and open Tesina from the Start menu.
 
-Windows does not update itself yet. To move to a newer version, download the
-installer again and run it over the installed copy. An `.msi` package is also
+Tesina on Windows updates itself the same way it does on macOS: the app
+offers the new version, installs it, and restarts. An `.msi` package is also
 attached to each release for administrators who prefer it.
 
 ## What it does
@@ -61,16 +61,17 @@ Tesina follows the public [APA Style paper-format guidance](https://apastyle.apa
 
 ## Updates
 
-On macOS, Tesina checks the latest published GitHub Release when the app opens.
-If an update is available, the app asks before downloading or installing it. After
-installation, Tesina restarts and shows formatted release notes. You can reopen
-the installed version's notes from the version shown on the home screen or in
-the editor status bar. An app update does not replace your locally saved papers.
+Tesina checks the latest published GitHub Release when the app opens, and
+again every few minutes while it stays open. If an update is available, the
+update icon beside the version number offers it; hovering shows the release
+notes and clicking installs. After installation, Tesina restarts and shows
+formatted release notes. You can reopen the installed version's notes from the
+version shown on the home screen or in the editor status bar. An app update
+does not replace your locally saved papers.
 
-The updater verifies release artifacts with Tesina's updater key. This key is
-separate from the Apple Developer ID certificate that signs the app.
-
-The Windows build carries no updater artifacts, so it never updates itself.
+The updater verifies release artifacts with Tesina's updater key on both
+macOS and Windows. This key is separate from the Apple Developer ID
+certificate that signs the macOS app.
 
 ## Run from source
 

@@ -1,5 +1,6 @@
 import { check as tauriCheck, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { invoke } from "@tauri-apps/api/core";
 import {
   type ReleaseNotesStorage,
   savePendingReleaseNotes,
@@ -11,6 +12,8 @@ export interface UpdaterUpdate {
   version: string;
   body?: string;
   downloadAndInstall: Update["downloadAndInstall"];
+  download?: Update["download"];
+  install?: Update["install"];
 }
 
 export interface UpdaterDependencies {
@@ -19,6 +22,8 @@ export interface UpdaterDependencies {
   relaunch(): Promise<void>;
   resumeAfterFailedShutdown?(): Promise<void>;
   storage(): ReleaseNotesStorage | null;
+  /** Host OS name ("windows", "macos", …); picks the install ordering. */
+  hostOs?(): Promise<string>;
 }
 
 const defaultDependencies: UpdaterDependencies = {
@@ -39,6 +44,7 @@ const defaultDependencies: UpdaterDependencies = {
       return null;
     }
   },
+  hostOs: () => invoke<string>("host_os").catch(() => ""),
 };
 
 /**
@@ -116,46 +122,60 @@ export class UpdaterStore {
     this.#installEpoch += 1;
     this.status = "downloading";
     try {
+      const onProgress: Parameters<Update["downloadAndInstall"]>[0] = (e) => {
+        switch (e.event) {
+          case "Started":
+            this.#total = e.data.contentLength ?? 0;
+            break;
+          case "Progress":
+            this.#downloaded += e.data.chunkLength;
+            if (this.#total > 0) {
+              this.progress = Math.min(
+                100,
+                Math.round((this.#downloaded / this.#total) * 100),
+              );
+            }
+            break;
+          case "Finished":
+            this.progress = 100;
+            break;
+        }
+      };
+
+      // On Windows the NSIS installer terminates the process inside
+      // `install()`, so nothing after it can be relied on: pending work and
+      // the release-notes marker must be persisted between download and
+      // install, and the installer owns the restart. The host check runs only
+      // when the update supports the split flow, so the plain path keeps its
+      // synchronous start.
+      if (update.download && update.install) {
+        const hostOs = await this.#dependencies.hostOs?.().catch(() => "") ??
+          "";
+        if (hostOs === "windows") {
+          this.progress = 0;
+          this.#total = 0;
+          this.#downloaded = 0;
+          await update.download(onProgress);
+          await this.#dependencies.flushPending();
+          this.#savePendingNotes(update);
+          await update.install();
+          this.progress = 100;
+          this.#update = null;
+          this.status = "idle";
+          return;
+        }
+      }
+
       if (!this.#installedPendingRelaunch) {
         this.progress = 0;
         this.#total = 0;
         this.#downloaded = 0;
-        await update.downloadAndInstall((e) => {
-          switch (e.event) {
-            case "Started":
-              this.#total = e.data.contentLength ?? 0;
-              break;
-            case "Progress":
-              this.#downloaded += e.data.chunkLength;
-              if (this.#total > 0) {
-                this.progress = Math.min(
-                  100,
-                  Math.round((this.#downloaded / this.#total) * 100),
-                );
-              }
-              break;
-            case "Finished":
-              this.progress = 100;
-              break;
-          }
-        });
+        await update.downloadAndInstall(onProgress);
         this.#installedPendingRelaunch = true;
         this.progress = 100;
       }
       await this.#dependencies.flushPending();
-      try {
-        const storage = this.#dependencies.storage();
-        if (storage) {
-          savePendingReleaseNotes(storage, {
-            version: update.version,
-            body: update.body ?? "",
-          });
-        }
-      } catch (err) {
-        // Notes are best-effort; storage failure cannot strand an installed
-        // update in the old process.
-        console.error("No se pudieron guardar las notas de versión:", err);
-      }
+      this.#savePendingNotes(update);
       await this.#dependencies.relaunch();
       this.#update = null;
       this.#installedPendingRelaunch = false;
@@ -164,6 +184,22 @@ export class UpdaterStore {
       await this.#dependencies.resumeAfterFailedShutdown?.();
       console.error("No se pudo instalar la actualización:", err);
       this.status = "error";
+    }
+  }
+
+  #savePendingNotes(update: UpdaterUpdate): void {
+    try {
+      const storage = this.#dependencies.storage();
+      if (storage) {
+        savePendingReleaseNotes(storage, {
+          version: update.version,
+          body: update.body ?? "",
+        });
+      }
+    } catch (err) {
+      // Notes are best-effort; storage failure cannot strand an installed
+      // update in the old process.
+      console.error("No se pudieron guardar las notas de versión:", err);
     }
   }
 }

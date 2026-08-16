@@ -65,6 +65,74 @@ function validManifest() {
   };
 }
 
+const windowsExeSignature = "trusted windows exe signature";
+const windowsMsiSignature = "trusted windows msi signature";
+const exeUrl =
+  "https://api.github.com/repos/adominicci/apa/releases/assets/201";
+const msiUrl =
+  "https://api.github.com/repos/adominicci/apa/releases/assets/202";
+
+function fullRelease() {
+  const release = validRelease();
+  release.assets.push(
+    {
+      name: "Tesina-windows-x64.exe",
+      url: exeUrl,
+      browser_download_url:
+        "https://github.com/adominicci/apa/releases/download/untagged-b68ed30bf5463e9ba16d/Tesina-windows-x64.exe",
+    },
+    {
+      name: "Tesina-windows-x64.exe.sig",
+      url: "https://api.github.com/repos/adominicci/apa/releases/assets/203",
+      browser_download_url:
+        "https://github.com/adominicci/apa/releases/download/untagged-b68ed30bf5463e9ba16d/Tesina-windows-x64.exe.sig",
+    },
+    {
+      name: "Tesina-windows-x64.msi",
+      url: msiUrl,
+      browser_download_url:
+        "https://github.com/adominicci/apa/releases/download/untagged-b68ed30bf5463e9ba16d/Tesina-windows-x64.msi",
+    },
+    {
+      name: "Tesina-windows-x64.msi.sig",
+      url: "https://api.github.com/repos/adominicci/apa/releases/assets/204",
+      browser_download_url:
+        "https://github.com/adominicci/apa/releases/download/untagged-b68ed30bf5463e9ba16d/Tesina-windows-x64.msi.sig",
+    },
+  );
+  return release;
+}
+
+function fullManifest() {
+  const manifest = validManifest();
+  manifest.platforms["windows-x86_64"] = {
+    signature: windowsExeSignature,
+    url: exeUrl,
+  };
+  manifest.platforms["windows-x86_64-nsis"] = {
+    signature: windowsExeSignature,
+    url: exeUrl,
+  };
+  manifest.platforms["windows-x86_64-msi"] = {
+    signature: windowsMsiSignature,
+    url: msiUrl,
+  };
+  return manifest;
+}
+
+function fullContract() {
+  return {
+    release: fullRelease(),
+    manifest: fullManifest(),
+    version: "0.1.0",
+    notes,
+    signatureAsset,
+    stage: "full" as const,
+    windowsExeSignature,
+    windowsMsiSignature,
+  };
+}
+
 describe("verifyReleaseDraft", () => {
   it("accepts the archive REST API URL for every updater platform", () => {
     expect(() =>
@@ -188,6 +256,58 @@ describe("verifyReleaseDraft", () => {
         signatureAsset,
       })
     ).toThrow("does not point to Tesina-macos-universal.app.tar.gz");
+  });
+
+  it("accepts a complete two-platform draft in the full stage", () => {
+    expect(() => verifyReleaseDraft(fullContract())).not.toThrow();
+  });
+
+  it("full stage rejects a missing Windows platform key", () => {
+    const contract = fullContract();
+    delete contract.manifest.platforms["windows-x86_64"];
+
+    expect(() => verifyReleaseDraft(contract)).toThrow(
+      'latest.json is missing platform "windows-x86_64"',
+    );
+  });
+
+  it("full stage rejects a Windows updater URL that points at the MSI", () => {
+    const contract = fullContract();
+    contract.manifest.platforms["windows-x86_64"].url = msiUrl;
+
+    expect(() => verifyReleaseDraft(contract)).toThrow(
+      'latest.json platform "windows-x86_64" does not point to Tesina-windows-x64.exe',
+    );
+  });
+
+  it("full stage rejects a Windows signature that differs from the sig asset", () => {
+    const contract = fullContract();
+    contract.manifest.platforms["windows-x86_64-msi"].signature =
+      "tampered signature";
+
+    expect(() => verifyReleaseDraft(contract)).toThrow(
+      'signature asset does not match latest.json platform "windows-x86_64-msi"',
+    );
+  });
+
+  it("full stage rejects a release without the Windows sig assets", () => {
+    const contract = fullContract();
+    contract.release.assets = contract.release.assets.filter(
+      ({ name }) => name !== "Tesina-windows-x64.exe.sig",
+    );
+
+    expect(() => verifyReleaseDraft(contract)).toThrow(
+      "release asset names do not match",
+    );
+  });
+
+  it("full stage requires both downloaded Windows signatures", () => {
+    const contract = fullContract();
+    contract.windowsMsiSignature = undefined as unknown as string;
+
+    expect(() => verifyReleaseDraft(contract)).toThrow(
+      "full stage requires both Windows signature assets",
+    );
   });
 
   it("rejects non-macOS platforms in latest.json", () => {

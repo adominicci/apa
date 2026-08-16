@@ -1,11 +1,18 @@
-const EXPECTED_ASSET_NAMES = [
+const MACOS_ASSET_NAMES = [
   "Tesina-macos-universal.app.tar.gz",
   "Tesina-macos-universal.app.tar.gz.sig",
   "Tesina-macos-universal.dmg",
   "latest.json",
 ] as const;
 
-const EXPECTED_PLATFORM_KEYS = [
+const WINDOWS_ASSET_NAMES = [
+  "Tesina-windows-x64.exe",
+  "Tesina-windows-x64.exe.sig",
+  "Tesina-windows-x64.msi",
+  "Tesina-windows-x64.msi.sig",
+] as const;
+
+const DARWIN_PLATFORM_KEYS = [
   "darwin-universal",
   "darwin-aarch64",
   "darwin-x86_64",
@@ -14,12 +21,29 @@ const EXPECTED_PLATFORM_KEYS = [
   "darwin-x86_64-app",
 ] as const;
 
+/** The updater installs the NSIS setup; the MSI key exists for manual picks. */
+const WINDOWS_EXE_PLATFORM_KEYS = [
+  "windows-x86_64",
+  "windows-x86_64-nsis",
+] as const;
+
+export type ReleaseDraftStage = "macos" | "full";
+
 interface ReleaseDraftContract {
   release: unknown;
   manifest: unknown;
   version: string;
   notes: string;
   signatureAsset: string;
+  stage?: ReleaseDraftStage;
+  windowsExeSignature?: string;
+  windowsMsiSignature?: string;
+}
+
+interface PlatformExpectation {
+  assetName: string;
+  url: string;
+  signature: string;
 }
 
 function record(label: string, value: unknown): Record<string, unknown> {
@@ -41,6 +65,14 @@ function stringField(
 }
 
 export function verifyReleaseDraft(contract: ReleaseDraftContract): void {
+  const stage = contract.stage ?? "macos";
+  if (
+    stage === "full" &&
+    (!contract.windowsExeSignature || !contract.windowsMsiSignature)
+  ) {
+    throw new Error("full stage requires both Windows signature assets.");
+  }
+
   const release = record("release", contract.release);
   const manifest = record("latest.json", contract.manifest);
   const expectedTag = `v${contract.version}`;
@@ -77,21 +109,25 @@ export function verifyReleaseDraft(contract: ReleaseDraftContract): void {
       ),
     };
   });
+  const expectedAssetNames = stage === "full"
+    ? [...MACOS_ASSET_NAMES, ...WINDOWS_ASSET_NAMES]
+    : [...MACOS_ASSET_NAMES];
   const actualAssetNames = assets.map(({ name }) => name).sort();
-  const expectedAssetNames = [...EXPECTED_ASSET_NAMES].sort();
-  if (JSON.stringify(actualAssetNames) !== JSON.stringify(expectedAssetNames)) {
+  if (
+    JSON.stringify(actualAssetNames) !==
+      JSON.stringify([...expectedAssetNames].sort())
+  ) {
     throw new Error(
-      `release asset names do not match the macOS contract: ${
-        actualAssetNames.join(", ")
-      }`,
+      `release asset names do not match the ${
+        stage === "full" ? "release" : "macOS"
+      } contract: ${actualAssetNames.join(", ")}`,
     );
   }
 
-  const archiveUrl = assets.find(({ name }) =>
-    name === "Tesina-macos-universal.app.tar.gz"
-  )?.url;
-  if (!archiveUrl) {
-    throw new Error("release has no universal macOS updater archive.");
+  function assetUrl(name: string): string {
+    const url = assets.find((asset) => asset.name === name)?.url;
+    if (!url) throw new Error(`release has no "${name}" asset.`);
+    return url;
   }
 
   if (manifest.version !== contract.version) {
@@ -101,8 +137,33 @@ export function verifyReleaseDraft(contract: ReleaseDraftContract): void {
     throw new Error("latest.json notes do not match the release body.");
   }
 
+  const archiveUrl = assetUrl("Tesina-macos-universal.app.tar.gz");
+  const expectations = new Map<string, PlatformExpectation>();
+  for (const key of DARWIN_PLATFORM_KEYS) {
+    expectations.set(key, {
+      assetName: "Tesina-macos-universal.app.tar.gz",
+      url: archiveUrl,
+      signature: contract.signatureAsset,
+    });
+  }
+  if (stage === "full") {
+    const exeUrl = assetUrl("Tesina-windows-x64.exe");
+    for (const key of WINDOWS_EXE_PLATFORM_KEYS) {
+      expectations.set(key, {
+        assetName: "Tesina-windows-x64.exe",
+        url: exeUrl,
+        signature: contract.windowsExeSignature as string,
+      });
+    }
+    expectations.set("windows-x86_64-msi", {
+      assetName: "Tesina-windows-x64.msi",
+      url: assetUrl("Tesina-windows-x64.msi"),
+      signature: contract.windowsMsiSignature as string,
+    });
+  }
+
   const platforms = record("latest.json platforms", manifest.platforms);
-  for (const key of EXPECTED_PLATFORM_KEYS) {
+  for (const [key, expectation] of expectations) {
     if (!(key in platforms)) {
       throw new Error(`latest.json is missing platform "${key}".`);
     }
@@ -112,22 +173,22 @@ export function verifyReleaseDraft(contract: ReleaseDraftContract): void {
       `latest.json platform ${key} signature`,
       platform.signature,
     );
-    if (signature !== contract.signatureAsset) {
+    if (signature !== expectation.signature) {
       throw new Error(
         `signature asset does not match latest.json platform "${key}".`,
       );
     }
     const url = stringField(`latest.json platform ${key} URL`, platform.url);
     // The pinned tauri-action emits asset.url; the updater requests it as octet-stream.
-    if (url !== archiveUrl) {
+    if (url !== expectation.url) {
       throw new Error(
-        `latest.json platform "${key}" does not point to Tesina-macos-universal.app.tar.gz.`,
+        `latest.json platform "${key}" does not point to ${expectation.assetName}.`,
       );
     }
   }
 
   for (const key of Object.keys(platforms)) {
-    if (!EXPECTED_PLATFORM_KEYS.includes(key as never)) {
+    if (!expectations.has(key)) {
       throw new Error(`unexpected updater platform "${key}" in latest.json.`);
     }
   }
@@ -135,14 +196,34 @@ export function verifyReleaseDraft(contract: ReleaseDraftContract): void {
 
 if (import.meta.main) {
   try {
-    const [releasePath, manifestPath, notesPath, version, signaturePath] =
-      Deno.args;
+    const [
+      releasePath,
+      manifestPath,
+      notesPath,
+      version,
+      signaturePath,
+      stageArg,
+      exeSignaturePath,
+      msiSignaturePath,
+    ] = Deno.args;
+    const stage: ReleaseDraftStage = stageArg === undefined
+      ? "macos"
+      : stageArg === "full"
+      ? "full"
+      : (() => {
+        throw new Error(`unknown verification stage "${stageArg}".`);
+      })();
+    const argCountValid = stage === "macos"
+      ? Deno.args.length === 5
+      : Deno.args.length === 8 && !!exeSignaturePath && !!msiSignaturePath;
     if (
       !releasePath || !manifestPath || !notesPath || !version ||
-      !signaturePath || Deno.args.length !== 5
+      !signaturePath || !argCountValid
     ) {
       throw new Error(
-        "Usage: deno run --allow-read scripts/verify-release-draft.ts <release-json> <latest-json> <notes> <version> <signature>",
+        "Usage: deno run --allow-read scripts/verify-release-draft.ts " +
+          "<release-json> <latest-json> <notes> <version> <macos-signature> " +
+          "[full <exe-signature> <msi-signature>]",
       );
     }
 
@@ -153,14 +234,27 @@ if (import.meta.main) {
         Deno.readTextFile(notesPath),
         Deno.readTextFile(signaturePath),
       ]);
+    const [windowsExeSignature, windowsMsiSignature] = stage === "full"
+      ? await Promise.all([
+        Deno.readTextFile(exeSignaturePath),
+        Deno.readTextFile(msiSignaturePath),
+      ])
+      : [undefined, undefined];
     verifyReleaseDraft({
       release: JSON.parse(releaseJson),
       manifest: JSON.parse(manifestJson),
       version,
       notes: notesFile.trim(),
       signatureAsset,
+      stage,
+      windowsExeSignature,
+      windowsMsiSignature,
     });
-    console.log("Verified macOS draft release assets and updater manifest.");
+    console.log(
+      stage === "full"
+        ? "Verified the final draft release assets and two-platform updater manifest."
+        : "Verified macOS draft release assets and updater manifest.",
+    );
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     Deno.exitCode = 1;
