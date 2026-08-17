@@ -48,10 +48,16 @@ describe("checkApaDocument", () => {
     ).toEqual([]);
   });
 
-  it("flags a first heading deeper than level 1", () => {
+  it("allows a first heading of level 2: the generated section title is the de facto level 1", () => {
+    expect(
+      checkApaDocument(doc(body(p("Intro"), h(2, "Subsección"), p("x")))),
+    ).toEqual([]);
+  });
+
+  it("flags a first heading deeper than level 2", () => {
     const issues = checkApaDocument(doc(body(p("Hola"), h(3, "Salto"))));
     expect(issues).toEqual([
-      { rule: "skipped-heading-level", path: [0, 1], found: 3, allowed: 1 },
+      { rule: "skipped-heading-level", path: [0, 1], found: 3, allowed: 2 },
     ]);
   });
 
@@ -79,12 +85,12 @@ describe("checkApaDocument", () => {
   it("restarts heading tracking on each section", () => {
     const issues = checkApaDocument(
       doc(
-        body(h(1, "A"), h(2, "B")),
-        { type: "sectionAppendix", content: [p("x"), h(2, "C")] },
+        body(h(1, "A"), h(2, "B"), h(3, "C")),
+        { type: "sectionAppendix", content: [p("x"), h(3, "D")] },
       ),
     );
     expect(issues).toEqual([
-      { rule: "skipped-heading-level", path: [1, 1], found: 2, allowed: 1 },
+      { rule: "skipped-heading-level", path: [1, 1], found: 3, allowed: 2 },
     ]);
   });
 

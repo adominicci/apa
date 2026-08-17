@@ -57,9 +57,12 @@ export function checkApaDocument(doc: unknown): ApaCheckIssue[] {
     const children = section.content ?? [];
     // The abstract's trailing keywords line is chrome-like, not body content;
     // it must not defeat the placeholder exemption below.
-    const blockCount =
-      children.filter((c) => c.type !== "keywordsLine").length;
-    let previousHeading = 0;
+    const blockCount = children.filter((c) => c.type !== "keywordsLine").length;
+    // Every section opens with a generated heading the user never authors —
+    // the paper title for the body, the "Apéndice A" label for appendices —
+    // and APA treats it as the de facto Level 1 heading, so an authored
+    // first heading may legitimately be Level 1 or Level 2.
+    let previousHeading = 1;
 
     // Scope note: only direct section children are scanned. Blank lines
     // nested inside lists, blockquotes, or table cells are out of scope for
