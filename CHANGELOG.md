@@ -14,8 +14,6 @@ and [Semantic Versioning](https://semver.org/).
   shows what changed, and installs on click. Tesina saves your work before
   the installer runs, and the app restarts on its own.
 
-## [0.1.13] - 2026-08-16
-
 ### Changed
 
 - The update notice is now a small icon beside the version number, at the
