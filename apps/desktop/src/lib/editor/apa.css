@@ -769,3 +769,10 @@
   text-indent: 0;
   margin: 0;
 }
+
+/* Soft tint on blocks the live APA check flags (node decorations from
+   editor/apaCheck.ts). Advisory chrome: color only, no layout impact. */
+.apa-editor .tiptap .apa-check-flag {
+  background: color-mix(in oklab, var(--danger), transparent 90%);
+  border-radius: 2px;
+}
