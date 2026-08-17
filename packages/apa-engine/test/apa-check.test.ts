@@ -139,6 +139,34 @@ describe("checkApaDocument", () => {
     ]);
   });
 
+  it("does not flag a paragraph whose only content is an inline atom", () => {
+    const citationParagraph = {
+      type: "paragraph",
+      content: [{ type: "citation", attrs: { items: [] } }],
+    };
+    expect(
+      checkApaDocument(doc(body(p("Hola"), citationParagraph))),
+    ).toEqual([]);
+  });
+
+  it("does not flag the abstract placeholder when a keywords line follows it", () => {
+    const abstract = {
+      type: "sectionAbstract",
+      content: [p(), { type: "keywordsLine" }],
+    };
+    expect(checkApaDocument(doc(abstract, body(p("Hola"))))).toEqual([]);
+  });
+
+  it("still flags a real blank line in an abstract with keywords", () => {
+    const abstract = {
+      type: "sectionAbstract",
+      content: [p("Resumen breve."), p(), { type: "keywordsLine" }],
+    };
+    expect(checkApaDocument(doc(abstract, body(p("Hola"))))).toEqual([
+      { rule: "empty-paragraph", path: [0, 1] },
+    ]);
+  });
+
   it("tolerates a malformed or empty document", () => {
     expect(checkApaDocument(undefined)).toEqual([]);
     expect(checkApaDocument({})).toEqual([]);

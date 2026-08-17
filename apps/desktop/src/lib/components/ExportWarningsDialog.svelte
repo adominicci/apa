@@ -4,13 +4,14 @@
   import { localizeTitlePageValidation } from "$lib/components/titlePageValidationMessages";
   import { localizeApaCheck } from "$lib/components/apaCheckMessages";
   import type { StudentTitlePageWarning } from "$lib/model/titlePageValidation";
-  import type { PositionedApaIssue } from "$lib/editor/apaCheck";
+  import type { ApaCheckIssue } from "@tesina/engine";
+  import { apaIssueKey } from "$lib/editor/apaCheck";
 
   interface Props {
     warnings: readonly StudentTitlePageWarning[];
-    /** Live APA structure issues frozen at export time; advisory like the
-       title-page warnings. */
-    apaIssues?: readonly PositionedApaIssue[];
+    /** Document-structure issues checked from the export snapshot; advisory
+       like the title-page warnings. */
+    apaIssues?: readonly ApaCheckIssue[];
     onExportAnyway: () => void;
     onFixTitlePage: () => void;
     onClose: () => void;
@@ -23,12 +24,14 @@
     onFixTitlePage,
     onClose,
   }: Props = $props();
+
+  const hasTitleWarnings = $derived(warnings.length > 0);
 </script>
 
 <!-- Advisory, never a gate: the primary action exports as asked, and fixing
      the title page is the secondary path for whoever wants APA to be exact. -->
 <Modal
-  title={warnings.length > 0
+  title={hasTitleWarnings
     ? m.export_warn_title()
     : m.apa_check_warn_heading()}
   {onClose}
@@ -37,15 +40,15 @@
     <span class="status-dot" aria-hidden="true"></span>
     <div class="status-body">
       <span class="status-title">
-        {warnings.length > 0
+        {hasTitleWarnings
           ? m.titlepage_warn_heading()
-          : m.apa_check_warn_heading()}
+          : m.apa_check_tip_issues({ count: apaIssues.length })}
       </span>
       <span class="status-meta">{m.export_warn_meta()}</span>
     </div>
   </div>
 
-  {#if warnings.length > 0}
+  {#if hasTitleWarnings}
     <ul class="warn-list">
       {#each warnings as warning (warning.issue)}
         <li>{localizeTitlePageValidation(warning.messageKey)}</li>
@@ -54,18 +57,18 @@
   {/if}
 
   {#if apaIssues.length > 0}
-    {#if warnings.length > 0}
+    {#if hasTitleWarnings}
       <p class="warn-subhead">{m.apa_check_warn_heading()}</p>
     {/if}
     <ul class="warn-list">
-      {#each apaIssues as issue (`${issue.rule}:${issue.from}`)}
+      {#each apaIssues as issue (apaIssueKey(issue))}
         <li>{localizeApaCheck(issue)}</li>
       {/each}
     </ul>
   {/if}
 
   {#snippet footer()}
-    {#if warnings.length > 0}
+    {#if hasTitleWarnings}
       <button class="btn btn-ghost" onclick={onFixTitlePage}>
         {m.export_warn_fix()}
       </button>

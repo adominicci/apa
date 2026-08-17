@@ -21,13 +21,16 @@ function posAtPath(doc: PMNode, path: number[]): { from: number; to: number } {
   let contentStart = 0;
   let from = 0;
   for (const index of path) {
-    let pos = contentStart;
-    for (let i = 0; i < index; i++) pos += node.child(i).nodeSize;
-    from = pos;
+    from = doc.resolve(contentStart).posAtIndex(index);
     node = node.child(index);
     contentStart = from + 1;
   }
   return { from, to: from + node.nodeSize };
+}
+
+/** Stable identity for keyed lists in the pill popover and export dialog. */
+export function apaIssueKey(issue: ApaCheckIssue): string {
+  return `${issue.rule}:${issue.path.join(".")}`;
 }
 
 function compute(
@@ -51,6 +54,23 @@ const key = new PluginKey<DecorationSet>("apaCheck");
 export function createApaCheckExtension(
   onIssues: (issues: PositionedApaIssue[]) => void,
 ): Extension {
+  // Consumers start from an empty list, so the empty signature is pre-seeded
+  // and a clean document never emits at all.
+  let lastSignature = "";
+  const recompute = (doc: PMNode): DecorationSet => {
+    const { decos, issues } = compute(doc);
+    const signature = issues
+      .map((i) => `${i.rule}:${i.from}:${i.to}`)
+      .join("|");
+    if (signature !== lastSignature) {
+      lastSignature = signature;
+      // Deferred: the callback reaches into app state, and dispatch is
+      // still in flight when init/apply run.
+      queueMicrotask(() => onIssues(issues));
+    }
+    return decos;
+  };
+
   return Extension.create({
     name: "apaCheck",
     addProseMirrorPlugins() {
@@ -58,19 +78,9 @@ export function createApaCheckExtension(
         new Plugin({
           key,
           state: {
-            init: (_config, state) => {
-              const { decos, issues } = compute(state.doc);
-              // Deferred: the callback reaches into app state, and dispatch
-              // is still in flight when init/apply run.
-              queueMicrotask(() => onIssues(issues));
-              return decos;
-            },
-            apply: (tr, value) => {
-              if (!tr.docChanged) return value.map(tr.mapping, tr.doc);
-              const { decos, issues } = compute(tr.doc);
-              queueMicrotask(() => onIssues(issues));
-              return decos;
-            },
+            init: (_config, state) => recompute(state.doc),
+            apply: (tr, value) =>
+              tr.docChanged ? recompute(tr.doc) : value.map(tr.mapping, tr.doc),
           },
           props: {
             decorations: (state) => key.getState(state),

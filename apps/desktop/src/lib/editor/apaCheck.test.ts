@@ -22,6 +22,7 @@ function createEditor(content: unknown) {
   const element = document.createElement("div");
   document.body.append(element);
   let issues: PositionedApaIssue[] = [];
+  let emissions = 0;
   const editor = createTesinaEditor({
     element,
     content,
@@ -29,9 +30,12 @@ function createEditor(content: unknown) {
     citationEnv: { refsById: new Map(), locale: "en" },
     referenceEnv: { references: [], locale: "en", emptyLabel: "None" },
     paginationEnv: null,
-    onApaIssues: (next) => (issues = next),
+    onApaIssues: (next) => {
+      issues = next;
+      emissions += 1;
+    },
   });
-  return { editor, element, issues: () => issues };
+  return { editor, element, issues: () => issues, emissions: () => emissions };
 }
 
 afterEach(() => {
@@ -107,6 +111,30 @@ describe("apa check editor integration", () => {
     expect(issues().map((i) => i.rule)).toEqual(["empty-table-title"]);
     const node = editor.state.doc.nodeAt(issues()[0].from);
     expect(node?.type.name).toBe("tableTitle");
+  });
+
+  it("does not re-emit an unchanged issue list on plain typing", async () => {
+    const { editor, emissions } = createEditor(docWith(
+      { type: "paragraph", content: text("Hola") },
+    ));
+    await flush();
+    const before = emissions();
+    editor.chain().insertContentAt(2, "x").run();
+    editor.chain().insertContentAt(3, "y").run();
+    await flush();
+    expect(emissions()).toBe(before);
+  });
+
+  it("re-emits when typing shifts the positions of existing issues", async () => {
+    const { editor, issues } = createEditor(docWith(
+      { type: "paragraph", content: text("Hola") },
+      { type: "paragraph" },
+    ));
+    await flush();
+    const originalFrom = issues()[0].from;
+    editor.chain().insertContentAt(2, "xx").run();
+    await flush();
+    expect(issues()[0].from).toBe(originalFrom + 2);
   });
 
   it("deleteIssueRanges removes every flagged blank paragraph at once", async () => {

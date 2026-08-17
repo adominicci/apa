@@ -34,6 +34,17 @@ function hasText(node: PMJsonNode): boolean {
 }
 
 /**
+ * Blank means visually and semantically empty: no non-whitespace text and no
+ * non-text inline (a citation atom or hard break counts as content, so the
+ * one-click Remove can never delete something the user authored).
+ */
+function isBlankParagraph(node: PMJsonNode): boolean {
+  return (node.content ?? []).every((child) =>
+    child.type === "text" && (child.text ?? "").trim() === ""
+  );
+}
+
+/**
  * Checks one doc (shape `sectionAbstract? sectionBody sectionAppendix*`).
  * Heading tracking restarts per section: a section's first heading should be
  * Level 1, and a heading may go at most one level deeper than the previous.
@@ -44,16 +55,23 @@ export function checkApaDocument(doc: unknown): ApaCheckIssue[] {
 
   sections.forEach((section, si) => {
     const children = section.content ?? [];
+    // The abstract's trailing keywords line is chrome-like, not body content;
+    // it must not defeat the placeholder exemption below.
+    const blockCount =
+      children.filter((c) => c.type !== "keywordsLine").length;
     let previousHeading = 0;
 
+    // Scope note: only direct section children are scanned. Blank lines
+    // nested inside lists, blockquotes, or table cells are out of scope for
+    // this rule set (cells legitimately hold single empty paragraphs).
     children.forEach((child, ci) => {
       const path = [si, ci];
 
-      if (child.type === "paragraph" && !hasText(child)) {
+      if (child.type === "paragraph" && isBlankParagraph(child)) {
         // A section's schema requires at least one block, so the single
         // paragraph of an otherwise empty section is a placeholder, not a
         // stray blank line.
-        if (children.length > 1) issues.push({ rule: "empty-paragraph", path });
+        if (blockCount > 1) issues.push({ rule: "empty-paragraph", path });
         return;
       }
 

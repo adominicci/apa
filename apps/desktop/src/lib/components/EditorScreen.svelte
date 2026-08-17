@@ -3,8 +3,13 @@
   import type { Attachment } from "svelte/attachments";
   import type { Editor as TiptapEditor } from "@tiptap/core";
   import { hasAuthoredBodyTitle } from "@tesina/docx-export";
-  import type { CitationAttrs, DocLocale, Reference } from "@tesina/engine";
-  import { getTerms } from "@tesina/engine";
+  import type {
+    ApaCheckIssue,
+    CitationAttrs,
+    DocLocale,
+    Reference,
+  } from "@tesina/engine";
+  import { checkApaDocument, getTerms } from "@tesina/engine";
   import type {
     Essay,
     EssaySettings,
@@ -59,6 +64,7 @@
   import { importImageFile } from "$lib/persist/assets";
   import { buildOutline, type OutlineItem } from "$lib/editor/outline";
   import {
+    apaIssueKey,
     deleteIssueRanges,
     type PositionedApaIssue,
   } from "$lib/editor/apaCheck";
@@ -180,9 +186,9 @@
   /** Live APA structure issues, fed by the editor's check extension. */
   let apaIssues = $state<PositionedApaIssue[]>([]);
   let apaCheckOpen = $state(false);
-  /** Snapshot shown in the advisory export dialog beside the title-page
-     warnings; frozen at export time like `exportWarnings`. */
-  let exportApaIssues = $state<PositionedApaIssue[]>([]);
+  /** Checked from the export snapshot itself (not the live pill state), so
+     the advisory dialog always matches the bytes about to be written. */
+  let exportApaIssues = $state<ApaCheckIssue[]>([]);
   let citedCounts = $state<Map<string, number>>(
     untrack(() => collectCitedRefIds(essay.content)),
   );
@@ -624,22 +630,13 @@
       .run();
   }
 
-  function fixIssue(issue: PositionedApaIssue) {
-    if (!editor || issue.rule !== "empty-paragraph") return;
-    deleteIssueRanges(editor, [issue]);
-  }
-
-  function fixAllEmptyParagraphs() {
-    if (!editor) return;
-    deleteIssueRanges(
-      editor,
-      apaIssues.filter((i) => i.rule === "empty-paragraph"),
-    );
-  }
-
-  const emptyParagraphCount = $derived(
-    apaIssues.filter((i) => i.rule === "empty-paragraph").length,
+  const emptyParagraphIssues = $derived(
+    apaIssues.filter((i) => i.rule === "empty-paragraph"),
   );
+
+  function fixIssues(issues: readonly PositionedApaIssue[]) {
+    if (editor) deleteIssueRanges(editor, issues);
+  }
 
   const activeIndex = $derived.by(() => {
     let index = -1;
@@ -683,13 +680,15 @@
   }
 
   /**
-   * Exports the essay. An incomplete APA title page never stops this: the
-   * first attempt surfaces the shortfalls as advice, and `skipTitlePageAdvice`
-   * carries the user's "export anyway" through the second call.
+   * Exports the essay. Incomplete APA — title page or document structure —
+   * never stops this: the first attempt surfaces every shortfall as advice
+   * in one dialog, and `skipExportAdvice` carries the user's "export anyway"
+   * (or the fix-title-page detour, which already showed the advice once)
+   * through the second call.
    */
   async function handleExport(
     format: ExportFormat = exportFormat,
-    skipTitlePageAdvice = false,
+    skipExportAdvice = false,
   ) {
     if (!editor || exporting) return;
     const currentEditor = editor;
@@ -717,14 +716,15 @@
         exportReferences.references,
         documentLanguage,
       );
-      if (!skipTitlePageAdvice) {
+      if (!skipExportAdvice) {
         const warnings = studentTitlePageWarnings(
           exportSnapshot.essay.titlePage,
           documentLanguage,
         );
-        if (warnings.length > 0 || apaIssues.length > 0) {
+        const bodyIssues = checkApaDocument(documentSnapshot);
+        if (warnings.length > 0 || bodyIssues.length > 0) {
           exportWarnings = warnings;
-          exportApaIssues = apaIssues;
+          exportApaIssues = bodyIssues;
           return;
         }
       }
@@ -1270,12 +1270,16 @@
             {#if apaIssues.length === 0}
               <p class="apa-check-empty">{m.apa_check_all_good()}</p>
             {:else}
-              {#if emptyParagraphCount > 1}
-                <button class="apa-fix-all" onclick={fixAllEmptyParagraphs}>
-                  {m.apa_check_fix_all({ count: emptyParagraphCount })}
+              {#if emptyParagraphIssues.length > 1}
+                <button
+                  class="apa-fix-all"
+                  role="menuitem"
+                  onclick={() => fixIssues(emptyParagraphIssues)}
+                >
+                  {m.apa_check_fix_all({ count: emptyParagraphIssues.length })}
                 </button>
               {/if}
-              {#each apaIssues as issue (`${issue.rule}:${issue.from}`)}
+              {#each apaIssues as issue (apaIssueKey(issue))}
                 <div class="apa-check-row">
                   <button
                     class="apa-check-jump"
@@ -1287,7 +1291,8 @@
                   {#if issue.rule === "empty-paragraph"}
                     <button
                       class="apa-check-fix"
-                      onclick={() => fixIssue(issue)}
+                      role="menuitem"
+                      onclick={() => fixIssues([issue])}
                     >
                       {m.apa_check_fix()}
                     </button>
