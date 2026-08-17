@@ -12,7 +12,15 @@ describe("bundled release notes", () => {
 - Tesina on Windows now updates itself. The update icon works there the same
   way it does on a Mac: it checks for new versions while the app is open,
   shows what changed, and installs on click. Tesina saves your work before
-  the installer runs, and the app restarts on its own.`;
+  the installer runs, and the app restarts on its own.
+
+### Changed
+
+- The update notice is now a small icon beside the version number, at the
+  bottom of the sidebar and in the editor status bar, instead of a banner
+  across the top of the window. Hover the icon to read what is new; click it
+  to update and restart. Tesina saves your work before restarting. When you
+  are already up to date, the same icon checks for new updates on click.`;
 
     expect(bundledReleaseNotes.version).toBe("0.1.14");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);

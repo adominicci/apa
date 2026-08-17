@@ -63,6 +63,35 @@ const changelog = `# Changelog
 `;
 
 describe("extractReleaseNotes", () => {
+  it("returns LF notes from a CRLF changelog", () => {
+    // Windows runners check the changelog out with CRLF. These notes become a
+    // release body on one host and a manifest field on another, and the
+    // release gate compares them byte for byte, so the extractor's output must
+    // not depend on the operating system that ran it.
+    const lines = [
+      "# Changelog",
+      "",
+      "## [1.2.0] - 2026-01-01",
+      "",
+      "### Added",
+      "",
+      "- A thing.",
+      "- Another thing.",
+      "",
+      "## [1.1.0] - 2025-12-01",
+      "",
+      "- Older.",
+      "",
+    ];
+    const crlfChangelog = lines.join("\r\n");
+
+    const notes = extractReleaseNotes(crlfChangelog, "1.2.0");
+
+    expect(notes).not.toContain("\r");
+    expect(notes).toBe("### Added\n\n- A thing.\n- Another thing.");
+    expect(notes).toBe(extractReleaseNotes(lines.join("\n"), "1.2.0"));
+  });
+
   it("keeps the shared extractor pure and the CLI adapter thin", async () => {
     const extractorSource = await Deno.readTextFile(
       new URL(
