@@ -165,3 +165,11 @@ describe("APA editor appendix and run-in presentation", () => {
     );
   });
 });
+
+describe("APA live check tint", () => {
+  it("tints flagged blocks with the danger token, never a raw color", () => {
+    expect(css).toMatch(
+      /\.apa-editor \.tiptap \.apa-check-flag\s*\{[^}]*var\(--danger\)/s,
+    );
+  });
+});

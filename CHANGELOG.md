@@ -5,6 +5,19 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.15] - 2026-08-17
+
+### Added
+
+- The editor now checks your APA format while you write. A small light in
+  the toolbar stays green while the structure looks right, and turns red
+  with a count when something drifts: a blank line from pressing Enter
+  twice, a heading level that skips a step, or a table or figure without a
+  title. Drifting blocks get a soft tint on the page. Click the light to see
+  the list, jump to each spot, and remove blank lines in one click. The
+  advice window before an export shows the same list. These are
+  suggestions, not blockers: saving and exporting always work.
+
 ## [0.1.14] - 2026-08-16
 
 ### Added

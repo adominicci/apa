@@ -13,6 +13,10 @@ import {
 import { ApaPresentationDecoration } from "./presentationDecoration.ts";
 import { createPaginationExtension } from "./pagination/extension.ts";
 import type { PaginationEnvironment } from "./pagination/types.ts";
+import {
+  createApaCheckExtension,
+  type PositionedApaIssue,
+} from "./apaCheck.ts";
 
 export interface CreateEditorArgs {
   element: HTMLElement;
@@ -27,6 +31,8 @@ export interface CreateEditorArgs {
   /** Explicitly null only for layout-free schema/unit fixtures. */
   paginationEnv: PaginationEnvironment | null;
   onUpdate?: (docJson: unknown, words: number) => void;
+  /** Live APA structure issues, re-emitted after every doc change. */
+  onApaIssues?: (issues: PositionedApaIssue[]) => void;
   /** Opens the LaTeX dialog pre-filled with an equation's current LaTeX, from
    * its pencil menu. External callback threaded into the schema, same shape
    * as `citationEnv`: the app layer owns the dialog, the node view doesn't. */
@@ -54,6 +60,7 @@ export function createTesinaEditor(
     referenceEnv,
     paginationEnv,
     onUpdate,
+    onApaIssues,
     onEditEquation,
   }: CreateEditorArgs,
 ): Editor {
@@ -76,6 +83,7 @@ export function createTesinaEditor(
       ApaPresentationDecoration,
       createReferenceDecorationExtension(referenceEnv),
       ...(paginationEnv ? [createPaginationExtension(paginationEnv)] : []),
+      ...(onApaIssues ? [createApaCheckExtension(onApaIssues)] : []),
     ],
     content: (content !== undefined
       ? ensureSectionedDoc(content)

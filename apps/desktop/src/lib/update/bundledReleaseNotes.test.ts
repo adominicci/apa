@@ -9,20 +9,16 @@ describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
     const expectedNotes = `### Added
 
-- Tesina on Windows now updates itself. The update icon works there the same
-  way it does on a Mac: it checks for new versions while the app is open,
-  shows what changed, and installs on click. Tesina saves your work before
-  the installer runs, and the app restarts on its own.
+- The editor now checks your APA format while you write. A small light in
+  the toolbar stays green while the structure looks right, and turns red
+  with a count when something drifts: a blank line from pressing Enter
+  twice, a heading level that skips a step, or a table or figure without a
+  title. Drifting blocks get a soft tint on the page. Click the light to see
+  the list, jump to each spot, and remove blank lines in one click. The
+  advice window before an export shows the same list. These are
+  suggestions, not blockers: saving and exporting always work.`;
 
-### Changed
-
-- The update notice is now a small icon beside the version number, at the
-  bottom of the sidebar and in the editor status bar, instead of a banner
-  across the top of the window. Hover the icon to read what is new; click it
-  to update and restart. Tesina saves your work before restarting. When you
-  are already up to date, the same icon checks for new updates on click.`;
-
-    expect(bundledReleaseNotes.version).toBe("0.1.14");
+    expect(bundledReleaseNotes.version).toBe("0.1.15");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");

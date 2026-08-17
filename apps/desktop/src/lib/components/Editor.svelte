@@ -7,6 +7,7 @@
   import { createTesinaEditor } from "$lib/editor/createEditor";
   import type { ReferenceDecorationEnv } from "$lib/editor/referenceDecoration";
   import type { PaginationEnvironment } from "$lib/editor/pagination/types";
+  import type { PositionedApaIssue } from "$lib/editor/apaCheck";
   import "$lib/editor/apa.css";
 
   interface Props {
@@ -17,6 +18,7 @@
     referenceEnv: ReferenceDecorationEnv;
     paginationEnv: PaginationEnvironment | null;
     onUpdate?: (docJson: unknown, words: number) => void;
+    onApaIssues?: (issues: PositionedApaIssue[]) => void;
     onReady?: (editor: Editor) => void;
     onLaunchConsumed?: () => void;
     onEditEquation?: (pos: number, latex: string) => void;
@@ -30,6 +32,7 @@
     referenceEnv,
     paginationEnv,
     onUpdate,
+    onApaIssues,
     onReady,
     onLaunchConsumed,
     onEditEquation,
@@ -45,6 +48,7 @@
         referenceEnv,
         paginationEnv,
         onUpdate,
+        onApaIssues,
         onEditEquation,
       });
       onReady?.(instance);

@@ -3,8 +3,13 @@
   import type { Attachment } from "svelte/attachments";
   import type { Editor as TiptapEditor } from "@tiptap/core";
   import { hasAuthoredBodyTitle } from "@tesina/docx-export";
-  import type { CitationAttrs, DocLocale, Reference } from "@tesina/engine";
-  import { getTerms } from "@tesina/engine";
+  import type {
+    ApaCheckIssue,
+    CitationAttrs,
+    DocLocale,
+    Reference,
+  } from "@tesina/engine";
+  import { checkApaDocument, getTerms } from "@tesina/engine";
   import type {
     Essay,
     EssaySettings,
@@ -58,6 +63,12 @@
   } from "$lib/editor/blocks";
   import { importImageFile } from "$lib/persist/assets";
   import { buildOutline, type OutlineItem } from "$lib/editor/outline";
+  import {
+    apaIssueKey,
+    deleteIssueRanges,
+    type PositionedApaIssue,
+  } from "$lib/editor/apaCheck";
+  import { localizeApaCheck } from "$lib/components/apaCheckMessages";
   import {
     type CitationEnv,
     insertCitation,
@@ -172,6 +183,12 @@
   >(null);
   /** Only one bottom-bar dropdown open at a time. */
   let openMenu = $state<"headings" | "lists" | "table" | "font" | null>(null);
+  /** Live APA structure issues, fed by the editor's check extension. */
+  let apaIssues = $state<PositionedApaIssue[]>([]);
+  let apaCheckOpen = $state(false);
+  /** Checked from the export snapshot itself (not the live pill state), so
+     the advisory dialog always matches the bytes about to be written. */
+  let exportApaIssues = $state<ApaCheckIssue[]>([]);
   let citedCounts = $state<Map<string, number>>(
     untrack(() => collectCitedRefIds(essay.content)),
   );
@@ -603,6 +620,24 @@
       .run();
   }
 
+  function goToIssue(issue: PositionedApaIssue) {
+    if (!editor) return;
+    editor
+      .chain()
+      .focus()
+      .setTextSelection(Math.min(issue.from + 1, editor.state.doc.content.size))
+      .scrollIntoView()
+      .run();
+  }
+
+  const emptyParagraphIssues = $derived(
+    apaIssues.filter((i) => i.rule === "empty-paragraph"),
+  );
+
+  function fixIssues(issues: readonly PositionedApaIssue[]) {
+    if (editor) deleteIssueRanges(editor, issues);
+  }
+
   const activeIndex = $derived.by(() => {
     let index = -1;
     outline.forEach((item, i) => {
@@ -645,13 +680,15 @@
   }
 
   /**
-   * Exports the essay. An incomplete APA title page never stops this: the
-   * first attempt surfaces the shortfalls as advice, and `skipTitlePageAdvice`
-   * carries the user's "export anyway" through the second call.
+   * Exports the essay. Incomplete APA — title page or document structure —
+   * never stops this: the first attempt surfaces every shortfall as advice
+   * in one dialog, and `skipExportAdvice` carries the user's "export anyway"
+   * (or the fix-title-page detour, which already showed the advice once)
+   * through the second call.
    */
   async function handleExport(
     format: ExportFormat = exportFormat,
-    skipTitlePageAdvice = false,
+    skipExportAdvice = false,
   ) {
     if (!editor || exporting) return;
     const currentEditor = editor;
@@ -660,6 +697,7 @@
     exporting = true;
     exportMessage = "";
     exportWarnings = [];
+    exportApaIssues = [];
     try {
       const documentSnapshot = lastDoc ?? currentEditor.getJSON();
       const exportReferences = resolveReferencesForExport(
@@ -678,13 +716,15 @@
         exportReferences.references,
         documentLanguage,
       );
-      if (!skipTitlePageAdvice) {
+      if (!skipExportAdvice) {
         const warnings = studentTitlePageWarnings(
           exportSnapshot.essay.titlePage,
           documentLanguage,
         );
-        if (warnings.length > 0) {
+        const bodyIssues = checkApaDocument(documentSnapshot);
+        if (warnings.length > 0 || bodyIssues.length > 0) {
           exportWarnings = warnings;
+          exportApaIssues = bodyIssues;
           return;
         }
       }
@@ -1009,6 +1049,7 @@
                 {referenceEnv}
                 {paginationEnv}
                 onUpdate={handleUpdate}
+                onApaIssues={(issues) => (apaIssues = issues)}
                 onReady={handleReady}
                 onEditEquation={(pos, latex) =>
                   (equationDialog = { mode: "edit", pos, latex })}
@@ -1202,6 +1243,66 @@
           </div>
         {/if}
       </div>
+      <div
+        class="fm-export-wrap"
+        {@attach apaCheckOpen && dismissable(() => (apaCheckOpen = false))}
+      >
+        <button
+          class="fm-btn apa-pill"
+          class:bad={apaIssues.length > 0}
+          onclick={() => (apaCheckOpen = !apaCheckOpen)}
+          data-tip={apaIssues.length === 0
+            ? m.apa_check_tip_ok()
+            : m.apa_check_tip_issues({ count: apaIssues.length })}
+          aria-label={m.apa_check_menu_label()}
+          aria-haspopup="menu"
+          aria-expanded={apaCheckOpen}
+        >
+          {#if apaIssues.length === 0}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12.5l5 5L20 6.5" /></svg>
+          {:else}
+            <span class="apa-pill-count">{apaIssues.length}</span>
+          {/if}
+          <span class="fm-label">APA</span>
+        </button>
+        {#if apaCheckOpen}
+          <div class="menu apa-check-menu" role="menu" aria-label={m.apa_check_menu_label()}>
+            {#if apaIssues.length === 0}
+              <p class="apa-check-empty">{m.apa_check_all_good()}</p>
+            {:else}
+              {#if emptyParagraphIssues.length > 1}
+                <button
+                  class="apa-fix-all"
+                  role="menuitem"
+                  onclick={() => fixIssues(emptyParagraphIssues)}
+                >
+                  {m.apa_check_fix_all({ count: emptyParagraphIssues.length })}
+                </button>
+              {/if}
+              {#each apaIssues as issue (apaIssueKey(issue))}
+                <div class="apa-check-row">
+                  <button
+                    class="apa-check-jump"
+                    role="menuitem"
+                    onclick={() => goToIssue(issue)}
+                  >
+                    {localizeApaCheck(issue)}
+                  </button>
+                  {#if issue.rule === "empty-paragraph"}
+                    <button
+                      class="apa-check-fix"
+                      role="menuitem"
+                      onclick={() => fixIssues([issue])}
+                    >
+                      {m.apa_check_fix()}
+                    </button>
+                  {/if}
+                </div>
+              {/each}
+            {/if}
+          </div>
+        {/if}
+      </div>
       <span class="fm-count">
         {m.fab_words({ count: words.toLocaleString(uiLocale.current) })}
       </span>
@@ -1319,19 +1420,25 @@
   </div>
 {/if}
 
-{#if exportWarnings.length > 0}
+{#if exportWarnings.length > 0 || exportApaIssues.length > 0}
   <ExportWarningsDialog
     warnings={exportWarnings}
+    apaIssues={exportApaIssues}
     onExportAnyway={() => {
       exportWarnings = [];
+      exportApaIssues = [];
       void handleExport(exportFormat, true);
     }}
     onFixTitlePage={() => {
       exportWarnings = [];
+      exportApaIssues = [];
       resumeExportAfterTitlePage = true;
       titleFormOpen = true;
     }}
-    onClose={() => (exportWarnings = [])}
+    onClose={() => {
+      exportWarnings = [];
+      exportApaIssues = [];
+    }}
   />
 {/if}
 
@@ -1378,6 +1485,76 @@
 {/if}
 
 <style>
+  /* Live APA check pill + popover. The jump buttons deliberately reuse the
+     `.menu button` base styles; only the fix buttons restyle, scoped under
+     .apa-check-menu so they outrank the `.menu button` selector. */
+  .apa-pill {
+    color: var(--success);
+  }
+
+  .apa-pill.bad {
+    color: var(--danger);
+  }
+
+  .apa-pill-count {
+    min-width: 18px;
+    height: 18px;
+    border-radius: var(--r-pill);
+    background: var(--danger);
+    color: var(--accent-on);
+    font-size: var(--t-small);
+    font-weight: var(--w-strong);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--sp-1);
+  }
+
+  .apa-check-menu {
+    min-width: 260px;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  .apa-check-empty {
+    margin: 0;
+    padding: var(--sp-2) var(--sp-3);
+    color: var(--muted);
+    font-size: var(--t-small);
+  }
+
+  .apa-check-row {
+    display: flex;
+    align-items: center;
+    padding-right: var(--sp-2);
+  }
+
+  .apa-check-jump {
+    flex: 1;
+  }
+
+  .apa-check-menu .apa-check-fix,
+  .apa-check-menu .apa-fix-all {
+    border: 1px solid var(--danger);
+    background: none;
+    color: var(--danger);
+    border-radius: var(--r-sm);
+    padding: var(--sp-05) var(--sp-2);
+    font-size: var(--t-caption);
+    white-space: nowrap;
+  }
+
+  .apa-check-menu .apa-check-fix:hover,
+  .apa-check-menu .apa-fix-all:hover {
+    background: var(--danger-soft);
+  }
+
+  .apa-check-menu .apa-fix-all {
+    display: block;
+    margin: var(--sp-2) var(--sp-2) var(--sp-1);
+    padding: var(--sp-1) var(--sp-2);
+  }
+
   /* Buttons come from the global styles/controls.css — .btn and its
      variants are defined once, app-wide. Nothing button-shaped here. */
 

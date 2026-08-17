@@ -1,3 +1,10 @@
+// Live APA structure check
+export {
+  type ApaCheckIssue,
+  type ApaCheckRule,
+  checkApaDocument,
+} from "./check/apa-check.ts";
+
 // Rich text
 export {
   mergeRuns,
