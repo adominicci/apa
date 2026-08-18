@@ -378,9 +378,11 @@
 - [x] 12.3 Bump the next patch version consistently in
       `apps/desktop/package.json`, `apps/desktop/src-tauri/tauri.conf.json`,
       `apps/desktop/src-tauri/Cargo.toml`, the Tesina package entry in
-      `Cargo.lock`, both message files, README current-version statements, and
-      exact release-verifier/tests. Add failing release-contract tests first and
-      extend automation so every listed surface is enforced.
+      `Cargo.lock`, README current-version statements, and exact
+      release-verifier/tests. Keep both Paraglide message files parameterized
+      with `{version}` rather than adding release literals. Add failing
+      release-contract tests first and extend automation so every
+      version-bearing surface is enforced.
 - [x] 12.4 Move completed `CHANGELOG.md` items from Unreleased into a dated
       version section, advance its comparison links, and add plain-language
       English changelog notes describing behavior visible in both UI languages:

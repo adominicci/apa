@@ -9,7 +9,8 @@ import {
 import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import LayoutReleaseNotesHarness from "./LayoutReleaseNotesHarness.test.svelte";
 
-const canonicalNotesExcerpt = "look and behave alike";
+const canonicalNotesExcerpt =
+  "One damaged paper file no longer hides every other paper";
 
 const runtime = vi.hoisted(() => ({
   getVersion: vi.fn<() => Promise<string>>(),

@@ -158,9 +158,9 @@ describe("verifyReleaseVersion", () => {
     }
   });
 
-  it("matches the real 0.1.16 metadata and canonical bundled Markdown", async () => {
+  it("matches the real 0.1.17 metadata, README, links, and bundled Markdown", async () => {
     const root = new URL("../", import.meta.url);
-    const [tauriConfig, packageJson, cargoToml, cargoLock, changelog] =
+    const [tauriConfig, packageJson, cargoToml, cargoLock, changelog, readme] =
       await Promise.all([
         Deno.readTextFile(
           new URL("apps/desktop/src-tauri/tauri.conf.json", root),
@@ -169,10 +169,11 @@ describe("verifyReleaseVersion", () => {
         Deno.readTextFile(new URL("apps/desktop/src-tauri/Cargo.toml", root)),
         Deno.readTextFile(new URL("apps/desktop/src-tauri/Cargo.lock", root)),
         Deno.readTextFile(new URL("CHANGELOG.md", root)),
+        Deno.readTextFile(new URL("README.md", root)),
       ]);
 
     const verified = verifyReleaseVersion({
-      tag: "v0.1.16",
+      tag: "v0.1.17",
       tauriConfig,
       packageJson,
       cargoToml,
@@ -182,5 +183,24 @@ describe("verifyReleaseVersion", () => {
 
     expect(verified.version).toBe(bundledReleaseNotes.version);
     expect(verified.notes).toBe(bundledReleaseNotes.body);
+    expect(readme).toContain("Version 0.1.17 supports");
+    expect(changelog).toContain(
+      "[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.17...HEAD",
+    );
+    expect(changelog).toContain(
+      "[0.1.17]: https://github.com/adominicci/tesina/compare/v0.1.16...v0.1.17",
+    );
+    expect(changelog).toContain(
+      "[0.1.16]: https://github.com/adominicci/tesina/compare/v0.1.15...v0.1.16",
+    );
+    expect(changelog).toContain(
+      "[0.1.15]: https://github.com/adominicci/tesina/compare/v0.1.14...v0.1.15",
+    );
+    expect(changelog).toContain(
+      "[0.1.14]: https://github.com/adominicci/tesina/compare/v0.1.12...v0.1.14",
+    );
+    expect(changelog).toContain(
+      "[0.1.13]: https://github.com/adominicci/tesina/commit/80443091b75b1a887b01fdca12c09e565807a10a",
+    );
   });
 });

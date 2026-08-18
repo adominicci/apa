@@ -5,6 +5,25 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.17] - 2026-08-18
+
+### Changed
+
+- Backup setup now uses neutral first-time wording whenever no configured
+  backup folder can be confirmed.
+- Tesina's packaged web content and build dependencies now use tighter
+  security boundaries without changing native DOI, ISBN, or update access.
+
+### Fixed
+
+- One damaged paper file no longer hides every other paper. Tesina preserves
+  unreadable files, names them in recovery guidance, and keeps reference
+  deletion blocked while the library scan is incomplete.
+- The editor's Add menu now closes when you click outside it or press Escape,
+  and keyboard focus returns to the Add button.
+- Opening Tesina again on a Mac now shows and focuses the existing window even
+  when it was hidden with the close button.
+
 ## [0.1.16] - 2026-08-18
 
 ### Changed
@@ -263,7 +282,12 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.12...HEAD
+[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.17...HEAD
+[0.1.17]: https://github.com/adominicci/tesina/compare/v0.1.16...v0.1.17
+[0.1.16]: https://github.com/adominicci/tesina/compare/v0.1.15...v0.1.16
+[0.1.15]: https://github.com/adominicci/tesina/compare/v0.1.14...v0.1.15
+[0.1.14]: https://github.com/adominicci/tesina/compare/v0.1.12...v0.1.14
+[0.1.13]: https://github.com/adominicci/tesina/commit/80443091b75b1a887b01fdca12c09e565807a10a
 [0.1.12]: https://github.com/adominicci/tesina/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/adominicci/tesina/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/adominicci/tesina/compare/v0.1.9...v0.1.10

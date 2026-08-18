@@ -129,7 +129,7 @@ describe("essay launch context", () => {
       `Tesina ${bundledReleaseNotes.version}`,
     );
     expect(dialog?.textContent).toContain(
-      "look and behave alike",
+      "One damaged paper file no longer hides every other paper",
     );
     expect(dialog?.contains(document.activeElement)).toBe(true);
     globalThis.dispatchEvent(
@@ -145,7 +145,7 @@ describe("essay launch context", () => {
     versionButton.click();
     flushSync();
     expect(document.querySelector("[role='dialog']")?.textContent).toContain(
-      "look and behave alike",
+      "One damaged paper file no longer hides every other paper",
     );
     expect(globalThis.location.href).toBe(initialLocation);
     expect(onCreate).not.toHaveBeenCalled();
@@ -269,7 +269,7 @@ describe("essay launch context", () => {
       versionButton.click();
       flushSync();
       expect(document.querySelector("[role='dialog']")?.textContent).toContain(
-        "look and behave alike",
+        "One damaged paper file no longer hides every other paper",
       );
       expect(document.querySelector("[role='dialog']")?.textContent).not
         .toContain("Las notas no están disponibles.");
