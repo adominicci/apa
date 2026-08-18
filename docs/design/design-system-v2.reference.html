@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tesina — Design System v2 (chrome only)</title>
+    <!--
+      Canonical visual reference for Tesina Design System v2. The written
+      contract is docs/design/DESIGN.md; this file is the gallery.
+
+      It links the APPLICATION's real stylesheets rather than a copy, so a
+      specimen here can never drift from what ships. Open it straight from
+      the working tree (file:// is fine) after `deno task check` has run at
+      least once.
+
+      The APA paper sheet is NOT represented here and is out of scope —
+      see DESIGN.md §0 (Frozen).
+    -->
+    <style>
+      @font-face {
+        font-family: "Inter";
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("../../apps/desktop/static/fonts/inter-latin-variable.woff2")
+          format("woff2");
+      }
+      @keyframes ds-spin { to { transform: rotate(360deg) } }
+      body { margin: 0 }
+      a { color: var(--accent); text-decoration: none }
+      a:hover { color: var(--accent-hover); text-decoration: underline }
+    </style>
+    <link rel="stylesheet" href="../../apps/desktop/src/lib/styles/tokens.css" />
+    <link rel="stylesheet" href="../../apps/desktop/src/lib/styles/controls.css" />
+    <link rel="stylesheet" href="../../apps/desktop/src/lib/components/modal.css" />
+    <link
+      rel="stylesheet"
+      href="../../apps/desktop/src/lib/styles/controls-v2.css"
+    />
+  </head>
+  <body>
+
+
+<div class="ui-controls" style="min-height:100vh;background:var(--canvas);color:var(--fg);font-family:var(--font);font-size:13px;line-height:1.55;display:grid;grid-template-columns:216px minmax(0,1fr)">
+
+  <nav style="position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:28px 16px;border-right:1px solid var(--border);background:var(--chrome);display:flex;flex-direction:column;gap:2px">
+    <div style="padding:0 8px 4px">
+      <div style="font-size:14px;font-weight:600;letter-spacing:-0.01em;line-height:1.2">Tesina</div>
+      <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">design system v2</div>
+    </div>
+    <div style="display:flex;gap:2px;padding:12px 8px 16px">
+      <button onclick="document.documentElement.dataset.theme = 'light'" style="flex:1;height:28px;border:1px solid var(--border);background:var(--surface);color:var(--fg-2);border-radius:6px;font:inherit;font-size:11px;font-weight:530;cursor:pointer">Light</button>
+      <button onclick="document.documentElement.dataset.theme = 'dark'" style="flex:1;height:28px;border:1px solid var(--border);background:var(--surface);color:var(--fg-2);border-radius:6px;font:inherit;font-size:11px;font-weight:530;cursor:pointer">Dark</button>
+    </div>
+    <a href="#audit" style="padding:6px 8px;border-radius:6px;font-size:12px;font-weight:530;color:var(--warn-strong);text-decoration:none">What's inconsistent today</a>
+    <div style="padding:14px 8px 4px;font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted)">Foundations</div>
+    <a href="#color" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Color</a>
+    <a href="#type" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Type</a>
+    <a href="#scales" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Space, radius, elevation</a>
+    <a href="#shape" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">The shape rule</a>
+    <div style="padding:14px 8px 4px;font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted)">Components</div>
+    <a href="#badge" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Badge</a>
+    <a href="#chip" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Chip</a>
+    <a href="#button" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Button</a>
+    <a href="#field" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Field &amp; Select</a>
+    <a href="#status" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Status panel</a>
+    <a href="#modal" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Modal</a>
+    <a href="#popover" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Popover &amp; dock</a>
+    <a href="#card" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Card</a>
+    <a href="#empty" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Empty state</a>
+    <a href="#popover-surface" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Popover surface</a>
+    <div style="padding:14px 8px 4px;font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted)">The document</div>
+    <a href="#apa" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">APA 7 compliance</a>
+    <div style="padding:14px 8px 4px;font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted)">Handoff</div>
+    <a href="#css" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Paste-ready CSS</a>
+    <a href="#migration" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Migration map</a>
+  </nav>
+
+  <main style="min-width:0;padding:0 0 96px">
+
+    <header style="padding:56px clamp(24px,5vw,64px) 40px;border-bottom:1px solid var(--border);background:var(--bg)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Tesina Design System · v2</div>
+      <h1 style="margin:0 0 14px;font-size:38px;font-weight:600;letter-spacing:-0.03em;line-height:1.1;max-width:22ch">One badge, one chip, one modal.</h1>
+      <p style="margin:0;max-width:62ch;font-size:15px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">v1 gave the app shared tokens, buttons, fields and modal chrome. What it never defined was the small stuff: badges, pills, tags, counts and filter chips were each re-invented inside the component that needed them. Five definitions, five shapes, five ways of spending the accent color. This is the missing layer, plus the two open questions v1 left in the button and modal APIs.</p>
+      <div style="display:flex;gap:32px;margin-top:32px;flex-wrap:wrap">
+        <div><div style="font-size:26px;font-weight:600;letter-spacing:-0.02em">5 → 1</div><div style="font-size:12px;color:var(--muted)">badge definitions</div></div>
+        <div><div style="font-size:26px;font-weight:600;letter-spacing:-0.02em">2 → 1</div><div style="font-size:12px;color:var(--muted)">filter chip styles</div></div>
+        <div><div style="font-size:26px;font-weight:600;letter-spacing:-0.02em">2 → 1</div><div style="font-size:12px;color:var(--muted)">secondary button names</div></div>
+        <div><div style="font-size:26px;font-weight:600;letter-spacing:-0.02em">4 → 1</div><div style="font-size:12px;color:var(--muted)">empty-state treatments</div></div>
+      </div>
+    </header>
+
+        <section id="audit" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--warn-strong);margin-bottom:10px">Audit</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">What's inconsistent today</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">Every specimen on the left is recreated from the component's own <code style="font-family:var(--mono);font-size:12px">&lt;style&gt;</code> block, at its real values.</p>
+
+      <div style="display:grid;gap:16px">
+
+        <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface)">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1px;background:var(--border)">
+            <div style="background:var(--surface);padding:20px 24px">
+              <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">Today — 5 static badges</div>
+              <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px">
+                <span style="background:var(--warn-soft);color:var(--warn-strong);border-radius:999px;padding:0 6px;font-size:12px">Uncited</span>
+                <span style="background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:0 6px;font-size:12px">In text only</span>
+                <span style="padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:600;white-space:nowrap">Journal article</span>
+                <span style="padding:1px 8px;border-radius:999px;background:var(--warn-soft);color:var(--warn-strong);font-size:11px;font-weight:600;white-space:nowrap">Duplicate</span>
+                <span style="font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.04em;padding:2px 6px;border-radius:5px;background:var(--accent-soft);color:var(--accent)">ES</span>
+                <span style="font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--hover);padding:1px 6px;border-radius:999px">12</span>
+              </div>
+              <ul style="margin:0;padding-left:18px;font-size:12px;line-height:1.7;color:var(--fg-2)">
+                <li>Three radii: <code style="font-family:var(--mono)">999px</code>, <code style="font-family:var(--mono)">5px</code>, <code style="font-family:var(--mono)">999px</code></li>
+                <li>Three type sizes, two families, weight 400 / 600 / inherit</li>
+                <li>Accent-blue means "journal article", "in text only" and "Spanish" — three unrelated things</li>
+                <li>ReferencesPanel's pill sets no font-size, so it inherits whatever row it lands in</li>
+              </ul>
+            </div>
+            <div style="background:var(--bg);padding:20px 24px">
+              <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--accent);margin-bottom:16px">v2 — one badge, five tones</div>
+              <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px">
+                <span style="display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;font-size:11px;font-weight:530;letter-spacing:0.01em;line-height:1;white-space:nowrap;background:var(--warn-soft);color:var(--warn-strong)">Uncited</span>
+                <span style="display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;font-size:11px;font-weight:530;letter-spacing:0.01em;line-height:1;white-space:nowrap;background:var(--warn-soft);color:var(--warn-strong)">In text only</span>
+                <span style="display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;font-size:11px;font-weight:530;letter-spacing:0.01em;line-height:1;white-space:nowrap;background:var(--hover-strong);color:var(--fg-2)">Journal article</span>
+                <span style="display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;font-size:11px;font-weight:530;letter-spacing:0.01em;line-height:1;white-space:nowrap;background:var(--warn-soft);color:var(--warn-strong)">Duplicate</span>
+                <span style="display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;font-family:var(--mono);font-size:11px;font-weight:530;letter-spacing:0.04em;line-height:1;background:var(--hover-strong);color:var(--fg-2)">ES</span>
+                <span style="display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;font-family:var(--mono);font-size:11px;font-weight:530;line-height:1;font-variant-numeric:tabular-nums;background:var(--hover-strong);color:var(--fg-2)">12</span>
+              </div>
+              <ul style="margin:0;padding-left:18px;font-size:12px;line-height:1.7;color:var(--fg-2)">
+                <li>One radius, one size, one weight</li>
+                <li>Classification is neutral. Color is reserved for urgency</li>
+                <li>Two things the user must fix now read alike, and read as the only warm marks on the row</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface)">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1px;background:var(--border)">
+            <div style="background:var(--surface);padding:20px 24px">
+              <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">Today — 2 filter chips</div>
+              <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:8px">
+                <span style="display:inline-flex;gap:8px">
+                  <span style="padding:4px 12px;border-radius:999px;font-size:12px;font-weight:500;border:1px solid var(--fg);color:var(--bg);background:var(--fg)">All</span>
+                  <span style="padding:4px 12px;border-radius:999px;font-size:12px;font-weight:500;border:1px solid var(--border);color:var(--muted);background:var(--surface)">Spanish</span>
+                </span>
+                <span style="display:inline-flex;gap:6px">
+                  <span style="font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid color-mix(in oklab,var(--accent),transparent 40%);background:var(--accent-soft);color:var(--accent);font-weight:600">Thesis</span>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--muted)">Seminar</span>
+                </span>
+              </div>
+              <p style="margin:12px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">EssayHome's selected chip is a solid near-black slab; LibraryScreen's is an accent wash. Different sizes (12px / 11px), different paddings, different selected weights. A solid <code style="font-family:var(--mono)">--fg</code> fill also reads as a primary action, which a filter is not.</p>
+            </div>
+            <div style="background:var(--bg);padding:20px 24px">
+              <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--accent);margin-bottom:16px">v2 — one chip</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+                <span style="display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:999px;border:1px solid color-mix(in oklab,var(--accent),transparent 45%);background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:530;line-height:1">All</span>
+                <span style="display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--fg-2);font-size:12px;font-weight:530;line-height:1">Spanish</span>
+                <span style="display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--fg-2);font-size:12px;font-weight:530;line-height:1">English</span>
+                <span style="display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--fg-2);font-size:12px;font-weight:530;line-height:1">Unfinished</span>
+              </div>
+              <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">LibraryScreen's accent wash wins, at one size. It stays clear of the segmented control's solid-accent selected state, so "which filter" and "which mode" never look alike.</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface)">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1px;background:var(--border)">
+            <div style="background:var(--surface);padding:20px 24px">
+              <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">Today — modal footers</div>
+              <div style="display:flex;flex-direction:column;gap:10px;font-size:12px;color:var(--fg-2)">
+                <div style="display:flex;align-items:center;gap:10px"><code style="font-family:var(--mono);font-size:11px;color:var(--muted);min-width:16ch">TitlePageForm</code><button class="btn btn-secondary btn-sm">Close</button><button class="btn btn-primary btn-sm">Save</button></div>
+                <div style="display:flex;align-items:center;gap:10px"><code style="font-family:var(--mono);font-size:11px;color:var(--muted);min-width:16ch">LibraryImportModal</code><button class="btn btn-secondary btn-sm">Close</button><button class="btn btn-primary btn-sm">Import</button></div>
+                <div style="display:flex;align-items:center;gap:10px"><code style="font-family:var(--mono);font-size:11px;color:var(--muted);min-width:16ch">+layout quit</code><button class="btn btn-secondary btn-sm">Cancel</button><button class="btn btn-primary btn-sm">Quit</button></div>
+              </div>
+              <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">The same cancel button is written <code style="font-family:var(--mono)">btn-ghost</code> in 7 places and <code style="font-family:var(--mono)">btn-secondary</code> in 25 — and <code style="font-family:var(--mono)">controls.css</code> defines both as the identical rule. Nothing renders differently; the API just has two names for one button, and "ghost" describes a borderless button this one isn't.</p>
+            </div>
+            <div style="background:var(--bg);padding:20px 24px">
+              <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--accent);margin-bottom:16px">v2 — one name, one order</div>
+              <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:12px 16px;border:1px solid var(--border);border-radius:8px;background:var(--chrome)">
+                <span style="margin-right:auto;font-size:11px;color:var(--muted)">Footer note sits left</span>
+                <button class="btn btn-secondary btn-sm">Close</button>
+                <button class="btn btn-primary btn-sm">Save</button>
+              </div>
+              <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)"><code style="font-family:var(--mono)">btn-secondary</code> is canonical; <code style="font-family:var(--mono)">btn-ghost</code> is retired to an alias. The name "ghost" is freed up for the borderless button the app already hand-rolls in four places — see <a href="#button">Button</a>.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+    
+    <section id="color" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Foundations</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Color</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">Unchanged from v1 — these are the tokens the app already ships, authored in OKLCH so the light surfaces carry a sub-perceptual warmth. Every swatch below is live: switch the theme in the sidebar and they re-resolve. v2 adds no colors. It only fixes which components are allowed to use them.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px;margin-bottom:32px">
+        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div style="height:56px;background:var(--canvas)"></div>
+          <div style="padding:10px 12px;border-top:1px solid var(--border)">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--canvas</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4;margin-top:2px">App background behind everything</div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div style="height:56px;background:var(--bg)"></div>
+          <div style="padding:10px 12px;border-top:1px solid var(--border)">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--bg</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4;margin-top:2px">Recessed wells: inputs, seg track</div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div style="height:56px;background:var(--surface)"></div>
+          <div style="padding:10px 12px;border-top:1px solid var(--border)">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--surface</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4;margin-top:2px">Cards, modals, popovers</div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div style="height:56px;background:var(--chrome)"></div>
+          <div style="padding:10px 12px;border-top:1px solid var(--border)">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--chrome</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4;margin-top:2px">Sidebars, modal footer, statusbar</div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div style="height:56px;background:var(--elevated)"></div>
+          <div style="padding:10px 12px;border-top:1px solid var(--border)">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--elevated</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4;margin-top:2px">Listbox above a surface</div>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="margin:0 0 14px;font-size:16px;font-weight:600">Text and border</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-bottom:32px">
+        <div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface);display:flex;gap:12px;align-items:center">
+          <div style="flex:0 0 28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--fg)"></div>
+          <div style="min-width:0">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--fg</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4">Titles, values, primary text</div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface);display:flex;gap:12px;align-items:center">
+          <div style="flex:0 0 28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--fg-2)"></div>
+          <div style="min-width:0">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--fg-2</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4">Body copy, labels, badge text</div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface);display:flex;gap:12px;align-items:center">
+          <div style="flex:0 0 28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--muted)"></div>
+          <div style="min-width:0">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--muted</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4">Metadata, captions, placeholders</div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface);display:flex;gap:12px;align-items:center">
+          <div style="flex:0 0 28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--border)"></div>
+          <div style="min-width:0">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--border</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4">Structural hairline</div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface);display:flex;gap:12px;align-items:center">
+          <div style="flex:0 0 28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--border-soft)"></div>
+          <div style="min-width:0">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--border-soft</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4">Internal dividers</div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface);display:flex;gap:12px;align-items:center">
+          <div style="flex:0 0 28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--border-strong)"></div>
+          <div style="min-width:0">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--border-strong</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4">Text-entry edges only, 3.2:1</div>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="margin:0 0 6px;font-size:16px;font-weight:600">Semantic pairs</h3>
+      <p style="margin:0 0 14px;max-width:62ch;font-size:13px;color:var(--fg-2);line-height:1.6">Each semantic color ships with a <code style="font-family:var(--mono);font-size:12px">-soft</code> wash. A badge or status surface uses the wash as background and the solid as text — never the solid as a fill, which is reserved for the primary button and the segmented control's selected item.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px">
+        <div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface)">
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <div style="flex:1;height:34px;border-radius:6px;background:var(--accent)"></div>
+            <div style="flex:1;height:34px;border-radius:6px;background:var(--accent-soft);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--accent)">Aa</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--accent / --accent-soft</div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-top:3px">Selection and the primary action. Never a category.</div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface)">
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <div style="flex:1;height:34px;border-radius:6px;background:var(--success)"></div>
+            <div style="flex:1;height:34px;border-radius:6px;background:var(--success-soft);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--success)">Aa</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--success / --success-soft</div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-top:3px">Confirmation of something that finished.</div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface)">
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <div style="flex:1;height:34px;border-radius:6px;background:var(--warn-strong)"></div>
+            <div style="flex:1;height:34px;border-radius:6px;background:var(--warn-soft);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--warn-strong)">Aa</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--warn-strong / --warn-soft</div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-top:3px">The user should fix this, but is not blocked. Text uses <code style="font-family:var(--mono)">--warn-strong</code>; raw <code style="font-family:var(--mono)">--warn</code> is too light to read.</div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface)">
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <div style="flex:1;height:34px;border-radius:6px;background:var(--danger)"></div>
+            <div style="flex:1;height:34px;border-radius:6px;background:var(--danger-soft);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--danger)">Aa</div>
+          </div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--fg)">--danger / --danger-soft</div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-top:3px">Broken, invalid, or destructive.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="type" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Foundations</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Type</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">One family for all chrome: Inter, variable, embedded. Hierarchy comes from size, weight and tracking, never from a second face. <code style="font-family:var(--mono);font-size:12px">--serif</code> belongs to the document sheet only.</p>
+
+      <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden">
+        <div style="display:grid;grid-template-columns:150px 76px minmax(0,1fr);gap:20px;align-items:baseline;padding:16px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--t-h1</code>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">26px</span>
+          <span style="font-size:26px;font-weight:600;letter-spacing:-0.024em;color:var(--fg)">Your essays</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 76px minmax(0,1fr);gap:20px;align-items:baseline;padding:16px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--t-h2</code>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">20px</span>
+          <span style="font-size:20px;font-weight:600;letter-spacing:-0.018em;color:var(--fg)">New reference</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 76px minmax(0,1fr);gap:20px;align-items:baseline;padding:16px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--t-h3</code>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">16px</span>
+          <span style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:var(--fg)">Backup location</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 76px minmax(0,1fr);gap:20px;align-items:baseline;padding:16px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--t-ui</code>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">14px</span>
+          <span style="font-size:14px;font-weight:400;color:var(--fg)">Input text and listbox options</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 76px minmax(0,1fr);gap:20px;align-items:baseline;padding:16px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--t-body</code>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">13px</span>
+          <span style="font-size:13px;font-weight:400;color:var(--fg)">Body copy and button labels</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 76px minmax(0,1fr);gap:20px;align-items:baseline;padding:16px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--t-small</code>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">12px</span>
+          <span style="font-size:12px;font-weight:530;letter-spacing:0.004em;color:var(--fg)">Field labels and chips</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 76px minmax(0,1fr);gap:20px;align-items:baseline;padding:16px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--t-caption</code>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">11px</span>
+          <span style="font-size:11px;font-weight:530;letter-spacing:0.01em;color:var(--fg)">Badges, hints, metadata</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 76px minmax(0,1fr);gap:20px;align-items:baseline;padding:16px 24px">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--mono</code>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">12px</span>
+          <span style="font-family:var(--mono);font-size:12px;color:var(--fg)">smith2019 · /Users/lu/Backups</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:40px;margin-top:24px;flex-wrap:wrap">
+        <div><div style="font-size:20px;font-weight:400;letter-spacing:-0.018em">Regular 400</div><code style="font-family:var(--mono);font-size:11px;color:var(--muted)">--w-read · body copy</code></div>
+        <div><div style="font-size:20px;font-weight:530;letter-spacing:-0.018em">Medium 530</div><code style="font-family:var(--mono);font-size:11px;color:var(--muted)">--w-medium · labels, badges, chips</code></div>
+        <div><div style="font-size:20px;font-weight:600;letter-spacing:-0.018em">Strong 600</div><code style="font-family:var(--mono);font-size:11px;color:var(--muted)">--w-strong · headings, buttons</code></div>
+      </div>
+    </section>
+
+    <section id="scales" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Foundations</div>
+      <h2 style="margin:0 0 28px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Space, radius, elevation, motion</h2>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px">
+        <div>
+          <h3 style="margin:0 0 14px;font-size:16px;font-weight:600">Space</h3>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--sp-05</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">2px</span><div style="height:10px;border-radius:2px;background:var(--accent-soft);width:2px"></div></div>
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--sp-1</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">4px</span><div style="height:10px;border-radius:2px;background:var(--accent-soft);width:4px"></div></div>
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--sp-15</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">6px</span><div style="height:10px;border-radius:2px;background:var(--accent-soft);width:6px"></div></div>
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--sp-2</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">8px</span><div style="height:10px;border-radius:2px;background:var(--accent-soft);width:8px"></div></div>
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--sp-3</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">12px</span><div style="height:10px;border-radius:2px;background:var(--accent-soft);width:12px"></div></div>
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--sp-4</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">16px</span><div style="height:10px;border-radius:2px;background:var(--accent-soft);width:16px"></div></div>
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--sp-5</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">20px</span><div style="height:10px;border-radius:2px;background:var(--accent-soft);width:20px"></div></div>
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--sp-6</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">24px</span><div style="height:10px;border-radius:2px;background:var(--accent-soft);width:24px"></div></div>
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--sp-7</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">32px</span><div style="height:10px;border-radius:2px;background:var(--accent-soft);width:32px"></div></div>
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--sp-8</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">40px</span><div style="height:10px;border-radius:2px;background:var(--accent-soft);width:40px"></div></div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="margin:0 0 14px;font-size:16px;font-weight:600">Radius</h3>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--r-xs</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">6px</span><div style="height:26px;width:62px;border:1px solid var(--border-strong);background:var(--surface);border-radius:6px"></div></div>
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--r-sm</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">8px</span><div style="height:26px;width:62px;border:1px solid var(--border-strong);background:var(--surface);border-radius:8px"></div></div>
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--r-md</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">12px</span><div style="height:26px;width:62px;border:1px solid var(--border-strong);background:var(--surface);border-radius:12px"></div></div>
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--r-lg</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">16px</span><div style="height:26px;width:62px;border:1px solid var(--border-strong);background:var(--surface);border-radius:16px"></div></div>
+            <div style="display:grid;grid-template-columns:72px 44px minmax(0,1fr);gap:12px;align-items:center"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--r-pill</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">999px</span><div style="height:26px;width:62px;border:1px solid var(--border-strong);background:var(--surface);border-radius:999px"></div></div>
+          </div>
+          <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">Assignments: <code style="font-family:var(--mono)">--r-xs</code> badges and menu rows · <code style="font-family:var(--mono)">--r-sm</code> buttons and fields · <code style="font-family:var(--mono)">--r-md</code> cards and popovers · <code style="font-family:var(--mono)">--r-lg</code> modals · <code style="font-family:var(--mono)">--r-pill</code> chips and the dock.</p>
+        </div>
+
+        <div>
+          <h3 style="margin:0 0 14px;font-size:16px;font-weight:600">Elevation</h3>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--elev-1)"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--elev-1</code><div style="font-size:12px;color:var(--fg-2);margin-top:3px">Pressed-into-place: selected segment</div></div>
+            <div style="padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--elev-2)"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--elev-2</code><div style="font-size:12px;color:var(--fg-2);margin-top:3px">Lifted: hovered card, dock, menu</div></div>
+            <div style="padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface);box-shadow:var(--elev-3),inset 0 1px 0 var(--edge-hi)"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--elev-3</code><div style="font-size:12px;color:var(--fg-2);margin-top:3px">Detached: modal, listbox. Pairs with <code style="font-family:var(--mono)">inset 0 1px 0 var(--edge-hi)</code></div></div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="margin:0 0 14px;font-size:16px;font-weight:600">Motion</h3>
+          <div style="border:1px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden">
+            <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:12px 16px;border-bottom:1px solid var(--border-soft)"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--fast</code><span style="font-size:12px;color:var(--fg-2)">150ms — hover, focus, color</span></div>
+            <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:12px 16px;border-bottom:1px solid var(--border-soft)"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--slow</code><span style="font-size:12px;color:var(--fg-2)">260ms — modal and overlay entry</span></div>
+            <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:12px 16px;border-bottom:1px solid var(--border-soft)"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--ease</code><span style="font-family:var(--mono);font-size:11px;color:var(--fg-2)">cubic-bezier(.2,0,0,1)</span></div>
+            <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:12px 16px"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--ease-out</code><span style="font-family:var(--mono);font-size:11px;color:var(--fg-2)">cubic-bezier(.16,1,.3,1)</span></div>
+          </div>
+          <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">Nothing animates that the user did not initiate. A badge never transitions; a chip transitions background and color only.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="shape" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border);background:var(--bg)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">The rule that fixes it</div>
+      <h2 style="margin:0 0 16px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Shape says whether you can click it. Color says how urgent it is.</h2>
+      <p style="margin:0 0 32px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">v1's small components drifted because nothing said which shape or color meant what, so each author picked. Two rules close that gap, and everything below follows from them.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:24px">
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px">
+            <span style="display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;font-size:11px;font-weight:530;line-height:1;background:var(--hover-strong);color:var(--fg-2)">Squared</span>
+            <span style="font-size:12px;color:var(--muted)">is information</span>
+          </div>
+          <p style="margin:0 0 14px;font-size:13px;line-height:1.6;color:var(--fg-2)">Badges and counts get <code style="font-family:var(--mono);font-size:12px">--r-xs</code>. They are labels on the content, not controls.</p>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:999px;border:1px solid var(--border);background:var(--bg);color:var(--fg-2);font-size:12px;font-weight:530;line-height:1">Pill</span>
+            <span style="font-size:12px;color:var(--muted)">is a control</span>
+          </div>
+          <p style="margin:14px 0 0;font-size:13px;line-height:1.6;color:var(--fg-2)">Chips, the dock and its buttons get <code style="font-family:var(--mono);font-size:12px">--r-pill</code>. If it's fully round, pressing it does something.</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:24px">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+            <span style="display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;font-size:11px;font-weight:530;line-height:1;background:var(--hover-strong);color:var(--fg-2)">Neutral</span>
+            <span style="display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;font-size:11px;font-weight:530;line-height:1;background:var(--accent-soft);color:var(--accent)">Accent</span>
+            <span style="display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;font-size:11px;font-weight:530;line-height:1;background:var(--warn-soft);color:var(--warn-strong)">Warn</span>
+            <span style="display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:6px;font-size:11px;font-weight:530;line-height:1;background:var(--danger-soft);color:var(--danger)">Danger</span>
+          </div>
+          <p style="margin:0 0 12px;font-size:13px;line-height:1.6;color:var(--fg-2)"><strong style="font-weight:600;color:var(--fg)">Color encodes urgency, not category.</strong> A reference's type and an essay's language are categories: they are neutral. "Uncited" and "Duplicate" are things to fix: they are warm.</p>
+          <p style="margin:0;font-size:13px;line-height:1.6;color:var(--fg-2)">Accent is the app's only live color and it is scarce on purpose — it marks the current selection and the primary action. A badge earns accent only when it names what the user is acting on right now.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="badge" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Component · new</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Badge</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">A static label on content the user is reading. Never clickable, never animated, one size. 18px tall, <code style="font-family:var(--mono);font-size:12px">--r-xs</code>, <code style="font-family:var(--mono);font-size:12px">--t-caption</code> at <code style="font-family:var(--mono);font-size:12px">--w-medium</code>. If it needs to be pressed, it is a <a href="#chip">chip</a>.</p>
+
+      <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;margin-bottom:20px">
+        <div style="display:grid;grid-template-columns:150px 132px minmax(0,1fr);gap:20px;padding:12px 24px;background:var(--chrome);border-bottom:1px solid var(--border);font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted)">
+          <span>Class</span><span>Specimen</span><span>Use it for</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 132px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.badge</code>
+          <span><span class="badge">Journal article</span></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)">Classification and metadata. The default, and what most badges in the app should be: reference type, section kind, file format.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 132px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.badge-accent</code>
+          <span><span class="badge badge-accent">Cited 4×</span></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)">What the user is acting on right now, or a live count tied to the current selection. Scarce by design.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 132px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.badge-warn</code>
+          <span><span class="badge badge-warn">Uncited</span></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)">Fix this, but you are not blocked: uncited reference, duplicate BibTeX key, missing title-page field.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 132px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.badge-danger</code>
+          <span><span class="badge badge-danger">Unresolved</span></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)">Broken or invalid: a citation pointing at a deleted reference, an asset that failed to import.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 132px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.badge-success</code>
+          <span><span class="badge badge-success">Backed up</span></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)">Something finished. Rare — a lasting state, not a transient confirmation, which belongs in the <a href="#status">status panel</a>.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 132px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.badge-code</code>
+          <span><span class="badge badge-code">es</span> <span class="badge badge-code">bib</span></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)">A machine value rather than a word: language tag, file extension, BibTeX key. Mono, uppercased.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 132px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.badge-count</code>
+          <span><span class="badge badge-count">12</span> <span class="badge badge-count">7</span> <span class="badge badge-count">248</span></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)">A number at the end of a nav or collection row. Tabular figures, min-width 18px, so a stacked column does not jitter.</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--bg);padding:20px 24px">
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--success);margin-bottom:14px">In place — do</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+            <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
+              <div style="min-width:0">
+                <div style="font-size:13px;font-weight:530;color:var(--fg);line-height:1.4">Estructuras narrativas en la novela contemporánea</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+                  <span class="badge">Journal article</span>
+                  <span class="badge badge-warn">Uncited</span>
+                  <span style="font-size:11px;color:var(--muted)">Rojas, 2019</span>
+                </div>
+              </div>
+              <span class="badge badge-code">es</span>
+            </div>
+          </div>
+          <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">Two neutral badges and one warm one. The eye lands on the only thing that needs doing.</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--bg);padding:20px 24px">
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--danger);margin-bottom:14px">In place — don't</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+            <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
+              <div style="min-width:0">
+                <div style="font-size:13px;font-weight:530;color:var(--fg);line-height:1.4">Estructuras narrativas en la novela contemporánea</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+                  <span class="badge badge-accent">Journal article</span>
+                  <span class="badge badge-warn">Uncited</span>
+                  <span style="font-size:11px;color:var(--muted)">Rojas, 2019</span>
+                </div>
+              </div>
+              <span class="badge badge-accent badge-code">es</span>
+            </div>
+          </div>
+          <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">Three colored badges, and the row no longer has a subject. This is the current library card.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="chip" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Component · new</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Chip</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">A filter you toggle. Always a <code style="font-family:var(--mono);font-size:12px">&lt;button&gt;</code>, always in a wrapping flex row with <code style="font-family:var(--mono);font-size:12px">gap: var(--sp-2)</code>. Selected reads <code style="font-family:var(--mono);font-size:12px">aria-pressed="true"</code>; the existing <code style="font-family:var(--mono);font-size:12px">.on</code> class is accepted too, so no component logic changes.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:20px">
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:24px">
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">States</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">
+            <button class="chip">Rest</button>
+            <button class="chip" style="border-color:var(--fg-2);color:var(--fg)">Hover</button>
+            <button class="chip on">Selected</button>
+            <button class="chip" style="box-shadow:var(--focus-ring)">Focus</button>
+            <button class="chip" disabled="true">Disabled</button>
+          </div>
+          <p style="margin:0;font-size:12px;line-height:1.6;color:var(--fg-2)">Hover moves the border and text only. The wash is reserved for selected, so hovering never previews selection.</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:24px">
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">Chip vs. segmented control</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+            <button class="chip on">Spanish</button>
+            <button class="chip">English</button>
+            <button class="chip">Unfinished</button>
+          </div>
+          <div class="seg" style="margin-bottom:16px">
+            <button class="active">Library</button>
+            <button>In text</button>
+          </div>
+          <p style="margin:0;font-size:12px;line-height:1.6;color:var(--fg-2)">Chips narrow a list and any number can be off. The segmented control picks exactly one mode, and keeps the solid accent fill. Two jobs, two shapes, two weights of color.</p>
+        </div>
+      </div>
+
+      <div style="border:1px solid var(--border);border-radius:12px;background:var(--bg);padding:24px">
+        <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">In place — the essay list filter row</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px">
+          <button class="chip on">All</button>
+          <button class="chip">Spanish</button>
+          <button class="chip">English</button>
+          <button class="chip">Unfinished</button>
+          <span style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)">Library <span class="badge badge-count">248</span></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="button" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Component · v1, one rename</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Button</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">Unchanged from v1 except that <code style="font-family:var(--mono);font-size:12px">.btn-ghost</code> becomes an alias of <code style="font-family:var(--mono);font-size:12px">.btn-secondary</code> — they were already the same rule — and the freed name is spent on the borderless button the app hand-rolls in four places.</p>
+
+      <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;margin-bottom:20px">
+        <div style="display:grid;grid-template-columns:170px 190px minmax(0,1fr);gap:20px;padding:12px 24px;background:var(--chrome);border-bottom:1px solid var(--border);font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted)">
+          <span>Class</span><span>Specimen</span><span>Use it for</span>
+        </div>
+        <div style="display:grid;grid-template-columns:170px 190px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.btn-primary</code>
+          <span><button class="btn btn-primary">Save reference</button></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)">Exactly one per surface, always last in a footer row.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:170px 190px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.btn-secondary</code>
+          <span><button class="btn btn-secondary">Close</button></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)">Everything else with a border: cancel, close, back, open folder. Canonical name.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:170px 190px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--muted);text-decoration:line-through">.btn-ghost</code>
+          <span><button class="btn btn-secondary">Close</button></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)"><strong style="font-weight:600;color:var(--fg)">Retired in v0.1.16.</strong> It was the identical rule; every call site now uses <code>.btn-secondary</code>, and the specimen here renders as one. "Ghost" now means borderless, below.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:170px 190px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.btn-quiet</code>
+          <span style="display:flex;gap:4px;align-items:center"><button class="btn-quiet">Cite</button><button class="btn-quiet btn-danger-text">Delete</button></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)"><strong style="font-weight:600;color:var(--fg)">New.</strong> Borderless inline action in a dense row — the reference list's Cite/Delete, the collection row's icons, the home footer's links.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:170px 190px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.btn-danger</code>
+          <span><button class="btn btn-danger">Turn off backups</button></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)">Opens a destructive flow. Stays bordered — the label carries the warning.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:170px 190px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.btn-danger-solid</code>
+          <span><button class="btn btn-danger-solid">Delete</button></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)">Commits it. Only ever in the primary slot of a confirmation modal.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:170px 190px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px">
+          <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.btn-sm · .btn-block</code>
+          <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><button class="btn btn-secondary btn-sm">Small</button><button class="btn btn-primary btn-block" style="max-width:120px">Block</button></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)">32px for dense panels; full-width 42px for a wizard's single action.</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:24px">
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">Primary states</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+            <button class="btn btn-primary">Rest</button>
+            <button class="btn btn-primary" style="background:var(--accent-hover)">Hover</button>
+            <button class="btn btn-primary" style="box-shadow:var(--focus-ring)">Focus</button>
+            <button class="btn btn-primary" aria-disabled="true">Blocked</button>
+            <button class="btn btn-primary" disabled="true"><span class="spinner"></span>Saving</button>
+          </div>
+          <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">Blocked keeps a washed accent rather than turning neutral — it must still read as the primary, or the bordered Cancel next to it visually outranks it.</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:24px">
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">Quiet, in a reference row</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--bg)">
+            <span style="font-size:12px;color:var(--fg-2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Rojas, M. (2019). Estructuras narrativas…</span>
+            <button class="btn-quiet">Cite</button>
+            <button class="btn-quiet btn-danger-text">Delete</button>
+          </div>
+          <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">Today these are three different bespoke buttons in three files, one of which is accent-colored text with no hover surface at all.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="field" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Component · v1, unchanged</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Field &amp; Select</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">Scoped to <code style="font-family:var(--mono);font-size:12px">:is(.modal, .ui-controls)</code>. Put <code style="font-family:var(--mono);font-size:12px">ui-controls</code> on any surface that hosts a form; <code style="font-family:var(--mono);font-size:12px">&lt;Modal&gt;</code> opts in for you. Every control is pinned to 42px so a native date input cannot render shorter than the text field above it.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:24px;display:flex;flex-direction:column;gap:16px">
+          <label class="field"><span>Title</span><input type="text" value="Estructuras narrativas" /></label>
+          <div class="field-row">
+            <label class="field"><span>Year</span><input type="text" value="2019" /></label>
+            <label class="field"><span>Pages</span><input type="text" placeholder="112–140" /></label>
+          </div>
+          <label class="field"><span>Abstract</span><textarea placeholder="Optional"></textarea></label>
+          <label class="check"><input type="checkbox" checked="true" /> Keep this reference in the library</label>
+          <p class="hint">Hints sit at 11px in --muted, directly under the control they explain.</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:24px;display:flex;flex-direction:column;gap:16px">
+          <label class="field"><span>Focused</span><input type="text" value="Has the accent border and the ring" style="background:var(--surface);border-color:var(--accent);box-shadow:var(--focus-ring)" /></label>
+          <div class="field">
+            <span>Invalid</span>
+            <input type="text" aria-invalid="true" value="1823-05-99" />
+            <p class="field-error" data-shown="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16v.5" /></svg>
+              Enter a four-digit year.
+            </p>
+          </div>
+          <label class="field"><span>Disabled</span><input type="text" value="Not editable" disabled="true" /></label>
+          <div class="field">
+            <span>Select</span>
+            <div class="select-wrap">
+              <button class="select-trigger is-open">
+                <span class="select-value">Journal article</span>
+                <svg class="select-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" /></svg>
+              </button>
+              <div class="select-pop" style="position:static;margin-top:6px">
+                <div class="select-group">Common</div>
+                <div class="select-group-items">
+                  <button class="select-option" aria-selected="true">
+                    <svg class="select-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7" /></svg>
+                    <span class="select-label">Journal article</span><span class="select-hint">@article</span>
+                  </button>
+                  <button class="select-option is-active"><span class="select-tick"></span><span class="select-label">Book</span><span class="select-hint">@book</span></button>
+                  <button class="select-option"><span class="select-tick"></span><span class="select-label">Web page</span><span class="select-hint">@online</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="margin:20px 0 0;max-width:64ch;font-size:13px;line-height:1.6;color:var(--fg-2)">Field labels use <code style="font-family:var(--mono);font-size:12px">--fg-2</code>, not <code style="font-family:var(--mono);font-size:12px">--muted</code>: a label names something the user is about to type into, so it is content rather than metadata. Text-entry borders use <code style="font-family:var(--mono);font-size:12px">--border-strong</code>; buttons and the segmented track keep the hairline.</p>
+    </section>
+
+    <section id="status" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Component · v1, unchanged</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Status panel</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">One slot that answers "is this working?" before anything else on the surface. Tone comes from <code style="font-family:var(--mono);font-size:12px">data-tone</code>, so four states share one layout instead of scattering four differently shaped paragraphs down the body. A badge says what something <em>is</em>; a status panel says what is <em>happening</em>.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">
+        <div class="status-panel" data-tone="ok">
+          <span class="status-dot"></span>
+          <div class="status-body">
+            <span class="status-title">Backed up 4 minutes ago</span>
+            <span class="status-meta">Next backup when you close the window.</span>
+          </div>
+        </div>
+        <div class="status-panel" data-tone="busy">
+          <span class="status-dot"></span>
+          <div class="status-body">
+            <span class="status-title">Importing 248 references</span>
+            <span class="status-meta">Reading library.bib…</span>
+          </div>
+        </div>
+        <div class="status-panel" data-tone="warn">
+          <span class="status-dot"></span>
+          <div class="status-body">
+            <span class="status-title">Title page is incomplete</span>
+            <span class="status-meta">Course and instructor are still empty.</span>
+          </div>
+        </div>
+        <div class="status-panel" data-tone="off">
+          <span class="status-dot"></span>
+          <div class="status-body">
+            <span class="status-title">Backups are off</span>
+            <span class="status-meta">Turn them on again from Settings whenever you like.</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;padding:20px 24px;border:1px solid var(--border);border-radius:12px;background:var(--surface)">
+        <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:14px">A path is a value, not prose</div>
+        <p class="path-value">/Users/lu/Library/Application Support/tesina/backups/2026-08-18</p>
+        <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">Filesystem paths, keys and IDs get their own mono well so a long one can wrap without reading as a sentence.</p>
+      </div>
+    </section>
+
+    <section id="modal" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Component · v1, one size added</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Modal</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">Every dialog in the app already goes through one <code style="font-family:var(--mono);font-size:12px">&lt;Modal&gt;</code> component, which is why the chrome itself never drifted. What drifted is what callers put <em>in</em> it: the footer's button names and the absence of a confirmation width.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px;align-items:start;margin-bottom:28px">
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Anatomy</div>
+          <div class="modal" style="width:100%;max-height:none;animation:none">
+            <header class="modal-head">
+              <div>
+                <h3>New reference</h3>
+                <p class="sub">Fill what you have; autofill can finish the rest.</p>
+              </div>
+              <button class="modal-close" aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M6 6l12 12M18 6L6 18" /></svg>
+              </button>
+            </header>
+            <div class="modal-body">
+              <label class="field"><span>DOI or URL</span><input type="text" placeholder="10.1037/0000165-000" /></label>
+              <div class="section"><span>Or enter it yourself</span></div>
+              <label class="field"><span>Title</span><input type="text" /></label>
+            </div>
+            <footer class="modal-foot">
+              <span class="foot-note">Autofill uses Crossref and Open Library.</span>
+              <button class="btn btn-secondary">Close</button>
+              <button class="btn btn-primary">Save</button>
+            </footer>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Rules</div>
+          <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden">
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border-soft)"><div style="font-size:13px;font-weight:600;margin-bottom:3px">Footer order is fixed</div><div style="font-size:12px;color:var(--fg-2);line-height:1.55">Note left, then secondary, then primary at the trailing edge. Never two primaries, never a primary on the left.</div></div>
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border-soft)"><div style="font-size:13px;font-weight:600;margin-bottom:3px">Cancel is always <code style="font-family:var(--mono);font-size:12px">.btn-secondary</code></div><div style="font-size:12px;color:var(--fg-2);line-height:1.55">Labelled from <code style="font-family:var(--mono);font-size:11px">common_close</code> for a dialog you can leave, or a verb-negating label ("Keep editing") when leaving would discard work.</div></div>
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border-soft)"><div style="font-size:13px;font-weight:600;margin-bottom:3px">Header carries the subtitle</div><div style="font-size:12px;color:var(--fg-2);line-height:1.55">One line of orienting copy goes in <code style="font-family:var(--mono);font-size:11px">subtitle</code>, not as the body's first paragraph.</div></div>
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border-soft)"><div style="font-size:13px;font-weight:600;margin-bottom:3px">Body is a flex column at <code style="font-family:var(--mono);font-size:12px">--sp-4</code></div><div style="font-size:12px;color:var(--fg-2);line-height:1.55">No per-field margins. The body scrolls; the header and footer never do.</div></div>
+            <div style="padding:14px 18px"><div style="font-size:13px;font-weight:600;margin-bottom:3px">Dismissal follows the stakes</div><div style="font-size:12px;color:var(--fg-2);line-height:1.55"><code style="font-family:var(--mono);font-size:11px">dismissOnOverlay={false}</code> on any form holding unsaved edits — Escape follows it automatically, so no dialog gains a silent-discard path through the keyboard alone.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Width scale</div>
+      <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;margin-bottom:24px">
+        <div style="display:grid;grid-template-columns:130px 90px minmax(0,1fr);gap:20px;padding:12px 24px;background:var(--chrome);border-bottom:1px solid var(--border);font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted)"><span>Class</span><span>Width</span><span>For</span></div>
+        <div style="display:grid;grid-template-columns:130px 90px minmax(0,1fr);gap:20px;padding:14px 24px;border-bottom:1px solid var(--border-soft);align-items:baseline"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.modal-sm</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">420px</span><span style="font-size:12px;line-height:1.55;color:var(--fg-2)"><strong style="font-weight:600;color:var(--fg)">New.</strong> Confirmations — delete a reference, quit with unsaved work. One sentence and two buttons; at 520px it looked like an empty form.</span></div>
+        <div style="display:grid;grid-template-columns:130px 90px minmax(0,1fr);gap:20px;padding:14px 24px;border-bottom:1px solid var(--border-soft);align-items:baseline"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.modal</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">520px</span><span style="font-size:12px;line-height:1.55;color:var(--fg-2)">The default. Settings, title page, table insert, equation, import.</span></div>
+        <div style="display:grid;grid-template-columns:130px 90px minmax(0,1fr);gap:20px;padding:14px 24px;align-items:baseline"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.modal-lg</code><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">564px</span><span style="font-size:12px;line-height:1.55;color:var(--fg-2)">Long scrolling forms with two-up field rows — the reference form. Renamed from <code style="font-family:var(--mono);font-size:11px">.modal-ref</code>, which named a caller instead of a size.</span></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Confirmation at <code style="font-family:var(--mono);text-transform:none;letter-spacing:0">.modal-sm</code></div>
+          <div class="modal modal-sm" style="max-height:none;animation:none">
+            <header class="modal-head">
+              <div><h3>Delete this reference?</h3></div>
+              <button class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
+            </header>
+            <div class="modal-body"><p style="margin:0;font-size:13px;line-height:1.55;color:var(--fg-2)">It is cited twice in this essay. Those citations will be marked unresolved.</p></div>
+            <footer class="modal-foot">
+              <button class="btn btn-secondary">Keep it</button>
+              <button class="btn btn-danger-solid">Delete</button>
+            </footer>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Busy — <code style="font-family:var(--mono);text-transform:none;letter-spacing:0">data-busy="true"</code></div>
+          <div class="modal modal-sm" data-busy="true" style="max-height:none;animation:none">
+            <header class="modal-head">
+              <div><h3>Importing library</h3><p class="sub">Do not close the window.</p></div>
+            </header>
+            <div class="modal-body"><p style="margin:0;font-size:13px;line-height:1.55;color:var(--fg-2)">248 references found. Matching against your existing library.</p></div>
+            <footer class="modal-foot">
+              <button class="btn btn-secondary" disabled="true">Cancel</button>
+              <button class="btn btn-primary" disabled="true"><span class="spinner"></span>Importing</button>
+            </footer>
+          </div>
+          <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">The body dims to 55% and stops taking pointer events; the footer stays live so the state is legible and the exit is still visible.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="popover" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Component · v1, unchanged</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Popover &amp; dock</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">The editor's floating toolbar is the app's one pill-shaped surface, and every button in it is a pill — which is exactly why pills mean "control" everywhere else. It docks to all four edges and flips its popovers to match.</p>
+
+      <div style="padding:32px 24px;background:var(--bg);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;display:flex;justify-content:center">
+        <div style="display:flex;align-items:center;gap:4px;padding:6px;background:color-mix(in oklab,var(--surface),transparent 8%);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:999px;box-shadow:var(--elev-2)">
+          <span style="display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:500;color:var(--fg-2)">Heading</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:500;background:var(--accent-soft);color:var(--accent)">Lists</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:500;color:var(--fg-2)">Table</span>
+          <span style="width:1px;height:22px;background:var(--border);margin:0 2px"></span>
+          <span style="display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:500;background:var(--accent);color:var(--accent-on)">Cite</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start">
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Menu popover</div>
+          <div style="min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--elev-2);padding:6px;display:flex;flex-direction:column;gap:2px">
+            <span style="padding:7px 10px;border-radius:8px;font-size:13px;color:var(--fg);background:var(--hover)">Level 1 — centered</span>
+            <span style="padding:7px 10px;border-radius:8px;font-size:13px;color:var(--fg)">Level 2 — flush left</span>
+            <span style="padding:7px 10px;border-radius:8px;font-size:13px;color:var(--fg)">Level 3 — flush left italic</span>
+            <span style="padding:7px 10px;border-radius:8px;font-size:13px;color:var(--fg)">Level 4 — run-in</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Tooltip (side docks)</div>
+          <div style="display:inline-flex;align-items:center;gap:8px">
+            <span style="display:grid;place-items:center;width:38px;height:38px;border-radius:999px;background:var(--hover);color:var(--fg)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px"><path d="M4 6h16M4 12h10M4 18h13" /></svg>
+            </span>
+            <span style="white-space:nowrap;background:var(--surface);color:var(--fg);border:1px solid var(--border);border-radius:8px;box-shadow:var(--elev-2);padding:4px 8px;font-size:12px;font-weight:500">Lists</span>
+          </div>
+          <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">A styled <code style="font-family:var(--mono);font-size:11px">::after</code> tooltip rather than native <code style="font-family:var(--mono);font-size:11px">title=</code>: it appears on focus as well as hover, and immediately.</p>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Stacking</div>
+          <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;font-size:12px">
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border-bottom:1px solid var(--border-soft)"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--z-dock</code><span style="color:var(--muted)">40</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border-bottom:1px solid var(--border-soft)"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--z-overlay</code><span style="color:var(--muted)">100</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border-bottom:1px solid var(--border-soft)"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--z-modal</code><span style="color:var(--muted)">110</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border-bottom:1px solid var(--border-soft)"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--z-popover</code><span style="color:var(--muted)">120</span></div>
+            <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 14px"><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">--z-toast</code><span style="color:var(--muted)">200</span></div>
+          </div>
+          <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">The editor's own menus stay on a local ladder anchored at 40 and do not join this scale — promoting one to <code style="font-family:var(--mono);font-size:11px">--z-popover</code> would put a toolbar menu on top of an open modal.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="card" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Component · v1, consolidated</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Card</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">Two cards, one shell: <code style="font-family:var(--mono);font-size:12px">--surface</code>, hairline border, <code style="font-family:var(--mono);font-size:12px">--r-md</code>, and a hover that moves the border toward accent. The essay card lifts because it is a grid tile you aim at; the reference card does not, because it is a dense list row.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;align-items:start">
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Essay card</div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 16px 12px;display:flex;flex-direction:column;gap:12px;max-width:300px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <div style="min-width:0">
+                <h3 style="margin:0;font-size:14px;font-weight:600;letter-spacing:-0.01em;line-height:1.35">Estructuras narrativas en la novela contemporánea</h3>
+                <p style="margin:2px 0 0;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Literatura Comparada II</p>
+              </div>
+              <span class="badge badge-code">es</span>
+            </div>
+            <div style="height:74px;border-radius:8px;background:linear-gradient(180deg,var(--paper),color-mix(in oklab,var(--paper),var(--fg) 4%));border:1px solid var(--border-soft);padding:12px;overflow:hidden">
+              <p style="margin:0;font-family:var(--serif);font-size:11px;line-height:1.45;color:var(--fg-2)">La novela contemporánea abandona la linealidad decimonónica sin renunciar del todo a la promesa de un final. Este trabajo examina tres estrategias…</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="badge badge-count">12</span>
+              <span style="font-size:11px;color:var(--muted)">references · edited 2 days ago</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Reference card — rest, hover, selected</div>
+          <div style="display:flex;flex-direction:column;gap:8px;max-width:380px">
+            <div style="padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface)">
+              <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:4px">
+                <span class="badge">Journal article</span>
+                <code style="font-family:var(--mono);font-size:11px;color:var(--fg-2)">rojas2019</code>
+              </div>
+              <div style="font-size:12px;color:var(--fg-2);line-height:1.5;padding-left:12px;text-indent:-14px">Rojas, M. (2019). Estructuras narrativas en la novela contemporánea. <em>Revista de Literatura Comparada, 41</em>(2), 112–140.</div>
+            </div>
+            <div style="padding:12px;border:1px solid color-mix(in oklab,var(--accent),var(--border) 55%);border-radius:12px;background:var(--surface)">
+              <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:4px">
+                <span class="badge">Book</span>
+                <span class="badge badge-warn">Uncited</span>
+              </div>
+              <div style="font-size:12px;color:var(--fg-2);line-height:1.5;padding-left:12px;text-indent:-14px">Genette, G. (1980). <em>Narrative discourse: An essay in method</em>. Cornell University Press.</div>
+            </div>
+            <div style="padding:12px;border:1px solid var(--accent);border-radius:12px;background:var(--surface);box-shadow:var(--focus-ring)">
+              <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:4px">
+                <span class="badge">Web page</span>
+                <span class="badge badge-accent">Cited 4×</span>
+              </div>
+              <div style="font-size:12px;color:var(--fg-2);line-height:1.5;padding-left:12px;text-indent:-14px">American Psychological Association. (2020). <em>Paper format</em>. https://apastyle.apa.org/style-grammar-guidelines/paper-format</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="empty" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Component · new</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Empty state</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">Four components each wrote their own <code style="font-family:var(--mono);font-size:12px">.empty</code> rule, from a bare muted paragraph to a centred block. One component, two variants: a padded block for a full column, and an inline version for a panel or popover too short to centre anything in.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface)">
+          <div class="empty-state">
+            <span class="empty-title">No references yet</span>
+            <p>Add one by hand, or import a .bib file from Zotero or Mendeley.</p>
+            <button class="btn btn-primary btn-sm">New reference</button>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface)">
+          <div class="empty-state is-inline">
+            <span class="empty-title">Nothing cited on this page</span>
+            <p>Citations you insert will show up here, in the order they appear.</p>
+          </div>
+        </div>
+      </div>
+      <p style="margin:20px 0 0;max-width:64ch;font-size:13px;line-height:1.6;color:var(--fg-2)">Copy rule: name what is missing, then give one way forward. No illustrations, no exclamation marks, and never the word "oops".</p>
+    </section>
+
+    <section id="apa" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border);background:var(--bg)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">The document · locked layer</div>
+      <h2 style="margin:0 0 16px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">APA 7 is not a style choice. It is the specification.</h2>
+      <p style="margin:0 0 20px;max-width:66ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">Everything above this line is chrome, and chrome is ours to design. The paper sheet is not. Its geometry, type sizes, spacing and indents are fixed by the APA Publication Manual (7th ed.), and the app exists to guarantee them — a student should never have to check. So this layer has one rule that outranks every other rule in this document:</p>
+      <p style="margin:0 0 32px;max-width:60ch;padding:18px 22px;border-left:3px solid var(--accent);background:var(--surface);border-radius:0 12px 12px 0;font-size:15px;line-height:1.55;font-weight:530;color:var(--fg)">No chrome token, component or aesthetic preference may change a measurement inside the paper sheet. If a value is prescribed by APA, it is not a design decision.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px;align-items:start;margin-bottom:32px">
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Page geometry — US Letter at 96dpi</div>
+          <div style="position:relative;background:var(--paper-print);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-paper);aspect-ratio:816/1056;max-width:340px;padding:12.5%;overflow:hidden">
+            <div style="position:absolute;inset:12.5%;border:1px dashed color-mix(in oklab,var(--accent),transparent 55%)"></div>
+            <div style="position:absolute;top:5.5%;right:12.5%;font-family:Georgia,serif;font-size:9px;color:#131313">1</div>
+            <div style="position:relative;font-family:Georgia,serif;font-size:8.5px;line-height:2;color:#131313">
+              <div style="text-align:center;font-weight:700;margin-bottom:0">Estructuras Narrativas</div>
+              <div style="text-indent:0.5em">La novela contemporánea abandona la linealidad decimonónica sin renunciar del todo a la promesa de un final.</div>
+              <div style="font-weight:700;margin-top:0">Marco Teórico</div>
+              <div style="text-indent:0.5em">Genette (1980) distingue tres niveles de análisis.</div>
+            </div>
+            <div style="position:absolute;left:0;right:0;top:6.25%;display:flex;justify-content:center"><span style="font-family:var(--mono);font-size:8px;color:var(--accent)">1 in</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px;font-size:11px">
+            <div style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px"><code style="font-family:var(--mono);color:var(--accent)">816 × 1056px</code><div style="color:var(--muted);margin-top:2px">8.5 × 11 in</div></div>
+            <div style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px"><code style="font-family:var(--mono);color:var(--accent)">padding: 96px</code><div style="color:var(--muted);margin-top:2px">1 in, all four sides</div></div>
+            <div style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px"><code style="font-family:var(--mono);color:var(--accent)">624px</code><div style="color:var(--muted);margin-top:2px">6.5 in text column</div></div>
+            <div style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px"><code style="font-family:var(--mono);color:var(--accent)">line-height: 2</code><div style="color:var(--muted);margin-top:2px">Double, throughout</div></div>
+          </div>
+          <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">The 816px coordinate system never changes. The canvas may scale the whole stack to fit a narrow window, but wrapping and pagination are computed in page units, so what you see on screen breaks where the printed page breaks.</p>
+        </div>
+
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">The seven permitted fonts</div>
+          <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border-soft)"><span style="font-family:'Times New Roman',Times,serif;font-size:14px">Times New Roman</span><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">12 pt</span></div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border-soft)"><span style="font-family:Georgia,serif;font-size:14px">Georgia</span><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">11 pt</span></div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border-soft)"><span style="font-family:'Latin Modern Roman','CMU Serif',Georgia,serif;font-size:14px">Computer Modern</span><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">10 pt</span></div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border-soft)"><span style="font-family:Aptos,Calibri,sans-serif;font-size:14px">Aptos</span><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">12 pt</span></div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border-soft)"><span style="font-family:Calibri,'Segoe UI',sans-serif;font-size:14px">Calibri</span><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">11 pt</span></div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border-soft)"><span style="font-family:Arial,Helvetica,sans-serif;font-size:14px">Arial</span><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">11 pt</span></div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:12px;padding:11px 16px"><span style="font-family:'Lucida Sans Unicode','Lucida Grande',sans-serif;font-size:14px">Lucida Sans Unicode</span><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">10 pt</span></div>
+          </div>
+          <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">Size is bound to family, not chosen separately: picking Georgia sets 11pt, picking Times sets 12pt. There is no font-size control in the document, and there should never be one — that is the single most common way a paper falls out of compliance.</p>
+          <p style="margin:12px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)"><code style="font-family:var(--mono);font-size:11px">APA_FONTS</code> in <code style="font-family:var(--mono);font-size:11px">model/fonts.ts</code> is the single source of truth for screen and preview; the DOCX exporter keeps a parallel table that must be changed in the same commit.</p>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Headings — five levels, all at document size</div>
+      <div style="border:1px solid var(--border);border-radius:12px;background:var(--paper-print);padding:28px 32px;margin-bottom:14px;font-family:Georgia,serif;font-size:13px;line-height:2;color:#131313">
+        <div style="text-align:center;font-weight:700">Level 1 Is Centered and Bold</div>
+        <div style="text-indent:0.5in">Text begins as a new paragraph.</div>
+        <div style="font-weight:700">Level 2 Is Flush Left and Bold</div>
+        <div style="text-indent:0.5in">Text begins as a new paragraph.</div>
+        <div style="font-weight:700;font-style:italic">Level 3 Is Flush Left, Bold Italic</div>
+        <div style="text-indent:0.5in">Text begins as a new paragraph.</div>
+        <div style="text-indent:0.5in"><strong style="font-weight:700">Level 4 Is Indented, Bold, and Ends With a Period.</strong> Text continues on the same line.</div>
+        <div style="text-indent:0.5in"><strong style="font-weight:700;font-style:italic">Level 5 Is Indented, Bold Italic, and Ends With a Period.</strong> Text continues on the same line.</div>
+      </div>
+      <p style="margin:0 0 32px;max-width:66ch;font-size:13px;line-height:1.6;color:var(--fg-2)">No heading changes size, and none is underlined or set in caps. Levels 4 and 5 are run-in: the app marks a heading as run-in only when a paragraph actually follows it, appends the terminal period if the author did not type one, and leaves both nodes independently editable. Levels are Title Case — that is the one APA heading rule the live check does not currently verify.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px;align-items:start;margin-bottom:32px">
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Indents — the four cases</div>
+          <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden">
+            <div style="padding:13px 16px;border-bottom:1px solid var(--border-soft)"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:12px;font-weight:530;color:var(--fg)">Body paragraph</span><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">text-indent: 0.5in</code></div><div style="font-size:11px;color:var(--muted);margin-top:3px">First line only. No space between paragraphs — <code style="font-family:var(--mono)">margin: 0</code>.</div></div>
+            <div style="padding:13px 16px;border-bottom:1px solid var(--border-soft)"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:12px;font-weight:530;color:var(--fg)">Reference entry</span><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">-0.5in / 0.5in</code></div><div style="font-size:11px;color:var(--muted);margin-top:3px">Hanging: negative text-indent against matching padding-left.</div></div>
+            <div style="padding:13px 16px;border-bottom:1px solid var(--border-soft)"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:12px;font-weight:530;color:var(--fg)">Block quotation</span><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">margin-left: 0.5in</code></div><div style="font-size:11px;color:var(--muted);margin-top:3px">Whole block indented, first line flush, no quotation marks, no rule or border.</div></div>
+            <div style="padding:13px 16px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span style="font-size:12px;font-weight:530;color:var(--fg)">Abstract, first line</span><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">text-indent: 0</code></div><div style="font-size:11px;color:var(--muted);margin-top:3px">Flush left. The keywords line below it takes the 0.5in indent and an italic label.</div></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Hanging indent, live</div>
+          <div style="border:1px solid var(--border);border-radius:12px;background:var(--paper-print);padding:24px 28px;font-family:Georgia,serif;font-size:12.5px;line-height:2;color:#131313">
+            <div style="text-align:center;font-weight:700;margin-bottom:1em">References</div>
+            <div style="padding-left:0.5in;text-indent:-0.5in">Genette, G. (1980). <em>Narrative discourse: An essay in method</em>. Cornell University Press.</div>
+            <div style="padding-left:0.5in;text-indent:-0.5in">Rojas, M. (2019). Estructuras narrativas en la novela contemporánea. <em>Revista de Literatura Comparada, 41</em>(2), 112–140.</div>
+          </div>
+          <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">"References" is centered and bold at document size, double-spaced like everything else, and entries are alphabetical. The heading is not a Level 1 heading and is not italicized.</p>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Where compliance is enforced</div>
+      <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;margin-bottom:20px">
+        <div style="display:grid;grid-template-columns:1.1fr 1fr 1.4fr;gap:20px;padding:12px 24px;background:var(--chrome);border-bottom:1px solid var(--border);font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted)"><span>Rule</span><span>Enforced by</span><span>How it cannot drift</span></div>
+        <div style="display:grid;grid-template-columns:1.1fr 1fr 1.4fr;gap:20px;padding:13px 24px;border-bottom:1px solid var(--border-soft);font-size:12px;line-height:1.55"><span style="color:var(--fg)">Margins, page size, double spacing, indents</span><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">editor/apa.css</code><span style="color:var(--fg-2)">Structural CSS on <code style="font-family:var(--mono)">.tiptap</code>. There is no UI that can change them.</span></div>
+        <div style="display:grid;grid-template-columns:1.1fr 1fr 1.4fr;gap:20px;padding:13px 24px;border-bottom:1px solid var(--border-soft);font-size:12px;line-height:1.55"><span style="color:var(--fg)">Font family and its point size</span><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">model/fonts.ts</code><span style="color:var(--fg-2)">A closed set of seven; size is a property of the choice, not a separate control.</span></div>
+        <div style="display:grid;grid-template-columns:1.1fr 1fr 1.4fr;gap:20px;padding:13px 24px;border-bottom:1px solid var(--border-soft);font-size:12px;line-height:1.55"><span style="color:var(--fg)">Heading level formatting and run-in periods</span><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">apa.css + decoration</code><span style="color:var(--fg-2)">Derived from node type, not from author formatting. Nothing to get wrong by hand.</span></div>
+        <div style="display:grid;grid-template-columns:1.1fr 1fr 1.4fr;gap:20px;padding:13px 24px;border-bottom:1px solid var(--border-soft);font-size:12px;line-height:1.55"><span style="color:var(--fg)">Table and figure anatomy (7.8, 7.22)</span><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">apa.css counters</code><span style="color:var(--fg-2)">"Table N" / "Figure N" and "Note." are generated content; numbering renumbers itself.</span></div>
+        <div style="display:grid;grid-template-columns:1.1fr 1fr 1.4fr;gap:20px;padding:13px 24px;border-bottom:1px solid var(--border-soft);font-size:12px;line-height:1.55"><span style="color:var(--fg)">Skipped heading levels, empty titles, empty paragraphs</span><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">editor/apaCheck.ts</code><span style="color:var(--fg-2)">Live check, four rules. Flags the block with a soft tint — color only, never layout.</span></div>
+        <div style="display:grid;grid-template-columns:1.1fr 1fr 1.4fr;gap:20px;padding:13px 24px;font-size:12px;line-height:1.55"><span style="color:var(--warn-strong)">Title Case in headings</span><code style="font-family:var(--mono);font-size:11px;color:var(--warn-strong)">not enforced</code><span style="color:var(--fg-2)">The one prescribed heading rule with no check behind it. A fifth <code style="font-family:var(--mono)">apaCheck</code> rule would close it.</span></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:22px 24px">
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">The document keeps its own palette</div>
+          <p style="margin:0 0 12px;font-size:13px;line-height:1.6;color:var(--fg-2)"><code style="font-family:var(--mono);font-size:12px">.apa-editor</code> pins pre-v1 hex values for <code style="font-family:var(--mono);font-size:12px">--fg</code>, <code style="font-family:var(--mono);font-size:12px">--paper</code> and the rest, and restates the derived tokens rather than inheriting them. Retuning the chrome palette therefore cannot restyle the sheet.</p>
+          <p style="margin:0;font-size:13px;line-height:1.6;color:var(--fg-2)">The print preview's sheet is deliberately theme-independent: the export CSS hardcodes near-black ink, so following <code style="font-family:var(--mono);font-size:12px">--paper</code> in dark mode would darken the page while the text stayed black.</p>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:22px 24px">
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Editing affordances that must never print</div>
+          <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:var(--fg-2)">
+            <li>Dashed ghost gridlines inside tables</li>
+            <li>Citation chips, set in the chrome font at 0.82em</li>
+            <li>The APA-check tint and the overflow outlines</li>
+            <li>The pencil buttons on tables, figures and equations</li>
+            <li>The "no references yet" message on the reference page</li>
+          </ul>
+          <p style="margin:12px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">Each is chrome living inside the document. The preview and DOCX export render from their own stylesheets, which is what keeps them off the page — and the reason any new in-document affordance has to be added there as an exclusion in the same commit.</p>
+        </div>
+      </div>
+    </section>
+
+        <section id="popover-surface" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border);background:var(--bg)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--accent-text);margin-bottom:10px">Component · new</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Popover</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">One floating surface, replacing six that agreed on nothing across twelve call sites — three radii, two elevation steps and a raw <code style="font-family:var(--mono)">10px</code> literal. <code style="font-family:var(--mono)">.popover</code> is the <strong style="font-weight:600;color:var(--fg)">material only</strong>: <code style="font-family:var(--mono)">--elevated</code>, a hairline, <code style="font-family:var(--mono)">--r-md</code>, and <code style="font-family:var(--mono)">--elev-3</code> plus the inset hairline that separates it in dark mode. Placement, width and z-index stay with each caller, because the editor's menus sit on their own stacking ladder.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px">
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Status header · success</div>
+          <div class="popover" style="width:240px">
+            <div class="popover-head" data-tone="success">
+              <span class="popover-dot"></span>
+              <div><div class="popover-title">You're up to date.</div></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Status header · accent</div>
+          <div class="popover" style="width:240px">
+            <div class="popover-head" data-tone="accent">
+              <span class="popover-dot"></span>
+              <div>
+                <div class="popover-title">Version 0.1.17 ready</div>
+                <div class="popover-meta">Click to install and restart</div>
+              </div>
+            </div>
+            <div class="popover-foot"><button class="btn btn-primary btn-sm">Install</button></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Status header · warn</div>
+          <div class="popover" style="width:240px">
+            <div class="popover-head" data-tone="warn">
+              <span class="popover-dot"></span>
+              <div>
+                <div class="popover-title">APA format deviations: 3</div>
+                <div class="popover-meta">Suggestions — nothing is blocked</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">List picker · no header</div>
+          <div class="popover" style="width:240px;padding:6px;display:flex;flex-direction:column;gap:1px">
+            <button class="select-option" style="width:100%"><span class="select-label">Level 1 — centered</span></button>
+            <button class="select-option is-active" style="width:100%"><span class="select-label">Level 2 — flush left</span></button>
+            <button class="select-option" style="width:100%"><span class="select-label">Level 3 — flush left italic</span></button>
+          </div>
+        </div>
+      </div>
+
+      <p style="margin:24px 0 0;max-width:64ch;font-size:12px;line-height:1.6;color:var(--fg-2)">Tone comes from <code style="font-family:var(--mono)">data-tone</code>, using the same four names the badge uses. A <strong style="font-weight:600;color:var(--fg)">list picker has no header at all</strong> — the Select listbox and the heading, list, table and font menus are lists, not status reports. The beak that tethers a popover to its trigger is designed but not shipped: the app opens popovers in four different directions, and a beak pointing at nothing is worse than none.</p>
+    </section>
+
+    <section id="css" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Handoff</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Paste-ready CSS</h2>
+      <p style="margin:0 0 24px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">Every specimen on this page is rendered by the app's real <code style="font-family:var(--mono);font-size:12px">tokens.css</code>, <code style="font-family:var(--mono);font-size:12px">controls.css</code> and <code style="font-family:var(--mono);font-size:12px">modal.css</code>, plus the additions below — so nothing here can drift from what ships. Drop it in as <code style="font-family:var(--mono);font-size:12px">src/lib/styles/controls-v2.css</code> and import it after <code style="font-family:var(--mono);font-size:12px">controls.css</code> in <code style="font-family:var(--mono);font-size:12px">routes/+layout.svelte</code>, or paste the blocks into <code style="font-family:var(--mono);font-size:12px">controls.css</code> directly.</p>
+
+      <div style="border:1px solid var(--border);border-radius:12px;background:var(--bg);overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 18px;background:var(--chrome);border-bottom:1px solid var(--border)">
+          <code style="font-family:var(--mono);font-size:12px;color:var(--fg)">controls-v2.css</code>
+          <span class="badge badge-code">css</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--muted)">additions to Tesina Design System v1</span>
+        </div>
+        <pre style="margin:0;padding:22px;overflow-x:auto;font-family:var(--mono);font-size:11.5px;line-height:1.75;color:var(--fg-2);tab-size:2">/* ── Badge ── Static label. One size. Shape says "not clickable". */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: 18px;
+  padding: 0 var(--sp-15);
+  border-radius: var(--r-xs);
+  font-size: var(--t-caption);
+  font-weight: var(--w-medium);
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  /* Neutral is the DEFAULT, not a variant: most badges classify, and
+     classification does not earn color. */
+  background: var(--hover-strong);
+  color: var(--fg-2);
+}
+
+.badge svg { width: 11px; height: 11px; flex: 0 0 11px; }
+
+/* What the user is acting on right now. Never a category. */
+.badge-accent { background: var(--accent-soft); color: var(--accent); }
+.badge-success { background: var(--success-soft); color: var(--success); }
+/* --warn-strong, not --warn: raw --warn cannot carry 11px text. */
+.badge-warn { background: var(--warn-soft); color: var(--warn-strong); }
+.badge-danger { background: var(--danger-soft); color: var(--danger); }
+
+/* A machine value: language tag, extension, BibTeX key. */
+.badge-code {
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* A number. Tabular figures so a column of counts cannot jitter. */
+.badge-count {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  min-width: 18px;
+  justify-content: center;
+}
+
+/* ── Chip ── Interactive filter. A pill, because pressing it does something. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: 26px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--fg-2);
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: var(--w-medium);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.chip:hover:not([aria-pressed="true"]):not(.on) {
+  border-color: var(--fg-2);
+  color: var(--fg);
+}
+
+/* A soft wash, NOT a solid fill: the segmented control already owns solid
+   accent for "which mode", and a filter is a narrower claim than that.
+   Both aria-pressed and the existing .on class work, so no logic changes. */
+.chip[aria-pressed="true"],
+.chip.on {
+  background: var(--accent-soft);
+  border-color: color-mix(in oklab, var(--accent), transparent 45%);
+  color: var(--accent);
+}
+
+.chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Quiet button ── Borderless inline action. What "ghost" should have meant. */
+.btn-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: var(--ctl-h-sm);
+  padding: 0 var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-xs);
+  background: none;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: var(--w-medium);
+  cursor: pointer;
+  transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.btn-quiet:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
+.btn-quiet svg { width: 14px; height: 14px; }
+.btn-quiet.btn-icon { width: var(--ctl-h-sm); padding: 0; justify-content: center; }
+.btn-quiet.btn-danger-text { color: var(--danger); }
+.btn-quiet.btn-danger-text:hover:not(:disabled) {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.btn-quiet:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Empty state ── Replaces four separate .empty rules. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-7) var(--sp-5);
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty-state .empty-title {
+  font-size: var(--t-ui);
+  font-weight: var(--w-medium);
+  color: var(--fg-2);
+  line-height: var(--lh-snug);
+}
+
+.empty-state p {
+  margin: 0;
+  max-width: 34ch;
+  font-size: var(--t-small);
+  line-height: var(--lh-snug);
+  text-wrap: pretty;
+}
+
+.empty-state .btn { margin-top: var(--sp-2); }
+
+/* Inline variant: a panel or popover too short for the padded block. */
+.empty-state.is-inline {
+  padding: var(--sp-4) var(--sp-3);
+  align-items: flex-start;
+  text-align: left;
+}
+
+/* ── Modal width scale ── .modal-ref named a caller; these name sizes.
+   Compounded with .modal, not bare: `.modal { width }` lives in modal.css,
+   which Modal.svelte imports on its own, so a bare `.modal-sm` would tie on
+   specificity and be decided by bundle order. `.modal-ref` is retired. */
+.modal.modal-sm { width: min(420px, 100%); }
+
+.modal.modal-lg { width: min(564px, 100%); }</pre>
+      </div>
+    </section>
+
+    <section id="migration" style="padding:56px clamp(24px,5vw,64px)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Handoff</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Migration map</h2>
+      <div class="status-panel" data-tone="ok" style="margin:0 0 24px;max-width:64ch">
+        <span class="status-dot"></span>
+        <div class="status-body">
+          <div class="status-title">Done — shipped in v0.1.16</div>
+          <div class="status-meta">Every row below was applied in one branch, and the <code style="font-family:var(--mono)">.btn-ghost</code> and <code style="font-family:var(--mono)">.modal-ref</code> aliases were retired with it. The record of what actually landed, including the per-badge tone decisions, is <code style="font-family:var(--mono)">docs/design/DESIGN.md</code> §10. Read the plan below as history.</div>
+        </div>
+      </div>
+      <p style="margin:0 0 24px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">Nine files. Each row is "delete this local rule, use this class". Every rename is mechanical; none of them changes component logic, because the v2 selectors accept the class names and ARIA attributes already in the markup.</p>
+
+      <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;margin-bottom:24px">
+        <div style="display:grid;grid-template-columns:1.15fr 1.15fr 1.1fr;gap:20px;padding:12px 24px;background:var(--chrome);border-bottom:1px solid var(--border);font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted)"><span>File</span><span>Delete</span><span>Use</span></div>
+        <div style="display:grid;grid-template-columns:1.15fr 1.15fr 1.1fr;gap:20px;padding:13px 24px;border-bottom:1px solid var(--border-soft);font-size:12px;align-items:baseline"><code style="font-family:var(--mono);font-size:11px;color:var(--fg)">ReferencesPanel.svelte</code><span style="color:var(--fg-2)">local <code style="font-family:var(--mono);font-size:11px">.pill</code> + <code style="font-family:var(--mono);font-size:11px">.pill.blue</code>, <code style="font-family:var(--mono);font-size:11px">.actions button</code>, <code style="font-family:var(--mono);font-size:11px">.empty</code></span><span style="color:var(--accent);font-family:var(--mono);font-size:11px">.badge-warn · .btn-quiet · .empty-state</span></div>
+        <div style="display:grid;grid-template-columns:1.15fr 1.15fr 1.1fr;gap:20px;padding:13px 24px;border-bottom:1px solid var(--border-soft);font-size:12px;align-items:baseline"><code style="font-family:var(--mono);font-size:11px;color:var(--fg)">BibImportModal.svelte</code><span style="color:var(--fg-2)">local <code style="font-family:var(--mono);font-size:11px">.pill</code> + <code style="font-family:var(--mono);font-size:11px">.pill.warn</code></span><span style="color:var(--accent);font-family:var(--mono);font-size:11px">.badge · .badge-warn</span></div>
+        <div style="display:grid;grid-template-columns:1.15fr 1.15fr 1.1fr;gap:20px;padding:13px 24px;border-bottom:1px solid var(--border-soft);font-size:12px;align-items:baseline"><code style="font-family:var(--mono);font-size:11px;color:var(--fg)">EssayHome.svelte</code><span style="color:var(--fg-2)">local <code style="font-family:var(--mono);font-size:11px">.badge</code>, <code style="font-family:var(--mono);font-size:11px">.chip</code>, <code style="font-family:var(--mono);font-size:11px">.count</code>, <code style="font-family:var(--mono);font-size:11px">.foot button</code>, <code style="font-family:var(--mono);font-size:11px">.empty</code></span><span style="color:var(--accent);font-family:var(--mono);font-size:11px">.badge-code · .chip · .badge-count · .btn-quiet · .empty-state</span></div>
+        <div style="display:grid;grid-template-columns:1.15fr 1.15fr 1.1fr;gap:20px;padding:13px 24px;border-bottom:1px solid var(--border-soft);font-size:12px;align-items:baseline"><code style="font-family:var(--mono);font-size:11px;color:var(--fg)">LibraryScreen.svelte</code><span style="color:var(--fg-2)">local <code style="font-family:var(--mono);font-size:11px">.chip</code> + <code style="font-family:var(--mono);font-size:11px">.chip.on</code>, <code style="font-family:var(--mono);font-size:11px">.count</code>, <code style="font-family:var(--mono);font-size:11px">.mini</code>, <code style="font-family:var(--mono);font-size:11px">.empty</code></span><span style="color:var(--accent);font-family:var(--mono);font-size:11px">.chip · .badge-count · .btn-quiet.btn-icon · .empty-state</span></div>
+        <div style="display:grid;grid-template-columns:1.15fr 1.15fr 1.1fr;gap:20px;padding:13px 24px;border-bottom:1px solid var(--border-soft);font-size:12px;align-items:baseline"><code style="font-family:var(--mono);font-size:11px;color:var(--fg)">CitationPopover.svelte</code><span style="color:var(--fg-2)">local <code style="font-family:var(--mono);font-size:11px">.empty</code></span><span style="color:var(--accent);font-family:var(--mono);font-size:11px">.empty-state.is-inline</span></div>
+        <div style="display:grid;grid-template-columns:1.15fr 1.15fr 1.1fr;gap:20px;padding:13px 24px;border-bottom:1px solid var(--border-soft);font-size:12px;align-items:baseline"><code style="font-family:var(--mono);font-size:11px;color:var(--fg)">7 modal footers</code><span style="color:var(--fg-2)"><code style="font-family:var(--mono);font-size:11px">btn-ghost</code> in TitlePageForm, EquationDialog, TableInsertDialog, ReferenceQuickForm, BackupSettings, ExportWarningsDialog, LibraryScreen</span><span style="color:var(--accent);font-family:var(--mono);font-size:11px">btn-secondary</span></div>
+        <div style="display:grid;grid-template-columns:1.15fr 1.15fr 1.1fr;gap:20px;padding:13px 24px;border-bottom:1px solid var(--border-soft);font-size:12px;align-items:baseline"><code style="font-family:var(--mono);font-size:11px;color:var(--fg)">Modal.svelte</code><span style="color:var(--fg-2)"><code style="font-family:var(--mono);font-size:11px">ModalSize = "default" | "ref"</code></span><span style="color:var(--accent);font-family:var(--mono);font-size:11px">"sm" | "default" | "lg"</span></div>
+        <div style="display:grid;grid-template-columns:1.15fr 1.15fr 1.1fr;gap:20px;padding:13px 24px;font-size:12px;align-items:baseline"><code style="font-family:var(--mono);font-size:11px;color:var(--fg)">controls.css · modal.css</code><span style="color:var(--fg-2)"><code style="font-family:var(--mono);font-size:11px">.btn-ghost</code> and <code style="font-family:var(--mono);font-size:11px">.modal.modal-ref</code>, once the call sites are done</span><span style="color:var(--muted);font-family:var(--mono);font-size:11px">— aliases retired</span></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--bg);padding:22px 24px">
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Suggested order <span class="badge badge-success" style="margin-left:6px;letter-spacing:0.01em;text-transform:none">All done</span></div>
+          <ol style="margin:0;padding-left:20px;font-size:13px;line-height:1.75;color:var(--fg-2)">
+            <li>Add <code style="font-family:var(--mono);font-size:12px">controls-v2.css</code>. Nothing changes yet — no component uses the new classes.</li>
+            <li>Migrate badges. Six markup sites, five style blocks deleted. This is the visible fix.</li>
+            <li>Migrate chips, then counts.</li>
+            <li>Rename <code style="font-family:var(--mono);font-size:12px">btn-ghost</code> → <code style="font-family:var(--mono);font-size:12px">btn-secondary</code>. Zero visual change; safe to do in one commit.</li>
+            <li>Add <code style="font-family:var(--mono);font-size:12px">size="sm"</code> to the two confirmation dialogs; rename <code style="font-family:var(--mono);font-size:12px">"ref"</code> → <code style="font-family:var(--mono);font-size:12px">"lg"</code>.</li>
+            <li>Adopt <code style="font-family:var(--mono);font-size:12px">.btn-quiet</code> and <code style="font-family:var(--mono);font-size:12px">.empty-state</code>, then delete the aliases.</li>
+          </ol>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--bg);padding:22px 24px">
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Two things to watch</div>
+          <p style="margin:0 0 12px;font-size:13px;line-height:1.6;color:var(--fg-2)"><strong style="font-weight:600;color:var(--fg)">Scope.</strong> <code style="font-family:var(--mono);font-size:12px">.badge</code>, <code style="font-family:var(--mono);font-size:12px">.chip</code> and <code style="font-family:var(--mono);font-size:12px">.btn-quiet</code> are global, like <code style="font-family:var(--mono);font-size:12px">.btn</code>. The APA paper sheet uses <code style="font-family:var(--mono);font-size:12px">cover-form-*</code> and the dock uses <code style="font-family:var(--mono);font-size:12px">fm-*</code>, so neither is reachable — but a Svelte component's own <code style="font-family:var(--mono);font-size:12px">&lt;style&gt;</code> block still outranks these rules, so the local definition has to be deleted, not just left unused.</p>
+          <p style="margin:0;font-size:13px;line-height:1.6;color:var(--fg-2)"><strong style="font-weight:600;color:var(--fg)">Tone, not shape.</strong> The mechanical part is the class rename. The judgement part is deciding, per badge, whether it classifies (neutral) or needs fixing (warm). That decision is the whole point — a global find-and-replace to <code style="font-family:var(--mono);font-size:12px">.badge-accent</code> would reproduce the problem in new syntax.</p>
+        </div>
+      </div>
+    </section>
+    
+  </main>
+</div>
+  </body>
+</html>

@@ -156,7 +156,7 @@
 <Modal
   title={m.bib_modal_title()}
   subtitle={m.bib_modal_subtitle()}
-  size="ref"
+  size="lg"
   dismissOnOverlay={false}
   {onClose}
 >
@@ -205,9 +205,9 @@
             />
             <div class="bib-main">
               <div class="bib-top">
-                <span class="pill">{typeLabel(row.ref.type)}</span>
+                <span class="badge">{typeLabel(row.ref.type)}</span>
                 {#if row.duplicate}
-                  <span class="pill warn">{m.bib_duplicate_pill()}</span>
+                  <span class="badge badge-warn">{m.bib_duplicate_pill()}</span>
                 {/if}
                 <code class="bibkey">{row.key}</code>
               </div>
@@ -230,7 +230,7 @@
   {/if}
 
   {#snippet footer()}
-    <button class="btn btn-ghost" onclick={onClose}>{m.common_close()}</button>
+    <button class="btn btn-secondary" onclick={onClose}>{m.common_close()}</button>
     <button
       class="btn btn-primary"
       disabled={loading || checked.size === 0}
@@ -277,7 +277,7 @@
     border: none;
     background: none;
     padding: 0;
-    color: var(--accent);
+    color: var(--accent-text);
     font: inherit;
     font-size: var(--t-body);
     cursor: pointer;
@@ -305,7 +305,6 @@
     font-size: var(--t-body);
     color: var(--fg-2);
   }
-
 
   .bib-list {
     list-style: none;
@@ -348,21 +347,6 @@
     align-items: center;
     gap: var(--sp-15);
     margin-bottom: var(--sp-1);
-  }
-
-  .pill {
-    padding: 1px var(--sp-2);
-    border-radius: 999px;
-    background: var(--accent-soft);
-    color: var(--accent);
-    font-size: var(--t-caption);
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
-  .pill.warn {
-    background: var(--warn-soft);
-    color: var(--warn-strong);
   }
 
   .bibkey {

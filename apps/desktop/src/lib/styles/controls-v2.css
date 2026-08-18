@@ -1,0 +1,364 @@
+/*
+ * Tesina Design System v2 — additions to controls.css.
+ * Source of truth: docs/design/DESIGN.md and
+ * docs/design/design-system-v2.reference.html.
+ *
+ * Covers the layer v1 never defined: badges, filter chips, the borderless
+ * button, the empty state, and a named modal width scale.
+ *
+ * Two rules govern everything here:
+ *   1. SHAPE says whether you can click it.  --r-xs = information,
+ *      --r-pill = control.
+ *   2. COLOR says how urgent it is, never what category it is.
+ *      Classification badges are neutral.
+ *
+ * Global, like .btn. The APA paper sheet (cover-form-*) and the editor dock
+ * (fm-*) use their own namespaces and are unreachable from here.
+ *
+ * A component's own <style> block outranks these rules on the properties it
+ * declares — but everything it does NOT declare still cascades in, so a
+ * local definition has to be DELETED, not left unused. UpdatePill learned
+ * this the hard way: its local `.badge` was a 7px dot, and the padding on
+ * the global `.badge` stretched it into an oval under box-sizing:border-box.
+ * It is `.dot` now. Before adding a class here, grep the whole app for it.
+ */
+
+/* ── Badge ──────────────────────────────────────────────────────────
+ * Static, non-interactive. One size. If it needs to be pressed it is a
+ * .chip, not a badge.
+ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: 18px;
+  padding: 0 var(--sp-15);
+  border-radius: var(--r-xs);
+  font-size: var(--t-caption);
+  font-weight: var(--w-medium);
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  /* Neutral is the DEFAULT, not a variant: most badges classify, and
+     classification does not earn color. */
+  background: var(--hover-strong);
+  color: var(--fg-2);
+}
+
+.badge svg {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 11px;
+}
+
+/* Marks what the user is acting on right now — a selection, a live count.
+   Not a category: an accent badge on every row spends the app's only live
+   color on nothing.
+
+   The text tokens, not the raw tones: a soft wash lightens the ground under
+   the label, so raw --accent lands at 3.58-3.91:1 here. See tokens.css. */
+.badge-accent {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.badge-success {
+  background: var(--success-soft);
+  color: var(--success-text);
+}
+
+/* --warn-strong, not --warn: raw --warn is a mid yellow and cannot carry
+   11px text on its own wash. */
+.badge-warn {
+  background: var(--warn-soft);
+  color: var(--warn-strong);
+}
+
+.badge-danger {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+
+/* A code-like value: language tag, BibTeX key, file extension. Mono +
+   uppercase tracking, so it reads as a value rather than a word. */
+.badge-code {
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* A number. Tabular figures so a column of counts does not jitter. */
+.badge-count {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  min-width: 18px;
+  justify-content: center;
+}
+
+/* ── Chip ───────────────────────────────────────────────────────────
+ * Interactive filter. A pill, because pressing it does something.
+ */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: 26px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--fg-2);
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: var(--w-medium);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+/* Hover moves the border and text only. The wash is reserved for selected,
+   so hovering never previews selection. */
+.chip:hover:not([aria-pressed="true"]):not(.on) {
+  border-color: var(--fg-2);
+  color: var(--fg);
+}
+
+/* A soft accent wash, NOT a solid fill. The segmented control already owns
+   solid accent for "which mode"; a filter is a narrower claim than that and
+   must not outrank it. Both the aria-pressed attribute and the .on class
+   work, so existing markup needs no logic change. */
+.chip[aria-pressed="true"],
+.chip.on {
+  background: var(--accent-soft);
+  border-color: color-mix(in oklab, var(--accent), transparent 45%);
+  /* --accent-text, not --accent: this label sits on its own wash. */
+  color: var(--accent-text);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Quiet button ───────────────────────────────────────────────────
+ * Borderless, no fill: an inline action inside a dense row. This is what
+ * "ghost" should have meant, and it is what ReferencesPanel's .actions
+ * button, LibraryScreen's .mini and EssayHome's .foot button each
+ * hand-rolled separately.
+ */
+.btn-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  height: var(--ctl-h-sm);
+  padding: 0 var(--sp-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-xs);
+  background: none;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: var(--w-medium);
+  cursor: pointer;
+  transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.btn-quiet:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.btn-quiet svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Icon-only: square, so a row of them keeps an even rhythm. */
+.btn-quiet.btn-icon {
+  width: var(--ctl-h-sm);
+  padding: 0;
+  justify-content: center;
+}
+
+.btn-quiet.btn-danger-text {
+  color: var(--danger);
+}
+
+.btn-quiet.btn-danger-text:hover:not(:disabled) {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.btn-quiet:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Empty state ────────────────────────────────────────────────────
+ * Replaces four separate .empty rules (ReferencesPanel, LibraryScreen,
+ * EssayHome, CitationPopover), which ranged from a bare muted paragraph
+ * to a centred block.
+ *
+ * Copy rule: name what is missing, then give one way forward.
+ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-7) var(--sp-5);
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty-state .empty-title {
+  font-size: var(--t-ui);
+  font-weight: var(--w-medium);
+  color: var(--fg-2);
+  line-height: var(--lh-snug);
+}
+
+.empty-state p {
+  margin: 0;
+  max-width: 34ch;
+  font-size: var(--t-small);
+  line-height: var(--lh-snug);
+  text-wrap: pretty;
+}
+
+.empty-state .btn {
+  margin-top: var(--sp-2);
+}
+
+/* Inline variant: a panel or popover too short for the padded block. */
+.empty-state.is-inline {
+  padding: var(--sp-4) var(--sp-3);
+  align-items: flex-start;
+  text-align: left;
+}
+
+/* ── Popover ────────────────────────────────────────────────────────
+ * The one floating surface. Before v2 there were six of them over twelve
+ * call sites: three radii (--r-sm / a raw 10px / --r-md), two elevation
+ * steps, and the inset hairline on exactly one of the six.
+ *
+ * This is the MATERIAL only — background, edge, radius, lift. Placement,
+ * width and z-index stay with each caller, deliberately: the editor's
+ * own menus sit on a local stacking ladder anchored at --z-dock, and
+ * promoting one of them to --z-popover would put a toolbar menu on top
+ * of an open modal. See DESIGN.md.
+ *
+ * --elevated, not --surface: a popover floats above a surface, so it
+ * takes the step above it on the elevation ladder. The inset hairline
+ * is what separates it in dark mode, where a drop shadow has nothing
+ * to darken.
+ */
+.popover {
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--elev-3), inset 0 1px 0 var(--edge-hi);
+  /* Children that paint to the edge round themselves against this, so
+     the surface never needs `overflow: hidden`. */
+  --popover-r: calc(var(--r-md) - 1px);
+}
+
+/* Status header — a tinted ground carrying the status panel's dot,
+   title and meta. Only for a popover that reports state; a list picker
+   (the Select listbox, the heading menu) has no header at all. */
+.popover-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--hover);
+  border-bottom: 1px solid var(--border-soft);
+  border-radius: var(--popover-r) var(--popover-r) 0 0;
+}
+
+/* Tone names are §5.0's, the same four the badge uses, so one
+   vocabulary covers every tinted thing in the app. */
+.popover-head[data-tone="success"] {
+  background: var(--success-soft);
+}
+
+.popover-head[data-tone="accent"] {
+  background: var(--accent-soft);
+}
+
+.popover-head[data-tone="warn"] {
+  background: var(--warn-soft);
+}
+
+.popover-head[data-tone="danger"] {
+  background: var(--danger-soft);
+}
+
+.popover-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  margin-top: 5px;
+  border-radius: var(--r-pill);
+  background: var(--muted);
+}
+
+.popover-head[data-tone="success"] .popover-dot {
+  background: var(--success);
+}
+
+.popover-head[data-tone="accent"] .popover-dot {
+  background: var(--accent);
+}
+
+.popover-head[data-tone="warn"] .popover-dot {
+  background: var(--warn-strong);
+}
+
+.popover-head[data-tone="danger"] .popover-dot {
+  background: var(--danger);
+}
+
+.popover-title {
+  font-size: var(--t-small);
+  font-weight: var(--w-strong);
+  line-height: var(--lh-snug);
+  color: var(--fg);
+}
+
+.popover-meta {
+  font-size: var(--t-caption);
+  line-height: var(--lh-snug);
+  color: var(--fg-2);
+}
+
+.popover-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 1px solid var(--border-soft);
+  border-radius: 0 0 var(--popover-r) var(--popover-r);
+}
+
+/* ── Modal width scale ──────────────────────────────────────────────
+ * .modal-ref named a caller; these name sizes. v1 shipped two unnamed
+ * widths (520 / 564); --sm is the confirmation size the delete and quit
+ * dialogs both want and neither had, so they sat at 520 with two lines of
+ * body copy in them.
+ *
+ * Compounded with .modal rather than written bare: `.modal { width: … }`
+ * lives in modal.css, which Modal.svelte imports on its own, so a bare
+ * `.modal-sm` would tie on specificity and be decided by bundle order.
+ */
+.modal.modal-sm {
+  width: min(420px, 100%);
+}
+
+.modal.modal-lg {
+  width: min(564px, 100%);
+}

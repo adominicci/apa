@@ -83,7 +83,7 @@
   </button>
 
   {#if open}
-    <div class="menu-pop" role="menu">
+    <div class="popover menu-pop" role="menu">
       <button
         class="mi"
         class:active={activeList === "bullet"}
@@ -175,11 +175,11 @@
 
   .mi.active {
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .mi.active :global(svg) {
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .mi-sep {

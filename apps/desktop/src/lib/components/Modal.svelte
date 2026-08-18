@@ -1,5 +1,5 @@
 <script module lang="ts">
-  export type ModalSize = "default" | "ref";
+  export type ModalSize = "sm" | "default" | "lg";
 </script>
 
 <script lang="ts">
@@ -11,7 +11,11 @@
   interface Props {
     title: string;
     subtitle?: string;
-    /** "ref" is the wide, scroll-in-body variant (reference form). */
+    /**
+     * Width scale. "sm" (420px) is a confirmation — one sentence and two
+     * buttons. "default" (520px) is every ordinary form. "lg" (564px) is a
+     * long scrolling form with two-up field rows.
+     */
     size?: ModalSize;
     /** Close on overlay click. Turn off for forms where a stray click
      * outside would silently discard in-progress edits. */
@@ -154,7 +158,8 @@
 >
   <div
     class="modal"
-    class:modal-ref={size === "ref"}
+    class:modal-sm={size === "sm"}
+    class:modal-lg={size === "lg"}
     role="dialog"
     aria-modal="true"
     aria-label={title}

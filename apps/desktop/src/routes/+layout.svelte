@@ -6,6 +6,10 @@
   // Buttons, fields, Select and the status panel, for every surface that
   // carries `ui-controls` (a <Modal> already does). See the file header.
   import "$lib/styles/controls.css";
+  // v2 additions — badge, chip, quiet button, empty state, modal widths.
+  // Global like `.btn`, so they need no `ui-controls` host. Must load after
+  // controls.css. See docs/design/DESIGN.md.
+  import "$lib/styles/controls-v2.css";
   import { onMount, untrack } from "svelte";
   import type { Snippet } from "svelte";
   import { getVersion } from "@tauri-apps/api/app";
@@ -188,6 +192,7 @@
     title={quitPrompt.kind === "unsaved"
       ? m.quit_unsaved_title()
       : m.quit_confirm_title()}
+    size="sm"
     dismissOnOverlay={false}
     onClose={() => answerQuit(false)}
   >

@@ -1,8 +1,39 @@
-kother # Tesina — Design System v1 (chrome only)
+# Tesina — Design System v2 (chrome only)
 
-The visual contract for Tesina's **application chrome**. Reference
-implementation: `tesina-new-paper-modal.html` (light/dark toggle in the
-titlebar).
+The visual contract for Tesina's **application chrome**. This file is
+canonical; when it and a component disagree, the component is wrong.
+
+**Reference implementations** (open either straight from the working tree):
+
+| File | What it is |
+|---|---|
+| `docs/design/design-system-v2.reference.html` | The v2 gallery. Links the app's **real** `tokens.css`, `controls.css`, `modal.css` and `controls-v2.css`, so no specimen can drift from what ships. |
+| `docs/design/new-paper-modal.reference.html` | The v1 origin artifact — one modal, self-contained, light/dark toggle in the titlebar. |
+
+**Implementation files**
+
+| File | Holds |
+|---|---|
+| `apps/desktop/src/lib/styles/tokens.css` | Every token. Raw hex lives only in the two theme blocks. |
+| `apps/desktop/src/lib/styles/controls.css` | v1: fields, Select, segmented control, status panel, buttons. |
+| `apps/desktop/src/lib/styles/controls-v2.css` | v2: badge, chip, quiet button, empty state, modal width scale. |
+| `apps/desktop/src/lib/components/modal.css` | Modal chrome. Imported by `Modal.svelte`. |
+
+## What v2 changed
+
+v1 specified the big surfaces and left the small ones to each author,
+so five components each invented a badge and two invented a chip. v2
+adds the missing layer and one rule that decides it — see
+**§5.0 The shape and colour rule**.
+
+- **New:** `.badge` (+ 6 tones), `.chip`, `.btn-quiet`, `.empty-state`,
+  `.popover` (+ its status header).
+- **Renamed:** `.btn-ghost` → `.btn-secondary` (they were already the
+  same rule); `.modal-ref` → `.modal-lg`; `.modal-sm` added.
+- **Retired:** the `.btn-ghost` and `.modal-ref` aliases. Both are
+  gone; there is no compatibility shim to fall back on.
+- **Unchanged:** color, type, space, elevation, modal chrome, fields,
+  Select, segmented control, status panel. v2 is additive.
 
 ---
 
@@ -19,8 +50,8 @@ titlebar).
 | `apps/desktop/src/lib/editor/pagination/**` | 816×1056 / 96px margin / 624×864 geometry |
 | `apps/desktop/src/lib/components/PrintPreview.svelte` | Shows the printed page |
 
-The seam is `EditorScreen.svelte:983` — the `<Editor>` inside
-`<main class="canvas">`. **Chrome outside it, document inside it.**
+The seam is the `<Editor>` inside `<main class="canvas">` in
+`EditorScreen.svelte`. **Chrome outside it, document inside it.**
 This includes editing-only affordances that live inside the sheet
 (ghost gridlines, figure edit button and menu, citation hover/selected
 states, reference-overflow outlines): leave them alone.
@@ -145,9 +176,16 @@ the app behind it. The old dark theme had `surface` barely above
 --hover-strong: color-mix(in oklab, var(--fg), transparent 89%);
 --raise:        color-mix(in oklab, var(--fg), transparent 88%);
 --accent-soft:  color-mix(in oklab, var(--accent), transparent 88%);
+--success-soft: color-mix(in oklab, var(--success), transparent 88%);
 --warn-soft:    color-mix(in oklab, var(--warn), transparent 86%);
+--danger-soft:  color-mix(in oklab, var(--danger), transparent 88%);
+--warn-strong:  color-mix(in oklab, var(--warn), var(--fg) 45%);
 --focus-ring:   0 0 0 3px color-mix(in oklab, var(--accent), transparent 72%);
 ```
+
+All four semantic tones get a wash, so a status surface can change tone
+without reaching for a literal. `--warn-strong` exists because raw
+`--warn` is a mid yellow that cannot carry 11px text on its own wash.
 
 ### Overlay + elevation
 
@@ -229,18 +267,40 @@ Every text pair clears 4.5:1; every control boundary clears 3:1. Primary
 hover **raises** contrast in both themes (4.57 → 6.26 light, 5.81 → 7.38
 dark). Disabled is the only state permitted to drop.
 
+**v2 pairs — text on its own wash**
+
+| Pair (11–12px) | Light | Dark |
+|---|---|---|
+| `--fg-2` on `--hover-strong` (neutral `.badge`) | 6.72:1 | 7.21:1 |
+| `--warn-strong` on `--warn-soft` (`.badge-warn`) | 7.12:1 | 8.43:1 |
+| `--accent-text` on `--accent-soft` (`.badge-accent`, selected `.chip`) | 4.90:1 | 5.02:1 |
+| `--success-text` on `--success-soft` | 4.72:1 | 6.07:1 |
+| `--danger-text` on `--danger-soft` | 4.96:1 | 4.97:1 |
+
+Each figure is the **worst** of the four surfaces the wash can sit on
+(`--surface`, `--chrome`, `--bg`, `--canvas`), because a soft wash is
+translucent and inherits the ground beneath it.
+
+The `--*-text` tokens exist for exactly this. Setting the raw tone as
+text on its own wash lands at 3.58–4.44:1 and breaks the floor above —
+which is condition 2 below, restated. Use the raw tone for a fill and
+the `-text` variant for a label.
+
 **The 4.57:1 is a deliberate, narrow pass — respect its two conditions:**
 
 1. **`--accent-on` must stay pure white on light.** The earlier
    off-white `oklch(0.995 0.001 85)` drops it to ~4.55:1. Do not
    "soften" it.
 2. **Never set text in `--accent` on a non-white surface.** On `--bg`
-   it is 4.31:1 and fails. In this system `--accent` only ever appears
-   as a *fill* (with `--accent-on` text), a focus ring, a selection
-   tint, or a 1px focus border — the border needs 3:1 and clears it at
-   4.31:1. If a future surface wants an accent-colored link, darken it
-   to ~`oklch(0.50 0.199 262)` for that use and keep `#2f6feb` for
-   fills.
+   it is 4.31:1 and fails, and on its own `--accent-soft` wash it is
+   3.91:1. In this system `--accent` only ever appears as a *fill*
+   (with `--accent-on` text), a focus ring, a selection tint, or a 1px
+   focus border — the border needs 3:1 and clears it at 4.31:1.
+   Accent-colored **text** uses `--accent-text`
+   (`oklch(0.50 0.1989 261.8)` light, `oklch(0.70 0.1562 262.5)` dark),
+   which is the darkened value this section prescribed before v2 needed
+   it. `--success` and `--danger` have the same pair of variants for
+   the same reason. Keep the raw tones for fills.
 
 Resolved values — light: `--fg` `#1c1e23`, `--muted` `#5c5f66`,
 `--accent` `#2f6feb`, `--accent-hover` `#1858d2`. Dark: `--fg`
@@ -277,7 +337,7 @@ the due-date field in dark mode.
 
 ```css
 --font: Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
---mono: ui-monospace,"SF Mono",Menlo,monospace;
+--mono: ui-monospace,"JetBrains Mono","SF Mono",Menlo,monospace;
 ```
 
 **There is no `--font-display`.** Every chrome surface — titlebar,
@@ -301,7 +361,9 @@ site that keeps it.
 ```
 
 `12.5px`, `13.5px`, `11.5px`, `10.5px`, `9.5px` and every `rem` value
-in chrome are deleted. Weight `700+` is not used.
+in chrome are to be deleted. Weight `700+` is not used. As of v2 the
+sweep is still pending: ten `rem` values survive in chrome (five more
+sit in `PrintPreview.svelte`, which §0 freezes).
 
 | Role | Size / weight | Tracking |
 |---|---|---|
@@ -319,9 +381,10 @@ family, a 26px headline at default tracking reads as nothing more than
 large body text; `-0.024em` is what makes it a headline. Do not relax
 these values.
 
-All-caps tracking of `0.09em` is mandatory — the current `nav-label`
-and badges are set without it, which is the loudest amateur tell in
-the app today.
+All-caps tracking of `0.09em` is mandatory. The v2 badges carry it, but
+five chrome labels still do not — `nav-label`, `col-head`, `FontMenu`'s
+group label, the editor panel heading and the references-panel heading
+all sit at `0.06`–`0.07em`. It is the loudest amateur tell in the app.
 
 ### 3.1 Existing serif call sites in chrome
 
@@ -330,20 +393,22 @@ the app today.
 
 **Remove `font-family: var(--serif)` — let them inherit `--font`:**
 
-| File | Line | Element |
-|---|---|---|
-| `EssayHome.svelte` | 455 | sidebar logo `T` |
-| `EssayHome.svelte` | 514 | titlebar mark `T` |
-| `EssayHome.svelte` | 874 | `.thumb-text` — essay-card first-lines preview |
-| `LibraryScreen.svelte` | 634 | logo `T` |
-| `LibraryScreen.svelte` | 960 | `.pc-entry` — reference preview |
-| `EditorScreen.svelte` | 1405 | logo `T` |
-| `EditorScreen.svelte` | 1790 | `.rtxt` / `.ref-card :global(.rtxt)` |
-| `EditorScreen.svelte` | 1923 | `.bb.it` — italic style button |
-| `ReferencesPanel.svelte` | 213 | `.runs` — reference list entries |
-| `RefEntry.svelte` | 27 | `.rtxt` — formatted APA reference |
-| `CitationPopover.svelte` | 220 | `.item span` — citation preview |
-| `HeadingMenu.svelte` | 113 | `.pv` — heading style previews |
+Locate them with `grep -rn "var(--serif)" apps/desktop/src`.
+
+| File | Element |
+|---|---|
+| `EssayHome.svelte` | sidebar logo `T` |
+| `EssayHome.svelte` | titlebar mark `T` |
+| `EssayHome.svelte` | `.thumb-text` — essay-card first-lines preview |
+| `LibraryScreen.svelte` | logo `T` |
+| `LibraryScreen.svelte` | `.pc-entry` — reference preview |
+| `EditorScreen.svelte` | logo `T` |
+| `EditorScreen.svelte` | `.rtxt` / `.ref-card :global(.rtxt)` |
+| `EditorScreen.svelte` | `.bb.it` — italic style button |
+| `ReferencesPanel.svelte` | `.runs` — reference list entries |
+| `RefEntry.svelte` | `.rtxt` — formatted APA reference |
+| `CitationPopover.svelte` | `.item span` — citation preview |
+| `HeadingMenu.svelte` | `.pv` — heading style previews |
 
 Decided 2026-08-14: the interface is Inter everywhere, with no
 exception for document previews. The consequence is deliberate — the
@@ -353,19 +418,21 @@ supposed to match.
 
 **Do NOT touch — this one is inside the frozen zone:**
 
-| File | Line | Element |
-|---|---|---|
-| `CoverSheet.svelte` | 191 | `.cf` — `var(--doc-font, var(--serif))` |
+| File | Element |
+|---|---|
+| `CoverSheet.svelte` | `.cf` — `var(--doc-font, var(--serif))` |
 
 `.cf` is the editable title-page field rendered **on the paper**, and
 `--serif` is only its fallback when the user has not picked an APA
 font. Switching it to Inter would put a sans title page on the sheet
 and break the document. It is covered by the §0 boundary.
 
-After this pass, `var(--serif)` survives only in `apa.css`,
+After this pass, `var(--serif)` would survive only in `apa.css`,
 `CoverSheet.svelte`, `nativeProof.css` and the font-picker stacks —
-all document territory. **Chrome references it zero times**, which is
-what §8's lint asserts.
+all document territory, leaving chrome referencing it zero times. **The
+pass has not been done.** All thirteen call sites are still live as of
+v2, so §8's lint would fail today; write the lint and the sweep in the
+same change.
 
 ---
 
@@ -384,7 +451,7 @@ what §8's lint asserts.
 --ease-out: cubic-bezier(0.16,1,0.3,1);
 --fast:150ms; --slow:260ms;
 
---ctl-h:36px; --ctl-h-lg:42px;
+--ctl-h-sm:32px; --ctl-h:36px; --ctl-h-lg:42px;
 ```
 
 `--z-*` replaces the ten ad-hoc z-index values currently scattered
@@ -396,6 +463,38 @@ Wrap all transitions and animations in a
 ---
 
 ## 5. Component specs
+
+### 5.0 The shape and colour rule
+
+v1's small components drifted because nothing said which shape or
+colour meant what, so each author picked. Two rules close that gap, and
+every component below follows from them.
+
+> **Shape says whether you can click it. Colour says how urgent it is.**
+
+| Shape | Radius | Means |
+|---|---|---|
+| Squared | `--r-xs` | Information. Badges and counts are labels on the content, not controls. |
+| Pill | `--r-pill` | A control. Chips, the editor dock and its buttons. If it is fully round, pressing it does something. |
+
+| Tone | Means |
+|---|---|
+| Neutral | A category. Reference type, section kind, file format, document language. |
+| `--accent` | What the user is acting on **right now**, or a live count tied to the current selection. |
+| `--warn` | Fix this, but you are not blocked. |
+| `--danger` | Broken or invalid. |
+| `--success` | Something finished, and stayed finished. |
+
+Colour encodes **urgency, never category**. A reference's type and an
+essay's language are categories, so they are neutral. "Uncited" and
+"Duplicate" are things to fix, so they are warm. Accent is the app's
+only live colour and it is scarce on purpose: a badge earns accent only
+when it names what the user is acting on right now.
+
+The mechanical part of adopting a badge is the class name. The
+judgement part is deciding, per badge, whether it classifies or needs
+fixing. A global find-and-replace to `.badge-accent` reproduces the
+v1 problem in new syntax.
 
 ### Modal
 
@@ -412,6 +511,29 @@ Wrap all transitions and animations in a
 Head and foot are `flex: 0 0 auto`; only the body scrolls. The footer
 sitting on `--chrome` rather than `--surface` is what gives the dialog
 a base instead of a cut edge.
+
+**Width scale** — `Modal.svelte`'s `size` prop. `.modal-ref` named a
+caller; these name sizes.
+
+| `size` | Class | Width | For |
+|---|---|---|---|
+| `"sm"` | `.modal-sm` | 420px | Confirmations — delete a reference, quit with unsaved work. One sentence and two buttons; at 520px they looked like an empty form. |
+| `"default"` | — | 520px | The default. Settings, title page, table insert, equation. |
+| `"lg"` | `.modal-lg` | 564px | Long scrolling forms with two-up field rows — the reference form and the BibTeX import review list. |
+
+Both size rules are written compounded (`.modal.modal-sm`) rather than
+bare. `.modal { width }` lives in `modal.css`, which `Modal.svelte`
+imports on its own, so a bare `.modal-sm` would tie on specificity and
+be decided by bundle order.
+
+**Footer order is fixed:** note left, then secondary, then primary at
+the trailing edge. Never two primaries, never a primary on the left.
+Cancel is always `.btn-secondary`, labelled from `common_close` for a
+dialog you can leave, or a verb-negating label ("Keep editing") when
+leaving would discard work.
+
+One line of orienting copy goes in `subtitle`, not as the body's first
+paragraph.
 
 **Dismissal:** Escape and the close button only. Overlay click does
 **not** dismiss any modal that holds in-progress edits — that rule is
@@ -435,10 +557,34 @@ already in `Modal.svelte`'s `dismissOnOverlay` prop; keep it.
 One action, one primary. Height `--ctl-h`, radius `--r-sm`, font
 `--t-body --w-strong`, `:active { transform: translateY(1px) }`.
 
+`.btn-quiet` is the one exception and is **not** written as `btn
+btn-quiet` — it is a standalone class with its own dense geometry
+(`--ctl-h-sm`, `--r-xs`, `--t-small`, `--w-medium`, no `:active`
+transform), because it lives inside a row of content rather than in a
+footer of actions.
+
 | Variant | Rest | Hover | Disabled |
 |---|---|---|---|
 | `.btn-primary` | `--accent` / `--accent-on` | `--accent-hover` | `color-mix(--accent, --bg 58%)` / `--accent-on` |
-| `.btn-ghost` | `--surface` / `--fg-2`, `--border` | `--hover`, `--fg`, `--fg-2` border | `opacity: .5` |
+| `.btn-secondary` | `--surface` / `--fg-2`, `--border` | `--hover`, `--fg`, `--fg-2` border | `opacity: .5` |
+| `.btn-danger` | `--surface` / `--danger`, `--border` | `--danger-soft`, `--danger` border | `opacity: .5` |
+| `.btn-danger-solid` | `--danger` / `--accent-on` | `color-mix(--danger, --fg 14%)` | `opacity: .5` |
+| `.btn-quiet` | none / `--fg-2`, no border | `--hover`, `--fg` | `opacity: .5` |
+
+**When to use which**
+
+| Variant | Use it for |
+|---|---|
+| `.btn-primary` | Exactly one per surface, always last in a footer row. |
+| `.btn-secondary` | Everything else with a border: cancel, close, back, open folder. **Canonical name** — `.btn-ghost` was the same rule and is retired. |
+| `.btn-quiet` | Borderless inline action in a dense row — a reference row's Cite/Delete, a collection row's icons, the home footer's links. This is what "ghost" should have meant. |
+| `.btn-danger` | *Opens* a destructive flow. Stays bordered; the label carries the warning. |
+| `.btn-danger-solid` | *Commits* it. Only ever in the primary slot of a confirmation modal. |
+
+Sizes: `.btn-sm` (32px, dense panels), `.btn-block` (full width, 42px,
+a wizard's single action). `.btn-quiet.btn-icon` is a 32px square, so a
+row of icon actions keeps an even rhythm. `.btn-quiet.btn-danger-text`
+is the destructive member of a quiet row.
 
 Primary hover **darkens** on light and **lightens** on dark, so
 contrast rises in both themes.
@@ -481,6 +627,153 @@ to change.
 `--t-caption` uppercase, `letter-spacing: 0.09em`, `--muted`, followed
 by a flexible `1px --border-soft` rule. Groups long forms without
 adding another card.
+
+### Badge — v2
+
+A static label on content the user is reading. **Never clickable,
+never animated, one size**: 18px tall, `--r-xs`, `--t-caption` at
+`--w-medium`. If it needs to be pressed, it is a chip.
+
+| Class | Use it for |
+|---|---|
+| `.badge` | Classification and metadata. **The default**, and what most badges should be: reference type, section kind, file format. |
+| `.badge-accent` | What the user is acting on right now, or a live count tied to the current selection. Scarce by design. |
+| `.badge-warn` | Fix this, but you are not blocked: uncited reference, duplicate BibTeX key, missing title-page field. |
+| `.badge-danger` | Broken or invalid: a citation pointing at a deleted reference, an asset that failed to import. |
+| `.badge-success` | Something finished. Rare — a *lasting* state. A transient confirmation belongs in the status panel. |
+| `.badge-code` | A machine value rather than a word: language tag, file extension, BibTeX key. Mono, uppercased. |
+| `.badge-count` | A number at the end of a nav or collection row. Tabular figures, `min-width: 18px`, so a stacked column cannot jitter. |
+
+`.badge-warn` takes `--warn-strong`, not `--warn`: raw `--warn` is a mid
+yellow and cannot carry 11px text on its own wash.
+
+A component may add a **layout** hook for a badge it hosts
+(`margin-left: auto`, `flex: 0 0 auto`). It may not restate the badge's
+appearance.
+
+### Chip — v2
+
+A filter you toggle. Always a `<button>`, always in a wrapping flex row
+at `gap: var(--sp-2)`. 26px tall, `--r-pill`, `--t-small`.
+
+Selected reads `aria-pressed="true"`; the `.on` class is accepted as an
+alias so existing markup needs no logic change.
+
+| State | Spec |
+|---|---|
+| Rest | `--surface`, `1px --border`, `--fg-2` |
+| Hover | border `--fg-2`, text `--fg`. **Border and text only** — the wash is reserved for selected, so hovering never previews selection. |
+| Selected | `--accent-soft` wash, `--accent` text, border `color-mix(--accent, transparent 45%)` |
+| Disabled | `opacity: 0.5` |
+
+**Chip vs. segmented control.** A chip narrows a list and any number can
+be off, so it takes the soft wash. The segmented control picks exactly
+one mode and keeps the **solid** accent fill. Two jobs, two shapes, two
+weights of colour — so "which filter" and "which mode" never look alike.
+
+### Popover — v2
+
+**One floating surface.** Before v2 there were **six** of them, spread
+over **twelve** call sites, and they agreed on nothing:
+
+| Surface | Call sites | Radius | Shadow | Inset hairline |
+|---|---|---|---|---|
+| `.select-pop` | 1 | `--r-md` | `--elev-3` | yes |
+| `UpdatePill .card` | 1 | `--r-md` | `--elev-raised` | no |
+| `CitationPopover .pop` | 1 | **raw `10px`** | `--elev-raised` | no |
+| `EditorScreen .menu` | 3 | `--r-sm` | `--elev-raised` | no |
+| `EssayHome .menu` | 1 | `--r-sm` | `--elev-raised` | no |
+| `float-menu .menu-pop` | 5 | `--r-md` | `--elev-raised` | no |
+
+Three radii, two elevation steps, one raw literal, and the inset
+hairline on **one** of the six. `.popover` replaces all of it:
+
+| Part | Spec |
+|---|---|
+| Surface | `--elevated`, `1px --border`, `--r-md`, `--elev-3` + `inset 0 1px 0 --edge-hi` |
+
+`--elevated`, not `--surface`: a popover floats **above** a surface, so
+it takes the next step on the elevation ladder. The inset hairline is
+what separates it in dark mode, where a drop shadow has nothing to
+darken.
+
+**`.popover` is the material only.** Placement, width and `z-index`
+stay with each caller, deliberately — see §Popover & dock: the editor's
+menus sit on a local stacking ladder anchored at `--z-dock`, and
+promoting one to `--z-popover` would put a toolbar menu on top of an
+open modal.
+
+**Two surfaces are deliberately not popovers**, and neither is counted
+above. The modal is its own component at `--r-lg` — it is the only
+other thing that carried the inset hairline before v2. The editor dock
+is a *control*, so §5.0's shape rule gives it `--r-pill`.
+
+#### Status header
+
+A popover that reports state opens with a tinted header carrying a dot,
+a title and optional meta — the `.status-panel` anatomy, moved onto a
+popover.
+
+| Part | Spec |
+|---|---|
+| `.popover-head` | `--sp-2 --sp-3`, tone wash, `1px --border-soft` bottom, top corners rounded to `--popover-r` |
+| `.popover-dot` | 9px circle, `--muted` by default |
+| `.popover-title` | `--t-small --w-strong --fg` |
+| `.popover-meta` | `--t-caption --fg-2` |
+| `.popover-foot` | `--sp-2 --sp-3`, `1px --border-soft` top, bottom corners rounded |
+
+Tone comes from `data-tone`, and the values are **§5.0's four names** —
+`success`, `accent`, `warn`, `danger` — so one vocabulary covers every
+tinted thing in the app. (`.status-panel` still uses an older
+`ok / busy / warn / off` set; converging the two is deferred.)
+
+A **list picker** has no header at all. The Select listbox and the
+heading, list, table and font menus are lists, not status reports.
+
+`--popover-r` is `calc(--r-md - 1px)`: the children that paint to an
+edge round themselves against the border, so the surface never needs
+`overflow: hidden` — which is what would clip a beak.
+
+#### No beak — decided 2026-08-18
+
+A *beak* is the small triangle that tethers a popover to the control
+that opened it, the way a speech bubble has a tail. The chosen
+direction (prototype variant E) had one. **The app does not, and that
+is a decision, not a gap.**
+
+Two things make it more than a triangle:
+
+1. **Direction is per surface.** The export menu opens up, the outline
+   and essay-language menus open down, and both `.menu-pop` and the
+   citation popover flip across all four edges with the dock. The beak
+   sits on the opposite side each time, so it needs the same four-way
+   logic the popovers already carry — and a beak pointing at nothing
+   is worse than none.
+2. **Tone is per beak.** A beak that meets a `.popover-head` has to
+   wear that header's tint, or it reads as a white chip stuck to a
+   coloured strip.
+
+A beak on some surfaces and not others would rebuild exactly the
+inconsistency v2 exists to remove. If it is ever added, add it to all
+of them in one change, and to `.popover` itself rather than to any one
+caller.
+
+### Empty state — v2
+
+One component, two variants: `.empty-state` is a padded centred block
+for a full column; `.empty-state.is-inline` is left-aligned and tighter,
+for a panel or popover too short to centre anything in.
+
+| Part | Spec |
+|---|---|
+| Block | column, `gap --sp-2`, padding `--sp-7 --sp-5`, centred, `--muted` |
+| `.empty-title` | `--t-ui --w-medium --fg-2` |
+| `p` | `--t-small`, `max-width: 34ch`, `text-wrap: pretty` |
+| `.btn` | gets `margin-top: --sp-2` |
+| `.is-inline` | padding `--sp-4 --sp-3`, `align-items: flex-start`, left-aligned |
+
+**Copy rule:** name what is missing, then give one way forward. No
+illustrations, no exclamation marks, and never the word "oops".
 
 ---
 
@@ -582,29 +875,306 @@ Reused: `home_new_card_title`, `home_new_card_sub`, `common_close`,
 
 ---
 
-## 7. Known token bugs this system fixes
+## 7. Known token bugs
 
-1. `--panel` is referenced at `routes/+page.svelte:303` and **defined
-   nowhere** — it always resolves to the hardcoded cream `#f4f1ea` and
-   ignores dark mode. Add `--panel: var(--chrome)` or drop the
-   reference.
-2. `LibraryScreen.svelte:1064` raw `#fff`; `:1068` raw `#000` inside a
-   `color-mix`.
+**Fixed in v1** — kept here because each one names a failure mode worth
+recognising again:
+
+1. `--panel` was referenced by `routes/+page.svelte` and **defined
+   nowhere**, so it always resolved to a hardcoded cream and ignored
+   dark mode. `tokens.css` now defines `--panel: var(--chrome)`.
+2. `LibraryScreen.svelte` carried a raw `#fff` and a raw `#000` inside
+   a `color-mix`. Both are gone.
+
+**Still open as of v2:**
+
 3. Stale `var(--x, #hex)` fallbacks that encode a second, wrong
-   palette: `var(--muted, #666)`, `var(--danger, #a33)` in
-   `BackupSettings`, `BackupSetupWizard`, `BackupStatusCard`,
-   `LibraryImportModal`. Drop the fallback — `--panel` proves the
-   assumption they protect has already failed once.
+   palette: `var(--muted, #666)` and `var(--danger, #a33)` in
+   `BackupSetupWizard` (two), `BackupStatusCard` and
+   `LibraryImportModal`. Drop the fallback — bug 1 proves the
+   assumption they protect has already failed once. (`BackupSettings`
+   was named in v1 and has since been cleaned.)
 
 ---
 
 ## 8. Enforcement
 
-Add one focused Vitest check over chrome CSS only, excluding every
-frozen path in §0:
+**Not written yet.** Add one focused Vitest check over chrome CSS only,
+excluding every frozen path in §0:
 
-- no raw hex outside the two theme blocks in `tokens.css` (allow the
-  three `--tl-*` traffic-light dots);
+- no raw hex outside the two theme blocks in `tokens.css`. Three
+  exemptions, all deliberate: the `--tl-*` traffic-light dots,
+  `--paper-print` (the print sheet is theme-independent by design), and
+  the whole `.apa-editor` document-palette block, which pins the
+  pre-v1 values on purpose;
 - no `var(--token, <color>)` fallback form;
 - no `font-size` literal outside the `--t-*` definitions;
-- no `z-index` literal outside the `--z-*` definitions.
+- no `z-index` literal outside the `--z-*` definitions — except the
+  editor's own local ladder, which `float-menu.css` documents and which
+  §Popover & dock deliberately keeps off the shared scale.
+
+---
+
+## 9. The document — locked layer (APA 7)
+
+Everything above this line is chrome, and chrome is ours to design. The
+paper sheet is not. Its geometry, type sizes, spacing and indents are
+fixed by the *Publication Manual of the American Psychological
+Association* (7th ed.) and by <https://apastyle.apa.org>, and the app
+exists to guarantee them — a student should never have to check.
+
+> **No chrome token, component or aesthetic preference may change a
+> measurement inside the paper sheet.** If a value is prescribed by
+> APA, it is not a design decision.
+
+§0 lists the frozen files. This section records the rules those files
+implement, so a future change can be checked against the spec rather
+than against the previous diff.
+
+### Page geometry — US Letter at 96dpi
+
+| Value | Where |
+|---|---|
+| `816 × 1056px` (8.5 × 11in) | `apa.css` |
+| `padding: 96px` (1in, all four sides) | `apa.css` |
+| `624px` (6.5in) text column | `apa.css` |
+| `line-height: 2` (double), throughout | `apa.css` |
+
+The 816px coordinate system never changes. The canvas may scale the
+whole stack to fit a narrow window, but wrapping and pagination are
+computed in page units, so what you see on screen breaks where the
+printed page breaks.
+
+### The seven permitted fonts
+
+Times New Roman 12pt · Georgia 11pt · Computer Modern 10pt ·
+Aptos 12pt · Calibri 11pt · Arial 11pt · Lucida Sans Unicode 10pt.
+
+**Size is bound to family, not chosen separately** — picking Georgia
+sets 11pt, picking Times sets 12pt. There is no font-size control in
+the document and there must never be one: that is the single most
+common way a paper falls out of compliance.
+
+`apps/desktop/src/lib/model/fonts.ts` (`APA_FONTS`) is the source of
+truth for screen and preview. `@tesina/docx-export` keeps a parallel
+table that must change in the same commit.
+
+### Headings — five levels, all at document size
+
+| Level | Format |
+|---|---|
+| 1 | Centered, bold |
+| 2 | Flush left, bold |
+| 3 | Flush left, bold italic |
+| 4 | Indented, bold, ends with a period — **run-in** |
+| 5 | Indented, bold italic, ends with a period — **run-in** |
+
+No heading changes size, and none is underlined or set in caps. Levels
+4 and 5 are run-in: the app marks a heading as run-in only when a
+paragraph actually follows it, appends the terminal period if the
+author did not type one, and leaves both nodes independently editable.
+
+### Indents — the four cases
+
+| Case | Rule |
+|---|---|
+| Body paragraph | `text-indent: 0.5in`, first line only. No space between paragraphs (`margin: 0`). |
+| Reference entry | Hanging: `padding-left: 0.5in; text-indent: -0.5in`. |
+| Block quotation | `margin-left: 0.5in`; first line flush, no quotation marks, no rule or border. |
+| Abstract, first line | `text-indent: 0`. The keywords line below it takes the 0.5in indent and an italic label. |
+
+"References" is centered and bold at document size, double-spaced like
+everything else, entries alphabetical. It is **not** a Level 1 heading
+and is not italicized.
+
+### Where compliance is enforced
+
+| Rule | Enforced by | How it cannot drift |
+|---|---|---|
+| Margins, page size, double spacing, indents | `editor/apa.css` | Structural CSS on `.tiptap`. There is no UI that can change them. |
+| Font family and its point size | `model/fonts.ts` | A closed set of seven; size is a property of the choice, not a separate control. |
+| Heading level formatting and run-in periods | `apa.css` + a derived decoration | Derived from node type, not from author formatting. |
+| Table and figure anatomy (7.8, 7.22) | `apa.css` counters | "Table N" / "Figure N" and "Note." are generated content; numbering renumbers itself. |
+| Skipped heading levels, empty titles, empty paragraphs | `packages/apa-engine/src/check/apa-check.ts` | Live check, four rules. Flags the block with a soft tint — colour only, never layout. |
+
+### Known gap — Title Case in headings
+
+APA sets headings in Title Case. That is **the one prescribed heading
+rule with no check behind it**: `apa-check.ts` ships four rules and
+none of them reads heading text.
+
+A fifth rule would close it, but it is not a mechanical addition. Title
+Case is an English convention, and `essay.settings.documentLanguage`
+also accepts Spanish, whose headings follow Spanish capitalization. Any
+such rule must therefore be gated on the document language and carry
+its own small-word list. Deliberately deferred — recorded here so the
+gap stays visible rather than being rediscovered.
+
+### Editing affordances that must never print
+
+- Dashed ghost gridlines inside tables
+- Citation chips, set in the chrome font at `0.82em`
+- The APA-check tint and the reference-overflow outlines
+- The pencil buttons on tables, figures and equations
+- The "no references yet" message on the reference page
+
+Each is chrome living inside the document. The preview and DOCX export
+render from their own stylesheets, which is what keeps them off the
+page — and the reason any new in-document affordance has to be added
+there as an exclusion **in the same commit**.
+
+### The document keeps its own palette
+
+`.apa-editor` in `tokens.css` pins the pre-v1 hex values for `--fg`,
+`--paper` and the rest, and restates the derived tokens rather than
+inheriting them. Retuning the chrome palette therefore cannot restyle
+the sheet.
+
+`--paper-print` is deliberately theme-independent: the export CSS
+hardcodes near-black ink, so following `--paper` in dark mode would
+darken the page while the text stayed black.
+
+---
+
+## 10. v2 migration record
+
+Completed in one branch. The class renames were mechanical — the v2
+selectors accept the class names already in the markup — but three
+changes went further than a rename, and are called out below: the
+filter chips moved to `aria-pressed`, the membership chips gained it,
+and two dialogs gained `size="sm"`.
+
+| File | Deleted | Now uses |
+|---|---|---|
+| `ReferencesPanel.svelte` † | `.pill`, `.pill.blue`, `.actions button`, `.empty` | `.badge`, `.badge-warn`, `.btn-quiet`, `.btn-quiet.btn-danger-text`, `.empty-state.is-inline` |
+| `BibImportModal.svelte` | `.pill`, `.pill.warn` | `.badge`, `.badge-warn` |
+| `EssayHome.svelte` | `.badge`, `.chip`, `.count`, `.foot button`, `.empty` | `.badge-code`, `.chip`, `.badge-count`, `.btn-quiet`, `.empty-state` |
+| `LibraryScreen.svelte` | `.chip`, `.chip.on`, `.count`, `.mini`, `.empty` | `.chip`, `.badge-count`, `.btn-quiet.btn-icon`, `.btn-quiet.btn-danger-text`, `.empty-state` |
+| `CitationPopover.svelte` | `.empty` | `.empty-state.is-inline` |
+| 9 call sites | `btn-ghost` | `btn-secondary` |
+| `Modal.svelte` | `ModalSize = "default" \| "ref"` | `"sm" \| "default" \| "lg"` |
+| `controls.css`, `modal.css` | `.btn-ghost`, `.modal.modal-ref` | aliases retired |
+| `Select`, `Toolbar`, `HeadingMenu`, `ListMenu`, `TableMenu`, `FontMenu`, `CitationPopover`, `EditorScreen` (× 3), `EssayHome`, `UpdatePill` | each surface's own background / border / radius / shadow | `.popover` |
+| `UpdatePill`, `EditorScreen` (APA check) | a bare title paragraph | `.popover-head` + `.popover-dot` |
+| `EditorScreen` references rail | `.status` / `.status.cited` / `.status.uncited`, `.ref-foot .del`, `.ref-foot .ins` | `.badge` / `.badge-accent` / `.badge-warn`, `.btn-quiet.btn-danger-text`, `.btn-quiet` |
+
+† **`ReferencesPanel.svelte` is currently imported by nothing.** The
+panel that actually renders beside the editor is the `.refs` rail
+inside `EditorScreen.svelte`, which is the row above. The component was
+migrated before that was noticed; it is left in place rather than
+deleted, because whether it is revived or removed is a product call,
+not a design-system one.
+
+Tone decisions taken during the migration:
+
+- A reference **type** classifies → neutral `.badge`.
+- "In text only" classifies → neutral `.badge` (it was accent in v1,
+  which put it in the same colour as two unrelated things).
+- "Uncited" and "Duplicate" are things to fix → `.badge-warn`.
+- A document **language** tag is a machine value → `.badge-code`.
+- Nav and collection counts → `.badge-count`.
+- In the editor rail, a reference's state is a badge: neutral for "in
+  text only" (a category), `.badge-accent` for a live cited count (what
+  the user is acting on), `.badge-warn` for uncited (something to fix).
+  It previously coloured all three as categories.
+- The update popover reports state, so it earns a header: `success`
+  when up to date, `accent` when an update is waiting, `danger` on a
+  failed check.
+- The APA check went from `--danger` to `--warn`, pill and popover
+  alike. `apa-check.ts` says in as many words that the check "never
+  blocks saving or export", and §5.0 reserves `--danger` for *broken
+  or invalid* while *fix this, but you are not blocked* is `--warn`.
+  The red pill was the drift, not the amber one.
+
+Both chip rows now drive off `aria-pressed`. `EssayHome`'s filter row
+moved from `class:active`, and `LibraryScreen`'s membership chips moved
+from `class:on` — those are the app's genuine multi-select toggles and
+they previously had a visual selected state with no ARIA state behind
+it. `controls-v2.css` still accepts `.on` as an alias for anything not
+yet migrated.
+
+One known imperfection: `EssayHome`'s four filters are mutually
+exclusive, so `role="radiogroup"` with `aria-checked` would model them
+more exactly than four toggle buttons. `aria-pressed` announces the
+state correctly and is a strict improvement on the class it replaced;
+the radiogroup rewrite needs roving `tabindex` and is deferred.
+
+### Deferred — known, scoped, not done
+
+A final audit of the whole app ran before this branch shipped. What it
+found and this branch fixed is above. What it found and this branch did
+**not** fix is here, so "consistent with the design system" means
+*consistent, with these named exceptions* rather than *unexamined*.
+
+**Components that hand-roll something the system provides.** Each needs
+a tone or layout judgement, not a rename:
+
+| Site | Today | Should become |
+|---|---|---|
+| `EditorScreen` `.apa-pill-count` | a static count drawn as a `--r-pill` | `.badge.badge-count` — §5.0's shape rule says a pill is a control, and this one cannot be pressed. Its colour is already correct. |
+| `EssayHome` `.essay-actions button` / `.del`, `LibraryScreen` `.card-foot .del`, `EditorScreen` `.icon-btn` / `.mini`, `LibraryScreen` `.back`, `ReferencesPanel` `.add`, `BibImportModal` `.linkbtn` | hand-rolled quiet and secondary buttons | `.btn-quiet` (+ `.btn-icon` / `.btn-danger-text`), `.btn-secondary.btn-sm` |
+| `CitationPopover` `.insert`, `ReferenceQuickForm` `.find` | hand-rolled primaries | `.btn-primary` |
+| `CitationPopover` `.close` | hand-rolled close | `.modal-close` or `.btn-quiet.btn-icon` |
+| `BibImportModal` `.bib-errbanner`, `ReferenceQuickForm` `.notice`, `EditorScreen` `.bib-error-toast` | three hand-rolled status banners | `.status-panel[data-tone]` |
+| `BibImportModal` `.bibkey` | bare mono `<code>` beside two real badges | `.badge-code` |
+| `EssayHome` `.lib-count`, `LibraryScreen` `.list-count` | live counts as plain mono text | `.badge-count` |
+| `CitationPopover` search field, `ReferenceQuickForm` fields and buttons | a whole second field and button system | `.field` + `.btn`, by putting `ui-controls` on the host and deleting the local rules |
+
+`ReferenceQuickForm` is the largest single instance. Its justifying
+comment is stale: it says the shared `.btn` is scoped to `.modal`, but
+`controls.css` says in as many words that the button block is **not**
+scope-gated.
+
+**Three segmented controls ship in one app.** `.seg` in `controls.css`
+is correct (solid accent). `EssayHome`'s `.segmented` uses the raised
+white pill §2 records as rejected, and `CitationPopover` and
+`ReferenceQuickForm` use the *chip* wash on a mode picker — §5.0's
+"chip vs. segmented control" inverted. `EssayHome`'s also drives off
+`class:active` with no `aria-pressed`.
+
+**Two §2 accent rules the code still breaks.** §2 says the titlebar
+mark is ink, not accent (`EssayHome`, `LibraryScreen`, `EditorScreen`
+all paint it accent) and that the empty-state "new essay" plus is
+neutral (it is accent). Both are brand-facing and were left for a
+human call rather than changed under a consistency sweep.
+
+**Raw values.** Roughly 30 raw `border-radius` values, 10 `rem` values,
+`font-weight: 700` in eight places and `font-weight: 500` (the scale
+has 530) in nine, three raw control heights off the 32/36/42 scale, and
+one raw `z-index: 10` on `EssayHome`'s new-essay popover that is not
+covered by the editor's documented local ladder. §8's lint is the right
+answer to all of it; hand-fixing them piecemeal is not.
+
+**All-caps tracking.** Five labels at `0.06`–`0.07em` instead of the
+mandatory `0.09em` — see §3.
+
+**Vocabulary.** `.status-panel`'s `data-tone` still uses
+`ok / busy / warn / off` while `.popover-head` uses §5.0's four names.
+Converge them.
+
+**Older than v2, still open.** §5's `aria-disabled` rule has zero call
+sites (`BibImportModal` blocks its primary with the real `disabled`
+attribute); no `.empty-state` is announced through `role="status"` when
+a filter empties a list; and `--focus-ring` is 1.45:1 against
+`--chrome`, short of the 3:1 WCAG 1.4.11 wants for a focus indicator.
+
+The popover beak is **not** on any of these lists — it was decided
+against, see §5 Popover.
+
+### Two things to watch
+
+**Scope.** `.badge`, `.chip`, `.btn-quiet` and `.empty-state` are
+global, like `.btn`. The APA paper sheet uses `cover-form-*` and the
+editor dock uses `fm-*`, so neither is reachable.
+
+A Svelte component's own `<style>` block outranks these rules **only on
+the properties it declares** — everything else still cascades in. So a
+local definition has to be **deleted**, not left unused.
+`UpdatePill.svelte` is the case that proves it: its local `.badge` was
+a 7px round dot, and the global `.badge`'s `padding: 0 var(--sp-15)`
+cascaded through and stretched it into a 12px oval under
+`box-sizing: border-box`. It is `.dot` now. **Before adding a class to
+`controls-v2.css`, grep the whole app for that name.**
+
+**Tone, not shape.** See §5.0. The class rename is mechanical; deciding
+per badge whether it classifies or needs fixing is the point.

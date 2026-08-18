@@ -221,7 +221,7 @@
     <div
       bind:this={listElement}
       id={listId}
-      class="select-pop"
+      class="popover select-pop"
       role="listbox"
       tabindex="-1"
       aria-label={ariaLabel}

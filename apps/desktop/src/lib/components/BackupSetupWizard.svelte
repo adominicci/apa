@@ -316,17 +316,17 @@
 
   .note {
     font-size: var(--t-ui);
-    color: var(--muted, #666);
+    color: var(--muted);
   }
 
   .path {
-    font-family: var(--mono, monospace);
+    font-family: var(--mono);
     font-size: var(--t-ui);
     word-break: break-all;
   }
 
   .error {
-    color: var(--danger, #a33);
+    color: var(--danger);
   }
 
   .consent {

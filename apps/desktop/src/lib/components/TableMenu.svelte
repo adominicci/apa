@@ -50,7 +50,7 @@
   </button>
 
   {#if open}
-    <div class="menu-pop" role="menu">
+    <div class="popover menu-pop" role="menu">
       {#if !inTable}
         <button class="mi" role="menuitem" onclick={() => {
           onClose();

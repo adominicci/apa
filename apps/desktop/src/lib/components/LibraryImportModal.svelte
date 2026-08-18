@@ -189,6 +189,6 @@
   }
   .note {
     font-size: var(--t-ui);
-    color: var(--muted, #666);
+    color: var(--muted);
   }
 </style>

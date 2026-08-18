@@ -123,7 +123,7 @@ describe("essay launch context", () => {
       `Tesina ${bundledReleaseNotes.version}`,
     );
     expect(dialog?.textContent).toContain(
-      "checks your APA format while you write",
+      "look and behave alike",
     );
     expect(dialog?.contains(document.activeElement)).toBe(true);
     globalThis.dispatchEvent(
@@ -139,7 +139,7 @@ describe("essay launch context", () => {
     versionButton.click();
     flushSync();
     expect(document.querySelector("[role='dialog']")?.textContent).toContain(
-      "checks your APA format while you write",
+      "look and behave alike",
     );
     expect(globalThis.location.href).toBe(initialLocation);
     expect(onCreate).not.toHaveBeenCalled();
@@ -206,7 +206,7 @@ describe("essay launch context", () => {
       versionButton.click();
       flushSync();
       expect(document.querySelector("[role='dialog']")?.textContent).toContain(
-        "checks your APA format while you write",
+        "look and behave alike",
       );
       expect(document.querySelector("[role='dialog']")?.textContent).not
         .toContain("Las notas no están disponibles.");

@@ -47,7 +47,7 @@
       </svg>
     </button>
     {#if open}
-      <div class="menu-pop" role="menu">
+      <div class="popover menu-pop" role="menu">
         {#each TOOLBAR_DOCKS as option (option)}
           <button
             class="mi"
@@ -96,6 +96,6 @@
 
   .mi.active {
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-text);
   }
 </style>

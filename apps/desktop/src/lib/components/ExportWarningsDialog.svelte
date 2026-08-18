@@ -69,7 +69,7 @@
 
   {#snippet footer()}
     {#if hasTitleWarnings}
-      <button class="btn btn-ghost" onclick={onFixTitlePage}>
+      <button class="btn btn-secondary" onclick={onFixTitlePage}>
         {m.export_warn_fix()}
       </button>
     {/if}

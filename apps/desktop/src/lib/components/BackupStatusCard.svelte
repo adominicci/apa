@@ -213,7 +213,7 @@
   }
 
   .state.warn {
-    color: var(--danger, #a33);
+    color: var(--warn-strong);
   }
 
   .glyph {
@@ -221,7 +221,7 @@
   }
 
   .glyph.ok {
-    color: var(--accent);
+    color: var(--success);
   }
 
   .actions {

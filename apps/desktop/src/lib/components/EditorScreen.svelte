@@ -921,7 +921,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 5v14M5 12h14" /></svg>
           </button>
           {#if addMenuOpen}
-            <div class="menu" role="menu">
+            <div class="popover menu" role="menu">
               <button role="menuitem" onclick={toggleAbstract}>
                 {abstractPresent ? m.editor_remove_abstract() : m.editor_add_abstract()}
               </button>
@@ -1064,7 +1064,7 @@
       <div class="panel-head">
         <h4>{referencesLabel}</h4>
         <div class="panel-head-actions">
-          <button class="btn btn-ghost btn-sm" onclick={openLibrary}>
+          <button class="btn btn-secondary btn-sm" onclick={openLibrary}>
             {m.libm_manage()}
           </button>
           <button class="btn btn-primary btn-sm" onclick={() => openRefForm(false)}>
@@ -1086,11 +1086,10 @@
           {/if}
           <div class="ref-foot">
             <span
-              class="status"
-              class:cited={row.cited > 0}
-              class:uncited={row.cited === 0 && !row.personal}
+              class="badge"
+              class:badge-accent={row.cited > 0}
+              class:badge-warn={row.cited === 0 && !row.personal}
             >
-              <span class="dot"></span>
               {row.personal
                 ? m.refs_in_text_only()
                 : row.cited > 0
@@ -1098,13 +1097,16 @@
                 : m.refs_uncited()}
             </span>
             <button
-              class="del"
+              class="btn-quiet btn-danger-text del"
               onclick={() => handleDeleteReference(row.ref.id)}
               onblur={() => (confirmingDelete = null)}
             >
               {confirmingDelete === row.ref.id ? m.panel_delete_confirm() : "×"}
             </button>
-            <button class="ins" onclick={() => handleCiteFromPanel(row.ref.id)}>
+            <button
+              class="btn-quiet"
+              onclick={() => handleCiteFromPanel(row.ref.id)}
+            >
               {m.refs_insert()}
             </button>
           </div>
@@ -1233,7 +1235,7 @@
           <span class="fm-label">{exporting ? m.editor_exporting() : m.editor_export()}</span>
         </button>
         {#if exportMenuOpen}
-          <div class="menu export-menu" role="menu" aria-label={m.editor_export_format()}>
+          <div class="popover menu export-menu" role="menu" aria-label={m.editor_export_format()}>
             <button role="menuitem" onclick={() => void handleExport("docx")}>
               {m.editor_export_docx()}
             </button>
@@ -1266,10 +1268,19 @@
           <span class="fm-label">APA</span>
         </button>
         {#if apaCheckOpen}
-          <div class="menu apa-check-menu" role="menu" aria-label={m.apa_check_menu_label()}>
-            {#if apaIssues.length === 0}
-              <p class="apa-check-empty">{m.apa_check_all_good()}</p>
-            {:else}
+          <div class="popover menu apa-check-menu" role="menu" aria-label={m.apa_check_menu_label()}>
+            <div
+              class="popover-head"
+              data-tone={apaIssues.length === 0 ? "success" : "warn"}
+            >
+              <span class="popover-dot" aria-hidden="true"></span>
+              <div class="popover-title">
+                {apaIssues.length === 0
+                  ? m.apa_check_all_good()
+                  : m.apa_check_tip_issues({ count: apaIssues.length })}
+              </div>
+            </div>
+            {#if apaIssues.length > 0}
               {#if emptyParagraphIssues.length > 1}
                 <button
                   class="apa-fix-all"
@@ -1493,14 +1504,14 @@
   }
 
   .apa-pill.bad {
-    color: var(--danger);
+    color: var(--warn-strong);
   }
 
   .apa-pill-count {
     min-width: 18px;
     height: 18px;
     border-radius: var(--r-pill);
-    background: var(--danger);
+    background: var(--warn-strong);
     color: var(--accent-on);
     font-size: var(--t-small);
     font-weight: var(--w-strong);
@@ -1516,13 +1527,6 @@
     overflow-y: auto;
   }
 
-  .apa-check-empty {
-    margin: 0;
-    padding: var(--sp-2) var(--sp-3);
-    color: var(--muted);
-    font-size: var(--t-small);
-  }
-
   .apa-check-row {
     display: flex;
     align-items: center;
@@ -1535,9 +1539,9 @@
 
   .apa-check-menu .apa-check-fix,
   .apa-check-menu .apa-fix-all {
-    border: 1px solid var(--danger);
+    border: 1px solid var(--warn-strong);
     background: none;
-    color: var(--danger);
+    color: var(--warn-strong);
     border-radius: var(--r-sm);
     padding: var(--sp-05) var(--sp-2);
     font-size: var(--t-caption);
@@ -1546,7 +1550,7 @@
 
   .apa-check-menu .apa-check-fix:hover,
   .apa-check-menu .apa-fix-all:hover {
-    background: var(--danger-soft);
+    background: var(--warn-soft);
   }
 
   .apa-check-menu .apa-fix-all {
@@ -1663,7 +1667,7 @@
 
   .icon-btn.on {
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .icon-btn :global(svg) {
@@ -1749,7 +1753,7 @@
   }
 
   .mini:hover {
-    color: var(--accent);
+    color: var(--accent-text);
     border-color: var(--accent);
   }
 
@@ -1759,10 +1763,7 @@
        past it — the .outline column clips horizontal overflow. */
     right: 0;
     top: 115%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-sm);
-    box-shadow: var(--elev-raised);
+    /* Shell from `.popover` in controls-v2.css; this used --r-sm. */
     display: flex;
     flex-direction: column;
     min-width: 170px;
@@ -1807,7 +1808,7 @@
 
   .out-item.active {
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-text);
     font-weight: 600;
   }
 
@@ -1820,7 +1821,7 @@
   }
 
   .out-item.active .n {
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .out-item .wc {
@@ -2006,54 +2007,9 @@
     gap: var(--sp-2);
   }
 
-  .status {
-    font-family: var(--mono);
-    font-size: var(--t-caption);
-    letter-spacing: 0.04em;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-1);
-    color: var(--accent);
-  }
-
-  .status.cited {
-    color: var(--success);
-  }
-
-  .status.uncited {
-    color: var(--muted);
-  }
-
-  .status .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-  }
-
+  /* Layout hook only — the buttons come from controls-v2.css. */
   .ref-foot .del {
     margin-left: auto;
-    border: none;
-    background: none;
-    color: var(--muted);
-    font-size: var(--t-small);
-    cursor: pointer;
-    padding: var(--sp-05) var(--sp-15);
-    border-radius: 5px;
-  }
-
-  .ref-foot .del:hover {
-    color: var(--danger);
-    background: color-mix(in oklab, var(--danger), transparent 90%);
-  }
-
-  .ref-foot .ins {
-    border: none;
-    background: none;
-    color: var(--accent);
-    font-size: var(--t-small);
-    font-weight: 600;
-    cursor: pointer;
   }
 
   /* .fm-btn lives in the shared float-menu.css (imported above) so the
@@ -2172,7 +2128,7 @@
   }
 
   .statusbar .lang {
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .statusbar .version {
@@ -2181,7 +2137,7 @@
 
   .statusbar .version:hover,
   .statusbar .version:focus-visible {
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .export-msg {

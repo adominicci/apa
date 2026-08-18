@@ -268,7 +268,7 @@
         onclick={() => (activeCollection = null)}
       >
         <span class="coll-name">{m.libm_all()}</span>
-        <span class="count">{library.references.length}</span>
+        <span class="badge badge-count">{library.references.length}</span>
       </button>
 
       {#each library.collections as c (c.id)}
@@ -293,11 +293,11 @@
               onclick={() => (activeCollection = c.id)}
             >
               <span class="coll-name">{c.name}</span>
-              <span class="count">{c.refIds.length}</span>
+              <span class="badge badge-count">{c.refIds.length}</span>
             </button>
             <div class="coll-actions">
               <button
-                class="mini"
+                class="btn-quiet btn-icon"
                 title={m.libm_rename()}
                 aria-label={m.libm_rename()}
                 onclick={() => startRenameCollection(c.id, c.name)}
@@ -312,7 +312,7 @@
                   /></svg>
               </button>
               <button
-                class="mini del"
+                class="btn-quiet btn-danger-text"
                 onclick={() => deleteCollection(c.id)}
                 onblur={() => (confirmingCollectionDelete = null)}
               >
@@ -414,13 +414,15 @@
 
       <div class="list-scroll">
         {#if library.references.length === 0}
-          <p class="empty">{m.libm_empty_library()}</p>
+          <div class="empty-state"><p>{m.libm_empty_library()}</p></div>
         {:else if visible.length === 0}
-          <p class="empty">
-            {search.trim() !== ""
-              ? m.libm_no_results()
-              : m.libm_empty_collection()}
-          </p>
+          <div class="empty-state">
+            <p>
+              {search.trim() !== ""
+                ? m.libm_no_results()
+                : m.libm_empty_collection()}
+            </p>
+          </div>
         {:else}
           {#each visible as item (item.ref.id)}
             <div
@@ -446,7 +448,7 @@
                   {#each library.collections as c (c.id)}
                     <button
                       class="chip"
-                      class:on={c.refIds.includes(item.ref.id)}
+                      aria-pressed={c.refIds.includes(item.ref.id)}
                       onclick={(e) => {
                         e.stopPropagation();
                         library.toggleMembership(c.id, item.ref.id);
@@ -492,7 +494,11 @@
 </div>
 
 {#if deleteTarget}
-  <Modal title={m.libm_delete_title()} onClose={() => (deleteTarget = null)}>
+  <Modal
+    title={m.libm_delete_title()}
+    size="sm"
+    onClose={() => (deleteTarget = null)}
+  >
     {#if deleteTarget.citing.length === 0}
       <p class="del-body">{m.libm_delete_uncited()}</p>
     {:else}
@@ -509,7 +515,7 @@
       <p class="del-note">{m.libm_delete_cited_note()}</p>
     {/if}
     {#snippet footer()}
-      <button class="btn btn-ghost" onclick={() => (deleteTarget = null)}>
+      <button class="btn btn-secondary" onclick={() => (deleteTarget = null)}>
         {m.common_close()}
       </button>
       <button class="btn btn-danger-solid" onclick={confirmDelete}>
@@ -728,16 +734,11 @@
 
   .coll.active {
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
-  .count {
-    font-family: var(--mono);
-    font-size: var(--t-caption);
-    color: var(--muted);
-    background: var(--hover);
-    padding: 1px var(--sp-15);
-    border-radius: var(--r-pill);
+  /* Layout hook only — the badge's own look comes from controls-v2.css. */
+  .badge-count {
     flex: 0 0 auto;
   }
 
@@ -750,34 +751,6 @@
   .coll-row:hover .coll-actions,
   .coll-row:focus-within .coll-actions {
     display: flex;
-  }
-
-  .mini {
-    border: none;
-    background: none;
-    color: var(--muted);
-    cursor: pointer;
-    padding: var(--sp-1) var(--sp-15);
-    border-radius: 6px;
-    font: inherit;
-    font-size: var(--t-caption);
-    display: grid;
-    place-items: center;
-  }
-
-  .mini :global(svg) {
-    width: 15px;
-    height: 15px;
-  }
-
-  .mini:hover {
-    background: var(--hover);
-    color: var(--fg);
-  }
-
-  .mini.del:hover {
-    background: color-mix(in oklab, var(--danger), transparent 90%);
-    color: var(--danger);
   }
 
   .coll-input {
@@ -809,7 +782,7 @@
   }
 
   .add-coll:hover {
-    color: var(--accent);
+    color: var(--accent-text);
     border-color: var(--accent);
   }
 
@@ -863,12 +836,6 @@
     font-size: var(--t-body);
     color: var(--fg);
   }
-
-
-
-
-
-
 
   .hidden-file {
     display: none;
@@ -934,32 +901,8 @@
   .chips {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--sp-15);
+    gap: var(--sp-2);
     margin-top: var(--sp-2);
-  }
-
-  .chip {
-    font: inherit;
-    font-size: var(--t-caption);
-    padding: var(--sp-05) var(--sp-2);
-    border-radius: var(--r-pill);
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--muted);
-    cursor: pointer;
-    transition: all var(--fast) var(--ease);
-  }
-
-  .chip:hover {
-    border-color: var(--muted);
-    color: var(--fg);
-  }
-
-  .chip.on {
-    background: var(--accent-soft);
-    border-color: color-mix(in oklab, var(--accent), transparent 40%);
-    color: var(--accent);
-    font-weight: 600;
   }
 
   .card-foot {
@@ -987,12 +930,6 @@
   .card-foot .del:disabled {
     opacity: 0.5;
     cursor: default;
-  }
-
-  .empty {
-    color: var(--muted);
-    text-align: center;
-    margin-top: 3rem;
   }
 
   /* ── Edit pane column ── */
@@ -1025,6 +962,5 @@
     color: var(--muted);
     font-size: var(--t-small);
   }
-
 
 </style>

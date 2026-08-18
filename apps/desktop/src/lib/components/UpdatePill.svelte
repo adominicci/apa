@@ -28,6 +28,15 @@
     return m.update_ready({ version: updater.version ?? "" }, opts);
   });
 
+  /** Tone for the popover header. Same four names the badge uses. */
+  const cardTone = $derived(
+    updater.status === "error"
+      ? "danger"
+      : updater.status === "available" || updater.status === "downloading"
+      ? "accent"
+      : "success",
+  );
+
   const cardVisible = $derived(
     cardOpen &&
       (updater.status === "available" || updater.status === "error" ||
@@ -121,30 +130,37 @@
           <path d="M5 20h14" />
         </svg>
         {#if updater.status === "available"}
-          <span class="badge" aria-hidden="true"></span>
+          <span class="dot" aria-hidden="true"></span>
         {/if}
       {/if}
     </button>
 
     {#if cardVisible}
-      <div data-update-card class="card" role="status">
-        {#if updater.status === "idle"}
-          <div class="title">
-            {m.update_up_to_date(undefined, { locale: uiLocale.current })}
+      <div data-update-card class="popover card" role="status">
+        <div class="popover-head" data-tone={cardTone}>
+          <span class="popover-dot" aria-hidden="true"></span>
+          <div>
+            <div class="popover-title">
+              {#if updater.status === "idle"}
+                {m.update_up_to_date(undefined, { locale: uiLocale.current })}
+              {:else}
+                {label}
+              {/if}
+            </div>
+            {#if updater.status !== "idle"}
+              <div class="popover-meta">
+                {m.update_click_hint(undefined, { locale: uiLocale.current })}
+              </div>
+            {/if}
           </div>
-        {:else}
-          <div class="title">{label}</div>
-        {/if}
+        </div>
         {#if updater.status === "available" && updater.body}
-          <div class="head">
-            {m.release_notes_title(undefined, { locale: uiLocale.current })}
+          <div class="notes-wrap">
+            <div class="head">
+              {m.release_notes_title(undefined, { locale: uiLocale.current })}
+            </div>
+            <div class="notes"><MarkdownContent source={updater.body} /></div>
           </div>
-          <div class="notes"><MarkdownContent source={updater.body} /></div>
-        {/if}
-        {#if updater.status !== "idle"}
-          <p class="hint">
-            {m.update_click_hint(undefined, { locale: uiLocale.current })}
-          </p>
         {/if}
       </div>
     {/if}
@@ -175,7 +191,7 @@
 
   .pill:hover:enabled,
   .pill:focus-visible {
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .pill:disabled {
@@ -230,7 +246,10 @@
     line-height: 1;
   }
 
-  .badge {
+  /* Renamed off `.badge` in v2: that is now a global label class in
+     controls-v2.css, and its `padding: 0 var(--sp-15)` cascaded in under
+     `box-sizing: border-box` and stretched this 7px dot into a 12px oval. */
+  .dot {
     position: absolute;
     top: -1px;
     right: -1px;
@@ -240,31 +259,37 @@
     background: var(--accent);
   }
 
+  /* Shell comes from `.popover` in controls-v2.css. Only placement, width
+     and the local stacking level stay here. */
   .card {
     position: absolute;
     bottom: calc(100% + 8px);
     right: -4px;
     width: 216px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-md);
-    box-shadow: var(--elev-raised);
-    padding: var(--sp-3);
     z-index: var(--z-toast);
     text-align: left;
+    /*
+     * Both hosts — EssayHome's .foot and EditorScreen's .statusbar — set
+     * font-family: var(--mono) for the version readout they wrap around this
+     * pill, and the popover inherited it. That set a plain sentence, and a
+     * whole rendered changelog, in monospace. --mono is for machine values;
+     * a popover is its own surface and states its own family. See
+     * docs/design/DESIGN.md section 3.
+     */
+    font-family: var(--font);
+    line-height: var(--lh-snug);
   }
 
-  .title {
-    font-size: var(--t-small);
-    font-weight: 600;
-    color: var(--fg);
+  .notes-wrap {
+    padding: var(--sp-2) var(--sp-3) var(--sp-3);
   }
 
+  /* The all-caps label pattern: --w-medium at 0.09em, like .section and
+     .select-group. Section 3 makes that tracking mandatory. */
   .head {
-    margin-top: var(--sp-2);
     font-size: var(--t-caption);
-    font-weight: 600;
-    letter-spacing: 0.05em;
+    font-weight: var(--w-medium);
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     color: var(--muted);
   }
@@ -278,11 +303,5 @@
 
   .notes :global(.markdown-content) {
     font-size: inherit;
-  }
-
-  .hint {
-    margin: var(--sp-2) 0 0;
-    font-size: var(--t-caption);
-    color: var(--muted);
   }
 </style>

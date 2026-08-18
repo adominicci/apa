@@ -63,7 +63,7 @@
   <p class="hint">{m.table_dialog_hint()}</p>
 
   {#snippet footer()}
-    <button class="btn btn-ghost" onclick={onClose}>{m.common_close()}</button>
+    <button class="btn btn-secondary" onclick={onClose}>{m.common_close()}</button>
     <button class="btn btn-primary" onclick={insert}>{m.table_insert()}</button>
   {/snippet}
 </Modal>

@@ -82,7 +82,7 @@
   }
 </script>
 
-<div class="pop" role="dialog" aria-label={m.cite_title()}>
+<div class="popover pop" role="dialog" aria-label={m.cite_title()}>
   <div class="row head">
     <strong>{m.cite_title()}</strong>
     <button class="close" onclick={onClose} aria-label={m.common_close()}>
@@ -96,9 +96,9 @@
   />
   <div class="list">
     {#if formatted.length === 0}
-      <p class="empty">{m.cite_empty_library()}</p>
+      <div class="empty-state is-inline"><p>{m.cite_empty_library()}</p></div>
     {:else if visible.length === 0}
-      <p class="empty">{m.cite_no_results({ query })}</p>
+      <div class="empty-state is-inline"><p>{m.cite_no_results({ query })}</p></div>
     {:else}
       {#each visible as entry (entry.refId)}
         <label class="item">
@@ -155,11 +155,8 @@
     right: 0;
     z-index: 30;
     width: 340px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    /* Shell from `.popover` in controls-v2.css; this used a raw 10px. */
     padding: var(--sp-2);
-    box-shadow: var(--elev-raised);
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
@@ -221,11 +218,6 @@
     line-height: 1.4;
   }
 
-  .empty {
-    color: var(--muted);
-    margin: var(--sp-1) var(--sp-05);
-  }
-
   .seg {
     display: flex;
     border: 1px solid var(--border);
@@ -245,7 +237,7 @@
 
   .seg button.active {
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-text);
     font-weight: 600;
   }
 

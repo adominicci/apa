@@ -9,7 +9,7 @@ import {
 import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import LayoutReleaseNotesHarness from "./LayoutReleaseNotesHarness.test.svelte";
 
-const canonicalNotesExcerpt = "checks your APA format while you write";
+const canonicalNotesExcerpt = "look and behave alike";
 
 const runtime = vi.hoisted(() => ({
   getVersion: vi.fn<() => Promise<string>>(),
