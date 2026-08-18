@@ -233,10 +233,12 @@
       `lib.rs`, and make Rust exclusively own an atomic versioned
       `$APPDATA/backup-directory.json` authorization record.
 - [ ] 8.2 Add native negative and restart proof on macOS and Windows: the active
-      folder supports child creation/reopen/replace/list/removal after process
-      restart, while its parent/sibling, an old backup folder, and manual
-      import/export selections are denied. Record the exact capability diff.
-- [ ] 8.3 Extend schema-version-1 `settings.json` additively with validated
+      folder supports exclusive child creation, reopen, list, and hash-checked
+      removal after process restart, while safe replacement remains limited to
+      manual dialog-selected exports. Its parent/sibling, an old backup folder,
+      and manual import/export selections remain denied. Record the exact
+      capability diff.
+- [x] 8.3 Extend schema-version-1 `settings.json` additively with validated
       backup UI/status fields and keep authoritative path/backup-set state in
       the native record, whose presence means configured (Turn off deletes the
       record; there is no pause flag). Add a Rust-owned atomic
@@ -331,7 +333,7 @@
 - [x] 11.1 Add a deterministic full-library fixture with Spanish and English
       essays, collections, nested citations, same-ID conflicts, identical and
       colliding assets, and at least one figure in every supported image format.
-- [ ] 11.2 Add an application-level integration test that exports the fixture,
+- [x] 11.2 Add an application-level integration test that exports the fixture,
       imports it into a non-empty destination, checks preview counts, applies
       Merge, restarts state, and proves all
       essays/citations/references/collections/assets resolve with no local
