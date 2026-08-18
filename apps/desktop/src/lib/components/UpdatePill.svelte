@@ -251,23 +251,38 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
-    box-shadow: var(--elev-raised);
+    /* --elev-3 + the inset hairline: the popover treatment. In dark mode a
+       drop shadow alone has nothing to darken, so the hairline is what lifts
+       this off the chrome. Matches .select-pop. */
+    box-shadow: var(--elev-3), inset 0 1px 0 var(--edge-hi);
     padding: var(--sp-3);
     z-index: var(--z-toast);
     text-align: left;
+    /*
+     * Both hosts — EssayHome's .foot and EditorScreen's .statusbar — set
+     * font-family: var(--mono) for the version readout they wrap around this
+     * pill, and the popover inherited it. That set a plain sentence, and a
+     * whole rendered changelog, in monospace. --mono is for machine values;
+     * a popover is its own surface and states its own family. See
+     * docs/design/DESIGN.md section 3.
+     */
+    font-family: var(--font);
+    line-height: var(--lh-snug);
   }
 
   .title {
     font-size: var(--t-small);
-    font-weight: 600;
+    font-weight: var(--w-strong);
     color: var(--fg);
   }
 
+  /* The all-caps label pattern: --w-medium at 0.09em, like .section and
+     .select-group. Section 3 makes that tracking mandatory. */
   .head {
     margin-top: var(--sp-2);
     font-size: var(--t-caption);
-    font-weight: 600;
-    letter-spacing: 0.05em;
+    font-weight: var(--w-medium);
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     color: var(--muted);
   }
