@@ -28,6 +28,15 @@
     return m.update_ready({ version: updater.version ?? "" }, opts);
   });
 
+  /** Tone for the popover header. Same four names the badge uses. */
+  const cardTone = $derived(
+    updater.status === "error"
+      ? "danger"
+      : updater.status === "available" || updater.status === "downloading"
+      ? "accent"
+      : "success",
+  );
+
   const cardVisible = $derived(
     cardOpen &&
       (updater.status === "available" || updater.status === "error" ||
@@ -127,24 +136,31 @@
     </button>
 
     {#if cardVisible}
-      <div data-update-card class="card" role="status">
-        {#if updater.status === "idle"}
-          <div class="title">
-            {m.update_up_to_date(undefined, { locale: uiLocale.current })}
+      <div data-update-card class="popover card" role="status">
+        <div class="popover-head" data-tone={cardTone}>
+          <span class="popover-dot" aria-hidden="true"></span>
+          <div>
+            <div class="popover-title">
+              {#if updater.status === "idle"}
+                {m.update_up_to_date(undefined, { locale: uiLocale.current })}
+              {:else}
+                {label}
+              {/if}
+            </div>
+            {#if updater.status !== "idle"}
+              <div class="popover-meta">
+                {m.update_click_hint(undefined, { locale: uiLocale.current })}
+              </div>
+            {/if}
           </div>
-        {:else}
-          <div class="title">{label}</div>
-        {/if}
+        </div>
         {#if updater.status === "available" && updater.body}
-          <div class="head">
-            {m.release_notes_title(undefined, { locale: uiLocale.current })}
+          <div class="notes-wrap">
+            <div class="head">
+              {m.release_notes_title(undefined, { locale: uiLocale.current })}
+            </div>
+            <div class="notes"><MarkdownContent source={updater.body} /></div>
           </div>
-          <div class="notes"><MarkdownContent source={updater.body} /></div>
-        {/if}
-        {#if updater.status !== "idle"}
-          <p class="hint">
-            {m.update_click_hint(undefined, { locale: uiLocale.current })}
-          </p>
         {/if}
       </div>
     {/if}
@@ -243,19 +259,13 @@
     background: var(--accent);
   }
 
+  /* Shell comes from `.popover` in controls-v2.css. Only placement, width
+     and the local stacking level stay here. */
   .card {
     position: absolute;
     bottom: calc(100% + 8px);
     right: -4px;
     width: 216px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-md);
-    /* --elev-3 + the inset hairline: the popover treatment. In dark mode a
-       drop shadow alone has nothing to darken, so the hairline is what lifts
-       this off the chrome. Matches .select-pop. */
-    box-shadow: var(--elev-3), inset 0 1px 0 var(--edge-hi);
-    padding: var(--sp-3);
     z-index: var(--z-toast);
     text-align: left;
     /*
@@ -270,16 +280,13 @@
     line-height: var(--lh-snug);
   }
 
-  .title {
-    font-size: var(--t-small);
-    font-weight: var(--w-strong);
-    color: var(--fg);
+  .notes-wrap {
+    padding: var(--sp-2) var(--sp-3) var(--sp-3);
   }
 
   /* The all-caps label pattern: --w-medium at 0.09em, like .section and
      .select-group. Section 3 makes that tracking mandatory. */
   .head {
-    margin-top: var(--sp-2);
     font-size: var(--t-caption);
     font-weight: var(--w-medium);
     letter-spacing: 0.09em;
@@ -296,11 +303,5 @@
 
   .notes :global(.markdown-content) {
     font-size: inherit;
-  }
-
-  .hint {
-    margin: var(--sp-2) 0 0;
-    font-size: var(--t-caption);
-    color: var(--muted);
   }
 </style>

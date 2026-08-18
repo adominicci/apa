@@ -68,6 +68,7 @@
     <a href="#popover" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Popover &amp; dock</a>
     <a href="#card" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Card</a>
     <a href="#empty" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Empty state</a>
+    <a href="#popover-surface" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">Popover surface</a>
     <div style="padding:14px 8px 4px;font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted)">The document</div>
     <a href="#apa" style="padding:6px 8px;border-radius:6px;font-size:12px;color:var(--fg-2);text-decoration:none">APA 7 compliance</a>
     <div style="padding:14px 8px 4px;font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted)">Handoff</div>
@@ -1068,7 +1069,60 @@
       </div>
     </section>
 
-        <section id="css" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
+        <section id="popover-surface" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border);background:var(--bg)">
+      <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--accent-text);margin-bottom:10px">Component · new</div>
+      <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Popover</h2>
+      <p style="margin:0 0 28px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">One floating surface, replacing seven that agreed on nothing — four radii, two elevation steps and a raw <code style="font-family:var(--mono)">10px</code> literal. <code style="font-family:var(--mono)">.popover</code> is the <strong style="font-weight:600;color:var(--fg)">material only</strong>: <code style="font-family:var(--mono)">--elevated</code>, a hairline, <code style="font-family:var(--mono)">--r-md</code>, and <code style="font-family:var(--mono)">--elev-3</code> plus the inset hairline that separates it in dark mode. Placement, width and z-index stay with each caller, because the editor's menus sit on their own stacking ladder.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px">
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Status header · success</div>
+          <div class="popover" style="width:240px">
+            <div class="popover-head" data-tone="success">
+              <span class="popover-dot"></span>
+              <div><div class="popover-title">You're up to date.</div></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Status header · accent</div>
+          <div class="popover" style="width:240px">
+            <div class="popover-head" data-tone="accent">
+              <span class="popover-dot"></span>
+              <div>
+                <div class="popover-title">Version 0.1.17 ready</div>
+                <div class="popover-meta">Click to install and restart</div>
+              </div>
+            </div>
+            <div class="popover-foot"><button class="btn btn-primary btn-sm">Install</button></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Status header · warn</div>
+          <div class="popover" style="width:240px">
+            <div class="popover-head" data-tone="warn">
+              <span class="popover-dot"></span>
+              <div>
+                <div class="popover-title">APA format deviations: 3</div>
+                <div class="popover-meta">Suggestions — nothing is blocked</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">List picker · no header</div>
+          <div class="popover" style="width:240px;padding:6px;display:flex;flex-direction:column;gap:1px">
+            <button class="select-option" style="width:100%"><span class="select-label">Level 1 — centered</span></button>
+            <button class="select-option is-active" style="width:100%"><span class="select-label">Level 2 — flush left</span></button>
+            <button class="select-option" style="width:100%"><span class="select-label">Level 3 — flush left italic</span></button>
+          </div>
+        </div>
+      </div>
+
+      <p style="margin:24px 0 0;max-width:64ch;font-size:12px;line-height:1.6;color:var(--fg-2)">Tone comes from <code style="font-family:var(--mono)">data-tone</code>, using the same four names the badge uses. A <strong style="font-weight:600;color:var(--fg)">list picker has no header at all</strong> — the Select listbox and the heading, list, table and font menus are lists, not status reports. The beak that tethers a popover to its trigger is designed but not shipped: the app opens popovers in four different directions, and a beak pointing at nothing is worse than none.</p>
+    </section>
+
+    <section id="css" style="padding:56px clamp(24px,5vw,64px);border-bottom:1px solid var(--border)">
       <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Handoff</div>
       <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Paste-ready CSS</h2>
       <p style="margin:0 0 24px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">Every specimen on this page is rendered by the app's real <code style="font-family:var(--mono);font-size:12px">tokens.css</code>, <code style="font-family:var(--mono);font-size:12px">controls.css</code> and <code style="font-family:var(--mono);font-size:12px">modal.css</code>, plus the additions below — so nothing here can drift from what ships. Drop it in as <code style="font-family:var(--mono);font-size:12px">src/lib/styles/controls-v2.css</code> and import it after <code style="font-family:var(--mono);font-size:12px">controls.css</code> in <code style="font-family:var(--mono);font-size:12px">routes/+layout.svelte</code>, or paste the blocks into <code style="font-family:var(--mono);font-size:12px">controls.css</code> directly.</p>

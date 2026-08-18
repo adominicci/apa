@@ -242,6 +242,109 @@
   text-align: left;
 }
 
+/* ── Popover ────────────────────────────────────────────────────────
+ * The one floating surface. Before v2 there were seven of them: four
+ * radii (8 / 10 / 12 / 16), two elevation steps, one raw `10px`
+ * literal, and the inset hairline on three of the seven.
+ *
+ * This is the MATERIAL only — background, edge, radius, lift. Placement,
+ * width and z-index stay with each caller, deliberately: the editor's
+ * own menus sit on a local stacking ladder anchored at --z-dock, and
+ * promoting one of them to --z-popover would put a toolbar menu on top
+ * of an open modal. See DESIGN.md.
+ *
+ * --elevated, not --surface: a popover floats above a surface, so it
+ * takes the step above it on the elevation ladder. The inset hairline
+ * is what separates it in dark mode, where a drop shadow has nothing
+ * to darken.
+ */
+.popover {
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--elev-3), inset 0 1px 0 var(--edge-hi);
+  /* Children that paint to the edge round themselves against this, so
+     the surface never needs `overflow: hidden`. */
+  --popover-r: calc(var(--r-md) - 1px);
+}
+
+/* Status header — a tinted ground carrying the status panel's dot,
+   title and meta. Only for a popover that reports state; a list picker
+   (the Select listbox, the heading menu) has no header at all. */
+.popover-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--hover);
+  border-bottom: 1px solid var(--border-soft);
+  border-radius: var(--popover-r) var(--popover-r) 0 0;
+}
+
+/* Tone names are §5.0's, the same four the badge uses, so one
+   vocabulary covers every tinted thing in the app. */
+.popover-head[data-tone="success"] {
+  background: var(--success-soft);
+}
+
+.popover-head[data-tone="accent"] {
+  background: var(--accent-soft);
+}
+
+.popover-head[data-tone="warn"] {
+  background: var(--warn-soft);
+}
+
+.popover-head[data-tone="danger"] {
+  background: var(--danger-soft);
+}
+
+.popover-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  margin-top: 5px;
+  border-radius: var(--r-pill);
+  background: var(--muted);
+}
+
+.popover-head[data-tone="success"] .popover-dot {
+  background: var(--success);
+}
+
+.popover-head[data-tone="accent"] .popover-dot {
+  background: var(--accent);
+}
+
+.popover-head[data-tone="warn"] .popover-dot {
+  background: var(--warn-strong);
+}
+
+.popover-head[data-tone="danger"] .popover-dot {
+  background: var(--danger);
+}
+
+.popover-title {
+  font-size: var(--t-small);
+  font-weight: var(--w-strong);
+  line-height: var(--lh-snug);
+  color: var(--fg);
+}
+
+.popover-meta {
+  font-size: var(--t-caption);
+  line-height: var(--lh-snug);
+  color: var(--fg-2);
+}
+
+.popover-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 1px solid var(--border-soft);
+  border-radius: 0 0 var(--popover-r) var(--popover-r);
+}
+
 /* ── Modal width scale ──────────────────────────────────────────────
  * .modal-ref named a caller; these name sizes. v1 shipped two unnamed
  * widths (520 / 564); --sm is the confirmation size the delete and quit

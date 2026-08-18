@@ -82,10 +82,7 @@
 .menu-pop {
   position: absolute;
   min-width: var(--pop-min-w, 200px);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  box-shadow: var(--elev-raised);
+  /* Shell from `.popover` in controls-v2.css. */
   padding: var(--sp-15);
   display: flex;
   flex-direction: column;

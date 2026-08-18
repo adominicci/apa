@@ -82,7 +82,7 @@
   }
 </script>
 
-<div class="pop" role="dialog" aria-label={m.cite_title()}>
+<div class="popover pop" role="dialog" aria-label={m.cite_title()}>
   <div class="row head">
     <strong>{m.cite_title()}</strong>
     <button class="close" onclick={onClose} aria-label={m.common_close()}>
@@ -155,11 +155,8 @@
     right: 0;
     z-index: 30;
     width: 340px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    /* Shell from `.popover` in controls-v2.css; this used a raw 10px. */
     padding: var(--sp-2);
-    box-shadow: var(--elev-raised);
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);

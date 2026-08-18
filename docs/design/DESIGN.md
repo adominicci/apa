@@ -26,7 +26,8 @@ so five components each invented a badge and two invented a chip. v2
 adds the missing layer and one rule that decides it — see
 **§5.0 The shape and colour rule**.
 
-- **New:** `.badge` (+ 6 tones), `.chip`, `.btn-quiet`, `.empty-state`.
+- **New:** `.badge` (+ 6 tones), `.chip`, `.btn-quiet`, `.empty-state`,
+  `.popover` (+ its status header).
 - **Renamed:** `.btn-ghost` → `.btn-secondary` (they were already the
   same rule); `.modal-ref` → `.modal-lg`; `.modal-sm` added.
 - **Retired:** the `.btn-ghost` and `.modal-ref` aliases. Both are
@@ -669,6 +670,79 @@ be off, so it takes the soft wash. The segmented control picks exactly
 one mode and keeps the **solid** accent fill. Two jobs, two shapes, two
 weights of colour — so "which filter" and "which mode" never look alike.
 
+### Popover — v2
+
+**One floating surface.** Before v2 there were **eight** of them, and they
+agreed on nothing:
+
+| Surface | Radius | Shadow | Inset hairline |
+|---|---|---|---|
+| `.select-pop` | `--r-md` | `--elev-3` | yes |
+| `UpdatePill .card` | `--r-md` | `--elev-3` | yes |
+| `CitationPopover .pop` | **raw `10px`** | `--elev-raised` | no |
+| `EditorScreen .menu` (× 3) | `--r-sm` | `--elev-raised` | no |
+| `EssayHome .menu` | `--r-sm` | `--elev-raised` | no |
+| `float-menu .menu-pop` (× 5) | `--r-md` | `--elev-raised` | no |
+
+Four radii, two elevation steps, one raw literal — across thirteen
+call sites. `.popover` replaces all of it:
+
+| Part | Spec |
+|---|---|
+| Surface | `--elevated`, `1px --border`, `--r-md`, `--elev-3` + `inset 0 1px 0 --edge-hi` |
+
+`--elevated`, not `--surface`: a popover floats **above** a surface, so
+it takes the next step on the elevation ladder. The inset hairline is
+what separates it in dark mode, where a drop shadow has nothing to
+darken.
+
+**`.popover` is the material only.** Placement, width and `z-index`
+stay with each caller, deliberately — see §Popover & dock: the editor's
+menus sit on a local stacking ladder anchored at `--z-dock`, and
+promoting one to `--z-popover` would put a toolbar menu on top of an
+open modal.
+
+**Two surfaces are deliberately not popovers.** The modal is its own
+component at `--r-lg`. The editor dock is a *control*, so §5.0's shape
+rule gives it `--r-pill`.
+
+#### Status header
+
+A popover that reports state opens with a tinted header carrying a dot,
+a title and optional meta — the `.status-panel` anatomy, moved onto a
+popover.
+
+| Part | Spec |
+|---|---|
+| `.popover-head` | `--sp-2 --sp-3`, tone wash, `1px --border-soft` bottom, top corners rounded to `--popover-r` |
+| `.popover-dot` | 9px circle, `--muted` by default |
+| `.popover-title` | `--t-small --w-strong --fg` |
+| `.popover-meta` | `--t-caption --fg-2` |
+| `.popover-foot` | `--sp-2 --sp-3`, `1px --border-soft` top, bottom corners rounded |
+
+Tone comes from `data-tone`, and the values are **§5.0's four names** —
+`success`, `accent`, `warn`, `danger` — so one vocabulary covers every
+tinted thing in the app. (`.status-panel` still uses an older
+`ok / busy / warn / off` set; converging the two is deferred.)
+
+A **list picker** has no header at all. The Select listbox and the
+heading, list, table and font menus are lists, not status reports.
+
+`--popover-r` is `calc(--r-md - 1px)`: the children that paint to an
+edge round themselves against the border, so the surface never needs
+`overflow: hidden` — which is what would clip a beak.
+
+#### The beak — deferred, on purpose
+
+The chosen direction (prototype variant E) includes a beak tethering
+the popover to the control that opened it. It is **not shipped yet**,
+because the direction has to be right per surface and the app opens
+popovers four different ways: the export menu opens up, the outline
+menu opens down, and both `.menu-pop` and the citation popover flip
+across all four edges with the dock. A beak pointing at nothing is
+worse than no beak, and a beak on two surfaces out of seven would
+rebuild the inconsistency v2 exists to remove. Do it in one pass.
+
 ### Empty state — v2
 
 One component, two variants: `.empty-state` is a padded centred block
@@ -960,6 +1034,8 @@ and two dialogs gained `size="sm"`.
 | 9 call sites | `btn-ghost` | `btn-secondary` |
 | `Modal.svelte` | `ModalSize = "default" \| "ref"` | `"sm" \| "default" \| "lg"` |
 | `controls.css`, `modal.css` | `.btn-ghost`, `.modal.modal-ref` | aliases retired |
+| `Select`, `Toolbar`, `HeadingMenu`, `ListMenu`, `TableMenu`, `FontMenu`, `CitationPopover`, `EditorScreen` (× 3), `EssayHome`, `UpdatePill` | each surface's own background / border / radius / shadow | `.popover` |
+| `UpdatePill`, `EditorScreen` (APA check) | a bare title paragraph | `.popover-head` + `.popover-dot` |
 
 Tone decisions taken during the migration:
 
@@ -969,6 +1045,14 @@ Tone decisions taken during the migration:
 - "Uncited" and "Duplicate" are things to fix → `.badge-warn`.
 - A document **language** tag is a machine value → `.badge-code`.
 - Nav and collection counts → `.badge-count`.
+- The update popover reports state, so it earns a header: `success`
+  when up to date, `accent` when an update is waiting, `danger` on a
+  failed check.
+- The APA check went from `--danger` to `--warn`, pill and popover
+  alike. `apa-check.ts` says in as many words that the check "never
+  blocks saving or export", and §5.0 reserves `--danger` for *broken
+  or invalid* while *fix this, but you are not blocked* is `--warn`.
+  The red pill was the drift, not the amber one.
 
 Both chip rows now drive off `aria-pressed`. `EssayHome`'s filter row
 moved from `class:active`, and `LibraryScreen`'s membership chips moved
@@ -996,6 +1080,9 @@ migration map, and each needs a tone judgement rather than a rename:
 | `LibraryScreen.svelte` `.card-foot .del` | the same button, hand-rolled again | `.btn-quiet.btn-danger-text` |
 | `BibImportModal.svelte` `.bibkey` | bare mono `<code>` beside two real badges | `.badge-code` |
 | `EssayHome.svelte` `.lib-count` | live count reflecting the active filter | `.badge-count`, or `.badge-accent` per §5.0 |
+
+Also deferred: the popover **beak** (see §5 Popover), and converging
+`.status-panel`'s `data-tone` vocabulary onto §5.0's four names.
 
 Also deferred, and older than v2: §5's `aria-disabled` rule has zero
 call sites (`BibImportModal` blocks its primary with the real

@@ -60,7 +60,7 @@
   </button>
 
   {#if open}
-    <div class="menu-pop" role="menu">
+    <div class="popover menu-pop" role="menu">
       <span class="grp">{m.font_group_serif()}</span>
       {#each serifFonts as font (font)}
         {@render fontItem(font)}

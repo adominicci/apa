@@ -83,7 +83,7 @@
   </button>
 
   {#if open}
-    <div class="menu-pop" role="menu">
+    <div class="popover menu-pop" role="menu">
       <button
         class="mi"
         class:active={activeList === "bullet"}

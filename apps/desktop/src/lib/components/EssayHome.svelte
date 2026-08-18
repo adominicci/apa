@@ -250,7 +250,7 @@
                 {m.home_new_card_title()}
               </button>
               {#if creating}
-                <div class="menu" role="menu">
+                <div class="popover menu" role="menu">
                   <button role="menuitem" onclick={() => createEssay("es")}>{m.home_new_in_spanish()}</button>
                   <button role="menuitem" onclick={() => createEssay("en")}>{m.home_new_in_english()}</button>
                 </div>
@@ -723,14 +723,11 @@
     position: relative;
   }
 
+  /* Shell from `.popover` in controls-v2.css; this used --r-sm. */
   .menu {
     position: absolute;
     right: 0;
     top: 110%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-sm);
-    box-shadow: var(--elev-raised);
     display: flex;
     flex-direction: column;
     min-width: 150px;

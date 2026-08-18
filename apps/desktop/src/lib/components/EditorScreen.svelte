@@ -921,7 +921,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 5v14M5 12h14" /></svg>
           </button>
           {#if addMenuOpen}
-            <div class="menu" role="menu">
+            <div class="popover menu" role="menu">
               <button role="menuitem" onclick={toggleAbstract}>
                 {abstractPresent ? m.editor_remove_abstract() : m.editor_add_abstract()}
               </button>
@@ -1233,7 +1233,7 @@
           <span class="fm-label">{exporting ? m.editor_exporting() : m.editor_export()}</span>
         </button>
         {#if exportMenuOpen}
-          <div class="menu export-menu" role="menu" aria-label={m.editor_export_format()}>
+          <div class="popover menu export-menu" role="menu" aria-label={m.editor_export_format()}>
             <button role="menuitem" onclick={() => void handleExport("docx")}>
               {m.editor_export_docx()}
             </button>
@@ -1266,10 +1266,19 @@
           <span class="fm-label">APA</span>
         </button>
         {#if apaCheckOpen}
-          <div class="menu apa-check-menu" role="menu" aria-label={m.apa_check_menu_label()}>
-            {#if apaIssues.length === 0}
-              <p class="apa-check-empty">{m.apa_check_all_good()}</p>
-            {:else}
+          <div class="popover menu apa-check-menu" role="menu" aria-label={m.apa_check_menu_label()}>
+            <div
+              class="popover-head"
+              data-tone={apaIssues.length === 0 ? "success" : "warn"}
+            >
+              <span class="popover-dot" aria-hidden="true"></span>
+              <div class="popover-title">
+                {apaIssues.length === 0
+                  ? m.apa_check_all_good()
+                  : m.apa_check_tip_issues({ count: apaIssues.length })}
+              </div>
+            </div>
+            {#if apaIssues.length > 0}
               {#if emptyParagraphIssues.length > 1}
                 <button
                   class="apa-fix-all"
@@ -1493,14 +1502,14 @@
   }
 
   .apa-pill.bad {
-    color: var(--danger);
+    color: var(--warn-strong);
   }
 
   .apa-pill-count {
     min-width: 18px;
     height: 18px;
     border-radius: var(--r-pill);
-    background: var(--danger);
+    background: var(--warn-strong);
     color: var(--accent-on);
     font-size: var(--t-small);
     font-weight: var(--w-strong);
@@ -1514,13 +1523,6 @@
     min-width: 260px;
     max-height: 320px;
     overflow-y: auto;
-  }
-
-  .apa-check-empty {
-    margin: 0;
-    padding: var(--sp-2) var(--sp-3);
-    color: var(--muted);
-    font-size: var(--t-small);
   }
 
   .apa-check-row {
@@ -1759,10 +1761,7 @@
        past it — the .outline column clips horizontal overflow. */
     right: 0;
     top: 115%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-sm);
-    box-shadow: var(--elev-raised);
+    /* Shell from `.popover` in controls-v2.css; this used --r-sm. */
     display: flex;
     flex-direction: column;
     min-width: 170px;
