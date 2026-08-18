@@ -25,7 +25,7 @@ Legend: ✅ automated · 📦 packaged-app evidence · ⏸ deferred with justifi
 | Validate before planning or writing | ✅ `persist/importFlow.test.ts` (validation precedes preview; invalid archive leaves state untouched via `validate.test.ts` rejections) |
 | Explicit Merge preview | ✅ `components/LibraryImportModal.test.ts` (counts, consequences, cancel-no-writes, no replace operation) |
 | Plan freshness at apply | ✅ `persist/importJournal.test.ts` "aborts before any live write when the library changed after planning"; `persist/importFlow.test.ts` replan-transparent and replan-needed paths |
-| Cross-process exclusion | ✅ `tauri-plugin-single-instance` registered first in `lib.rs` (second launch focuses the first instance and exits before any plugin/state); ⏸ exact-candidate packaged double-launch proof remains pending |
+| Cross-process exclusion | ✅ `tauri-plugin-single-instance` registered first in `lib.rs` (second launch focuses the first instance and exits before any plugin/state); 📦 `MAC17-SINGLE-INSTANCE-01` launched the exact executable while the first window was hidden, reopened the guarded window, and left one process |
 | Lossless essay identity handling | ✅ `portable/importPlan.test.ts` matrix (same-title/different-id, identical skip, conflicting copy with document-language suffix) + `portable/semantic.test.ts` |
 | Consistent reference and collection remapping | ✅ `portable/importPlan.test.ts` + `portable/remap.test.ts` (never mutates local essays, deep-freeze proofs) |
 | Safe asset deduplication and remapping | ✅ `portable/importPlan.test.ts` (byte-identical reuse, colliding-path allocation) + self-import skip test (5.8) |
@@ -40,7 +40,7 @@ Legend: ✅ automated · 📦 packaged-app evidence · ⏸ deferred with justifi
 | --- | --- |
 | Discoverable but optional setup | ✅ `BackupStatusCard` component tests (dismissal persistence, non-blocking) |
 | Step-by-step bilingual backup wizard | ✅ `BackupSetupWizard` component tests (five steps, EN+ES, cancel at every step) |
-| Persist only the selected folder scope | ✅ cargo tests: v0.1.16 renderer-writable authority is rejected without migration; only validated renderer-nonwritable cache records restore a v0.1.17 folder; AppData metadata is inert; missing/malformed/oversized/inconsistent authority evidence is preserved and fails closed to `requiresReauthorization` without blocking app setup; symlink + both-direction app-data/cache containment rejections; re-canonicalization denial after folder replacement. ⏸ exact-candidate packaged restart proof remains pending. |
+| Persist only the selected folder scope | ✅ cargo tests: v0.1.16 renderer-writable authority is rejected without migration; only validated renderer-nonwritable cache records restore a v0.1.17 folder; AppData metadata is inert; missing/malformed/oversized/inconsistent authority evidence is preserved and fails closed to `requiresReauthorization` without blocking app setup; symlink + both-direction app-data/cache containment rejections; re-canonicalization denial after folder replacement. 📦 `MAC17-BACKUP-RESTART-01` restored the exact folder without a reprompt, while `MAC17-REAUTH-01` proved cache-authority loss fails closed and leaves external archives untouched until a new picker/test succeeds. |
 | Validated test before enabling backup | ✅ cargo tests (pending isolation, native pending set identity, activation requires test write, cancel removes only its own file, `Tesina Backups` subfolder creation) + `backupRuntime.test.ts`/wizard tests proving the real test filename and manifest use the same pending `backupSetId` |
 | Changed-content daily scheduling | ✅ `state/backup.svelte.test.ts` (first changed session, unchanged skip, local-day gating incl. timezone boundary, Back up now bypass, failure retry, mutation-during-write digest) |
 | Observable backup state | ✅ `BackupSettings`/`BackupStatusCard` component tests (running preserves previous success, turn off revokes without deleting, re-enable requires new test, one-time bilingual reauthorization explains v0.1.17 hardening and untouched old files) |
@@ -53,8 +53,8 @@ Legend: ✅ automated · 📦 packaged-app evidence · ⏸ deferred with justifi
 
 | Item | Status |
 | --- | --- |
-| Packaged macOS build (task 4.6/11.4 precondition) | ⏸ no current package satisfies this gate. Earlier package evidence predates the final v0.1.17 trust-anchor and safe-write fixes; rebuild from the exact reviewed commit and record its digest before acceptance. |
-| Packaged macOS interactive scenario matrix (export/import round trip, folder configure, restart re-auth, Back up now, 8→7 retention, Restore) | ⏸ manual pre-publication gate: requires interactive native dialogs on the exact reviewed v0.1.17 package. Include first-upgrade reauthorization, a normal subsequent restart without reprompt, and cache-anchor-loss fail-closed proof. Do not adopt or delete pre-v0.1.17 metadata/archives. |
+| Packaged macOS build (11.4 precondition; automated 4.6 harness still pending) | 📦 `MAC17-DD0B188-20260818`: app version 0.1.17 from `dd0b188810ed0ecfbc101b5ccef8ff94e5a10f17`; package SHA-256 `535cabcc8c854264c1f0ccffefdbe81d60d6e4bce42babdf208fc02e045b14ae`; launch and strict on-disk code-sign verification passed. See `v0.1.17-macos-native-acceptance.md`. |
+| Packaged macOS interactive scenario matrix (export/import round trip, folder configure, restart re-auth, Back up now, 8→7 retention, Restore) | 📦 complete for the exact package under `MAC17-IMPORT-01` through `MAC17-SINGLE-INSTANCE-01`. Restore proved 16 identical essays and zero conflicts. A normal restart restored authorization without a prompt; cache-anchor loss required a fresh picker/test and preserved all seven prior-set archive names. |
 | Windows packaged run (11.5) | ⏸ deferred: no Windows runtime available in this environment. Per amended task text this remains a release gate for supported Windows publication; the currently shipping updater contract is macOS-only, and the PR documents this explicitly. |
 | iCloud + third-party File Provider matrix (11.7) | ⏸ deferred to a manual pass before release publication; scenarios listed in tasks.md; local-validation-only wording verified by automated copy tests. |
 | Power-loss durability | Not claimed anywhere (spec: interruption contract covers close/restart/crash after reopen-validated journal writes; wording audited). |
@@ -63,6 +63,7 @@ Legend: ✅ automated · 📦 packaged-app evidence · ⏸ deferred with justifi
 
 The prior gate block was stale and referred to the base HEAD. This matrix
 satisfies task 12.2 by mapping each requirement to automated evidence or an
-explicit deferred justification. Exact test counts, immutable commit/package
-identifiers, and package-digest evidence for tasks 11.8 and 12.8 remain pending
-the final reviewed commit and packaged acceptance run.
+explicit deferred justification. Exact code-commit, package-digest, scenario,
+archive, restart, and attachment evidence for task 11.8 is recorded in
+`v0.1.17-macos-native-acceptance.md`. Task 12.8 remains pending PR, Windows,
+release-workflow, updater-publication, and final branch/tag evidence.

@@ -348,7 +348,7 @@
       overwrite.
 - [x] 11.3 Add crash-restart E2E cases at journal fault points and prove each
       run resumes or rolls back to a consistent library without duplicates.
-- [ ] 11.4 In a packaged macOS app, complete manual export/import, configure a
+- [x] 11.4 In a packaged macOS app, complete manual export/import, configure a
       real local or synced folder, restart, run Back up now, create eight dated
       test backups, verify only seven recognized backups remain, and restore
       through Merge; record paths and screenshots without exposing essay
@@ -368,7 +368,7 @@
       with offline placeholder, rehydration, concurrent provider activity,
       rename conflict, timeout, and restart cases; record privacy-redacted
       outcomes without treating provider upload as a Tesina assertion.
-- [ ] 11.8 Store durable privacy-redacted native evidence tied to the exact
+- [x] 11.8 Store durable privacy-redacted native evidence tied to the exact
       commit and package digest: OS/app version, scenario/result, archive
       hash/counts, restart proof, and screenshot/log attachment IDs—never essay
       content, usernames, or private folder names.
