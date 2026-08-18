@@ -7,18 +7,21 @@ import {
 
 describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
-    const expectedNotes = `### Added
+    const expectedNotes = `### Changed
 
-- The editor now checks your APA format while you write. A small light in
-  the toolbar stays green while the structure looks right, and turns red
-  with a count when something drifts: a blank line from pressing Enter
-  twice, a heading level that skips a step, or a table or figure without a
-  title. Drifting blocks get a soft tint on the page. Click the light to see
-  the list, jump to each spot, and remove blank lines in one click. The
-  advice window before an export shows the same list. These are
-  suggestions, not blockers: saving and exporting always work.`;
+- The buttons, labels and filters around your paper now follow one set of
+  rules instead of five. Small labels such as "Journal article", "Uncited"
+  or a language tag are one size and one shape everywhere, and colour now
+  means only one thing: something needs your attention. A plain grey label
+  just tells you what a thing is. Filter buttons in the essay list and the
+  library look and behave the same way. The Edit and Delete links in a
+  reference row are real buttons now, so they light up when you point at
+  them.
+- Short questions such as "Delete this reference?" and "Quit without
+  saving?" open in a smaller window that fits the question, instead of the
+  wide window meant for long forms.`;
 
-    expect(bundledReleaseNotes.version).toBe("0.1.15");
+    expect(bundledReleaseNotes.version).toBe("0.1.16");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");

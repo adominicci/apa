@@ -1064,7 +1064,7 @@
       <div class="panel-head">
         <h4>{referencesLabel}</h4>
         <div class="panel-head-actions">
-          <button class="btn btn-ghost btn-sm" onclick={openLibrary}>
+          <button class="btn btn-secondary btn-sm" onclick={openLibrary}>
             {m.libm_manage()}
           </button>
           <button class="btn btn-primary btn-sm" onclick={() => openRefForm(false)}>

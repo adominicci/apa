@@ -1315,7 +1315,7 @@
 {/snippet}
 
 {#snippet formFooter()}
-  <button class="btn btn-ghost" onclick={onClose}>{m.common_close()}</button>
+  <button class="btn btn-secondary" onclick={onClose}>{m.common_close()}</button>
   <button class="btn btn-primary" onclick={save} disabled={!canSave}>
     {editing ? m.form_save_changes() : m.form_save()}
   </button>
@@ -1332,7 +1332,7 @@
     <footer class="inline-foot">{@render formFooter()}</footer>
   </section>
 {:else}
-  <Modal {title} {onClose} size="ref" dismissOnOverlay={false}>
+  <Modal {title} {onClose} size="lg" dismissOnOverlay={false}>
     {@render body()}
     {#snippet footer()}{@render formFooter()}{/snippet}
   </Modal>
@@ -1561,13 +1561,13 @@
     cursor: default;
   }
 
-  .inline-foot .btn-ghost {
+  .inline-foot .btn-secondary {
     color: var(--fg-2);
     border-color: var(--border);
     background: var(--surface);
   }
 
-  .inline-foot .btn-ghost:hover:enabled {
+  .inline-foot .btn-secondary:hover:enabled {
     border-color: var(--muted);
   }
 </style>

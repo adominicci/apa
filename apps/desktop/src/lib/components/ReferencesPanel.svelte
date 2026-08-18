@@ -83,11 +83,13 @@
 
   <div class="list">
     {#if entries.length === 0 && personalComms.length === 0}
-      <p class="empty">
-        {references.length === 0
-          ? m.panel_empty_library()
-          : m.panel_empty_cited()}
-      </p>
+      <div class="empty-state is-inline">
+        <p>
+          {references.length === 0
+            ? m.panel_empty_library()
+            : m.panel_empty_cited()}
+        </p>
+      </div>
     {:else}
       {#each entries as entry (entry.refId)}
         <div class="entry" class:uncited={!citedCounts.has(entry.refId)}>
@@ -100,14 +102,14 @@
             {#if citedCounts.has(entry.refId)}
               <span>{citedLabel(entry.refId)}</span>
             {:else}
-              <span class="pill">{m.panel_uncited()}</span>
+              <span class="badge badge-warn">{m.panel_uncited()}</span>
             {/if}
             <span class="actions">
-              <button onclick={() => onCite(entry.refId)}>
+              <button class="btn-quiet" onclick={() => onCite(entry.refId)}>
                 {m.panel_cite()}
               </button>
               <button
-                class="danger"
+                class="btn-quiet btn-danger-text"
                 onclick={() => handleDelete(entry.refId)}
                 onblur={() => (confirmingDelete = null)}
               >
@@ -123,14 +125,16 @@
         <div class="entry">
           <p class="runs">{commSummary(comm)} — {comm.title}</p>
           <div class="meta">
-            <span class="pill blue">{m.panel_in_text_only()}</span>
+            <span class="badge">{m.panel_in_text_only()}</span>
             {#if citedCounts.has(comm.id)}
               <span>{citedLabel(comm.id)}</span>
             {/if}
             <span class="actions">
-              <button onclick={() => onCite(comm.id)}>{m.panel_cite()}</button>
+              <button class="btn-quiet" onclick={() => onCite(comm.id)}>
+                {m.panel_cite()}
+              </button>
               <button
-                class="danger"
+                class="btn-quiet btn-danger-text"
                 onclick={() => handleDelete(comm.id)}
                 onblur={() => (confirmingDelete = null)}
               >
@@ -227,43 +231,9 @@
     font-size: var(--t-small);
   }
 
-  .pill {
-    background: var(--warn-soft);
-    color: var(--warn-strong);
-    border-radius: 999px;
-    padding: 0 var(--sp-15);
-  }
-
-  .pill.blue {
-    background: var(--accent-soft);
-    color: var(--accent);
-  }
-
   .actions {
     margin-left: auto;
     display: flex;
-    gap: var(--sp-15);
+    gap: var(--sp-05);
   }
-
-  .actions button {
-    border: none;
-    background: transparent;
-    font: inherit;
-    font-size: var(--t-small);
-    cursor: pointer;
-    color: var(--accent);
-    padding: var(--sp-05) var(--sp-1);
-  }
-
-  .actions .danger {
-    color: var(--danger);
-  }
-
-  .empty {
-    color: var(--muted);
-    padding: var(--sp-3);
-    margin: 0;
-  }
-
-  
 </style>

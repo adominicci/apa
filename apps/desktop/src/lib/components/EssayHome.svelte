@@ -136,7 +136,8 @@
       <div class="nav-label">{m.side_library()}</div>
       <button class="nav-item" class:active={view === "all"} onclick={() => (view = "all")}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5h16M4 12h16M4 19h10" /></svg>
-        {m.side_all()} <span class="count">{essays.summaries.length}</span>
+        {m.side_all()}
+        <span class="badge badge-count">{essays.summaries.length}</span>
       </button>
       <button class="nav-item" class:active={view === "recent"} onclick={() => (view = "recent")}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
@@ -170,6 +171,7 @@
       {/if}
       <div class="foot">
         <button
+          class="btn-quiet"
           type="button"
           data-release-notes-version
           title={m.release_notes_open_tooltip({
@@ -212,7 +214,7 @@
                 </div>
                 <div class="essay-top">
                   <h3>{tpl.name}</h3>
-                  <span class="badge">{tpl.lang.toUpperCase()}</span>
+                  <span class="badge badge-code">{tpl.lang.toUpperCase()}</span>
                 </div>
                 <div class="meta">{tpl.sub}</div>
                 <div class="essay-actions">
@@ -266,10 +268,26 @@
 
         <div class="lib">
           <div class="lib-filters">
-            <button class="chip" class:active={chip === "all"} onclick={() => (chip = "all")}>{m.chip_all()}</button>
-            <button class="chip" class:active={chip === "es"} onclick={() => (chip = "es")}>{m.chip_spanish()}</button>
-            <button class="chip" class:active={chip === "en"} onclick={() => (chip = "en")}>{m.chip_english()}</button>
-            <button class="chip" class:active={chip === "unfinished"} onclick={() => (chip = "unfinished")}>{m.chip_unfinished()}</button>
+            <button
+              class="chip"
+              aria-pressed={chip === "all"}
+              onclick={() => (chip = "all")}
+            >{m.chip_all()}</button>
+            <button
+              class="chip"
+              aria-pressed={chip === "es"}
+              onclick={() => (chip = "es")}
+            >{m.chip_spanish()}</button>
+            <button
+              class="chip"
+              aria-pressed={chip === "en"}
+              onclick={() => (chip = "en")}
+            >{m.chip_english()}</button>
+            <button
+              class="chip"
+              aria-pressed={chip === "unfinished"}
+              onclick={() => (chip = "unfinished")}
+            >{m.chip_unfinished()}</button>
             <span class="lib-count">
               {filtered.length === 1
                 ? m.lib_count_one()
@@ -278,7 +296,7 @@
           </div>
 
           {#if !essays.loaded}
-            <p class="empty">{m.home_loading()}</p>
+            <div class="empty-state"><p>{m.home_loading()}</p></div>
           {:else}
             <div class="grid">
               {#each filtered as summary (summary.id)}
@@ -316,7 +334,7 @@
                     {:else}
                       <h3>{summary.title}</h3>
                     {/if}
-                    <span class="badge">{summary.language.toUpperCase()}</span>
+                    <span class="badge badge-code">{summary.language.toUpperCase()}</span>
                   </div>
                   {#if summary.course || summary.instructor}
                     <p class="course-line">
@@ -579,14 +597,9 @@
     color: var(--accent);
   }
 
-  .count {
+  /* Layout hook only — the badge's own look comes from controls-v2.css. */
+  .nav-item .badge-count {
     margin-left: auto;
-    font-family: var(--mono);
-    font-size: var(--t-caption);
-    color: var(--muted);
-    background: var(--hover);
-    padding: 1px var(--sp-15);
-    border-radius: var(--r-pill);
   }
 
   .sidebar .spacer {
@@ -594,27 +607,13 @@
   }
 
   .foot {
-    padding: var(--sp-2);
+    padding: var(--sp-05) var(--sp-15) var(--sp-15);
     color: var(--muted);
     font-size: var(--t-caption);
     font-family: var(--mono);
     display: flex;
     align-items: center;
     gap: var(--sp-15);
-  }
-
-  .foot button {
-    border: none;
-    background: none;
-    color: inherit;
-    font: inherit;
-    padding: 1px 0;
-    cursor: pointer;
-  }
-
-  .foot button:hover,
-  .foot button:focus-visible {
-    color: var(--accent);
   }
 
   .foot .update-slot {
@@ -720,10 +719,6 @@
     box-shadow: var(--elev-raised);
   }
 
-
-
-
-
   .new-wrap {
     position: relative;
   }
@@ -767,29 +762,6 @@
     gap: var(--sp-2);
     margin-bottom: var(--sp-4);
     flex-wrap: wrap;
-  }
-
-  .chip {
-    padding: var(--sp-1) var(--sp-3);
-    border-radius: var(--r-pill);
-    font-size: var(--t-small);
-    font-weight: 500;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    background: var(--surface);
-    cursor: pointer;
-    transition: all var(--fast) var(--ease);
-  }
-
-  .chip:hover {
-    color: var(--fg);
-    border-color: var(--muted);
-  }
-
-  .chip.active {
-    background: var(--fg);
-    color: var(--bg);
-    border-color: var(--fg);
   }
 
   .lib-count {
@@ -891,15 +863,8 @@
     text-overflow: ellipsis;
   }
 
-  .badge {
-    font-family: var(--mono);
-    font-size: var(--t-caption);
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    padding: var(--sp-05) var(--sp-15);
-    border-radius: 5px;
-    background: var(--accent-soft);
-    color: var(--accent);
+  /* Layout hook only — the badge's own look comes from controls-v2.css. */
+  .badge-code {
     flex: 0 0 auto;
   }
 
@@ -1001,11 +966,4 @@
     background: var(--surface);
     color: var(--fg);
   }
-
-  .empty {
-    color: var(--muted);
-    text-align: center;
-    margin-top: 3rem;
-  }
-
 </style>

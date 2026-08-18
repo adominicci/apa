@@ -158,7 +158,7 @@ describe("verifyReleaseVersion", () => {
     }
   });
 
-  it("matches the real 0.1.15 metadata and canonical bundled Markdown", async () => {
+  it("matches the real 0.1.16 metadata and canonical bundled Markdown", async () => {
     const root = new URL("../", import.meta.url);
     const [tauriConfig, packageJson, cargoToml, cargoLock, changelog] =
       await Promise.all([
@@ -172,7 +172,7 @@ describe("verifyReleaseVersion", () => {
       ]);
 
     const verified = verifyReleaseVersion({
-      tag: "v0.1.15",
+      tag: "v0.1.16",
       tauriConfig,
       packageJson,
       cargoToml,

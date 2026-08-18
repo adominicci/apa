@@ -377,7 +377,7 @@ describe("editor preview round trip", () => {
       `Tesina ${bundledReleaseNotes.version}`,
     );
     expect(dialog?.textContent).toContain(
-      "checks your APA format while you write",
+      "now follow one set of",
     );
     document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
     flushSync();
@@ -431,7 +431,7 @@ describe("editor preview round trip", () => {
       "Las notas no están disponibles para esta versión.",
     );
     expect(dialog?.textContent).not.toContain(
-      "checks your APA format while you write",
+      "now follow one set of",
     );
     globalThis.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),

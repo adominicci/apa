@@ -1,8 +1,38 @@
-kother # Tesina — Design System v1 (chrome only)
+# Tesina — Design System v2 (chrome only)
 
-The visual contract for Tesina's **application chrome**. Reference
-implementation: `tesina-new-paper-modal.html` (light/dark toggle in the
-titlebar).
+The visual contract for Tesina's **application chrome**. This file is
+canonical; when it and a component disagree, the component is wrong.
+
+**Reference implementations** (open either straight from the working tree):
+
+| File | What it is |
+|---|---|
+| `docs/design/design-system-v2.reference.html` | The v2 gallery. Links the app's **real** `tokens.css`, `controls.css`, `modal.css` and `controls-v2.css`, so no specimen can drift from what ships. |
+| `docs/design/new-paper-modal.reference.html` | The v1 origin artifact — one modal, self-contained, light/dark toggle in the titlebar. |
+
+**Implementation files**
+
+| File | Holds |
+|---|---|
+| `apps/desktop/src/lib/styles/tokens.css` | Every token. Raw hex lives only in the two theme blocks. |
+| `apps/desktop/src/lib/styles/controls.css` | v1: fields, Select, segmented control, status panel, buttons. |
+| `apps/desktop/src/lib/styles/controls-v2.css` | v2: badge, chip, quiet button, empty state, modal width scale. |
+| `apps/desktop/src/lib/components/modal.css` | Modal chrome. Imported by `Modal.svelte`. |
+
+## What v2 changed
+
+v1 specified the big surfaces and left the small ones to each author,
+so five components each invented a badge and two invented a chip. v2
+adds the missing layer and one rule that decides it — see
+**§5.0 The shape and colour rule**.
+
+- **New:** `.badge` (+ 6 tones), `.chip`, `.btn-quiet`, `.empty-state`.
+- **Renamed:** `.btn-ghost` → `.btn-secondary` (they were already the
+  same rule); `.modal-ref` → `.modal-lg`; `.modal-sm` added.
+- **Retired:** the `.btn-ghost` and `.modal-ref` aliases. Both are
+  gone; there is no compatibility shim to fall back on.
+- **Unchanged:** color, type, space, elevation, modal chrome, fields,
+  Select, segmented control, status panel. v2 is additive.
 
 ---
 
@@ -397,6 +427,38 @@ Wrap all transitions and animations in a
 
 ## 5. Component specs
 
+### 5.0 The shape and colour rule
+
+v1's small components drifted because nothing said which shape or
+colour meant what, so each author picked. Two rules close that gap, and
+every component below follows from them.
+
+> **Shape says whether you can click it. Colour says how urgent it is.**
+
+| Shape | Radius | Means |
+|---|---|---|
+| Squared | `--r-xs` | Information. Badges and counts are labels on the content, not controls. |
+| Pill | `--r-pill` | A control. Chips, the editor dock and its buttons. If it is fully round, pressing it does something. |
+
+| Tone | Means |
+|---|---|
+| Neutral | A category. Reference type, section kind, file format, document language. |
+| `--accent` | What the user is acting on **right now**, or a live count tied to the current selection. |
+| `--warn` | Fix this, but you are not blocked. |
+| `--danger` | Broken or invalid. |
+| `--success` | Something finished, and stayed finished. |
+
+Colour encodes **urgency, never category**. A reference's type and an
+essay's language are categories, so they are neutral. "Uncited" and
+"Duplicate" are things to fix, so they are warm. Accent is the app's
+only live colour and it is scarce on purpose: a badge earns accent only
+when it names what the user is acting on right now.
+
+The mechanical part of adopting a badge is the class name. The
+judgement part is deciding, per badge, whether it classifies or needs
+fixing. A global find-and-replace to `.badge-accent` reproduces the
+v1 problem in new syntax.
+
 ### Modal
 
 | Part | Spec |
@@ -412,6 +474,29 @@ Wrap all transitions and animations in a
 Head and foot are `flex: 0 0 auto`; only the body scrolls. The footer
 sitting on `--chrome` rather than `--surface` is what gives the dialog
 a base instead of a cut edge.
+
+**Width scale** — `Modal.svelte`'s `size` prop. `.modal-ref` named a
+caller; these name sizes.
+
+| `size` | Class | Width | For |
+|---|---|---|---|
+| `"sm"` | `.modal-sm` | 420px | Confirmations — delete a reference, quit with unsaved work. One sentence and two buttons; at 520px they looked like an empty form. |
+| `"default"` | — | 520px | The default. Settings, title page, table insert, equation, import. |
+| `"lg"` | `.modal-lg` | 564px | Long scrolling forms with two-up field rows — the reference form. |
+
+Both size rules are written compounded (`.modal.modal-sm`) rather than
+bare. `.modal { width }` lives in `modal.css`, which `Modal.svelte`
+imports on its own, so a bare `.modal-sm` would tie on specificity and
+be decided by bundle order.
+
+**Footer order is fixed:** note left, then secondary, then primary at
+the trailing edge. Never two primaries, never a primary on the left.
+Cancel is always `.btn-secondary`, labelled from `common_close` for a
+dialog you can leave, or a verb-negating label ("Keep editing") when
+leaving would discard work.
+
+One line of orienting copy goes in `subtitle`, not as the body's first
+paragraph.
 
 **Dismissal:** Escape and the close button only. Overlay click does
 **not** dismiss any modal that holds in-progress edits — that rule is
@@ -438,7 +523,25 @@ One action, one primary. Height `--ctl-h`, radius `--r-sm`, font
 | Variant | Rest | Hover | Disabled |
 |---|---|---|---|
 | `.btn-primary` | `--accent` / `--accent-on` | `--accent-hover` | `color-mix(--accent, --bg 58%)` / `--accent-on` |
-| `.btn-ghost` | `--surface` / `--fg-2`, `--border` | `--hover`, `--fg`, `--fg-2` border | `opacity: .5` |
+| `.btn-secondary` | `--surface` / `--fg-2`, `--border` | `--hover`, `--fg`, `--fg-2` border | `opacity: .5` |
+| `.btn-danger` | `--surface` / `--danger`, `--border` | `--danger-soft`, `--danger` border | `opacity: .5` |
+| `.btn-danger-solid` | `--danger` / `--accent-on` | `color-mix(--danger, --fg 14%)` | `opacity: .5` |
+| `.btn-quiet` | none / `--fg-2`, no border | `--hover`, `--fg` | `opacity: .5` |
+
+**When to use which**
+
+| Variant | Use it for |
+|---|---|
+| `.btn-primary` | Exactly one per surface, always last in a footer row. |
+| `.btn-secondary` | Everything else with a border: cancel, close, back, open folder. **Canonical name** — `.btn-ghost` was the same rule and is retired. |
+| `.btn-quiet` | Borderless inline action in a dense row — a reference row's Edit/Delete, a collection row's icons, the home footer's links. This is what "ghost" should have meant. |
+| `.btn-danger` | *Opens* a destructive flow. Stays bordered; the label carries the warning. |
+| `.btn-danger-solid` | *Commits* it. Only ever in the primary slot of a confirmation modal. |
+
+Sizes: `.btn-sm` (32px, dense panels), `.btn-block` (full width, 42px,
+a wizard's single action). `.btn-quiet.btn-icon` is a 32px square, so a
+row of icon actions keeps an even rhythm. `.btn-quiet.btn-danger-text`
+is the destructive member of a quiet row.
 
 Primary hover **darkens** on light and **lightens** on dark, so
 contrast rises in both themes.
@@ -481,6 +584,66 @@ to change.
 `--t-caption` uppercase, `letter-spacing: 0.09em`, `--muted`, followed
 by a flexible `1px --border-soft` rule. Groups long forms without
 adding another card.
+
+### Badge — v2
+
+A static label on content the user is reading. **Never clickable,
+never animated, one size**: 18px tall, `--r-xs`, `--t-caption` at
+`--w-medium`. If it needs to be pressed, it is a chip.
+
+| Class | Use it for |
+|---|---|
+| `.badge` | Classification and metadata. **The default**, and what most badges should be: reference type, section kind, file format. |
+| `.badge-accent` | What the user is acting on right now, or a live count tied to the current selection. Scarce by design. |
+| `.badge-warn` | Fix this, but you are not blocked: uncited reference, duplicate BibTeX key, missing title-page field. |
+| `.badge-danger` | Broken or invalid: a citation pointing at a deleted reference, an asset that failed to import. |
+| `.badge-success` | Something finished. Rare — a *lasting* state. A transient confirmation belongs in the status panel. |
+| `.badge-code` | A machine value rather than a word: language tag, file extension, BibTeX key. Mono, uppercased. |
+| `.badge-count` | A number at the end of a nav or collection row. Tabular figures, `min-width: 18px`, so a stacked column cannot jitter. |
+
+`.badge-warn` takes `--warn-strong`, not `--warn`: raw `--warn` is a mid
+yellow and cannot carry 11px text on its own wash.
+
+A component may add a **layout** hook for a badge it hosts
+(`margin-left: auto`, `flex: 0 0 auto`). It may not restate the badge's
+appearance.
+
+### Chip — v2
+
+A filter you toggle. Always a `<button>`, always in a wrapping flex row
+at `gap: var(--sp-2)`. 26px tall, `--r-pill`, `--t-small`.
+
+Selected reads `aria-pressed="true"`; the `.on` class is accepted as an
+alias so existing markup needs no logic change.
+
+| State | Spec |
+|---|---|
+| Rest | `--surface`, `1px --border`, `--fg-2` |
+| Hover | border `--fg-2`, text `--fg`. **Border and text only** — the wash is reserved for selected, so hovering never previews selection. |
+| Selected | `--accent-soft` wash, `--accent` text, border `color-mix(--accent, transparent 45%)` |
+| Disabled | `opacity: 0.5` |
+
+**Chip vs. segmented control.** A chip narrows a list and any number can
+be off, so it takes the soft wash. The segmented control picks exactly
+one mode and keeps the **solid** accent fill. Two jobs, two shapes, two
+weights of colour — so "which filter" and "which mode" never look alike.
+
+### Empty state — v2
+
+One component, two variants: `.empty-state` is a padded centred block
+for a full column; `.empty-state.is-inline` is left-aligned and tighter,
+for a panel or popover too short to centre anything in.
+
+| Part | Spec |
+|---|---|
+| Block | column, `gap --sp-2`, padding `--sp-7 --sp-5`, centred, `--muted` |
+| `.empty-title` | `--t-ui --w-medium --fg-2` |
+| `p` | `--t-small`, `max-width: 34ch`, `text-wrap: pretty` |
+| `.btn` | gets `margin-top: --sp-2` |
+| `.is-inline` | padding `--sp-4 --sp-3`, `align-items: flex-start`, left-aligned |
+
+**Copy rule:** name what is missing, then give one way forward. No
+illustrations, no exclamation marks, and never the word "oops".
 
 ---
 
@@ -608,3 +771,168 @@ frozen path in §0:
 - no `var(--token, <color>)` fallback form;
 - no `font-size` literal outside the `--t-*` definitions;
 - no `z-index` literal outside the `--z-*` definitions.
+
+---
+
+## 9. The document — locked layer (APA 7)
+
+Everything above this line is chrome, and chrome is ours to design. The
+paper sheet is not. Its geometry, type sizes, spacing and indents are
+fixed by the *Publication Manual of the American Psychological
+Association* (7th ed.) and by <https://apastyle.apa.org>, and the app
+exists to guarantee them — a student should never have to check.
+
+> **No chrome token, component or aesthetic preference may change a
+> measurement inside the paper sheet.** If a value is prescribed by
+> APA, it is not a design decision.
+
+§0 lists the frozen files. This section records the rules those files
+implement, so a future change can be checked against the spec rather
+than against the previous diff.
+
+### Page geometry — US Letter at 96dpi
+
+| Value | Where |
+|---|---|
+| `816 × 1056px` (8.5 × 11in) | `apa.css` |
+| `padding: 96px` (1in, all four sides) | `apa.css` |
+| `624px` (6.5in) text column | `apa.css` |
+| `line-height: 2` (double), throughout | `apa.css` |
+
+The 816px coordinate system never changes. The canvas may scale the
+whole stack to fit a narrow window, but wrapping and pagination are
+computed in page units, so what you see on screen breaks where the
+printed page breaks.
+
+### The seven permitted fonts
+
+Times New Roman 12pt · Georgia 11pt · Computer Modern 10pt ·
+Aptos 12pt · Calibri 11pt · Arial 11pt · Lucida Sans Unicode 10pt.
+
+**Size is bound to family, not chosen separately** — picking Georgia
+sets 11pt, picking Times sets 12pt. There is no font-size control in
+the document and there must never be one: that is the single most
+common way a paper falls out of compliance.
+
+`apps/desktop/src/lib/model/fonts.ts` (`APA_FONTS`) is the source of
+truth for screen and preview. `@tesina/docx-export` keeps a parallel
+table that must change in the same commit.
+
+### Headings — five levels, all at document size
+
+| Level | Format |
+|---|---|
+| 1 | Centered, bold |
+| 2 | Flush left, bold |
+| 3 | Flush left, bold italic |
+| 4 | Indented, bold, ends with a period — **run-in** |
+| 5 | Indented, bold italic, ends with a period — **run-in** |
+
+No heading changes size, and none is underlined or set in caps. Levels
+4 and 5 are run-in: the app marks a heading as run-in only when a
+paragraph actually follows it, appends the terminal period if the
+author did not type one, and leaves both nodes independently editable.
+
+### Indents — the four cases
+
+| Case | Rule |
+|---|---|
+| Body paragraph | `text-indent: 0.5in`, first line only. No space between paragraphs (`margin: 0`). |
+| Reference entry | Hanging: `padding-left: 0.5in; text-indent: -0.5in`. |
+| Block quotation | `margin-left: 0.5in`; first line flush, no quotation marks, no rule or border. |
+| Abstract, first line | `text-indent: 0`. The keywords line below it takes the 0.5in indent and an italic label. |
+
+"References" is centered and bold at document size, double-spaced like
+everything else, entries alphabetical. It is **not** a Level 1 heading
+and is not italicized.
+
+### Where compliance is enforced
+
+| Rule | Enforced by | How it cannot drift |
+|---|---|---|
+| Margins, page size, double spacing, indents | `editor/apa.css` | Structural CSS on `.tiptap`. There is no UI that can change them. |
+| Font family and its point size | `model/fonts.ts` | A closed set of seven; size is a property of the choice, not a separate control. |
+| Heading level formatting and run-in periods | `apa.css` + a derived decoration | Derived from node type, not from author formatting. |
+| Table and figure anatomy (7.8, 7.22) | `apa.css` counters | "Table N" / "Figure N" and "Note." are generated content; numbering renumbers itself. |
+| Skipped heading levels, empty titles, empty paragraphs | `packages/apa-engine/src/check/apa-check.ts` | Live check, four rules. Flags the block with a soft tint — colour only, never layout. |
+
+### Known gap — Title Case in headings
+
+APA sets headings in Title Case. That is **the one prescribed heading
+rule with no check behind it**: `apa-check.ts` ships four rules and
+none of them reads heading text.
+
+A fifth rule would close it, but it is not a mechanical addition. Title
+Case is an English convention, and `essay.settings.documentLanguage`
+also accepts Spanish, whose headings follow Spanish capitalization. Any
+such rule must therefore be gated on the document language and carry
+its own small-word list. Deliberately deferred — recorded here so the
+gap stays visible rather than being rediscovered.
+
+### Editing affordances that must never print
+
+- Dashed ghost gridlines inside tables
+- Citation chips, set in the chrome font at `0.82em`
+- The APA-check tint and the reference-overflow outlines
+- The pencil buttons on tables, figures and equations
+- The "no references yet" message on the reference page
+
+Each is chrome living inside the document. The preview and DOCX export
+render from their own stylesheets, which is what keeps them off the
+page — and the reason any new in-document affordance has to be added
+there as an exclusion **in the same commit**.
+
+### The document keeps its own palette
+
+`.apa-editor` in `tokens.css` pins the pre-v1 hex values for `--fg`,
+`--paper` and the rest, and restates the derived tokens rather than
+inheriting them. Retuning the chrome palette therefore cannot restyle
+the sheet.
+
+`--paper-print` is deliberately theme-independent: the export CSS
+hardcodes near-black ink, so following `--paper` in dark mode would
+darken the page while the text stayed black.
+
+---
+
+## 10. v2 migration record
+
+Completed in one branch. Every rename was mechanical; none changed
+component logic, because the v2 selectors accept the class names and
+ARIA attributes already in the markup.
+
+| File | Deleted | Now uses |
+|---|---|---|
+| `ReferencesPanel.svelte` | `.pill`, `.pill.blue`, `.actions button`, `.empty` | `.badge`, `.badge-warn`, `.btn-quiet`, `.btn-quiet.btn-danger-text`, `.empty-state.is-inline` |
+| `BibImportModal.svelte` | `.pill`, `.pill.warn` | `.badge`, `.badge-warn` |
+| `EssayHome.svelte` | `.badge`, `.chip`, `.count`, `.foot button`, `.empty` | `.badge-code`, `.chip`, `.badge-count`, `.btn-quiet`, `.empty-state` |
+| `LibraryScreen.svelte` | `.chip`, `.chip.on`, `.count`, `.mini`, `.empty` | `.chip`, `.badge-count`, `.btn-quiet.btn-icon`, `.btn-quiet.btn-danger-text`, `.empty-state` |
+| `CitationPopover.svelte` | `.empty` | `.empty-state.is-inline` |
+| 9 call sites | `btn-ghost` | `btn-secondary` |
+| `Modal.svelte` | `ModalSize = "default" \| "ref"` | `"sm" \| "default" \| "lg"` |
+| `controls.css`, `modal.css` | `.btn-ghost`, `.modal.modal-ref` | aliases retired |
+
+Tone decisions taken during the migration:
+
+- A reference **type** classifies → neutral `.badge`.
+- "In text only" classifies → neutral `.badge` (it was accent in v1,
+  which put it in the same colour as two unrelated things).
+- "Uncited" and "Duplicate" are things to fix → `.badge-warn`.
+- A document **language** tag is a machine value → `.badge-code`.
+- Nav and collection counts → `.badge-count`.
+
+`EssayHome`'s filter chips moved from `class:active` to
+`aria-pressed`, which is both the canonical selector and the correct
+role for a toggle. `LibraryScreen`'s membership chips kept `.on`,
+which `controls-v2.css` accepts as an alias.
+
+### Two things to watch
+
+**Scope.** `.badge`, `.chip`, `.btn-quiet` and `.empty-state` are
+global, like `.btn`. The APA paper sheet uses `cover-form-*` and the
+editor dock uses `fm-*`, so neither is reachable — but a Svelte
+component's own `<style>` block still outranks these rules, so a local
+definition has to be **deleted**, not just left unused.
+
+**Tone, not shape.** See §5.0. The class rename is mechanical; deciding
+per badge whether it classifies or needs fixing is the point.

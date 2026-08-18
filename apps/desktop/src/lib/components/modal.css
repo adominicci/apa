@@ -62,10 +62,8 @@
   outline: none;
 }
 
-/* Wide, scroll-in-body variant (e.g. the reference form). */
-.modal.modal-ref {
-  width: min(564px, 100%);
-}
+/* The named width scale (.modal-sm / .modal-lg) lives in
+   styles/controls-v2.css, next to the rest of the v2 additions. */
 
 .modal-head {
   flex: 0 0 auto;

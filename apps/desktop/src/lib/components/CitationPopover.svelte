@@ -96,9 +96,9 @@
   />
   <div class="list">
     {#if formatted.length === 0}
-      <p class="empty">{m.cite_empty_library()}</p>
+      <div class="empty-state is-inline"><p>{m.cite_empty_library()}</p></div>
     {:else if visible.length === 0}
-      <p class="empty">{m.cite_no_results({ query })}</p>
+      <div class="empty-state is-inline"><p>{m.cite_no_results({ query })}</p></div>
     {:else}
       {#each visible as entry (entry.refId)}
         <label class="item">
@@ -219,11 +219,6 @@
   .item span {
     font-family: var(--serif);
     line-height: 1.4;
-  }
-
-  .empty {
-    color: var(--muted);
-    margin: var(--sp-1) var(--sp-05);
   }
 
   .seg {

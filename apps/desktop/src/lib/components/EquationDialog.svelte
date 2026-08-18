@@ -87,7 +87,7 @@
   </div>
 
   {#snippet footer()}
-    <button class="btn btn-ghost" onclick={onClose}>{m.common_close()}</button>
+    <button class="btn btn-secondary" onclick={onClose}>{m.common_close()}</button>
     <button
       class="btn btn-primary"
       onclick={confirm}

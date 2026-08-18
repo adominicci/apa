@@ -573,23 +573,21 @@
 
 /* Hairline, not --border-strong: a labelled button is identified by its
    text, so a heavy edge only competes with the primary.
-   .btn-secondary is the same button under the name four components already
-   use; they can drop their private copies rather than redefining it. */
-.btn-ghost,
+   Canonical name as of v2: the `.btn-ghost` alias was retired once every
+   call site moved, and "ghost" now means the borderless `.btn-quiet` in
+   controls-v2.css. */
 .btn-secondary {
   background: var(--surface);
   color: var(--fg-2);
   border-color: var(--border);
 }
 
-.btn-ghost:hover:not(:disabled),
 .btn-secondary:hover:not(:disabled) {
   background: var(--hover);
   color: var(--fg);
   border-color: var(--fg-2);
 }
 
-.btn-ghost:disabled,
 .btn-secondary:disabled {
   opacity: 0.5;
 }

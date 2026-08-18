@@ -5,6 +5,22 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.16] - 2026-08-18
+
+### Changed
+
+- The buttons, labels and filters around your paper now follow one set of
+  rules instead of five. Small labels such as "Journal article", "Uncited"
+  or a language tag are one size and one shape everywhere, and colour now
+  means only one thing: something needs your attention. A plain grey label
+  just tells you what a thing is. Filter buttons in the essay list and the
+  library look and behave the same way. The Edit and Delete links in a
+  reference row are real buttons now, so they light up when you point at
+  them.
+- Short questions such as "Delete this reference?" and "Quit without
+  saving?" open in a smaller window that fits the question, instead of the
+  wide window meant for long forms.
+
 ## [0.1.15] - 2026-08-17
 
 ### Added
