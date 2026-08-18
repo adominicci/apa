@@ -916,7 +916,10 @@
     <aside class="outline">
       <div class="panel-head">
         <h4>{m.outline_title()}</h4>
-        <div class="add-wrap">
+        <div
+          class="add-wrap"
+          {@attach addMenuOpen && dismissable(() => (addMenuOpen = false))}
+        >
           <button class="mini" onclick={() => (addMenuOpen = !addMenuOpen)} aria-label={m.outline_add()}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 5v14M5 12h14" /></svg>
           </button>

@@ -327,13 +327,24 @@ describe("BackupSettings", () => {
     });
   });
 
-  it("unconfigured state offers re-enable through the wizard", async () => {
+  it("uses neutral setup copy for a never-configured user", async () => {
     const h = new Harness();
     h.configured = false;
+    uiLocale.current = "en";
     mountSettings(h);
     await settle();
+
     expect(bodyText()).toContain(m.bk_not_configured());
-    buttonByText(m.bk_reenable())!.click();
+    expect(buttonByText("Set up backups")?.textContent?.trim()).toBe(
+      "Set up backups",
+    );
+    expect(bodyText()).toContain(
+      "Choose a folder and complete a test backup to finish setup.",
+    );
+    expect(bodyText()).not.toContain("again");
+    expect(bodyText()).not.toContain("Turning backups back on");
+
+    buttonByText("Set up backups")!.click();
     expect(h.onRunWizard).toHaveBeenCalledOnce();
   });
 });
