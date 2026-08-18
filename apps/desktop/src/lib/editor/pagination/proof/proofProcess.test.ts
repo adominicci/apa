@@ -25,6 +25,23 @@ async function waitForProcessExit(
   return false;
 }
 
+async function waitForPidFile(
+  path: string,
+  timeoutMs = 2_000,
+): Promise<number> {
+  const deadline = performance.now() + timeoutMs;
+  while (performance.now() <= deadline) {
+    try {
+      const pid = Number((await readFile(path, "utf8")).trim());
+      if (Number.isSafeInteger(pid) && pid > 0) return pid;
+    } catch {
+      // The fixture has not published its descendant yet.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(`PID file ${path} was not ready within ${timeoutMs} ms`);
+}
+
 describe("bounded proof process execution", () => {
   it("returns a completed child's output and exit code", async () => {
     const output = await executeBoundedProcess(
@@ -57,14 +74,16 @@ describe("bounded proof process execution", () => {
 
   it(
     "settles at the deadline and kills descendants that retain its pipes",
+    { timeout: 10_000 },
     async () => {
       const temporaryDirectory = await mkdtemp(
         resolve(tmpdir(), "tesina-proof-process-tree-test-"),
       );
       const pidFile = resolve(temporaryDirectory, "descendant.pid");
       let descendantPid: number | undefined;
+      let execution: Promise<unknown> | undefined;
       try {
-        const descendantSource = "setTimeout(() => {}, 3_000)";
+        const descendantSource = "setTimeout(() => {}, 10_000)";
         const parentSource = `
           (async () => {
             const { spawn } = await import("node:child_process");
@@ -77,22 +96,24 @@ describe("bounded proof process execution", () => {
             });
             writeFileSync(${JSON.stringify(pidFile)}, String(descendant.pid));
             descendant.unref();
-            await new Promise((resolve) => setTimeout(resolve, 3_000));
+            await new Promise((resolve) => setTimeout(resolve, 10_000));
           })();
         `;
         const startedAt = performance.now();
-        const result = await executeBoundedProcess(
+        execution = executeBoundedProcess(
           process.execPath,
           runtimeEvalArgs(parentSource),
-          { timeoutMs: 750 },
+          { timeoutMs: 3_000 },
         ).catch((error: unknown) => error);
+        descendantPid = await waitForPidFile(pidFile);
+        const result = await execution;
         const elapsedMs = performance.now() - startedAt;
-        descendantPid = Number(await readFile(pidFile, "utf8"));
 
         expect(result).toBeInstanceOf(ProcessTimeoutError);
-        expect(elapsedMs).toBeLessThan(1_500);
+        expect(elapsedMs).toBeLessThan(6_000);
         expect(await waitForProcessExit(descendantPid!)).toBe(true);
       } finally {
+        await execution;
         if (descendantPid !== undefined) {
           try {
             process.kill(descendantPid, "SIGKILL");
@@ -107,6 +128,7 @@ describe("bounded proof process execution", () => {
 
   it.runIf(process.platform !== "win32")(
     "uses Windows tree termination semantics when the selected host is win32",
+    { timeout: 10_000 },
     async () => {
       const temporaryDirectory = await mkdtemp(
         resolve(tmpdir(), "tesina-proof-windows-tree-test-"),
@@ -115,6 +137,7 @@ describe("bounded proof process execution", () => {
       const markerFile = resolve(temporaryDirectory, "taskkill.args");
       const taskkill = resolve(temporaryDirectory, "taskkill");
       let descendantPid: number | undefined;
+      let execution: Promise<unknown> | undefined;
       try {
         await writeFile(
           taskkill,
@@ -125,7 +148,7 @@ describe("bounded proof process execution", () => {
           })" "$2" 2>/dev/null || true\n`,
         );
         await chmod(taskkill, 0o755);
-        const descendantSource = "setTimeout(() => {}, 3_000)";
+        const descendantSource = "setTimeout(() => {}, 10_000)";
         const parentSource = `
           (async () => {
             const { spawn } = await import("node:child_process");
@@ -138,15 +161,15 @@ describe("bounded proof process execution", () => {
             });
             writeFileSync(${JSON.stringify(pidFile)}, String(descendant.pid));
             descendant.unref();
-            await new Promise((resolve) => setTimeout(resolve, 3_000));
+            await new Promise((resolve) => setTimeout(resolve, 10_000));
           })();
         `;
 
-        const result = await executeBoundedProcess(
+        execution = executeBoundedProcess(
           process.execPath,
           runtimeEvalArgs(parentSource),
           {
-            timeoutMs: 750,
+            timeoutMs: 3_000,
             platform: "win32",
             env: {
               ...process.env,
@@ -154,7 +177,8 @@ describe("bounded proof process execution", () => {
             },
           },
         ).catch((error: unknown) => error);
-        descendantPid = Number(await readFile(pidFile, "utf8"));
+        descendantPid = await waitForPidFile(pidFile);
+        const result = await execution;
 
         expect(result).toBeInstanceOf(ProcessTimeoutError);
         expect(await readFile(markerFile, "utf8")).toMatch(
@@ -162,6 +186,7 @@ describe("bounded proof process execution", () => {
         );
         expect(await waitForProcessExit(descendantPid)).toBe(true);
       } finally {
+        await execution;
         if (descendantPid !== undefined) {
           try {
             process.kill(descendantPid, "SIGKILL");

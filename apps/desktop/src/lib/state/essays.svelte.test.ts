@@ -10,12 +10,15 @@ const persistence = vi.hoisted(() => {
 
   return {
     files: new Map<string, unknown>(),
+    readFailures: new Map<string, Error>(),
     writeJsonAtomic: vi.fn(),
   };
 });
 
 vi.mock("$lib/persist/atomic", () => ({
-  fileExists: vi.fn(() => Promise.resolve(false)),
+  fileExists: vi.fn((path: string) =>
+    Promise.resolve(persistence.files.has(path))
+  ),
   listJsonFiles: vi.fn((directory: string) =>
     Promise.resolve(
       [...persistence.files.keys()]
@@ -25,6 +28,8 @@ vi.mock("$lib/persist/atomic", () => ({
     )
   ),
   readJson: vi.fn((path: string) => {
+    const failure = persistence.readFailures.get(path);
+    if (failure) return Promise.reject(failure);
     const value = persistence.files.get(path);
     return Promise.resolve(
       value === undefined ? null : structuredClone(value),
@@ -65,9 +70,162 @@ function professionalEssay(): Essay {
 
 beforeEach(() => {
   persistence.files.clear();
+  persistence.readFailures.clear();
   persistence.writeJsonAtomic.mockClear();
   essays.summaries = [];
   essays.loaded = false;
+  (essays as typeof essays & { unreadableFiles: string[] }).unreadableFiles =
+    [];
+});
+
+describe("essay index recovery", () => {
+  it("keeps every readable paper visible when one file cannot be read", async () => {
+    const first = createEmptyEssay("en", "2026-08-18T08:00:00.000Z");
+    first.id = "readable-first";
+    const second = createEmptyEssay("es", "2026-08-18T09:00:00.000Z");
+    second.id = "readable-second";
+    persistence.files.set(`essays/${first.id}.json`, first);
+    persistence.files.set("essays/damaged-paper.json", { incomplete: true });
+    persistence.files.set(`essays/${second.id}.json`, second);
+    persistence.readFailures.set(
+      "essays/damaged-paper.json",
+      new SyntaxError("Unexpected end of JSON input"),
+    );
+
+    await essays.loadIndex();
+
+    expect(essays.summaries.map((summary) => summary.id)).toEqual([
+      "readable-second",
+      "readable-first",
+    ]);
+    expect(
+      (essays as typeof essays & { unreadableFiles: string[] })
+        .unreadableFiles,
+    ).toEqual(["damaged-paper.json"]);
+    expect(persistence.files.get("essays/damaged-paper.json")).toEqual({
+      incomplete: true,
+    });
+    expect(persistence.writeJsonAtomic).not.toHaveBeenCalledWith(
+      "essays/damaged-paper.json",
+      expect.anything(),
+    );
+  });
+
+  it("replaces stale summaries and recovery details on a later refresh", async () => {
+    const stale = createEmptyEssay("en", "2026-08-17T08:00:00.000Z");
+    stale.id = "stale-paper";
+    essays.summaries = [summarize(stale)];
+    (essays as typeof essays & { unreadableFiles: string[] })
+      .unreadableFiles = ["previously-damaged.json"];
+
+    const current = createEmptyEssay("en", "2026-08-18T10:00:00.000Z");
+    current.id = "current-paper";
+    persistence.files.set(`essays/${current.id}.json`, current);
+    persistence.files.set("essays/newly-damaged.json", { incomplete: true });
+    persistence.readFailures.set(
+      "essays/newly-damaged.json",
+      new SyntaxError("Unexpected end of JSON input"),
+    );
+
+    await essays.loadIndex();
+
+    expect(essays.summaries.map((summary) => summary.id)).toEqual([
+      "current-paper",
+    ]);
+    expect(
+      (essays as typeof essays & { unreadableFiles: string[] })
+        .unreadableFiles,
+    ).toEqual(["newly-damaged.json"]);
+
+    persistence.files.delete("essays/newly-damaged.json");
+    persistence.readFailures.clear();
+    await essays.loadIndex();
+
+    expect(
+      (essays as typeof essays & { unreadableFiles: string[] })
+        .unreadableFiles,
+    ).toEqual([]);
+  });
+
+  it("preserves a corrupt legacy draft while loading current papers", async () => {
+    const current = createEmptyEssay("en", "2026-08-18T10:00:00.000Z");
+    current.id = "current-paper";
+    persistence.files.set("essays/draft.json", { incomplete: true });
+    persistence.files.set(`essays/${current.id}.json`, current);
+    persistence.readFailures.set(
+      "essays/draft.json",
+      new SyntaxError("Unexpected end of JSON input"),
+    );
+
+    await essays.loadIndex();
+
+    expect(essays.summaries.map((summary) => summary.id)).toEqual([
+      "current-paper",
+    ]);
+    expect(
+      (essays as typeof essays & { unreadableFiles: string[] })
+        .unreadableFiles,
+    ).toEqual(["draft.json"]);
+    expect(persistence.files.get("essays/draft.json")).toEqual({
+      incomplete: true,
+    });
+    expect(persistence.writeJsonAtomic).not.toHaveBeenCalled();
+  });
+
+  it("reports parseable JSON that is not a valid paper", async () => {
+    const current = createEmptyEssay("en", "2026-08-18T10:00:00.000Z");
+    current.id = "current-paper";
+    persistence.files.set("essays/invalid-shape.json", { incomplete: true });
+    persistence.files.set(`essays/${current.id}.json`, current);
+
+    await essays.loadIndex();
+
+    expect(essays.summaries.map((summary) => summary.id)).toEqual([
+      "current-paper",
+    ]);
+    expect(
+      (essays as typeof essays & { unreadableFiles: string[] })
+        .unreadableFiles,
+    ).toEqual(["invalid-shape.json"]);
+  });
+
+  it("isolates a paper whose summary fields are invalid at runtime", async () => {
+    const current = createEmptyEssay("en", "2026-08-18T10:00:00.000Z");
+    current.id = "current-paper";
+    const invalid = createEmptyEssay(
+      "en",
+      "2026-08-18T11:00:00.000Z",
+    ) as unknown as { id: string; updatedAt: unknown };
+    invalid.id = "invalid-summary";
+    invalid.updatedAt = 42;
+    persistence.files.set(`essays/${invalid.id}.json`, invalid);
+    persistence.files.set(`essays/${current.id}.json`, current);
+
+    await essays.loadIndex();
+
+    expect(essays.summaries.map((summary) => summary.id)).toEqual([
+      "current-paper",
+    ]);
+    expect(
+      (essays as typeof essays & { unreadableFiles: string[] })
+        .unreadableFiles,
+    ).toEqual(["invalid-summary.json"]);
+  });
+
+  it("blocks reference deletion when any paper cannot be scanned", async () => {
+    const readable = createEmptyEssay("en", "2026-08-18T10:00:00.000Z");
+    readable.id = "readable-paper";
+    persistence.files.set(`essays/${readable.id}.json`, readable);
+    persistence.files.set("essays/damaged-paper.json", { incomplete: true });
+    persistence.readFailures.set(
+      "essays/damaged-paper.json",
+      new SyntaxError("Unexpected end of JSON input"),
+    );
+
+    await expect(essays.essaysCiting("reference-id")).rejects.toThrow(
+      "Could not safely scan essay citations: damaged-paper.json",
+    );
+  });
 });
 
 describe("student-release persistence boundary", () => {
