@@ -732,16 +732,29 @@ heading, list, table and font menus are lists, not status reports.
 edge round themselves against the border, so the surface never needs
 `overflow: hidden` — which is what would clip a beak.
 
-#### The beak — deferred, on purpose
+#### No beak — decided 2026-08-18
 
-The chosen direction (prototype variant E) includes a beak tethering
-the popover to the control that opened it. It is **not shipped yet**,
-because the direction has to be right per surface and the app opens
-popovers four different ways: the export menu opens up, the outline
-menu opens down, and both `.menu-pop` and the citation popover flip
-across all four edges with the dock. A beak pointing at nothing is
-worse than no beak, and a beak on two surfaces out of seven would
-rebuild the inconsistency v2 exists to remove. Do it in one pass.
+A *beak* is the small triangle that tethers a popover to the control
+that opened it, the way a speech bubble has a tail. The chosen
+direction (prototype variant E) had one. **The app does not, and that
+is a decision, not a gap.**
+
+Two things make it more than a triangle:
+
+1. **Direction is per surface.** The export menu opens up, the outline
+   and essay-language menus open down, and both `.menu-pop` and the
+   citation popover flip across all four edges with the dock. The beak
+   sits on the opposite side each time, so it needs the same four-way
+   logic the popovers already carry — and a beak pointing at nothing
+   is worse than none.
+2. **Tone is per beak.** A beak that meets a `.popover-head` has to
+   wear that header's tint, or it reads as a white chip stuck to a
+   coloured strip.
+
+A beak on some surfaces and not others would rebuild exactly the
+inconsistency v2 exists to remove. If it is ever added, add it to all
+of them in one change, and to `.popover` itself rather than to any one
+caller.
 
 ### Empty state — v2
 
@@ -1081,8 +1094,9 @@ migration map, and each needs a tone judgement rather than a rename:
 | `BibImportModal.svelte` `.bibkey` | bare mono `<code>` beside two real badges | `.badge-code` |
 | `EssayHome.svelte` `.lib-count` | live count reflecting the active filter | `.badge-count`, or `.badge-accent` per §5.0 |
 
-Also deferred: the popover **beak** (see §5 Popover), and converging
-`.status-panel`'s `data-tone` vocabulary onto §5.0's four names.
+Also deferred: converging `.status-panel`'s `data-tone` vocabulary
+(`ok / busy / warn / off`) onto §5.0's four names. The popover beak is
+**not** on this list — it was decided against, see §5 Popover.
 
 Also deferred, and older than v2: §5's `aria-disabled` rule has zero
 call sites (`BibImportModal` blocks its primary with the real
