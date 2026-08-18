@@ -113,7 +113,8 @@ async function makeScenario(): Promise<Scenario> {
   const plan = await planImport(archive, {
     essays: [],
     library: { references: [], collections: [] },
-    assetIndex: new Map(),
+    reusableAssetPathByClass: new Map(),
+    assetClassByLocalPath: new Map(),
     existingAssetPaths: new Set(),
     existingEssayIds: new Set(),
   }, {

@@ -403,6 +403,18 @@ describe("portable library application integration", () => {
       ),
     ).toBe(false);
 
+    const sourceRestorePreview = await sourceRuntime.previewFile(EXPORT_PATH);
+    expect(sourceRestorePreview.preview.essays).toEqual({
+      new: 0,
+      identical: fixture.essays.length,
+      conflicting: 0,
+    });
+    expect(
+      sourceRestorePreview.plan.operations.filter((operation) =>
+        operation.kind === "writeEssay"
+      ),
+    ).toHaveLength(0);
+
     const destinationAppData = new MemoryAppData();
     const seeded = seedNonEmptyDestination(destinationAppData, fixture);
     const originalLocalFiles = new Map(
