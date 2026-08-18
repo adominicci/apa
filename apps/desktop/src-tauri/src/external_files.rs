@@ -9,6 +9,7 @@ use std::io::{self, Read, Seek, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
+#[cfg(not(feature = "packaged-portable-smoke"))]
 use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
 
@@ -20,6 +21,8 @@ const DUPLICATE_RECOVERY_SUFFIX: &str = ".tesina-duplicate-recovery";
 const DELETE_READY_SUFFIX: &str = ".tesina-delete-ready";
 static RELATED_FILE_MUTATION_LOCK: Mutex<()> = Mutex::new(());
 static EXTERNAL_ARCHIVE_IN_FLIGHT: AtomicBool = AtomicBool::new(false);
+#[cfg(feature = "packaged-portable-smoke")]
+static PACKAGED_SMOKE_DESTINATION_CONSUMED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug)]
 struct ExternalArchiveAdmission;
@@ -568,6 +571,28 @@ impl ExternalSaveAuthorizations {
     }
 }
 
+#[cfg(feature = "packaged-portable-smoke")]
+fn register_packaged_smoke_destination(
+    authorizations: &ExternalSaveAuthorizations,
+    consumed: &AtomicBool,
+    destination: &str,
+) -> Result<ExternalSaveSelection, ExternalFileError> {
+    consumed
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .map_err(|_| {
+            ExternalFileError::unauthorized(
+                "the packaged portable smoke destination was already consumed",
+            )
+        })?;
+    let destination = PathBuf::from(destination);
+    if destination.exists() {
+        return Err(ExternalFileError::unauthorized(
+            "the packaged portable smoke destination must not exist",
+        ));
+    }
+    authorizations.register_selected_destination(&destination)
+}
+
 #[derive(Debug, Serialize)]
 pub struct ExternalFileError {
     code: &'static str,
@@ -913,6 +938,7 @@ fn ensure_related_file_quota_in(
     Ok(())
 }
 
+#[cfg(any(not(feature = "packaged-portable-smoke"), test))]
 fn validate_save_suggested_name(name: &str) -> Result<&str, ExternalFileError> {
     if name.is_empty()
         || name.contains(['/', '\\', '\0'])
@@ -2017,6 +2043,7 @@ where
         .map_err(Into::into)
 }
 
+#[cfg(not(feature = "packaged-portable-smoke"))]
 #[tauri::command]
 pub async fn external_pick_save_destination(
     window: tauri::Window,
@@ -2044,6 +2071,23 @@ pub async fn external_pick_save_destination(
         .into_path()
         .map_err(|error| ExternalFileError::unauthorized(format!("invalid save path: {error}")))?;
     state.register_selected_destination(&path).map(Some)
+}
+
+#[cfg(feature = "packaged-portable-smoke")]
+#[tauri::command]
+pub async fn external_pick_save_destination(
+    _window: tauri::Window,
+    state: tauri::State<'_, ExternalSaveAuthorizations>,
+    _suggested_name: String,
+) -> Result<Option<ExternalSaveSelection>, ExternalFileError> {
+    let destination =
+        std::env::var("TESINA_PACKAGED_PORTABLE_SMOKE_DESTINATION").map_err(|_| {
+            ExternalFileError::unauthorized(
+                "the packaged portable smoke destination is not configured",
+            )
+        })?;
+    register_packaged_smoke_destination(&state, &PACKAGED_SMOKE_DESTINATION_CONSUMED, &destination)
+        .map(Some)
 }
 
 #[tauri::command]
@@ -3031,6 +3075,55 @@ mod tests {
         ] {
             assert!(validate_save_suggested_name(invalid).is_err());
         }
+    }
+
+    #[cfg(feature = "packaged-portable-smoke")]
+    #[test]
+    fn packaged_smoke_destination_is_absent_exact_and_one_shot() {
+        let root = TempDir::new().unwrap();
+        let destination = root.path().join("Library.tesina");
+        let authorizations = ExternalSaveAuthorizations::default();
+        let consumed = AtomicBool::new(false);
+
+        let selection = register_packaged_smoke_destination(
+            &authorizations,
+            &consumed,
+            destination.to_str().unwrap(),
+        )
+        .unwrap();
+        assert_eq!(selection.path, destination.to_str().unwrap());
+        assert!(authorizations
+            .authorize_destination(&selection.authorization_token, &destination)
+            .is_ok());
+
+        let repeated = register_packaged_smoke_destination(
+            &authorizations,
+            &consumed,
+            destination.to_str().unwrap(),
+        )
+        .unwrap_err();
+        assert_eq!(repeated.code, "portable/path-not-authorized");
+
+        for invalid in ["relative.tesina", "/tmp/Library.zip"] {
+            let error = register_packaged_smoke_destination(
+                &authorizations,
+                &AtomicBool::new(false),
+                invalid,
+            )
+            .unwrap_err();
+            assert_eq!(error.code, "portable/path-not-authorized");
+        }
+
+        let occupied = root.path().join("Occupied.tesina");
+        fs::write(&occupied, b"unrelated").unwrap();
+        let error = register_packaged_smoke_destination(
+            &authorizations,
+            &AtomicBool::new(false),
+            occupied.to_str().unwrap(),
+        )
+        .unwrap_err();
+        assert_eq!(error.code, "portable/path-not-authorized");
+        assert_eq!(fs::read(occupied).unwrap(), b"unrelated");
     }
 
     #[test]

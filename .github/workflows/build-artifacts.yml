@@ -100,3 +100,7 @@ jobs:
           --allow-env=TAURI_ARTIFACT_PATHS,GITHUB_SHA
           --allow-run
           scripts/run-packaged-macos-smoke.ts
+
+      - name: Smoke-test packaged portable export and reopen
+        if: matrix.platform == 'macos-latest'
+        run: deno task smoke:portable:packaged

@@ -111,7 +111,7 @@
       rollback creation, test backup, scheduled backup, and Back up now;
       return the digest of the exact archived snapshot and prohibit duplicate
       packaging implementations.
-- [ ] 4.6 Add a packaged-app smoke harness that exports a real current library,
+- [x] 4.6 Add a packaged-app smoke harness that exports a real current library,
       reopens it, and checks manifest counts, citations, references,
       collections, and figure bytes.
 

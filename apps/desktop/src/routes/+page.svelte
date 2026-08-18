@@ -24,6 +24,8 @@
   let libraryOpen = $state(false);
   let booted = $state(false);
   const latestLaunch = new LatestLaunch();
+  const packagedPortableSmoke =
+    import.meta.env.VITE_TESINA_PACKAGED_PORTABLE_SMOKE === "1";
 
   // ── Startup import recovery (design §13, task 6.6) ──────────────
   // Runs BEFORE the essay index and library are loaded, so an interrupted
@@ -127,6 +129,13 @@
   }
 
   onMount(async () => {
+    if (packagedPortableSmoke) {
+      const { runPackagedPortableSmoke } = await import(
+        "$lib/persist/packagedPortableSmoke"
+      );
+      await runPackagedPortableSmoke();
+      return;
+    }
     try {
       await runStartupSafetyPhase({
         loadUiSettings: () => uiLocale.load(),

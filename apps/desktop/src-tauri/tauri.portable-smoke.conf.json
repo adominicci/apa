@@ -1,0 +1,19 @@
+{
+  "productName": "Tesina Portable Smoke",
+  "identifier": "app.tesina.desktop.portable-smoke",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Tesina Portable Smoke",
+        "width": 1200,
+        "height": 800,
+        "visible": false
+      }
+    ]
+  },
+  "bundle": {
+    "createUpdaterArtifacts": false,
+    "targets": ["app"]
+  }
+}

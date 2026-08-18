@@ -20,6 +20,7 @@ tauri-build = { version = "2", features = [] }
 
 [features]
 native-proof-host = []
+packaged-portable-smoke = []
 pdf-proof-host = []
 
 [dependencies]
