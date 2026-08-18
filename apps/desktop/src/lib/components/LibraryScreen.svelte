@@ -448,7 +448,7 @@
                   {#each library.collections as c (c.id)}
                     <button
                       class="chip"
-                      class:on={c.refIds.includes(item.ref.id)}
+                      aria-pressed={c.refIds.includes(item.ref.id)}
                       onclick={(e) => {
                         e.stopPropagation();
                         library.toggleMembership(c.id, item.ref.id);
@@ -901,7 +901,7 @@
   .chips {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--sp-15);
+    gap: var(--sp-2);
     margin-top: var(--sp-2);
   }
 

@@ -49,8 +49,8 @@ adds the missing layer and one rule that decides it — see
 | `apps/desktop/src/lib/editor/pagination/**` | 816×1056 / 96px margin / 624×864 geometry |
 | `apps/desktop/src/lib/components/PrintPreview.svelte` | Shows the printed page |
 
-The seam is `EditorScreen.svelte:983` — the `<Editor>` inside
-`<main class="canvas">`. **Chrome outside it, document inside it.**
+The seam is the `<Editor>` inside `<main class="canvas">` in
+`EditorScreen.svelte`. **Chrome outside it, document inside it.**
 This includes editing-only affordances that live inside the sheet
 (ghost gridlines, figure edit button and menu, citation hover/selected
 states, reference-overflow outlines): leave them alone.
@@ -175,9 +175,16 @@ the app behind it. The old dark theme had `surface` barely above
 --hover-strong: color-mix(in oklab, var(--fg), transparent 89%);
 --raise:        color-mix(in oklab, var(--fg), transparent 88%);
 --accent-soft:  color-mix(in oklab, var(--accent), transparent 88%);
+--success-soft: color-mix(in oklab, var(--success), transparent 88%);
 --warn-soft:    color-mix(in oklab, var(--warn), transparent 86%);
+--danger-soft:  color-mix(in oklab, var(--danger), transparent 88%);
+--warn-strong:  color-mix(in oklab, var(--warn), var(--fg) 45%);
 --focus-ring:   0 0 0 3px color-mix(in oklab, var(--accent), transparent 72%);
 ```
+
+All four semantic tones get a wash, so a status surface can change tone
+without reaching for a literal. `--warn-strong` exists because raw
+`--warn` is a mid yellow that cannot carry 11px text on its own wash.
 
 ### Overlay + elevation
 
@@ -259,18 +266,40 @@ Every text pair clears 4.5:1; every control boundary clears 3:1. Primary
 hover **raises** contrast in both themes (4.57 → 6.26 light, 5.81 → 7.38
 dark). Disabled is the only state permitted to drop.
 
+**v2 pairs — text on its own wash**
+
+| Pair (11–12px) | Light | Dark |
+|---|---|---|
+| `--fg-2` on `--hover-strong` (neutral `.badge`) | 6.72:1 | 7.21:1 |
+| `--warn-strong` on `--warn-soft` (`.badge-warn`) | 7.12:1 | 8.43:1 |
+| `--accent-text` on `--accent-soft` (`.badge-accent`, selected `.chip`) | 4.90:1 | 5.02:1 |
+| `--success-text` on `--success-soft` | 4.72:1 | 6.07:1 |
+| `--danger-text` on `--danger-soft` | 4.96:1 | 4.97:1 |
+
+Each figure is the **worst** of the four surfaces the wash can sit on
+(`--surface`, `--chrome`, `--bg`, `--canvas`), because a soft wash is
+translucent and inherits the ground beneath it.
+
+The `--*-text` tokens exist for exactly this. Setting the raw tone as
+text on its own wash lands at 3.58–4.44:1 and breaks the floor above —
+which is condition 2 below, restated. Use the raw tone for a fill and
+the `-text` variant for a label.
+
 **The 4.57:1 is a deliberate, narrow pass — respect its two conditions:**
 
 1. **`--accent-on` must stay pure white on light.** The earlier
    off-white `oklch(0.995 0.001 85)` drops it to ~4.55:1. Do not
    "soften" it.
 2. **Never set text in `--accent` on a non-white surface.** On `--bg`
-   it is 4.31:1 and fails. In this system `--accent` only ever appears
-   as a *fill* (with `--accent-on` text), a focus ring, a selection
-   tint, or a 1px focus border — the border needs 3:1 and clears it at
-   4.31:1. If a future surface wants an accent-colored link, darken it
-   to ~`oklch(0.50 0.199 262)` for that use and keep `#2f6feb` for
-   fills.
+   it is 4.31:1 and fails, and on its own `--accent-soft` wash it is
+   3.91:1. In this system `--accent` only ever appears as a *fill*
+   (with `--accent-on` text), a focus ring, a selection tint, or a 1px
+   focus border — the border needs 3:1 and clears it at 4.31:1.
+   Accent-colored **text** uses `--accent-text`
+   (`oklch(0.50 0.1989 261.8)` light, `oklch(0.70 0.1562 262.5)` dark),
+   which is the darkened value this section prescribed before v2 needed
+   it. `--success` and `--danger` have the same pair of variants for
+   the same reason. Keep the raw tones for fills.
 
 Resolved values — light: `--fg` `#1c1e23`, `--muted` `#5c5f66`,
 `--accent` `#2f6feb`, `--accent-hover` `#1858d2`. Dark: `--fg`
@@ -307,7 +336,7 @@ the due-date field in dark mode.
 
 ```css
 --font: Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
---mono: ui-monospace,"SF Mono",Menlo,monospace;
+--mono: ui-monospace,"JetBrains Mono","SF Mono",Menlo,monospace;
 ```
 
 **There is no `--font-display`.** Every chrome surface — titlebar,
@@ -331,7 +360,9 @@ site that keeps it.
 ```
 
 `12.5px`, `13.5px`, `11.5px`, `10.5px`, `9.5px` and every `rem` value
-in chrome are deleted. Weight `700+` is not used.
+in chrome are to be deleted. Weight `700+` is not used. As of v2 the
+sweep is still pending: twelve `rem` values survive in chrome (three
+more sit in `PrintPreview.svelte`, which §0 freezes).
 
 | Role | Size / weight | Tracking |
 |---|---|---|
@@ -360,20 +391,22 @@ the app today.
 
 **Remove `font-family: var(--serif)` — let them inherit `--font`:**
 
-| File | Line | Element |
-|---|---|---|
-| `EssayHome.svelte` | 455 | sidebar logo `T` |
-| `EssayHome.svelte` | 514 | titlebar mark `T` |
-| `EssayHome.svelte` | 874 | `.thumb-text` — essay-card first-lines preview |
-| `LibraryScreen.svelte` | 634 | logo `T` |
-| `LibraryScreen.svelte` | 960 | `.pc-entry` — reference preview |
-| `EditorScreen.svelte` | 1405 | logo `T` |
-| `EditorScreen.svelte` | 1790 | `.rtxt` / `.ref-card :global(.rtxt)` |
-| `EditorScreen.svelte` | 1923 | `.bb.it` — italic style button |
-| `ReferencesPanel.svelte` | 213 | `.runs` — reference list entries |
-| `RefEntry.svelte` | 27 | `.rtxt` — formatted APA reference |
-| `CitationPopover.svelte` | 220 | `.item span` — citation preview |
-| `HeadingMenu.svelte` | 113 | `.pv` — heading style previews |
+Locate them with `grep -rn "var(--serif)" apps/desktop/src`.
+
+| File | Element |
+|---|---|
+| `EssayHome.svelte` | sidebar logo `T` |
+| `EssayHome.svelte` | titlebar mark `T` |
+| `EssayHome.svelte` | `.thumb-text` — essay-card first-lines preview |
+| `LibraryScreen.svelte` | logo `T` |
+| `LibraryScreen.svelte` | `.pc-entry` — reference preview |
+| `EditorScreen.svelte` | logo `T` |
+| `EditorScreen.svelte` | `.rtxt` / `.ref-card :global(.rtxt)` |
+| `EditorScreen.svelte` | `.bb.it` — italic style button |
+| `ReferencesPanel.svelte` | `.runs` — reference list entries |
+| `RefEntry.svelte` | `.rtxt` — formatted APA reference |
+| `CitationPopover.svelte` | `.item span` — citation preview |
+| `HeadingMenu.svelte` | `.pv` — heading style previews |
 
 Decided 2026-08-14: the interface is Inter everywhere, with no
 exception for document previews. The consequence is deliberate — the
@@ -383,19 +416,21 @@ supposed to match.
 
 **Do NOT touch — this one is inside the frozen zone:**
 
-| File | Line | Element |
-|---|---|---|
-| `CoverSheet.svelte` | 191 | `.cf` — `var(--doc-font, var(--serif))` |
+| File | Element |
+|---|---|
+| `CoverSheet.svelte` | `.cf` — `var(--doc-font, var(--serif))` |
 
 `.cf` is the editable title-page field rendered **on the paper**, and
 `--serif` is only its fallback when the user has not picked an APA
 font. Switching it to Inter would put a sans title page on the sheet
 and break the document. It is covered by the §0 boundary.
 
-After this pass, `var(--serif)` survives only in `apa.css`,
+After this pass, `var(--serif)` would survive only in `apa.css`,
 `CoverSheet.svelte`, `nativeProof.css` and the font-picker stacks —
-all document territory. **Chrome references it zero times**, which is
-what §8's lint asserts.
+all document territory, leaving chrome referencing it zero times. **The
+pass has not been done.** All thirteen call sites are still live as of
+v2, so §8's lint would fail today; write the lint and the sweep in the
+same change.
 
 ---
 
@@ -414,7 +449,7 @@ what §8's lint asserts.
 --ease-out: cubic-bezier(0.16,1,0.3,1);
 --fast:150ms; --slow:260ms;
 
---ctl-h:36px; --ctl-h-lg:42px;
+--ctl-h-sm:32px; --ctl-h:36px; --ctl-h-lg:42px;
 ```
 
 `--z-*` replaces the ten ad-hoc z-index values currently scattered
@@ -481,8 +516,8 @@ caller; these name sizes.
 | `size` | Class | Width | For |
 |---|---|---|---|
 | `"sm"` | `.modal-sm` | 420px | Confirmations — delete a reference, quit with unsaved work. One sentence and two buttons; at 520px they looked like an empty form. |
-| `"default"` | — | 520px | The default. Settings, title page, table insert, equation, import. |
-| `"lg"` | `.modal-lg` | 564px | Long scrolling forms with two-up field rows — the reference form. |
+| `"default"` | — | 520px | The default. Settings, title page, table insert, equation. |
+| `"lg"` | `.modal-lg` | 564px | Long scrolling forms with two-up field rows — the reference form and the BibTeX import review list. |
 
 Both size rules are written compounded (`.modal.modal-sm`) rather than
 bare. `.modal { width }` lives in `modal.css`, which `Modal.svelte`
@@ -520,6 +555,12 @@ already in `Modal.svelte`'s `dismissOnOverlay` prop; keep it.
 One action, one primary. Height `--ctl-h`, radius `--r-sm`, font
 `--t-body --w-strong`, `:active { transform: translateY(1px) }`.
 
+`.btn-quiet` is the one exception and is **not** written as `btn
+btn-quiet` — it is a standalone class with its own dense geometry
+(`--ctl-h-sm`, `--r-xs`, `--t-small`, `--w-medium`, no `:active`
+transform), because it lives inside a row of content rather than in a
+footer of actions.
+
 | Variant | Rest | Hover | Disabled |
 |---|---|---|---|
 | `.btn-primary` | `--accent` / `--accent-on` | `--accent-hover` | `color-mix(--accent, --bg 58%)` / `--accent-on` |
@@ -534,7 +575,7 @@ One action, one primary. Height `--ctl-h`, radius `--r-sm`, font
 |---|---|
 | `.btn-primary` | Exactly one per surface, always last in a footer row. |
 | `.btn-secondary` | Everything else with a border: cancel, close, back, open folder. **Canonical name** — `.btn-ghost` was the same rule and is retired. |
-| `.btn-quiet` | Borderless inline action in a dense row — a reference row's Edit/Delete, a collection row's icons, the home footer's links. This is what "ghost" should have meant. |
+| `.btn-quiet` | Borderless inline action in a dense row — a reference row's Cite/Delete, a collection row's icons, the home footer's links. This is what "ghost" should have meant. |
 | `.btn-danger` | *Opens* a destructive flow. Stays bordered; the label carries the warning. |
 | `.btn-danger-solid` | *Commits* it. Only ever in the primary slot of a confirmation modal. |
 
@@ -745,26 +786,32 @@ Reused: `home_new_card_title`, `home_new_card_sub`, `common_close`,
 
 ---
 
-## 7. Known token bugs this system fixes
+## 7. Known token bugs
 
-1. `--panel` is referenced at `routes/+page.svelte:303` and **defined
-   nowhere** — it always resolves to the hardcoded cream `#f4f1ea` and
-   ignores dark mode. Add `--panel: var(--chrome)` or drop the
-   reference.
-2. `LibraryScreen.svelte:1064` raw `#fff`; `:1068` raw `#000` inside a
-   `color-mix`.
+**Fixed in v1** — kept here because each one names a failure mode worth
+recognising again:
+
+1. `--panel` was referenced by `routes/+page.svelte` and **defined
+   nowhere**, so it always resolved to a hardcoded cream and ignored
+   dark mode. `tokens.css` now defines `--panel: var(--chrome)`.
+2. `LibraryScreen.svelte` carried a raw `#fff` and a raw `#000` inside
+   a `color-mix`. Both are gone.
+
+**Still open as of v2:**
+
 3. Stale `var(--x, #hex)` fallbacks that encode a second, wrong
-   palette: `var(--muted, #666)`, `var(--danger, #a33)` in
-   `BackupSettings`, `BackupSetupWizard`, `BackupStatusCard`,
-   `LibraryImportModal`. Drop the fallback — `--panel` proves the
-   assumption they protect has already failed once.
+   palette: `var(--muted, #666)` and `var(--danger, #a33)` in
+   `BackupSetupWizard` (two), `BackupStatusCard` and
+   `LibraryImportModal`. Drop the fallback — bug 1 proves the
+   assumption they protect has already failed once. (`BackupSettings`
+   was named in v1 and has since been cleaned.)
 
 ---
 
 ## 8. Enforcement
 
-Add one focused Vitest check over chrome CSS only, excluding every
-frozen path in §0:
+**Not written yet.** Add one focused Vitest check over chrome CSS only,
+excluding every frozen path in §0:
 
 - no raw hex outside the two theme blocks in `tokens.css` (allow the
   three `--tl-*` traffic-light dots);
@@ -897,9 +944,11 @@ darken the page while the text stayed black.
 
 ## 10. v2 migration record
 
-Completed in one branch. Every rename was mechanical; none changed
-component logic, because the v2 selectors accept the class names and
-ARIA attributes already in the markup.
+Completed in one branch. The class renames were mechanical — the v2
+selectors accept the class names already in the markup — but three
+changes went further than a rename, and are called out below: the
+filter chips moved to `aria-pressed`, the membership chips gained it,
+and two dialogs gained `size="sm"`.
 
 | File | Deleted | Now uses |
 |---|---|---|
@@ -921,18 +970,54 @@ Tone decisions taken during the migration:
 - A document **language** tag is a machine value → `.badge-code`.
 - Nav and collection counts → `.badge-count`.
 
-`EssayHome`'s filter chips moved from `class:active` to
-`aria-pressed`, which is both the canonical selector and the correct
-role for a toggle. `LibraryScreen`'s membership chips kept `.on`,
-which `controls-v2.css` accepts as an alias.
+Both chip rows now drive off `aria-pressed`. `EssayHome`'s filter row
+moved from `class:active`, and `LibraryScreen`'s membership chips moved
+from `class:on` — those are the app's genuine multi-select toggles and
+they previously had a visual selected state with no ARIA state behind
+it. `controls-v2.css` still accepts `.on` as an alias for anything not
+yet migrated.
+
+One known imperfection: `EssayHome`'s four filters are mutually
+exclusive, so `role="radiogroup"` with `aria-checked` would model them
+more exactly than four toggle buttons. `aria-pressed` announces the
+state correctly and is a strict improvement on the class it replaced;
+the radiogroup rewrite needs roving `tabindex` and is deferred.
+
+### Deferred — shapes v2 defines but has not adopted
+
+Recorded so they are not rediscovered. None was in the handoff's
+migration map, and each needs a tone judgement rather than a rename:
+
+| Site | Today | Should become |
+|---|---|---|
+| `EditorScreen.svelte` `.apa-pill-count` | static count drawn as a `--r-pill` with a solid `--danger` fill | `.badge.badge-count`. It also breaks §5.0's shape rule (a pill that cannot be pressed), and `--warn` fits an advisory check better than `--danger`. |
+| `EditorScreen.svelte` `.apa-check-empty` | hand-rolled popover empty message | `.empty-state.is-inline` |
+| `EssayHome.svelte` `.essay-actions button` / `.del` | borderless action row | `.btn-quiet` / `.btn-quiet.btn-danger-text` |
+| `LibraryScreen.svelte` `.card-foot .del` | the same button, hand-rolled again | `.btn-quiet.btn-danger-text` |
+| `BibImportModal.svelte` `.bibkey` | bare mono `<code>` beside two real badges | `.badge-code` |
+| `EssayHome.svelte` `.lib-count` | live count reflecting the active filter | `.badge-count`, or `.badge-accent` per §5.0 |
+
+Also deferred, and older than v2: §5's `aria-disabled` rule has zero
+call sites (`BibImportModal` blocks its primary with the real
+`disabled` attribute); no `.empty-state` is announced through
+`role="status"` when a filter empties a list; and `--focus-ring` is
+1.45:1 against `--chrome`, short of the 3:1 WCAG 1.4.11 wants for a
+focus indicator.
 
 ### Two things to watch
 
 **Scope.** `.badge`, `.chip`, `.btn-quiet` and `.empty-state` are
 global, like `.btn`. The APA paper sheet uses `cover-form-*` and the
-editor dock uses `fm-*`, so neither is reachable — but a Svelte
-component's own `<style>` block still outranks these rules, so a local
-definition has to be **deleted**, not just left unused.
+editor dock uses `fm-*`, so neither is reachable.
+
+A Svelte component's own `<style>` block outranks these rules **only on
+the properties it declares** — everything else still cascades in. So a
+local definition has to be **deleted**, not left unused.
+`UpdatePill.svelte` is the case that proves it: its local `.badge` was
+a 7px round dot, and the global `.badge`'s `padding: 0 var(--sp-15)`
+cascaded through and stretched it into a 12px oval under
+`box-sizing: border-box`. It is `.dot` now. **Before adding a class to
+`controls-v2.css`, grep the whole app for that name.**
 
 **Tone, not shape.** See §5.0. The class rename is mechanical; deciding
 per badge whether it classifies or needs fixing is the point.

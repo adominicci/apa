@@ -12,10 +12,15 @@
  *   2. COLOR says how urgent it is, never what category it is.
  *      Classification badges are neutral.
  *
- * Global, like .btn: verified free of collisions with the APA paper sheet
- * (cover-form-*), the editor dock (fm-*) and the toolbar. A component's own
- * <style> block still outranks these rules, so a local definition has to be
- * deleted rather than left unused.
+ * Global, like .btn. The APA paper sheet (cover-form-*) and the editor dock
+ * (fm-*) use their own namespaces and are unreachable from here.
+ *
+ * A component's own <style> block outranks these rules on the properties it
+ * declares — but everything it does NOT declare still cascades in, so a
+ * local definition has to be DELETED, not left unused. UpdatePill learned
+ * this the hard way: its local `.badge` was a 7px dot, and the padding on
+ * the global `.badge` stretched it into an oval under box-sizing:border-box.
+ * It is `.dot` now. Before adding a class here, grep the whole app for it.
  */
 
 /* ── Badge ──────────────────────────────────────────────────────────
@@ -48,15 +53,18 @@
 
 /* Marks what the user is acting on right now — a selection, a live count.
    Not a category: an accent badge on every row spends the app's only live
-   color on nothing. */
+   color on nothing.
+
+   The text tokens, not the raw tones: a soft wash lightens the ground under
+   the label, so raw --accent lands at 3.58-3.91:1 here. See tokens.css. */
 .badge-accent {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .badge-success {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 /* --warn-strong, not --warn: raw --warn is a mid yellow and cannot carry
@@ -68,7 +76,7 @@
 
 .badge-danger {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 /* A code-like value: language tag, BibTeX key, file extension. Mono +
@@ -128,7 +136,8 @@
 .chip.on {
   background: var(--accent-soft);
   border-color: color-mix(in oklab, var(--accent), transparent 45%);
-  color: var(--accent);
+  /* --accent-text, not --accent: this label sits on its own wash. */
+  color: var(--accent-text);
 }
 
 .chip:disabled {

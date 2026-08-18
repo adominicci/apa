@@ -9,17 +9,17 @@ describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
     const expectedNotes = `### Changed
 
-- The buttons, labels and filters around your paper now follow one set of
-  rules instead of five. Small labels such as "Journal article", "Uncited"
-  or a language tag are one size and one shape everywhere, and colour now
-  means only one thing: something needs your attention. A plain grey label
-  just tells you what a thing is. Filter buttons in the essay list and the
-  library look and behave the same way. The Edit and Delete links in a
-  reference row are real buttons now, so they light up when you point at
-  them.
-- Short questions such as "Delete this reference?" and "Quit without
-  saving?" open in a smaller window that fits the question, instead of the
-  wide window meant for long forms.`;
+- The small labels, filters and buttons around your paper now follow one
+  set of rules instead of five. A label that only says what something is,
+  such as a reference type or a language tag, is now plain grey at one
+  size and one shape everywhere. Colour is kept for the things that want
+  you to do something: "uncited" and "Duplicate" stay warm. The filter
+  buttons in the essay list and in the library now look and behave alike,
+  and the Cite and Delete actions in a reference row light up when you
+  point at them.
+- Short questions such as "Delete reference" and "Quit Tesina?" now open
+  in a narrower window that fits the question, instead of the wider one
+  every form uses.`;
 
     expect(bundledReleaseNotes.version).toBe("0.1.16");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);

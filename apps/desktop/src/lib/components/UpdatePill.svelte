@@ -121,7 +121,7 @@
           <path d="M5 20h14" />
         </svg>
         {#if updater.status === "available"}
-          <span class="badge" aria-hidden="true"></span>
+          <span class="dot" aria-hidden="true"></span>
         {/if}
       {/if}
     </button>
@@ -230,7 +230,10 @@
     line-height: 1;
   }
 
-  .badge {
+  /* Renamed off `.badge` in v2: that is now a global label class in
+     controls-v2.css, and its `padding: 0 var(--sp-15)` cascaded in under
+     `box-sizing: border-box` and stretched this 7px dot into a 12px oval. */
+  .dot {
     position: absolute;
     top: -1px;
     right: -1px;

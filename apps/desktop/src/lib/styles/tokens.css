@@ -54,6 +54,21 @@
   --danger: oklch(0.52 0.165 27);
   --paper: oklch(1 0 0);
 
+  /*
+   * TEXT variants of the three chromatic tones. A soft wash lightens the
+   * surface under the label, so setting the raw tone as text on its own
+   * wash lands at 3.6-4.4:1 — below the 4.5:1 floor, at the 11px the badge
+   * and the chip actually use. Same hues, only darkened, and they exist
+   * ONLY for text on a wash. Fills keep the raw tone.
+   *
+   * The accent value is the one section 2 already prescribed for accent
+   * used as text. --warn needs no variant: --warn-strong already plays
+   * that role and clears 7:1.
+   */
+  --accent-text: oklch(0.5 0.1989 261.8);
+  --success-text: oklch(0.485 0.115 152);
+  --danger-text: oklch(0.5 0.165 27);
+
   --tl-red: #ff5f57;
   --tl-yellow: #febc2e;
   --tl-green: #28c840;
@@ -118,6 +133,12 @@
   --warn: oklch(0.78 0.12 75);
   --danger: oklch(0.68 0.155 25);
   --paper: oklch(0.26 0.01 265);
+
+  /* Text variants go LIGHTER here, not darker — the wash sits on a dark
+     surface, so the label has to climb away from it, not sink into it. */
+  --accent-text: oklch(0.7 0.1562 262.5);
+  --success-text: oklch(0.745 0.135 152);
+  --danger-text: oklch(0.71 0.155 25);
 
   --overlay-tint: oklch(0.12 0.01 265 / 0.62);
   --edge-hi: oklch(1 0 0 / 0.07);

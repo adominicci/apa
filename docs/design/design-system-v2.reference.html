@@ -168,7 +168,7 @@
             <div style="background:var(--surface);padding:20px 24px">
               <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">Today — modal footers</div>
               <div style="display:flex;flex-direction:column;gap:10px;font-size:12px;color:var(--fg-2)">
-                <div style="display:flex;align-items:center;gap:10px"><code style="font-family:var(--mono);font-size:11px;color:var(--muted);min-width:16ch">TitlePageForm</code><button class="btn btn-ghost btn-sm">Close</button><button class="btn btn-primary btn-sm">Save</button></div>
+                <div style="display:flex;align-items:center;gap:10px"><code style="font-family:var(--mono);font-size:11px;color:var(--muted);min-width:16ch">TitlePageForm</code><button class="btn btn-secondary btn-sm">Close</button><button class="btn btn-primary btn-sm">Save</button></div>
                 <div style="display:flex;align-items:center;gap:10px"><code style="font-family:var(--mono);font-size:11px;color:var(--muted);min-width:16ch">LibraryImportModal</code><button class="btn btn-secondary btn-sm">Close</button><button class="btn btn-primary btn-sm">Import</button></div>
                 <div style="display:flex;align-items:center;gap:10px"><code style="font-family:var(--mono);font-size:11px;color:var(--muted);min-width:16ch">+layout quit</code><button class="btn btn-secondary btn-sm">Cancel</button><button class="btn btn-primary btn-sm">Quit</button></div>
               </div>
@@ -606,13 +606,13 @@
         </div>
         <div style="display:grid;grid-template-columns:170px 190px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
           <code style="font-family:var(--mono);font-size:11px;color:var(--muted);text-decoration:line-through">.btn-ghost</code>
-          <span><button class="btn btn-ghost">Close</button></span>
-          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)">Deprecated alias. Identical rule; 7 call sites to rename. "Ghost" now means borderless, below.</span>
+          <span><button class="btn btn-secondary">Close</button></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)"><strong style="font-weight:600;color:var(--fg)">Retired in v0.1.16.</strong> It was the identical rule; every call site now uses <code>.btn-secondary</code>, and the specimen here renders as one. "Ghost" now means borderless, below.</span>
         </div>
         <div style="display:grid;grid-template-columns:170px 190px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
           <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.btn-quiet</code>
-          <span style="display:flex;gap:4px;align-items:center"><button class="btn-quiet">Edit</button><button class="btn-quiet btn-danger-text">Delete</button></span>
-          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)"><strong style="font-weight:600;color:var(--fg)">New.</strong> Borderless inline action in a dense row — the reference list's Edit/Delete, the collection row's icons, the home footer's links.</span>
+          <span style="display:flex;gap:4px;align-items:center"><button class="btn-quiet">Cite</button><button class="btn-quiet btn-danger-text">Delete</button></span>
+          <span style="font-size:12px;line-height:1.55;color:var(--fg-2)"><strong style="font-weight:600;color:var(--fg)">New.</strong> Borderless inline action in a dense row — the reference list's Cite/Delete, the collection row's icons, the home footer's links.</span>
         </div>
         <div style="display:grid;grid-template-columns:170px 190px minmax(0,1fr);gap:20px;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border-soft)">
           <code style="font-family:var(--mono);font-size:11px;color:var(--accent)">.btn-danger</code>
@@ -647,7 +647,7 @@
           <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:16px">Quiet, in a reference row</div>
           <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--bg)">
             <span style="font-size:12px;color:var(--fg-2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Rojas, M. (2019). Estructuras narrativas…</span>
-            <button class="btn-quiet">Edit</button>
+            <button class="btn-quiet">Cite</button>
             <button class="btn-quiet btn-danger-text">Delete</button>
           </div>
           <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--fg-2)">Today these are three different bespoke buttons in three files, one of which is accent-colored text with no hover surface at all.</p>
@@ -1224,17 +1224,26 @@
   text-align: left;
 }
 
-/* ── Modal width scale ── .modal-ref named a caller; these name sizes. */
-.modal-sm { width: min(420px, 100%); }
+/* ── Modal width scale ── .modal-ref named a caller; these name sizes.
+   Compounded with .modal, not bare: `.modal { width }` lives in modal.css,
+   which Modal.svelte imports on its own, so a bare `.modal-sm` would tie on
+   specificity and be decided by bundle order. `.modal-ref` is retired. */
+.modal.modal-sm { width: min(420px, 100%); }
 
-.modal-lg,
-.modal.modal-ref { width: min(564px, 100%); }</pre>
+.modal.modal-lg { width: min(564px, 100%); }</pre>
       </div>
     </section>
 
     <section id="migration" style="padding:56px clamp(24px,5vw,64px)">
       <div style="font-family:var(--mono);font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Handoff</div>
       <h2 style="margin:0 0 12px;font-size:26px;font-weight:600;letter-spacing:-0.024em;line-height:1.15">Migration map</h2>
+      <div class="status-panel" data-tone="ok" style="margin:0 0 24px;max-width:64ch">
+        <span class="status-dot"></span>
+        <div class="status-body">
+          <div class="status-title">Done — shipped in v0.1.16</div>
+          <div class="status-meta">Every row below was applied in one branch, and the <code style="font-family:var(--mono)">.btn-ghost</code> and <code style="font-family:var(--mono)">.modal-ref</code> aliases were retired with it. The record of what actually landed, including the per-badge tone decisions, is <code style="font-family:var(--mono)">docs/design/DESIGN.md</code> §10. Read the plan below as history.</div>
+        </div>
+      </div>
       <p style="margin:0 0 24px;max-width:64ch;font-size:14px;line-height:1.6;color:var(--fg-2);text-wrap:pretty">Nine files. Each row is "delete this local rule, use this class". Every rename is mechanical; none of them changes component logic, because the v2 selectors accept the class names and ARIA attributes already in the markup.</p>
 
       <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;margin-bottom:24px">
@@ -1251,7 +1260,7 @@
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
         <div style="border:1px solid var(--border);border-radius:12px;background:var(--bg);padding:22px 24px">
-          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Suggested order</div>
+          <div style="font-size:11px;font-weight:530;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Suggested order <span class="badge badge-success" style="margin-left:6px;letter-spacing:0.01em;text-transform:none">All done</span></div>
           <ol style="margin:0;padding-left:20px;font-size:13px;line-height:1.75;color:var(--fg-2)">
             <li>Add <code style="font-family:var(--mono);font-size:12px">controls-v2.css</code>. Nothing changes yet — no component uses the new classes.</li>
             <li>Migrate badges. Six markup sites, five style blocks deleted. This is the visible fix.</li>
