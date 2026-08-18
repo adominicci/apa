@@ -125,8 +125,8 @@ describe("planRetention (task 9.5)", () => {
     expect(plan.prune.map((p) => p.fileName)).toEqual([ledger[1].fileName]);
   });
 
-  it("surfaces an accumulation warning well beyond the keep count", () => {
-    const ledger = Array.from({ length: 25 }, (_, i) => entry(i + 1));
+  it("warns at fifteen owned archives before the native cap of sixteen", () => {
+    const ledger = Array.from({ length: 15 }, (_, i) => entry(i + 1));
     const plan = planRetention({
       folderFileNames: ledger.map((e) => e.fileName),
       ledger,
@@ -134,13 +134,13 @@ describe("planRetention (task 9.5)", () => {
       keep: 7,
     });
     expect(plan.accumulationWarning).toBe(true);
-    const small = planRetention({
-      folderFileNames: ledger.slice(0, 8).map((e) => e.fileName),
-      ledger: ledger.slice(0, 8),
+    const belowWarning = planRetention({
+      folderFileNames: ledger.slice(0, 14).map((e) => e.fileName),
+      ledger: ledger.slice(0, 14),
       backupSetId: SET_A,
       keep: 7,
     });
-    expect(small.accumulationWarning).toBe(false);
+    expect(belowWarning.accumulationWarning).toBe(false);
   });
 });
 

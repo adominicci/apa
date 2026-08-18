@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   type ExternalFs,
   PortableFileError,
@@ -6,7 +6,6 @@ import {
   recoverReplacements,
   type ReplacementJournal,
   type ReplacementRecord,
-  writeArchiveExclusive,
   writeArchiveReplacing,
   type WriteDeps,
 } from "./portableFiles.ts";
@@ -22,6 +21,11 @@ class FakeFs implements ExternalFs {
   failAtOp = 0;
   /** Platform behavior: does rename replace an existing destination? */
   renameReplaces = true;
+  preserveDigests: string[] = [];
+  noReplaceDigests: string[] = [];
+  boundedReads: Array<[string, number]> = [];
+  hashLimits: Array<[string, number | undefined]> = [];
+  cleanupDestinationDigests: Array<string | undefined> = [];
   #op = 0;
 
   #tick(op: string): void {
@@ -41,6 +45,7 @@ class FakeFs implements ExternalFs {
     return Promise.resolve(bytes);
   }
   readFileBounded(path: string, maxBytes: number): Promise<Uint8Array> {
+    this.boundedReads.push([path, maxBytes]);
     const bytes = this.files.get(path);
     if (!bytes) return Promise.reject(new Error(`missing ${path}`));
     if (bytes.length > maxBytes) {
@@ -53,9 +58,13 @@ class FakeFs implements ExternalFs {
     }
     return Promise.resolve(bytes);
   }
-  async sha256File(path: string): Promise<string> {
+  async sha256File(path: string, maxBytes?: number): Promise<string> {
+    this.hashLimits.push([path, maxBytes]);
     const bytes = this.files.get(path);
     if (!bytes) throw new Error(`missing ${path}`);
+    if (maxBytes !== undefined && bytes.length > maxBytes) {
+      throw new PortableFileError("portable/file-too-large", "file too large");
+    }
     const digest = await crypto.subtle.digest(
       "SHA-256",
       bytes as unknown as ArrayBuffer,
@@ -67,25 +76,49 @@ class FakeFs implements ExternalFs {
     this.files.set(path, bytes);
     return Promise.resolve();
   }
-  rename(from: string, to: string): Promise<void> {
+  async rename(
+    from: string,
+    to: string,
+    expectedSha256: string,
+  ): Promise<void> {
     this.#tick(`rename:${from}->${to}`);
-    if (!this.files.has(from)) return Promise.reject(new Error("missing src"));
+    this.preserveDigests.push(expectedSha256);
+    if (!this.files.has(from)) throw new Error("missing src");
+    if ((await this.sha256File(from)) !== expectedSha256) {
+      throw new PortableFileError(
+        "fake/hash-mismatch",
+        "preservation source changed",
+      );
+    }
     if (this.files.has(to) && !this.renameReplaces) {
-      return Promise.reject(new Error("destination exists"));
+      throw new Error("destination exists");
+    }
+    this.files.set(to, this.files.get(from)!);
+    this.files.delete(from);
+  }
+  renameNoReplace(
+    from: string,
+    to: string,
+    expectedSha256: string,
+  ): Promise<void> {
+    this.#tick(`renameNoReplace:${from}->${to}`);
+    this.noReplaceDigests.push(expectedSha256);
+    if (!this.files.has(from)) return Promise.reject(new Error("missing src"));
+    if (this.files.has(to)) {
+      return Promise.reject(
+        new PortableFileError("portable/name-taken", "destination exists"),
+      );
     }
     this.files.set(to, this.files.get(from)!);
     this.files.delete(from);
     return Promise.resolve();
   }
-  renameNoReplace(from: string, to: string): Promise<void> {
-    this.#tick(`renameNoReplace:${from}->${to}`);
-    if (!this.files.has(from)) return Promise.reject(new Error("missing src"));
-    if (this.files.has(to)) return Promise.reject(new Error("exists"));
-    this.files.set(to, this.files.get(from)!);
-    this.files.delete(from);
-    return Promise.resolve();
-  }
-  async removeIfHashMatches(path: string, expectedSha256: string) {
+  async removeIfHashMatches(
+    path: string,
+    expectedSha256: string,
+    installedDestinationSha256?: string,
+  ) {
+    this.cleanupDestinationDigests.push(installedDestinationSha256);
     if ((await this.sha256File(path)) !== expectedSha256) {
       throw new PortableFileError("fake/hash-mismatch", "changed bytes");
     }
@@ -136,6 +169,7 @@ function makeDeps(fs: FakeFs): WriteDeps {
           new PortableFileError("fake/invalid", "invalid archive"),
         ),
     uuid: () => `u${++n}`,
+    maxArchiveBytes: 1_024,
     sha256: async (bytes) => {
       const digest = await crypto.subtle.digest(
         "SHA-256",
@@ -146,64 +180,88 @@ function makeDeps(fs: FakeFs): WriteDeps {
   };
 }
 
-describe("writeArchiveExclusive", () => {
-  it("creates the first free candidate and cleans its temp file", async () => {
-    const fs = new FakeFs();
-    fs.files.set("/backups/one.tesina", OLD);
-    const result = await writeArchiveExclusive(makeDeps(fs), GOOD, [
-      "/backups/one.tesina",
-      "/backups/two.tesina",
-    ]);
-    expect(result.path).toBe("/backups/two.tesina");
-    expect(fs.files.get("/backups/one.tesina")).toBe(OLD); // untouched
-    expect([...fs.files.keys()].some((p) => p.endsWith(".tmp"))).toBe(false);
-  });
-
-  it("never overwrites a file that appears between check and rename", async () => {
-    const fs = new FakeFs();
-    const deps = makeDeps(fs);
-    const originalNoReplace = fs.renameNoReplace.bind(fs);
-    let raced = false;
-    fs.renameNoReplace = (from, to) => {
-      if (!raced && to === "/backups/one.tesina") {
-        raced = true;
-        fs.files.set(to, OLD); // another installation wins the name
-      }
-      return originalNoReplace(from, to);
-    };
-    const result = await writeArchiveExclusive(deps, GOOD, [
-      "/backups/one.tesina",
-      "/backups/two.tesina",
-    ]);
-    expect(result.path).toBe("/backups/two.tesina");
-    expect(fs.files.get("/backups/one.tesina")).toBe(OLD);
-  });
-
-  it("fails without touching anything when every candidate is occupied", async () => {
-    const fs = new FakeFs();
-    fs.files.set("/backups/one.tesina", OLD);
-    await expect(
-      writeArchiveExclusive(makeDeps(fs), GOOD, ["/backups/one.tesina"]),
-    ).rejects.toMatchObject({ code: "portable/no-free-name" });
-    expect(fs.files.get("/backups/one.tesina")).toBe(OLD);
-  });
-
-  it("rejects a valid provider swap after an exclusive install", async () => {
-    const fs = new FakeFs();
-    const originalNoReplace = fs.renameNoReplace.bind(fs);
-    fs.renameNoReplace = async (from, to) => {
-      await originalNoReplace(from, to);
-      fs.files.set(to, OTHER_VALID);
-    };
-
-    await expect(
-      writeArchiveExclusive(makeDeps(fs), GOOD, ["/backups/one.tesina"]),
-    ).rejects.toMatchObject({ code: "portable/destination-changed" });
-    expect(fs.files.get("/backups/one.tesina")).toBe(OTHER_VALID);
-  });
-});
-
 describe("writeArchiveReplacing", () => {
+  it("journals temp ownership before writing and advances before preservation", async () => {
+    const fs = new FakeFs();
+    fs.files.set("/docs/lib.tesina", OLD);
+    const journal = new FakeJournal();
+    const events: string[] = [];
+    const originalSave = journal.save.bind(journal);
+    journal.save = (record) => {
+      events.push(`journal:${record.phase}`);
+      return originalSave(record);
+    };
+    const originalWrite = fs.writeFile.bind(fs);
+    fs.writeFile = (path, bytes) => {
+      events.push("write:temp");
+      return originalWrite(path, bytes);
+    };
+    const originalRename = fs.rename.bind(fs);
+    fs.rename = (from, to, expectedSha256) => {
+      events.push("rename:previous");
+      return originalRename(from, to, expectedSha256);
+    };
+
+    await writeArchiveReplacing(
+      makeDeps(fs),
+      journal,
+      "/docs/lib.tesina",
+      GOOD,
+    );
+
+    expect(events).toEqual([
+      "journal:staging",
+      "write:temp",
+      "journal:replacing",
+      "rename:previous",
+    ]);
+  });
+
+  it("bounds every destination reopen and incremental hash", async () => {
+    const fs = new FakeFs();
+    fs.files.set("/docs/lib.tesina", OLD);
+    const deps = makeDeps(fs);
+
+    await writeArchiveReplacing(
+      deps,
+      new FakeJournal(),
+      "/docs/lib.tesina",
+      GOOD,
+    );
+
+    expect(fs.boundedReads).toContainEqual([
+      "/docs/lib.tesina",
+      deps.maxArchiveBytes,
+    ]);
+    expect(fs.hashLimits).toContainEqual([
+      "/docs/lib.tesina",
+      deps.maxArchiveBytes,
+    ]);
+    expect(fs.cleanupDestinationDigests).toContain(
+      await deps.sha256(GOOD),
+    );
+  });
+
+  it("creates no temp when the ownership journal cannot be saved", async () => {
+    const fs = new FakeFs();
+    const journal = new FakeJournal();
+    journal.save = () => Promise.reject(new Error("journal unavailable"));
+
+    await expect(
+      writeArchiveReplacing(
+        makeDeps(fs),
+        journal,
+        "/docs/lib.tesina",
+        GOOD,
+      ),
+    ).rejects.toThrow("journal unavailable");
+
+    expect(fs.files.size).toBe(0);
+    expect(fs.ops.some((operation) => operation.startsWith("write:"))).toBe(
+      false,
+    );
+  });
+
   it("replaces directly on platforms where rename replaces", async () => {
     const fs = new FakeFs();
     fs.files.set("/docs/lib.tesina", OLD);
@@ -219,9 +277,9 @@ describe("writeArchiveReplacing", () => {
   it("does not replace a destination that appears after the existence check", async () => {
     const fs = new FakeFs();
     const originalNoReplace = fs.renameNoReplace.bind(fs);
-    fs.renameNoReplace = (from, to) => {
+    fs.renameNoReplace = (from, to, expectedSha256) => {
       fs.files.set(to, OLD);
-      return originalNoReplace(from, to);
+      return originalNoReplace(from, to, expectedSha256);
     };
 
     await expect(
@@ -238,8 +296,8 @@ describe("writeArchiveReplacing", () => {
   it("rejects a valid provider swap after a first-time export install", async () => {
     const fs = new FakeFs();
     const originalNoReplace = fs.renameNoReplace.bind(fs);
-    fs.renameNoReplace = async (from, to) => {
-      await originalNoReplace(from, to);
+    fs.renameNoReplace = async (from, to, expectedSha256) => {
+      await originalNoReplace(from, to, expectedSha256);
       fs.files.set(to, OTHER_VALID);
     };
 
@@ -270,7 +328,10 @@ describe("writeArchiveReplacing", () => {
       "/docs/lib.tesina",
       GOOD,
     );
-    expect(seen).toHaveLength(1);
+    expect(seen.map((record) => record.phase)).toEqual([
+      "staging",
+      "replacing",
+    ]);
     expect(fs.files.get("/docs/lib.tesina")).toBe(GOOD);
   });
 
@@ -298,13 +359,16 @@ describe("writeArchiveReplacing", () => {
     fs.renameReplaces = false;
     fs.files.set("/docs/lib.tesina", OLD);
     const journal = new FakeJournal();
+    const deps = makeDeps(fs);
+    const previousSha256 = await deps.sha256(OLD);
     await writeArchiveReplacing(
-      makeDeps(fs),
+      deps,
       journal,
       "/docs/lib.tesina",
       GOOD,
     );
     expect(fs.files.get("/docs/lib.tesina")).toBe(GOOD);
+    expect(fs.preserveDigests).toEqual([previousSha256]);
     expect(journal.records.size).toBe(0);
     expect([...fs.files.keys()].some((p) => p.includes(".prev"))).toBe(false);
   });
@@ -314,8 +378,8 @@ describe("writeArchiveReplacing", () => {
     fs.files.set("/docs/lib.tesina", OLD);
     const journal = new FakeJournal();
     const originalRename = fs.rename.bind(fs);
-    fs.rename = async (from, to) => {
-      await originalRename(from, to);
+    fs.rename = async (from, to, expectedSha256) => {
+      await originalRename(from, to, expectedSha256);
       if (from === "/docs/lib.tesina" && to.endsWith(".prev")) {
         fs.files.set(to, CHANGED);
       }
@@ -338,9 +402,9 @@ describe("writeArchiveReplacing", () => {
     fs.files.set("/docs/lib.tesina", OLD);
     const journal = new FakeJournal();
     const originalNoReplace = fs.renameNoReplace.bind(fs);
-    fs.renameNoReplace = (from, to) => {
+    fs.renameNoReplace = (from, to, expectedSha256) => {
       if (to === "/docs/lib.tesina") fs.files.set(to, CHANGED);
-      return originalNoReplace(from, to);
+      return originalNoReplace(from, to, expectedSha256);
     };
 
     await expect(
@@ -362,8 +426,8 @@ describe("writeArchiveReplacing", () => {
     fs.files.set("/docs/lib.tesina", OLD);
     const journal = new FakeJournal();
     const originalNoReplace = fs.renameNoReplace.bind(fs);
-    fs.renameNoReplace = async (from, to) => {
-      await originalNoReplace(from, to);
+    fs.renameNoReplace = async (from, to, expectedSha256) => {
+      await originalNoReplace(from, to, expectedSha256);
       if (to === "/docs/lib.tesina") fs.files.set(to, OTHER_VALID);
     };
 
@@ -386,12 +450,12 @@ describe("writeArchiveReplacing", () => {
     const fs = new FakeFs();
     fs.files.set("/docs/lib.tesina", OLD);
     const journal = new FakeJournal();
-    const originalRead = fs.readFile.bind(fs);
-    fs.readFile = async (path) => {
+    const originalRead = fs.readFileBounded.bind(fs);
+    fs.readFileBounded = async (path, maxBytes) => {
       if (path === "/docs/lib.tesina" && fs.files.get(path) === GOOD) {
         fs.files.set(path, OTHER_VALID);
       }
-      return await originalRead(path);
+      return await originalRead(path, maxBytes);
     };
 
     await expect(
@@ -470,11 +534,79 @@ describe("writeArchiveReplacing", () => {
     }
   });
 
+  it("clears journal-owned staging temps without touching the destination", async () => {
+    const fs = new FakeFs();
+    const journal = new FakeJournal();
+    const deps = makeDeps(fs);
+    fs.files.set("/docs/lib.tesina", OLD);
+    for (const id of ["staging-1", "staging-2"]) {
+      const record: ReplacementRecord = {
+        phase: "staging",
+        id,
+        destinationPath: "/docs/lib.tesina",
+        temporaryPath: `/docs/lib.tesina.${id}.tmp`,
+        previousPath: `/docs/lib.tesina.${id}.prev`,
+        expectedSha256: await deps.sha256(GOOD),
+      };
+      await journal.save(record);
+      fs.files.set(record.temporaryPath, GOOD);
+    }
+
+    await recoverReplacements(deps, journal);
+    await recoverReplacements(deps, journal);
+
+    expect(fs.files).toEqual(new Map([["/docs/lib.tesina", OLD]]));
+    expect(journal.records.size).toBe(0);
+  });
+
+  it("retains a changed staging temp as ambiguous evidence", async () => {
+    const fs = new FakeFs();
+    const journal = new FakeJournal();
+    const deps = makeDeps(fs);
+    const record: ReplacementRecord = {
+      phase: "staging",
+      id: "staging-changed",
+      destinationPath: "/docs/lib.tesina",
+      temporaryPath: "/docs/lib.tesina.staging-changed.tmp",
+      previousPath: "/docs/lib.tesina.staging-changed.prev",
+      expectedSha256: await deps.sha256(GOOD),
+    };
+    await journal.save(record);
+    fs.files.set(record.temporaryPath, CHANGED);
+
+    await recoverReplacements(deps, journal);
+
+    expect(fs.files.get(record.temporaryPath)).toBe(CHANGED);
+    expect(journal.records.has(record.id)).toBe(true);
+  });
+
+  it("removes an inert staging record when no sidecar exists", async () => {
+    const fs = new FakeFs();
+    const journal = new FakeJournal();
+    const deps = makeDeps(fs);
+    const record: ReplacementRecord = {
+      phase: "staging",
+      id: "staging-inert",
+      destinationPath: "/docs/lib.tesina",
+      temporaryPath: "/docs/lib.tesina.staging-inert.tmp",
+      previousPath: "/docs/lib.tesina.staging-inert.prev",
+      expectedSha256: await deps.sha256(GOOD),
+    };
+    await journal.save(record);
+    fs.files.set(record.destinationPath, OTHER_VALID);
+
+    await recoverReplacements(deps, journal);
+
+    expect(fs.files.get(record.destinationPath)).toBe(OTHER_VALID);
+    expect(journal.records.size).toBe(0);
+  });
+
   it("does not guess when the destination holds unexpected bytes", async () => {
     const fs = new FakeFs();
     const journal = new FakeJournal();
     const deps = makeDeps(fs);
     const record: ReplacementRecord = {
+      phase: "replacing",
       id: "r1",
       destinationPath: "/docs/lib.tesina",
       temporaryPath: "/docs/lib.tesina.u1.tmp",
@@ -499,6 +631,7 @@ describe("writeArchiveReplacing", () => {
     const journal = new FakeJournal();
     const deps = makeDeps(fs);
     const record: ReplacementRecord = {
+      phase: "replacing",
       id: "r-sync-race",
       destinationPath: "/docs/lib.tesina",
       temporaryPath: "/docs/lib.tesina.tmp",
@@ -510,8 +643,8 @@ describe("writeArchiveReplacing", () => {
     fs.files.set(record.temporaryPath, GOOD);
     fs.files.set(record.previousPath, OLD);
     const originalNoReplace = fs.renameNoReplace.bind(fs);
-    fs.renameNoReplace = async (from, to) => {
-      await originalNoReplace(from, to);
+    fs.renameNoReplace = async (from, to, expectedSha256) => {
+      await originalNoReplace(from, to, expectedSha256);
       if (to === record.destinationPath) {
         fs.files.set(to, new TextEncoder().encode("sync-truncated"));
       }
@@ -528,6 +661,7 @@ describe("writeArchiveReplacing", () => {
     const journal = new FakeJournal();
     const deps = makeDeps(fs);
     const record: ReplacementRecord = {
+      phase: "replacing",
       id: "r2",
       destinationPath: "/docs/lib.tesina",
       temporaryPath: "/docs/lib.tesina.u1.tmp",
@@ -546,11 +680,36 @@ describe("writeArchiveReplacing", () => {
     expect(journal.records.size).toBe(1);
   });
 
+  it("keeps the journal when changed temporary bytes refuse cleanup", async () => {
+    const fs = new FakeFs();
+    const journal = new FakeJournal();
+    const deps = makeDeps(fs);
+    const record: ReplacementRecord = {
+      phase: "replacing",
+      id: "r-changed-temporary",
+      destinationPath: "/docs/lib.tesina",
+      temporaryPath: "/docs/lib.tesina.u1.tmp",
+      previousPath: "/docs/lib.tesina.u2.prev",
+      expectedSha256: await deps.sha256(GOOD),
+      previousSha256: await deps.sha256(OLD),
+    };
+    await journal.save(record);
+    fs.files.set(record.destinationPath, GOOD);
+    fs.files.set(record.temporaryPath, CHANGED);
+
+    await recoverReplacements(deps, journal);
+
+    expect(fs.files.get(record.destinationPath)).toBe(GOOD);
+    expect(fs.files.get(record.temporaryPath)).toBe(CHANGED);
+    expect(journal.records.has(record.id)).toBe(true);
+  });
+
   it("does not restore a preserved previous file whose hash changed", async () => {
     const fs = new FakeFs();
     const journal = new FakeJournal();
     const deps = makeDeps(fs);
     const record: ReplacementRecord = {
+      phase: "replacing",
       id: "r-corrupt-previous",
       destinationPath: "/docs/lib.tesina",
       temporaryPath: "/docs/lib.tesina.tmp",
@@ -569,6 +728,38 @@ describe("writeArchiveReplacing", () => {
     expect(journal.records.has(record.id)).toBe(true);
   });
 
+  it("cleans remaining previous evidence before closing a restored record", async () => {
+    const fs = new FakeFs();
+    const journal = new FakeJournal();
+    const deps = makeDeps(fs);
+    const record: ReplacementRecord = {
+      phase: "replacing",
+      id: "restore-with-duplicate",
+      destinationPath: "/docs/lib.tesina",
+      temporaryPath: "/docs/lib.tesina.restore.tmp",
+      previousPath: "/docs/lib.tesina.restore.prev",
+      expectedSha256: await deps.sha256(GOOD),
+      previousSha256: await deps.sha256(OLD),
+    };
+    await journal.save(record);
+    fs.files.set(record.previousPath, OLD);
+    const originalNoReplace = fs.renameNoReplace.bind(fs);
+    fs.renameNoReplace = async (from, to, expectedSha256) => {
+      await originalNoReplace(from, to, expectedSha256);
+      if (from === record.previousPath) {
+        // Native recovery may still expose deterministic duplicate evidence
+        // through the journaled logical previous path after restoration.
+        fs.files.set(record.previousPath, OLD);
+      }
+    };
+
+    await recoverReplacements(deps, journal, record.destinationPath);
+
+    expect(fs.files.get(record.destinationPath)).toBe(OLD);
+    expect(fs.files.has(record.previousPath)).toBe(false);
+    expect(journal.records.has(record.id)).toBe(false);
+  });
+
   it("recovers only the destination reauthorized by the current dialog", async () => {
     const fs = new FakeFs();
     const journal = new FakeJournal();
@@ -580,6 +771,7 @@ describe("writeArchiveReplacing", () => {
       ]]
     ) {
       const record: ReplacementRecord = {
+        phase: "replacing",
         id,
         destinationPath,
         temporaryPath: `${destinationPath}.tmp`,
@@ -609,12 +801,12 @@ describe("writeArchiveReplacing", () => {
     const renameWasStarted = new Promise<void>((resolve) => {
       renameStarted = resolve;
     });
-    fs.rename = async (from, to) => {
+    fs.rename = async (from, to, expectedSha256) => {
       if (from === "/docs/lib.tesina" && to.endsWith(".prev")) {
         renameStarted();
         await renameReleased;
       }
-      await originalRename(from, to);
+      await originalRename(from, to, expectedSha256);
     };
     const controller = new AbortController();
     const work = writeArchiveReplacing(
@@ -634,6 +826,52 @@ describe("writeArchiveReplacing", () => {
 
     releaseRename();
     await expect(work).rejects.toMatchObject({ code: "portable/cancelled" });
+  });
+
+  it("does not release a failed write while owned-temp cleanup is still running", async () => {
+    vi.useFakeTimers();
+    try {
+      const fs = new FakeFs();
+      const journal = new FakeJournal();
+      const deps = makeDeps(fs);
+      deps.validate = () =>
+        Promise.reject(new PortableFileError("fake/invalid", "bad"));
+      const originalRemove = fs.removeIfHashMatches.bind(fs);
+      let releaseCleanup!: () => void;
+      const cleanupReleased = new Promise<void>((resolve) => {
+        releaseCleanup = resolve;
+      });
+      let markCleanupStarted!: () => void;
+      const cleanupStarted = new Promise<void>((resolve) => {
+        markCleanupStarted = resolve;
+      });
+      fs.removeIfHashMatches = async (path, expectedSha256) => {
+        markCleanupStarted();
+        await cleanupReleased;
+        await originalRemove(path, expectedSha256);
+      };
+
+      const work = writeArchiveReplacing(
+        deps,
+        journal,
+        "/docs/lib.tesina",
+        GOOD,
+      );
+      let settled = false;
+      void work.catch(() => {
+        settled = true;
+      });
+      await cleanupStarted;
+      await vi.advanceTimersByTimeAsync(1_001);
+
+      expect(settled).toBe(false);
+      releaseCleanup();
+      await expect(work).rejects.toMatchObject({ code: "fake/invalid" });
+      await recoverReplacements(deps, journal, "/docs/lib.tesina");
+      expect(journal.records.size).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

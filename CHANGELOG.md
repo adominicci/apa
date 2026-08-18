@@ -11,6 +11,11 @@ and [Semantic Versioning](https://semver.org/).
 
 - Backup setup now uses neutral first-time wording whenever no configured
   backup folder can be confirmed.
+- Backup folder access is now anchored entirely in native, renderer-denied
+  storage. People who configured backups in v0.1.16 must select the folder
+  again and complete one real test backup; existing backup files remain
+  untouched. Later v0.1.17 restarts keep the renewed authorization, while a
+  missing native trust anchor fails closed and asks for authorization again.
 - Tesina's packaged web content and build dependencies now use tighter
   security boundaries without changing native DOI, ISBN, or update access.
 

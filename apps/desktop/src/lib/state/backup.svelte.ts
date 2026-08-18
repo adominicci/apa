@@ -21,6 +21,8 @@ export interface BackupAdapterStatus {
   folderPath?: string;
   backupSetId?: string;
   folderAvailable: boolean;
+  /** Prior folder metadata exists but lacks the v0.1.17 native trust anchor. */
+  requiresReauthorization: boolean;
 }
 
 /** Thin wrapper over the Rust backup-directory commands. */
@@ -30,9 +32,16 @@ export interface BackupAdapter {
     fileName: string,
     bytes: Uint8Array,
   ): Promise<{ sha256: string }>;
+  /** Deletes only a still-native-owned, unconfirmed write. */
+  discardPendingArchive(
+    fileName: string,
+    expectedSha256: string,
+  ): Promise<void>;
   confirmArchive(fileName: string, expectedSha256: string): Promise<void>;
   readArchive(fileName: string): Promise<Uint8Array>;
   listArchives(): Promise<{ fileName: string; byteLength: number }[]>;
+  /** Name-only enumeration for ledger-first retention. Never opens files. */
+  listArchiveNames(): Promise<string[]>;
   removeArchive(fileName: string, expectedSha256: string): Promise<void>;
   ledgerEntries(): Promise<RetentionLedgerEntry[]>;
 }
@@ -55,7 +64,7 @@ export interface BackupStoreDeps {
   };
   runOperation<T>(
     kind: "backup",
-    fn: () => Promise<T>,
+    fn: (signal: AbortSignal) => Promise<T>,
   ): Promise<T>;
   subscribeActivity(listener: () => void): () => void;
   now(): Date;
@@ -80,6 +89,11 @@ function errorCodeOf(error: unknown): string {
     if (typeof withCode.code === "string") return withCode.code;
   }
   return "backup_failed";
+}
+
+function throwIfCancelled(signal: AbortSignal): void {
+  if (!signal.aborted) return;
+  throw Object.assign(new Error("backup cancelled"), { code: "cancelled" });
 }
 
 export class BackupStore {
@@ -156,17 +170,23 @@ export class BackupStore {
     try {
       return await this.#deps.runOperation(
         "backup",
-        () => this.#runInner(manual),
+        (signal) => this.#runInner(manual, signal),
       );
     } finally {
       this.running = false;
     }
   }
 
-  async #runInner(manual: boolean): Promise<BackupRunOutcome> {
+  async #runInner(
+    manual: boolean,
+    signal: AbortSignal,
+  ): Promise<BackupRunOutcome> {
     const deps = this.#deps;
+    let pendingArchive: { fileName: string; sha256: string } | null = null;
+    let confirmed = false;
     try {
       const status = await deps.adapter.status();
+      throwIfCancelled(signal);
       if (!status.configured || !status.backupSetId) {
         return { kind: "skipped", reason: "not-configured" };
       }
@@ -186,6 +206,7 @@ export class BackupStore {
       }
 
       const digest = await deps.currentContentDigest();
+      throwIfCancelled(signal);
       if (
         !manual && digest === deps.settings.backup?.lastSuccessContentDigest
       ) {
@@ -193,11 +214,14 @@ export class BackupStore {
       }
 
       const packaged = await deps.packageArchive(status.backupSetId);
+      throwIfCancelled(signal);
       // Exclusive create: a taken name (another same-set write this second,
       // or a synced copy) selects the next candidate; nothing is replaced.
       let fileName: string | null = null;
       let writtenSha256: string | null = null;
+      let resourceRecoveryAttempted = false;
       for (let attempt = 0; attempt < 3 && fileName === null; attempt += 1) {
+        throwIfCancelled(signal);
         const stamp = new Date(deps.now().getTime() + attempt * 1000)
           .toISOString()
           .replace(/\.\d+Z$/, "Z");
@@ -209,8 +233,35 @@ export class BackupStore {
           );
           fileName = candidate;
           writtenSha256 = written.sha256;
+          pendingArchive = { fileName: candidate, sha256: written.sha256 };
+          throwIfCancelled(signal);
         } catch (error) {
-          if (errorCodeOf(error) !== "name_taken") throw error;
+          const code = errorCodeOf(error);
+          if (code === "name_taken") continue;
+          if (code !== "resource_limit" || resourceRecoveryAttempted) {
+            throw error;
+          }
+
+          // Native ownership is intentionally capped. One ledger-first,
+          // cancellable retention pass can free owned slots without touching
+          // unknown files; retry the exact write once and never loop on a
+          // provider that keeps returning the cap.
+          resourceRecoveryAttempted = true;
+          await this.#applyRetention(status.backupSetId, signal);
+          throwIfCancelled(signal);
+          try {
+            const written = await deps.adapter.writeArchive(
+              candidate,
+              packaged.bytes,
+            );
+            fileName = candidate;
+            writtenSha256 = written.sha256;
+            pendingArchive = { fileName: candidate, sha256: written.sha256 };
+            throwIfCancelled(signal);
+          } catch (retryError) {
+            if (errorCodeOf(retryError) === "name_taken") continue;
+            throw retryError;
+          }
         }
       }
       if (fileName === null || writtenSha256 === null) {
@@ -219,10 +270,31 @@ export class BackupStore {
         });
       }
       // Spec: success means closed, locally visible, reopened, validated.
-      await deps.validateArchiveBytes(await deps.adapter.readArchive(fileName));
+      const reopened = await deps.adapter.readArchive(fileName);
+      throwIfCancelled(signal);
+      await deps.validateArchiveBytes(reopened);
+      throwIfCancelled(signal);
       await deps.adapter.confirmArchive(fileName, writtenSha256);
+      confirmed = true;
+      throwIfCancelled(signal);
 
       const completedAt = deps.now();
+      const retentionWarning = await this.#applyRetention(
+        status.backupSetId,
+        signal,
+      );
+      throwIfCancelled(signal);
+
+      // If content moved on while the archive was being written, schedule a
+      // later eligibility check; the recorded digest stays the archived one.
+      const liveDigest = await deps.currentContentDigest();
+      throwIfCancelled(signal);
+      if (liveDigest !== packaged.contentDigest) {
+        this.followUpScheduled = true;
+        this.scheduleEligibilityCheck();
+      }
+      throwIfCancelled(signal);
+
       const previousSuccess = {
         lastSuccessAt: deps.settings.backup?.lastSuccessAt,
         lastSuccessContentDigest: deps.settings.backup
@@ -235,39 +307,53 @@ export class BackupStore {
         lastErrorCode: undefined,
         ...(manual ? {} : { lastAutoSuccessDay: localDay(completedAt) }),
       });
+      // This flush is the success commit boundary. All cancellable native and
+      // digest work is complete; an abort that arrives while the atomic local
+      // settings write is in flight observes the committed success.
       try {
         await deps.settings.flushPending();
       } catch (error) {
         deps.settings.updateBackup(previousSuccess);
+        try {
+          await deps.settings.flushPending();
+        } catch {
+          // Preserve the original persistence failure. The in-memory rollback
+          // remains authoritative and the settings store will retry it.
+        }
         throw error;
-      }
-
-      const retentionWarning = await this.#applyRetention(status.backupSetId);
-
-      // If content moved on while the archive was being written, schedule a
-      // later eligibility check; the recorded digest stays the archived one.
-      const liveDigest = await deps.currentContentDigest();
-      if (liveDigest !== packaged.contentDigest) {
-        this.followUpScheduled = true;
-        this.scheduleEligibilityCheck();
       }
       return { kind: "success", fileName, retentionWarning };
     } catch (error) {
+      if (pendingArchive !== null && !confirmed) {
+        try {
+          await deps.adapter.discardPendingArchive(
+            pendingArchive.fileName,
+            pendingArchive.sha256,
+          );
+        } catch {
+          // Preserve the original run error. Without a successful hash-bound
+          // discard, retention must treat the archive as unowned evidence.
+        }
+      }
       const errorCode = errorCodeOf(error);
       deps.settings.updateBackup({ lastErrorCode: errorCode });
       return { kind: "failed", errorCode };
     }
   }
 
-  async #applyRetention(backupSetId: string): Promise<boolean> {
+  async #applyRetention(
+    backupSetId: string,
+    signal: AbortSignal,
+  ): Promise<boolean> {
     const deps = this.#deps;
     try {
-      const [listing, ledger] = await Promise.all([
-        deps.adapter.listArchives(),
-        deps.adapter.ledgerEntries(),
-      ]);
+      throwIfCancelled(signal);
+      const listing = await deps.adapter.listArchiveNames();
+      throwIfCancelled(signal);
+      const ledger = await deps.adapter.ledgerEntries();
+      throwIfCancelled(signal);
       const plan = planRetention({
-        folderFileNames: listing.map((f) => f.fileName),
+        folderFileNames: listing,
         ledger,
         backupSetId,
         keep: deps.keepCount ?? 7,
@@ -275,22 +361,31 @@ export class BackupStore {
       this.accumulationWarning = plan.accumulationWarning;
       let warning = false;
       for (const target of plan.prune) {
+        throwIfCancelled(signal);
         try {
           await deps.adapter.removeArchive(
             target.fileName,
             target.expectedSha256,
           );
-        } catch {
+          throwIfCancelled(signal);
+        } catch (error) {
+          if (signal.aborted || errorCodeOf(error) === "cancelled") {
+            throw Object.assign(new Error("backup cancelled"), {
+              code: "cancelled",
+            });
+          }
           warning = true; // prune failure never invalidates the new backup
         }
       }
+      throwIfCancelled(signal);
       this.retentionWarning = warning || plan.accumulationWarning;
       deps.settings.updateBackup({
         retentionWarning: this.retentionWarning,
         accumulationWarning: this.accumulationWarning,
       });
       return this.retentionWarning;
-    } catch {
+    } catch (error) {
+      if (signal.aborted || errorCodeOf(error) === "cancelled") throw error;
       this.retentionWarning = true;
       deps.settings.updateBackup({ retentionWarning: true });
       return true;

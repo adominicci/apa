@@ -138,8 +138,8 @@ class MemoryExternalFs implements ExternalFs {
     return bytes;
   }
 
-  async sha256File(path: string): Promise<string> {
-    return await sha256Hex(await this.readFile(path));
+  async sha256File(path: string, maxBytes: number): Promise<string> {
+    return await sha256Hex(await this.readFileBounded(path, maxBytes));
   }
 
   writeFile(path: string, bytes: Uint8Array): Promise<void> {
@@ -165,8 +165,10 @@ class MemoryExternalFs implements ExternalFs {
   async removeIfHashMatches(
     path: string,
     expectedSha256: string,
+    _installedDestinationSha256?: string,
   ): Promise<void> {
-    if ((await this.sha256File(path)) !== expectedSha256) {
+    const bytes = await this.readFile(path);
+    if ((await sha256Hex(bytes)) !== expectedSha256) {
       throw new Error(`hash mismatch ${path}`);
     }
     this.files.delete(path);

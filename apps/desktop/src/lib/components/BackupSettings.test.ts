@@ -61,6 +61,7 @@ function fixturePreview(): ImportPreviewResult {
 
 class Harness {
   configured = true;
+  requiresReauthorization = false;
   archives = [{ fileName: ARCHIVE_NAME, byteLength: 1024 }];
   settings: BackupSettingsFacade & {
     updateBackup: ReturnType<typeof vi.fn>;
@@ -102,6 +103,7 @@ class Harness {
           {
             configured: this.configured,
             folderAvailable: this.configured,
+            requiresReauthorization: this.requiresReauthorization,
             ...(this.configured
               ? {
                 folderPath: "/synced/Tesina",
@@ -111,9 +113,12 @@ class Harness {
           } satisfies BackupAdapterStatus,
         ),
       writeArchive: () => Promise.resolve({ sha256: "x" }),
+      discardPendingArchive: () => Promise.resolve(),
       confirmArchive: () => Promise.resolve(),
       readArchive: () => Promise.resolve(new Uint8Array()),
       listArchives: () => Promise.resolve([...this.archives]),
+      listArchiveNames: () =>
+        Promise.resolve(this.archives.map((archive) => archive.fileName)),
       removeArchive: () => Promise.resolve(),
       ledgerEntries: () => Promise.resolve([]),
     };
@@ -124,7 +129,7 @@ class Harness {
       currentContentDigest: () => Promise.resolve("d"),
       validateArchiveBytes: () => Promise.resolve(),
       settings: this.settings,
-      runOperation: (_kind, fn) => fn(),
+      runOperation: (_kind, fn) => fn(new AbortController().signal),
       subscribeActivity: () => () => {},
       now: () => new Date(2026, 7, 8, 10, 0, 0),
     });
@@ -237,6 +242,20 @@ describe("BackupSettings", () => {
     expect(alert).toContain(m.bk_err_folder_unavailable());
   });
 
+  it("prioritizes resource limits and accumulation as retention guidance", async () => {
+    const h = new Harness({
+      lastSuccessAt: "2026-08-06T10:00:00.000Z",
+      lastErrorCode: "resource_limit",
+    });
+    h.store.accumulationWarning = true;
+    mountSettings(h);
+    await settle();
+
+    expect(bodyText()).toContain(m.bk_state_retention());
+    expect(bodyText()).toContain(m.bk_retention_help());
+    expect(bodyText()).not.toContain(m.bk_state_warning());
+  });
+
   it("Turn off confirms, revokes, and explains files remain", async () => {
     const h = new Harness({ lastSuccessAt: "2026-08-07T10:00:00.000Z" });
     mountSettings(h);
@@ -345,6 +364,19 @@ describe("BackupSettings", () => {
     expect(bodyText()).not.toContain("Turning backups back on");
 
     buttonByText("Set up backups")!.click();
+    expect(h.onRunWizard).toHaveBeenCalledOnce();
+  });
+
+  it("explains one-time reauthorization and preserves old files", async () => {
+    const h = new Harness();
+    h.configured = false;
+    h.requiresReauthorization = true;
+    mountSettings(h);
+    await settle();
+
+    expect(bodyText()).toContain(m.bk_reauthorization_title());
+    expect(bodyText()).toContain(m.bk_reauthorization_body());
+    buttonByText(m.bk_reenable())!.click();
     expect(h.onRunWizard).toHaveBeenCalledOnce();
   });
 });

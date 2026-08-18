@@ -42,4 +42,21 @@ describe("native pagination host runtime identity", () => {
       'process.env["TESINA_PROOF_COMMIT_SHA"] ??',
     );
   });
+
+  it("compiles and tests the production Tauri library in Windows pull-request CI", async () => {
+    const workflow = await readFile(
+      resolve(
+        proofDir,
+        "../../../../../../../.github/workflows/ci.yml",
+      ),
+      "utf8",
+    );
+
+    expect(workflow).toMatch(
+      /pagination-native-windows:[\s\S]*?- name: Compile production Tauri library\s+run: cargo check --locked --lib\s+working-directory: apps\/desktop\/src-tauri/,
+    );
+    expect(workflow).toMatch(
+      /pagination-native-windows:[\s\S]*?- name: Test production Tauri library\s+run: cargo test --locked --lib\s+working-directory: apps\/desktop\/src-tauri/,
+    );
+  });
 });

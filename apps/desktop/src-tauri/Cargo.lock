@@ -4299,10 +4299,12 @@ dependencies = [
 name = "tesina"
 version = "0.1.17"
 dependencies = [
+ "libc",
  "objc2",
  "objc2-app-kit",
  "objc2-foundation",
  "objc2-web-kit",
+ "rustix",
  "same-file",
  "serde",
  "serde_json",
@@ -4319,6 +4321,8 @@ dependencies = [
  "tauri-plugin-updater",
  "tempfile",
  "tokio",
+ "unicode-casefold",
+ "unicode-normalization",
  "url",
  "uuid",
  "webview2-com",
@@ -4760,10 +4764,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "unicode-casefold"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7f66b1c8f8caa2ab31dc6d3f35386f16efdab89668f93411e565ac368908e8f"
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
+name = "unicode-normalization"
+version = "0.1.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5fd4f6878c9cb28d874b009da9e8d183b5abc80117c40bbd187a1fde336be6e8"
+dependencies = [
+ "tinyvec",
+]
 
 [[package]]
 name = "unicode-segmentation"

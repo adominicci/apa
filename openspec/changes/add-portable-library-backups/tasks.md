@@ -231,7 +231,15 @@
       provider, or network scope. Implement
       `apps/desktop/src-tauri/src/backup_directory.rs`, register commands in
       `lib.rs`, and make Rust exclusively own an atomic versioned
-      `$APPDATA/backup-directory.json` authorization record.
+      configuration, ledger, and trust token beneath the renderer-nonwritable
+      `$APPCACHE/.tesina-native/` authority store. Treat
+      `$APPDATA/.tesina-native/` only as inert reauthorization evidence, never
+      as folder or deletion authority. Do not migrate v0.1.16's
+      renderer-writable authority: require the native picker, a real test
+      archive carrying a new pending `backupSetId`, and activation; leave old
+      metadata and archives unowned and untouched. Normal v0.1.17 restarts may
+      restore only validated cache authority; missing, malformed, or
+      mismatched evidence must fail closed to reauthorization.
 - [ ] 8.2 Add native negative and restart proof on macOS and Windows: the active
       folder supports exclusive child creation, reopen, list, and hash-checked
       removal after process restart, while safe replacement remains limited to
@@ -242,7 +250,7 @@
       backup UI/status fields and keep authoritative path/backup-set state in
       the native record, whose presence means configured (Turn off deletes the
       record; there is no pause flag). Add a Rust-owned atomic
-      `$APPDATA/backup-ledger.json` keyed by the native `backupSetId`; prove
+      protected backup ledger keyed by the native `backupSetId`; prove
       older settings load with backup disabled and every configuration/ledger
       file is excluded from `.tesina` archives.
 - [x] 8.4 Refactor `UiSettingsStore` writes into serialized requested/persisted

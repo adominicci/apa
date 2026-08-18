@@ -21,6 +21,8 @@ export function describeBackupError(error: unknown): string {
       return m.bk_err_symlink();
     case "name_taken":
       return m.bk_err_name_taken();
+    case "resource_limit":
+      return m.bk_retention_help();
     case "not_configured":
     case "pending_missing":
       return m.bk_err_not_configured();

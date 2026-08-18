@@ -39,24 +39,43 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
-            app.manage(backup_directory::BackupDirectoryCore::new(app_data_dir));
+            let app_cache_dir = app.path().app_cache_dir()?;
+            app.manage(backup_directory::BackupDirectoryCore::new(
+                app_data_dir,
+                app_cache_dir,
+            )?);
+            app.manage(external_files::ExternalSaveAuthorizations::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            backup_directory::backup_begin_configuration,
+            backup_directory::backup_pick_and_begin_configuration,
             backup_directory::backup_write_test_archive,
             backup_directory::backup_activate_configuration,
             backup_directory::backup_cancel_configuration,
             backup_directory::backup_write_archive,
             backup_directory::backup_confirm_archive,
+            backup_directory::backup_discard_pending_archive,
             backup_directory::backup_read_archive,
             backup_directory::backup_read_test_archive,
             backup_directory::backup_list_archives,
+            backup_directory::backup_list_archive_names,
             backup_directory::backup_remove_archive,
             backup_directory::backup_ledger_entries,
             backup_directory::backup_status,
+            backup_directory::backup_cancel_current_operations,
             backup_directory::backup_disable,
+            external_files::external_pick_save_destination,
+            external_files::external_finish_save_authorization,
+            external_files::external_destination_exists,
+            external_files::external_read_destination,
+            external_files::external_hash_destination,
+            external_files::external_write_temp,
+            external_files::external_read_temp,
+            external_files::external_related_exists,
+            external_files::external_hash_previous,
+            external_files::external_preserve_destination,
             external_files::external_rename_no_replace,
+            external_files::external_remove_temp,
             external_files::external_remove_if_hash_matches,
             pdf_export::export_pdf,
             host_os,

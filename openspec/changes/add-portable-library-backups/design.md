@@ -333,9 +333,12 @@ backup-directory adapter with purpose-specific commands. Setup receives a path
 only from the native recursive folder picker, canonicalizes it, rejects
 symlinks/reparse points and any selection that is or contains the application
 data directory, creates/tests the dedicated `Tesina Backups` subfolder, and
-stores the active path only after a real archive succeeds. After restart, Rust loads that one path
-from validated app-data settings and authorizes only the operations exposed by
-the adapter. Ordinary file-dialog grants remain session-only.
+stores the active path only after a real archive succeeds. Before that test,
+native setup creates the pending `backupSetId`; the test archive name and
+manifest use that exact identity, and activation reuses it. After restart, Rust
+loads that one path from renderer-nonwritable native cache state and authorizes
+only the operations exposed by the adapter. Ordinary file-dialog grants remain
+session-only.
 
 Backup commands do not accept arbitrary caller paths after setup. Changing
 folders atomically tests and activates the new path, then revokes the old
@@ -345,9 +348,12 @@ candidate remains beneath the approved canonical root. Do not add `$HOME/**/*`,
 cloud-provider-specific static paths, or new network permissions.
 
 Implement the commands in `apps/desktop/src-tauri/src/backup_directory.rs` and
-register them in `lib.rs`. Rust exclusively owns an atomic
-`$APPDATA/backup-directory.json` authorization record so the Svelte settings
-writer never races a native writer:
+register them in `lib.rs`. Rust exclusively owns the atomic configuration,
+ledger, and trust token beneath renderer-nonwritable
+`$APPCACHE/.tesina-native/`; the Svelte settings writer cannot create, replace,
+or race live authority. `$APPDATA/.tesina-native/` may retain only inert reset
+evidence used to explain reauthorization. Nothing read from that
+renderer-writable namespace can authorize an external write or deletion:
 
 ```ts
 interface BackupDirectoryConfigV1 {
@@ -362,6 +368,18 @@ separate `enabled` flag and no pause state. Turn off deletes the record and
 revokes the runtime authorization while leaving archive bytes untouched;
 re-enabling always runs the wizard again with a newly authorized folder and a
 new successful test backup, matching the capability spec.
+
+v0.1.16 wrote its folder authority and ledger at renderer-writable app-data
+paths. v0.1.17 deliberately does not migrate that authority into the protected
+store. On the first v0.1.17 launch, Tesina reports that authorization must be
+renewed; the user selects a folder through the native picker and completes a
+real test archive under a newly generated set identity. Legacy metadata and all
+old archives remain unowned and untouched. Once activated by v0.1.17, ordinary
+restarts reuse only validated records from the cache authority store. Missing,
+replaced, malformed, or inconsistent authority evidence preserves/quarantines
+the evidence and fails closed to the same reauthorization flow rather than
+trusting a renderer-creatable path. This disables backup without preventing
+the editor from launching; existing external archives remain untouched.
 
 Store only UI/status state additively in `settings.json` schema version 1:
 
@@ -423,7 +441,7 @@ Use a dedicated `<selected folder>/Tesina Backups/` directory and names such as
 `Tesina Library - a1b2c3d4 - 2026-08-08T19-42-00Z.tesina`, where the middle
 component is a short prefix of this installation's `backupSetId` so two
 installations sharing one synced folder never target the same name. Maintain an
-atomic Rust-owned `$APPDATA/backup-ledger.json` containing exact filename,
+atomic Rust-owned `$APPCACHE/.tesina-native/backup-ledger.json` containing exact filename,
 archive hash, creation time, and `backupSetId`. Classification is ledger-first:
 a file is a prune candidate only when its name matches the grammar, the ledger
 records that exact filename, the recorded backup-set identity matches, and its

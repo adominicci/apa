@@ -88,7 +88,9 @@ export function planRetention(input: RetentionInput): RetentionPlan {
       expectedSha256: entry.sha256,
     }));
 
-  const warningAt = input.accumulationWarningAt ?? input.keep * 3;
+  // Warn at 15 for the default keep=7, before the native ownership cap of
+  // 16 can prevent the next write. Callers may still choose a tighter bound.
+  const warningAt = input.accumulationWarningAt ?? input.keep * 2;
   return {
     prune,
     retained,

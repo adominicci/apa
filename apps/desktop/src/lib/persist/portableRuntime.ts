@@ -6,7 +6,8 @@
  */
 
 import { getVersion } from "@tauri-apps/api/app";
-import { open, save } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 import { persistence } from "./coordinator.ts";
 import { type OperationHandle, operations } from "./operationCoordinator.ts";
 import {
@@ -22,9 +23,7 @@ import {
 } from "./archiveService.ts";
 import {
   type ExternalFs,
-  PortableFileError,
   readTesinaBounded,
-  recoverReplacements,
   type ReplacementJournal,
 } from "./portableFiles.ts";
 import {
@@ -49,6 +48,35 @@ function nowIso(): string {
 }
 
 let cachedService: LibraryArchiveService | null = null;
+
+async function createProductionArchiveService(
+  externalFs: ExternalFs,
+): Promise<LibraryArchiveService> {
+  const appVersion = await getVersion();
+  return createLibraryArchiveService({
+    captureSnapshot: () =>
+      captureStableSnapshot({
+        io: appDataSnapshotIo,
+        flushPending: () => persistence.flushPending(),
+        generation: () => persistence.activityGeneration,
+      }),
+    runMaintenance: (fn) => persistence.runMaintenance(fn),
+    computeContentDigest: (content) =>
+      snapshotContentDigest({
+        essays: content.essays,
+        library: content.library,
+        assets: content.assets,
+      }),
+    appVersion,
+    now: nowIso,
+    uuid: () => crypto.randomUUID(),
+    sha256: sha256Hex,
+    writeAppDataFile: (relPath, bytes) =>
+      appDataImportFs.writeBytes(relPath, bytes),
+    externalFs,
+    replacementJournal: appDataReplacementJournal,
+  });
+}
 
 export interface PortableLibraryRuntimeDeps {
   getArchiveService(): Promise<LibraryArchiveService>;
@@ -136,29 +164,6 @@ export function createPortableLibraryRuntime(
 
   return {
     async exportToFile(destinationPath) {
-      await recoverReplacements(
-        {
-          fs: deps.externalFs,
-          validate: async (bytes) => {
-            await readArchiveStructure(bytes, limits);
-          },
-          uuid: deps.uuid,
-          sha256: sha256Hex,
-        },
-        deps.replacementJournal,
-        destinationPath,
-      );
-      if (
-        (await deps.replacementJournal.list()).some((record) =>
-          record.destinationPath === destinationPath
-        )
-      ) {
-        throw new PortableFileError(
-          "portable/replacement-recovery-required",
-          "the interrupted export destination still requires recovery",
-          destinationPath,
-        );
-      }
       const service = await deps.getArchiveService();
       return await deps.runOperation("export", async (handle) => {
         const result = await service.exportToFile(
@@ -200,40 +205,19 @@ export function createPortableLibraryRuntime(
 /** The one shared archive service (manual export, rollback, backups). */
 export async function libraryArchiveService(): Promise<LibraryArchiveService> {
   if (cachedService) return cachedService;
-  const appVersion = await getVersion();
-  cachedService = createLibraryArchiveService({
-    captureSnapshot: () =>
-      captureStableSnapshot({
-        io: appDataSnapshotIo,
-        flushPending: () => persistence.flushPending(),
-        generation: () => persistence.activityGeneration,
-      }),
-    runMaintenance: (fn) => persistence.runMaintenance(fn),
-    computeContentDigest: (content) =>
-      snapshotContentDigest({
-        essays: content.essays,
-        library: content.library,
-        assets: content.assets,
-      }),
-    appVersion,
-    now: nowIso,
-    uuid: () => crypto.randomUUID(),
-    sha256: sha256Hex,
-    writeAppDataFile: (relPath, bytes) =>
-      appDataImportFs.writeBytes(relPath, bytes),
-    externalFs: externalDialogFs(),
-    replacementJournal: appDataReplacementJournal,
-  });
+  cachedService = await createProductionArchiveService(externalDialogFs());
   return cachedService;
 }
 
 let cachedRuntime: PortableLibraryRuntime | null = null;
 
-function productionPortableLibraryRuntime(): PortableLibraryRuntime {
-  if (cachedRuntime) return cachedRuntime;
-  cachedRuntime = createPortableLibraryRuntime({
-    getArchiveService: libraryArchiveService,
-    externalFs: externalDialogFs(),
+function createProductionPortableLibraryRuntime(
+  getArchiveService: () => Promise<LibraryArchiveService>,
+  externalFs: ExternalFs,
+): PortableLibraryRuntime {
+  return createPortableLibraryRuntime({
+    getArchiveService,
+    externalFs,
     replacementJournal: appDataReplacementJournal,
     importFs: appDataImportFs,
     runMaintenance: (operation) => persistence.runMaintenance(operation),
@@ -242,21 +226,45 @@ function productionPortableLibraryRuntime(): PortableLibraryRuntime {
     uuid: () => crypto.randomUUID(),
     now: nowIso,
   });
+}
+
+function productionPortableLibraryRuntime(): PortableLibraryRuntime {
+  if (cachedRuntime) return cachedRuntime;
+  cachedRuntime = createProductionPortableLibraryRuntime(
+    libraryArchiveService,
+    externalDialogFs(),
+  );
   return cachedRuntime;
 }
 
-/** Native save dialog + scoped recovery and recoverable export. */
+interface NativeSaveSelection {
+  path: string;
+  authorizationToken: string;
+}
+
+/** Native save dialog + exact one-lifecycle authorization and export. */
 export async function exportLibraryToChosenFile(
   defaultFileName: string,
 ): Promise<{ path: string } | null> {
-  const destination = await save({
-    defaultPath: defaultFileName,
-    filters: [{ name: "Tesina", extensions: ["tesina"] }],
-  });
-  if (destination === null) return null;
-  // Dialog grants are session-only. Re-selecting this exact destination is
-  // the first safe point at which the runtime may recover its replacement.
-  return await productionPortableLibraryRuntime().exportToFile(destination);
+  const selection = await invoke<NativeSaveSelection | null>(
+    "external_pick_save_destination",
+    { suggestedName: defaultFileName },
+  );
+  if (selection === null) return null;
+
+  try {
+    const externalFs = externalDialogFs(selection.authorizationToken);
+    const service = await createProductionArchiveService(externalFs);
+    const runtime = createProductionPortableLibraryRuntime(
+      () => Promise.resolve(service),
+      externalFs,
+    );
+    return await runtime.exportToFile(selection.path);
+  } finally {
+    await invoke("external_finish_save_authorization", {
+      authorizationToken: selection.authorizationToken,
+    });
+  }
 }
 
 /** Native open dialog + bounded read + validated preview. Null on cancel. */

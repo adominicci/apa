@@ -163,17 +163,24 @@
   }
 
   const failing = $derived(settings.backup?.lastErrorCode !== undefined);
+  const retentionIssue = $derived(
+    settings.backup?.lastErrorCode === "resource_limit" ||
+      store.retentionWarning ||
+      store.accumulationWarning,
+  );
 
   /* One status slot carries all four states. Previously each was its own
      stray paragraph, so the dialog's first answer changed shape and position
      depending on what had happened. */
   const tone = $derived(
-    store.running ? "busy" : failing ? "warn" : "ok",
+    store.running ? "busy" : failing || retentionIssue ? "warn" : "ok",
   );
 
   const statusTitle = $derived(
     store.running
       ? m.bk_state_running()
+      : retentionIssue
+      ? m.bk_state_retention()
       : failing
       ? m.bk_state_warning()
       : m.bk_state_healthy(),
@@ -249,6 +256,8 @@
             code: settings.backup?.lastErrorCode,
           })}
         </p>
+      {:else if retentionIssue && !store.running}
+        <p class="error" role="alert">{m.bk_retention_help()}</p>
       {/if}
 
       <div class="actions">
@@ -331,8 +340,16 @@
       <div class="status-panel" data-tone="off">
         <span class="status-dot" aria-hidden="true"></span>
         <div class="status-body">
-          <span class="status-title" role="status">{m.bk_not_configured()}</span>
-          <span class="status-meta">{m.bk_reenable_note()}</span>
+          <span class="status-title" role="status">
+            {status?.requiresReauthorization
+              ? m.bk_reauthorization_title()
+              : m.bk_not_configured()}
+          </span>
+          <span class="status-meta">
+            {status?.requiresReauthorization
+              ? m.bk_reauthorization_body()
+              : m.bk_reenable_note()}
+          </span>
         </div>
       </div>
       {#if notice !== null}
