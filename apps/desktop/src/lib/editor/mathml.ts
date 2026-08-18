@@ -10,6 +10,7 @@ export function latexToMathml(latex: string): string {
   return temml.renderToString(latex, {
     displayMode: true,
     throwOnError: true,
+    trust: false,
     maxSize: [10, 100],
   });
 }
