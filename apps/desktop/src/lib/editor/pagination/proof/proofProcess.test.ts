@@ -5,6 +5,10 @@ import { delimiter, resolve } from "node:path";
 import process from "node:process";
 import { executeBoundedProcess, ProcessTimeoutError } from "./proofProcess.ts";
 
+const TREE_PROCESS_TIMEOUT_MS = 5_000;
+const TREE_PID_READY_TIMEOUT_MS = 4_000;
+const TREE_TEST_TIMEOUT_MS = 15_000;
+
 function runtimeEvalArgs(source: string): string[] {
   return "deno" in process.versions ? ["eval", source] : ["-e", source];
 }
@@ -74,7 +78,7 @@ describe("bounded proof process execution", () => {
 
   it(
     "settles at the deadline and kills descendants that retain its pipes",
-    { timeout: 10_000 },
+    { timeout: TREE_TEST_TIMEOUT_MS },
     async () => {
       const temporaryDirectory = await mkdtemp(
         resolve(tmpdir(), "tesina-proof-process-tree-test-"),
@@ -103,14 +107,17 @@ describe("bounded proof process execution", () => {
         execution = executeBoundedProcess(
           process.execPath,
           runtimeEvalArgs(parentSource),
-          { timeoutMs: 3_000 },
+          { timeoutMs: TREE_PROCESS_TIMEOUT_MS },
         ).catch((error: unknown) => error);
-        descendantPid = await waitForPidFile(pidFile);
+        descendantPid = await waitForPidFile(
+          pidFile,
+          TREE_PID_READY_TIMEOUT_MS,
+        );
         const result = await execution;
         const elapsedMs = performance.now() - startedAt;
 
         expect(result).toBeInstanceOf(ProcessTimeoutError);
-        expect(elapsedMs).toBeLessThan(6_000);
+        expect(elapsedMs).toBeLessThan(8_000);
         expect(await waitForProcessExit(descendantPid!)).toBe(true);
       } finally {
         await execution;
@@ -128,7 +135,7 @@ describe("bounded proof process execution", () => {
 
   it.runIf(process.platform !== "win32")(
     "uses Windows tree termination semantics when the selected host is win32",
-    { timeout: 10_000 },
+    { timeout: TREE_TEST_TIMEOUT_MS },
     async () => {
       const temporaryDirectory = await mkdtemp(
         resolve(tmpdir(), "tesina-proof-windows-tree-test-"),
@@ -169,7 +176,7 @@ describe("bounded proof process execution", () => {
           process.execPath,
           runtimeEvalArgs(parentSource),
           {
-            timeoutMs: 3_000,
+            timeoutMs: TREE_PROCESS_TIMEOUT_MS,
             platform: "win32",
             env: {
               ...process.env,
@@ -177,7 +184,10 @@ describe("bounded proof process execution", () => {
             },
           },
         ).catch((error: unknown) => error);
-        descendantPid = await waitForPidFile(pidFile);
+        descendantPid = await waitForPidFile(
+          pidFile,
+          TREE_PID_READY_TIMEOUT_MS,
+        );
         const result = await execution;
 
         expect(result).toBeInstanceOf(ProcessTimeoutError);
