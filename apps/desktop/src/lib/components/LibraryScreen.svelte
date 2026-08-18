@@ -734,7 +734,7 @@
 
   .coll.active {
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   /* Layout hook only — the badge's own look comes from controls-v2.css. */
@@ -782,7 +782,7 @@
   }
 
   .add-coll:hover {
-    color: var(--accent);
+    color: var(--accent-text);
     border-color: var(--accent);
   }
 

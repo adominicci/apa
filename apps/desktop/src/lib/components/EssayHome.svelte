@@ -590,11 +590,11 @@
 
   .nav-item.active {
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .nav-item.active :global(svg) {
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   /* Layout hook only — the badge's own look comes from controls-v2.css. */
@@ -919,7 +919,7 @@
   }
 
   .essay-actions .use {
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .essay.new {
@@ -933,7 +933,7 @@
   }
 
   .essay.new:hover {
-    color: var(--accent);
+    color: var(--accent-text);
     border-color: var(--accent);
     box-shadow: none;
   }

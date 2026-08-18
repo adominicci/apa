@@ -237,7 +237,7 @@
 
   .seg button.active {
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-text);
     font-weight: 600;
   }
 

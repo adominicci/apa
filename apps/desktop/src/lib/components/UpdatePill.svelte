@@ -191,7 +191,7 @@
 
   .pill:hover:enabled,
   .pill:focus-visible {
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .pill:disabled {

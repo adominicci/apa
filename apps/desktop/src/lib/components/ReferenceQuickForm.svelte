@@ -1427,7 +1427,7 @@
 
   .lookup-ok {
     margin: 0;
-    color: var(--accent);
+    color: var(--accent-text);
     font-size: var(--t-small);
   }
 
@@ -1460,7 +1460,7 @@
 
   .seg button.active {
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-text);
     font-weight: 600;
   }
 
@@ -1476,7 +1476,7 @@
     background: none;
     padding: 0;
     font: inherit;
-    color: var(--accent);
+    color: var(--accent-text);
     cursor: pointer;
   }
 

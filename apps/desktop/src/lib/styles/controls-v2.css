@@ -243,9 +243,9 @@
 }
 
 /* ── Popover ────────────────────────────────────────────────────────
- * The one floating surface. Before v2 there were seven of them: four
- * radii (8 / 10 / 12 / 16), two elevation steps, one raw `10px`
- * literal, and the inset hairline on three of the seven.
+ * The one floating surface. Before v2 there were six of them over twelve
+ * call sites: three radii (--r-sm / a raw 10px / --r-md), two elevation
+ * steps, and the inset hairline on exactly one of the six.
  *
  * This is the MATERIAL only — background, edge, radius, lift. Placement,
  * width and z-index stay with each caller, deliberately: the editor's

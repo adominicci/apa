@@ -277,7 +277,7 @@
     border: none;
     background: none;
     padding: 0;
-    color: var(--accent);
+    color: var(--accent-text);
     font: inherit;
     font-size: var(--t-body);
     cursor: pointer;

@@ -96,6 +96,6 @@
 
   .mi.active {
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-text);
   }
 </style>

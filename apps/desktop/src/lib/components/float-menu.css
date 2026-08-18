@@ -51,7 +51,7 @@
 
 .fm-btn.on {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /*
@@ -62,7 +62,7 @@
  */
 .fm-btn.on:hover:enabled {
   background: color-mix(in oklab, var(--accent), transparent 82%);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .fm-btn:disabled {

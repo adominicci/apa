@@ -362,8 +362,8 @@ site that keeps it.
 
 `12.5px`, `13.5px`, `11.5px`, `10.5px`, `9.5px` and every `rem` value
 in chrome are to be deleted. Weight `700+` is not used. As of v2 the
-sweep is still pending: twelve `rem` values survive in chrome (three
-more sit in `PrintPreview.svelte`, which §0 freezes).
+sweep is still pending: ten `rem` values survive in chrome (five more
+sit in `PrintPreview.svelte`, which §0 freezes).
 
 | Role | Size / weight | Tracking |
 |---|---|---|
@@ -381,9 +381,10 @@ family, a 26px headline at default tracking reads as nothing more than
 large body text; `-0.024em` is what makes it a headline. Do not relax
 these values.
 
-All-caps tracking of `0.09em` is mandatory — the current `nav-label`
-and badges are set without it, which is the loudest amateur tell in
-the app today.
+All-caps tracking of `0.09em` is mandatory. The v2 badges carry it, but
+five chrome labels still do not — `nav-label`, `col-head`, `FontMenu`'s
+group label, the editor panel heading and the references-panel heading
+all sit at `0.06`–`0.07em`. It is the loudest amateur tell in the app.
 
 ### 3.1 Existing serif call sites in chrome
 
@@ -672,20 +673,20 @@ weights of colour — so "which filter" and "which mode" never look alike.
 
 ### Popover — v2
 
-**One floating surface.** Before v2 there were **eight** of them, and they
-agreed on nothing:
+**One floating surface.** Before v2 there were **six** of them, spread
+over **twelve** call sites, and they agreed on nothing:
 
-| Surface | Radius | Shadow | Inset hairline |
-|---|---|---|---|
-| `.select-pop` | `--r-md` | `--elev-3` | yes |
-| `UpdatePill .card` | `--r-md` | `--elev-3` | yes |
-| `CitationPopover .pop` | **raw `10px`** | `--elev-raised` | no |
-| `EditorScreen .menu` (× 3) | `--r-sm` | `--elev-raised` | no |
-| `EssayHome .menu` | `--r-sm` | `--elev-raised` | no |
-| `float-menu .menu-pop` (× 5) | `--r-md` | `--elev-raised` | no |
+| Surface | Call sites | Radius | Shadow | Inset hairline |
+|---|---|---|---|---|
+| `.select-pop` | 1 | `--r-md` | `--elev-3` | yes |
+| `UpdatePill .card` | 1 | `--r-md` | `--elev-raised` | no |
+| `CitationPopover .pop` | 1 | **raw `10px`** | `--elev-raised` | no |
+| `EditorScreen .menu` | 3 | `--r-sm` | `--elev-raised` | no |
+| `EssayHome .menu` | 1 | `--r-sm` | `--elev-raised` | no |
+| `float-menu .menu-pop` | 5 | `--r-md` | `--elev-raised` | no |
 
-Four radii, two elevation steps, one raw literal — across thirteen
-call sites. `.popover` replaces all of it:
+Three radii, two elevation steps, one raw literal, and the inset
+hairline on **one** of the six. `.popover` replaces all of it:
 
 | Part | Spec |
 |---|---|
@@ -702,9 +703,10 @@ menus sit on a local stacking ladder anchored at `--z-dock`, and
 promoting one to `--z-popover` would put a toolbar menu on top of an
 open modal.
 
-**Two surfaces are deliberately not popovers.** The modal is its own
-component at `--r-lg`. The editor dock is a *control*, so §5.0's shape
-rule gives it `--r-pill`.
+**Two surfaces are deliberately not popovers**, and neither is counted
+above. The modal is its own component at `--r-lg` — it is the only
+other thing that carried the inset hairline before v2. The editor dock
+is a *control*, so §5.0's shape rule gives it `--r-pill`.
 
 #### Status header
 
@@ -900,11 +902,16 @@ recognising again:
 **Not written yet.** Add one focused Vitest check over chrome CSS only,
 excluding every frozen path in §0:
 
-- no raw hex outside the two theme blocks in `tokens.css` (allow the
-  three `--tl-*` traffic-light dots);
+- no raw hex outside the two theme blocks in `tokens.css`. Three
+  exemptions, all deliberate: the `--tl-*` traffic-light dots,
+  `--paper-print` (the print sheet is theme-independent by design), and
+  the whole `.apa-editor` document-palette block, which pins the
+  pre-v1 values on purpose;
 - no `var(--token, <color>)` fallback form;
 - no `font-size` literal outside the `--t-*` definitions;
-- no `z-index` literal outside the `--z-*` definitions.
+- no `z-index` literal outside the `--z-*` definitions — except the
+  editor's own local ladder, which `float-menu.css` documents and which
+  §Popover & dock deliberately keeps off the shared scale.
 
 ---
 
@@ -1039,7 +1046,7 @@ and two dialogs gained `size="sm"`.
 
 | File | Deleted | Now uses |
 |---|---|---|
-| `ReferencesPanel.svelte` | `.pill`, `.pill.blue`, `.actions button`, `.empty` | `.badge`, `.badge-warn`, `.btn-quiet`, `.btn-quiet.btn-danger-text`, `.empty-state.is-inline` |
+| `ReferencesPanel.svelte` † | `.pill`, `.pill.blue`, `.actions button`, `.empty` | `.badge`, `.badge-warn`, `.btn-quiet`, `.btn-quiet.btn-danger-text`, `.empty-state.is-inline` |
 | `BibImportModal.svelte` | `.pill`, `.pill.warn` | `.badge`, `.badge-warn` |
 | `EssayHome.svelte` | `.badge`, `.chip`, `.count`, `.foot button`, `.empty` | `.badge-code`, `.chip`, `.badge-count`, `.btn-quiet`, `.empty-state` |
 | `LibraryScreen.svelte` | `.chip`, `.chip.on`, `.count`, `.mini`, `.empty` | `.chip`, `.badge-count`, `.btn-quiet.btn-icon`, `.btn-quiet.btn-danger-text`, `.empty-state` |
@@ -1049,6 +1056,14 @@ and two dialogs gained `size="sm"`.
 | `controls.css`, `modal.css` | `.btn-ghost`, `.modal.modal-ref` | aliases retired |
 | `Select`, `Toolbar`, `HeadingMenu`, `ListMenu`, `TableMenu`, `FontMenu`, `CitationPopover`, `EditorScreen` (× 3), `EssayHome`, `UpdatePill` | each surface's own background / border / radius / shadow | `.popover` |
 | `UpdatePill`, `EditorScreen` (APA check) | a bare title paragraph | `.popover-head` + `.popover-dot` |
+| `EditorScreen` references rail | `.status` / `.status.cited` / `.status.uncited`, `.ref-foot .del`, `.ref-foot .ins` | `.badge` / `.badge-accent` / `.badge-warn`, `.btn-quiet.btn-danger-text`, `.btn-quiet` |
+
+† **`ReferencesPanel.svelte` is currently imported by nothing.** The
+panel that actually renders beside the editor is the `.refs` rail
+inside `EditorScreen.svelte`, which is the row above. The component was
+migrated before that was noticed; it is left in place rather than
+deleted, because whether it is revived or removed is a product call,
+not a design-system one.
 
 Tone decisions taken during the migration:
 
@@ -1058,6 +1073,10 @@ Tone decisions taken during the migration:
 - "Uncited" and "Duplicate" are things to fix → `.badge-warn`.
 - A document **language** tag is a machine value → `.badge-code`.
 - Nav and collection counts → `.badge-count`.
+- In the editor rail, a reference's state is a badge: neutral for "in
+  text only" (a category), `.badge-accent` for a live cited count (what
+  the user is acting on), `.badge-warn` for uncited (something to fix).
+  It previously coloured all three as categories.
 - The update popover reports state, so it earns a header: `success`
   when up to date, `accent` when an update is waiting, `danger` on a
   failed check.
@@ -1080,30 +1099,67 @@ more exactly than four toggle buttons. `aria-pressed` announces the
 state correctly and is a strict improvement on the class it replaced;
 the radiogroup rewrite needs roving `tabindex` and is deferred.
 
-### Deferred — shapes v2 defines but has not adopted
+### Deferred — known, scoped, not done
 
-Recorded so they are not rediscovered. None was in the handoff's
-migration map, and each needs a tone judgement rather than a rename:
+A final audit of the whole app ran before this branch shipped. What it
+found and this branch fixed is above. What it found and this branch did
+**not** fix is here, so "consistent with the design system" means
+*consistent, with these named exceptions* rather than *unexamined*.
+
+**Components that hand-roll something the system provides.** Each needs
+a tone or layout judgement, not a rename:
 
 | Site | Today | Should become |
 |---|---|---|
-| `EditorScreen.svelte` `.apa-pill-count` | static count drawn as a `--r-pill` with a solid `--danger` fill | `.badge.badge-count`. It also breaks §5.0's shape rule (a pill that cannot be pressed), and `--warn` fits an advisory check better than `--danger`. |
-| `EditorScreen.svelte` `.apa-check-empty` | hand-rolled popover empty message | `.empty-state.is-inline` |
-| `EssayHome.svelte` `.essay-actions button` / `.del` | borderless action row | `.btn-quiet` / `.btn-quiet.btn-danger-text` |
-| `LibraryScreen.svelte` `.card-foot .del` | the same button, hand-rolled again | `.btn-quiet.btn-danger-text` |
-| `BibImportModal.svelte` `.bibkey` | bare mono `<code>` beside two real badges | `.badge-code` |
-| `EssayHome.svelte` `.lib-count` | live count reflecting the active filter | `.badge-count`, or `.badge-accent` per §5.0 |
+| `EditorScreen` `.apa-pill-count` | a static count drawn as a `--r-pill` | `.badge.badge-count` — §5.0's shape rule says a pill is a control, and this one cannot be pressed. Its colour is already correct. |
+| `EssayHome` `.essay-actions button` / `.del`, `LibraryScreen` `.card-foot .del`, `EditorScreen` `.icon-btn` / `.mini`, `LibraryScreen` `.back`, `ReferencesPanel` `.add`, `BibImportModal` `.linkbtn` | hand-rolled quiet and secondary buttons | `.btn-quiet` (+ `.btn-icon` / `.btn-danger-text`), `.btn-secondary.btn-sm` |
+| `CitationPopover` `.insert`, `ReferenceQuickForm` `.find` | hand-rolled primaries | `.btn-primary` |
+| `CitationPopover` `.close` | hand-rolled close | `.modal-close` or `.btn-quiet.btn-icon` |
+| `BibImportModal` `.bib-errbanner`, `ReferenceQuickForm` `.notice`, `EditorScreen` `.bib-error-toast` | three hand-rolled status banners | `.status-panel[data-tone]` |
+| `BibImportModal` `.bibkey` | bare mono `<code>` beside two real badges | `.badge-code` |
+| `EssayHome` `.lib-count`, `LibraryScreen` `.list-count` | live counts as plain mono text | `.badge-count` |
+| `CitationPopover` search field, `ReferenceQuickForm` fields and buttons | a whole second field and button system | `.field` + `.btn`, by putting `ui-controls` on the host and deleting the local rules |
 
-Also deferred: converging `.status-panel`'s `data-tone` vocabulary
-(`ok / busy / warn / off`) onto §5.0's four names. The popover beak is
-**not** on this list — it was decided against, see §5 Popover.
+`ReferenceQuickForm` is the largest single instance. Its justifying
+comment is stale: it says the shared `.btn` is scoped to `.modal`, but
+`controls.css` says in as many words that the button block is **not**
+scope-gated.
 
-Also deferred, and older than v2: §5's `aria-disabled` rule has zero
-call sites (`BibImportModal` blocks its primary with the real
-`disabled` attribute); no `.empty-state` is announced through
-`role="status"` when a filter empties a list; and `--focus-ring` is
-1.45:1 against `--chrome`, short of the 3:1 WCAG 1.4.11 wants for a
-focus indicator.
+**Three segmented controls ship in one app.** `.seg` in `controls.css`
+is correct (solid accent). `EssayHome`'s `.segmented` uses the raised
+white pill §2 records as rejected, and `CitationPopover` and
+`ReferenceQuickForm` use the *chip* wash on a mode picker — §5.0's
+"chip vs. segmented control" inverted. `EssayHome`'s also drives off
+`class:active` with no `aria-pressed`.
+
+**Two §2 accent rules the code still breaks.** §2 says the titlebar
+mark is ink, not accent (`EssayHome`, `LibraryScreen`, `EditorScreen`
+all paint it accent) and that the empty-state "new essay" plus is
+neutral (it is accent). Both are brand-facing and were left for a
+human call rather than changed under a consistency sweep.
+
+**Raw values.** Roughly 30 raw `border-radius` values, 10 `rem` values,
+`font-weight: 700` in eight places and `font-weight: 500` (the scale
+has 530) in nine, three raw control heights off the 32/36/42 scale, and
+one raw `z-index: 10` on `EssayHome`'s new-essay popover that is not
+covered by the editor's documented local ladder. §8's lint is the right
+answer to all of it; hand-fixing them piecemeal is not.
+
+**All-caps tracking.** Five labels at `0.06`–`0.07em` instead of the
+mandatory `0.09em` — see §3.
+
+**Vocabulary.** `.status-panel`'s `data-tone` still uses
+`ok / busy / warn / off` while `.popover-head` uses §5.0's four names.
+Converge them.
+
+**Older than v2, still open.** §5's `aria-disabled` rule has zero call
+sites (`BibImportModal` blocks its primary with the real `disabled`
+attribute); no `.empty-state` is announced through `role="status"` when
+a filter empties a list; and `--focus-ring` is 1.45:1 against
+`--chrome`, short of the 3:1 WCAG 1.4.11 wants for a focus indicator.
+
+The popover beak is **not** on any of these lists — it was decided
+against, see §5 Popover.
 
 ### Two things to watch
 

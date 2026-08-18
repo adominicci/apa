@@ -175,11 +175,11 @@
 
   .mi.active {
     background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .mi.active :global(svg) {
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   .mi-sep {

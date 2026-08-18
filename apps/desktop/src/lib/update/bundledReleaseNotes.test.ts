@@ -19,7 +19,15 @@ describe("bundled release notes", () => {
   point at them.
 - Short questions such as "Delete reference" and "Quit Tesina?" now open
   in a narrower window that fits the question, instead of the wider one
-  every form uses.`;
+  every form uses.
+- Every small pop-up panel now looks the same — the update message, the
+  APA check, the citation picker and every toolbar menu. The ones that
+  report on something open with a coloured strip and a dot that tells
+  you at a glance whether it is good news: green when you are up to
+  date, blue when an update is waiting, amber when your paper has
+  something to look at.
+- Blue text is slightly darker throughout, so labels on a blue
+  background are easier to read.`;
 
     expect(bundledReleaseNotes.version).toBe("0.1.16");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
