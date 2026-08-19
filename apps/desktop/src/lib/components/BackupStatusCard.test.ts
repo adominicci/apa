@@ -168,7 +168,9 @@ describe("BackupStatusCard", () => {
     await settle();
 
     expect(document.body.textContent).toContain(m.bk_reauthorization_title());
-    expect(document.body.textContent).toContain(m.bk_reauthorization_body());
+    expect(document.body.textContent).toContain(
+      m.bk_reauthorization_body({ version: "0.1.17" }),
+    );
     expect(buttonByText(m.bk_card_dismiss())).toBeUndefined();
     buttonByText(m.bk_card_setup())!.click();
     expect(onSetup).toHaveBeenCalledOnce();

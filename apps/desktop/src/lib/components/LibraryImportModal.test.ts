@@ -463,6 +463,7 @@ describe("LibraryImportModal", () => {
   it("stays recovery-required when the recovery refresh rejects", async () => {
     const refreshGate = deferred<void>();
     void refreshGate.promise.catch(() => {});
+    const exportDiagnostic = vi.fn(() => Promise.resolve());
     const consoleError = vi.spyOn(console, "error").mockImplementation(
       () => {},
     );
@@ -480,7 +481,7 @@ describe("LibraryImportModal", () => {
             kind: "resumed",
             transactionId: "transaction-1",
           }]),
-        exportDiagnostic: () => Promise.resolve(),
+        exportDiagnostic,
       },
       onDone: () => refreshGate.promise,
     });
@@ -499,6 +500,15 @@ describe("LibraryImportModal", () => {
 
     expect(document.body.textContent).toContain(m.recovery_required_title());
     expect(document.body.textContent).not.toContain(m.recovery_resumed());
+    const exportButton = [...document.querySelectorAll("button")].find(
+      (button) => button.textContent?.includes(m.recovery_export_diagnostic()),
+    );
+    exportButton!.click();
+    await settle();
+    expect(exportDiagnostic).toHaveBeenCalledWith([{
+      kind: "resumed",
+      transactionId: "transaction-1",
+    }]);
     consoleError.mockRestore();
   });
 

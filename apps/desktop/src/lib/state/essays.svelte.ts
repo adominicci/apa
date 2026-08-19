@@ -27,7 +27,7 @@ function essayPath(id: string): string {
 function isIndexableEssay(
   value: unknown,
   fileName: string,
-): value is SummarizableEssay {
+): value is Essay {
   if (value === null || typeof value !== "object") return false;
   const essay = value as {
     schemaVersion?: unknown;
@@ -189,8 +189,8 @@ class EssaysStore {
   }
 
   async load(id: string): Promise<Essay | null> {
-    const essay = await readJson<Essay>(essayPath(id));
-    return essay?.schemaVersion === 2
+    const essay = await readJson<unknown>(essayPath(id));
+    return isIndexableEssay(essay, `${id}.json`)
       ? normalizeForStudentRelease(essay)
       : null;
   }

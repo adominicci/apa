@@ -24,6 +24,7 @@
   import { applyImportWithRuntime } from "$lib/persist/portableRuntime";
   import type { BackupSettingsFacade } from "./BackupStatusCard.svelte";
   import { describeBackupError } from "./backupErrorMessage.ts";
+  import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes.ts";
 
   /**
    * Persistent backup Settings surface (tasks 10.4/10.5): location, last
@@ -250,14 +251,14 @@
       {#if errorNotice !== null}
         <p class="error" role="alert">{errorNotice}</p>
       {/if}
-      {#if failing && !store.running}
+      {#if retentionIssue && !store.running}
+        <p class="error" role="alert">{m.bk_retention_help()}</p>
+      {:else if failing && !store.running}
         <p class="error" role="alert">
           {describeBackupError({
             code: settings.backup?.lastErrorCode,
           })}
         </p>
-      {:else if retentionIssue && !store.running}
-        <p class="error" role="alert">{m.bk_retention_help()}</p>
       {/if}
 
       <div class="actions">
@@ -347,7 +348,9 @@
           </span>
           <span class="status-meta">
             {status?.requiresReauthorization
-              ? m.bk_reauthorization_body()
+              ? m.bk_reauthorization_body({
+                version: bundledReleaseNotes.version,
+              })
               : m.bk_reenable_note()}
           </span>
         </div>

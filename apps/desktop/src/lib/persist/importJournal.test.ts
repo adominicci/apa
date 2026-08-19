@@ -44,6 +44,16 @@ class FakeAppData implements ImportFs {
   readBytes(relPath: string): Promise<Uint8Array | null> {
     return Promise.resolve(this.files.get(relPath) ?? null);
   }
+  readBytesBounded(
+    relPath: string,
+    maxBytes: number,
+  ): Promise<Uint8Array | null> {
+    const bytes = this.files.get(relPath);
+    if (bytes !== undefined && bytes.byteLength > maxBytes) {
+      return Promise.reject(new Error("file too large"));
+    }
+    return Promise.resolve(bytes ?? null);
+  }
   writeBytes(relPath: string, bytes: Uint8Array): Promise<void> {
     this.#tick(`write:${relPath}`);
     this.files.set(relPath, bytes);

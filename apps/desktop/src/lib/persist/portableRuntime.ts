@@ -111,7 +111,10 @@ export function createPortableLibraryRuntime(
     return {
       fs: deps.importFs,
       readRollbackLibrary: async (relPath, expectedSha256) => {
-        const bytes = await deps.importFs.readBytes(relPath);
+        const bytes = await deps.importFs.readBytesBounded(
+          relPath,
+          limits.maxArchiveBytes,
+        );
         if (bytes === null || (await sha256Hex(bytes)) !== expectedSha256) {
           throw new Error("rollback archive is missing or corrupted");
         }

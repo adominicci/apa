@@ -375,7 +375,9 @@ describe("BackupSettings", () => {
     await settle();
 
     expect(bodyText()).toContain(m.bk_reauthorization_title());
-    expect(bodyText()).toContain(m.bk_reauthorization_body());
+    expect(bodyText()).toContain(
+      m.bk_reauthorization_body({ version: "0.1.17" }),
+    );
     buttonByText(m.bk_reenable())!.click();
     expect(h.onRunWizard).toHaveBeenCalledOnce();
   });

@@ -9,9 +9,11 @@ const runtime = vi.hoisted(() => {
       exportToFile,
     })),
     exportToFile,
+    recoverPendingImports: vi.fn(),
     runOperation: vi.fn(
       async (_kind: string, operation: (handle: unknown) => Promise<unknown>) =>
         await operation({
+          cancelled: false,
           signal: new AbortController().signal,
           markRecoverable: vi.fn(),
         }),
@@ -40,11 +42,19 @@ vi.mock("./coordinator.ts", () => ({
     activityGeneration: 0,
   },
 }));
+vi.mock("./importJournal.ts", () => ({
+  recoverPendingImports: runtime.recoverPendingImports,
+}));
 vi.mock("./operationCoordinator.ts", () => ({
   operations: { run: runtime.runOperation },
 }));
 
-import { exportLibraryToChosenFile } from "./portableRuntime.ts";
+import { ARCHIVE_LIMITS } from "$lib/portable/limits";
+import type { ImportFs, RecoveryDeps } from "./importJournal.ts";
+import {
+  createPortableLibraryRuntime,
+  exportLibraryToChosenFile,
+} from "./portableRuntime.ts";
 
 const SELECTION = {
   path: "/exports/Library.tesina",
@@ -111,5 +121,61 @@ describe("native manual-export authorization", () => {
     expect(runtime.externalDialogFs).not.toHaveBeenCalled();
     expect(runtime.exportToFile).not.toHaveBeenCalled();
     expect(runtime.invoke).toHaveBeenCalledOnce();
+  });
+});
+
+describe("portable import recovery bounds", () => {
+  it("rejects an oversized rollback through the bounded reader before parsing", async () => {
+    const tooLarge = Object.assign(new Error("file too large"), {
+      code: "portable/file-too-large",
+    });
+    const importFs = {
+      exists: vi.fn(() => Promise.resolve(true)),
+      readBytes: vi.fn(() =>
+        Promise.reject(new Error("unbounded rollback read was used"))
+      ),
+      readBytesBounded: vi.fn(() => Promise.reject(tooLarge)),
+      writeBytes: vi.fn(() => Promise.resolve()),
+      rename: vi.fn(() => Promise.resolve()),
+      remove: vi.fn(() => Promise.resolve()),
+      removeDir: vi.fn(() => Promise.resolve()),
+      list: vi.fn(() => Promise.resolve([])),
+    } satisfies ImportFs;
+    runtime.recoverPendingImports.mockImplementationOnce(
+      async (deps: RecoveryDeps) => {
+        await deps.readRollbackLibrary(
+          "backups/imports/transaction.tesina",
+          "expected-sha256",
+        );
+        return [];
+      },
+    );
+    const maxArchiveBytes = 4;
+    const portable = createPortableLibraryRuntime({
+      getArchiveService: () =>
+        Promise.reject(new Error("archive service must not be reached")),
+      externalFs: runtime.externalDialogFs() as never,
+      importFs,
+      runMaintenance: (operation) => operation(),
+      flushPending: () => Promise.resolve(),
+      runOperation: async (_kind, operation) =>
+        await operation({
+          cancelled: false,
+          signal: new AbortController().signal,
+          markRecoverable: vi.fn(),
+        }),
+      uuid: () => crypto.randomUUID(),
+      now: () => "2026-08-19T00:00:00.000Z",
+      limits: { ...ARCHIVE_LIMITS, maxArchiveBytes },
+    });
+
+    await expect(portable.runStartupRecovery()).rejects.toMatchObject({
+      code: "portable/file-too-large",
+    });
+    expect(importFs.readBytesBounded).toHaveBeenCalledWith(
+      "backups/imports/transaction.tesina",
+      maxArchiveBytes,
+    );
+    expect(importFs.readBytes).not.toHaveBeenCalled();
   });
 });

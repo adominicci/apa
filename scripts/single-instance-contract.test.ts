@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-const root = decodeURIComponent(new URL("../", import.meta.url).pathname);
 const source = await Deno.readTextFile(
-  `${root}apps/desktop/src-tauri/src/lib.rs`,
+  new URL("../apps/desktop/src-tauri/src/lib.rs", import.meta.url),
 );
 
 describe("single-instance window activation", () => {

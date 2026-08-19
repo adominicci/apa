@@ -160,17 +160,27 @@ describe("verifyReleaseVersion", () => {
 
   it("matches the real 0.1.17 metadata, README, links, and bundled Markdown", async () => {
     const root = new URL("../", import.meta.url);
-    const [tauriConfig, packageJson, cargoToml, cargoLock, changelog, readme] =
-      await Promise.all([
-        Deno.readTextFile(
-          new URL("apps/desktop/src-tauri/tauri.conf.json", root),
-        ),
-        Deno.readTextFile(new URL("apps/desktop/package.json", root)),
-        Deno.readTextFile(new URL("apps/desktop/src-tauri/Cargo.toml", root)),
-        Deno.readTextFile(new URL("apps/desktop/src-tauri/Cargo.lock", root)),
-        Deno.readTextFile(new URL("CHANGELOG.md", root)),
-        Deno.readTextFile(new URL("README.md", root)),
-      ]);
+    const [
+      tauriConfig,
+      packageJson,
+      cargoToml,
+      cargoLock,
+      changelog,
+      readme,
+      englishMessages,
+      spanishMessages,
+    ] = await Promise.all([
+      Deno.readTextFile(
+        new URL("apps/desktop/src-tauri/tauri.conf.json", root),
+      ),
+      Deno.readTextFile(new URL("apps/desktop/package.json", root)),
+      Deno.readTextFile(new URL("apps/desktop/src-tauri/Cargo.toml", root)),
+      Deno.readTextFile(new URL("apps/desktop/src-tauri/Cargo.lock", root)),
+      Deno.readTextFile(new URL("CHANGELOG.md", root)),
+      Deno.readTextFile(new URL("README.md", root)),
+      Deno.readTextFile(new URL("apps/desktop/messages/en.json", root)),
+      Deno.readTextFile(new URL("apps/desktop/messages/es.json", root)),
+    ]);
 
     const verified = verifyReleaseVersion({
       tag: "v0.1.17",
@@ -202,5 +212,10 @@ describe("verifyReleaseVersion", () => {
     expect(changelog).toContain(
       "[0.1.13]: https://github.com/adominicci/tesina/commit/80443091b75b1a887b01fdca12c09e565807a10a",
     );
+    for (const source of [englishMessages, spanishMessages]) {
+      const messages = JSON.parse(source) as Record<string, string>;
+      expect(messages.bk_reauthorization_body).toContain("v{version}");
+      expect(messages.bk_reauthorization_body).not.toContain("v0.1.17");
+    }
   });
 });

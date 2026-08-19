@@ -548,7 +548,7 @@
   "bk_card_setup": "Set up backups",
   "bk_card_dismiss": "Not now",
   "bk_reauthorization_title": "Select your backup folder again",
-  "bk_reauthorization_body": "Tesina v0.1.17 hardened folder access. Select the folder again and complete a real test backup to renew authorization. Your existing backup files remain untouched.",
+  "bk_reauthorization_body": "Tesina v{version} hardened folder access. Select the folder again and complete a real test backup to renew authorization. Your existing backup files remain untouched.",
   "bk_status_title": "Backups",
   "bk_state_healthy": "Backups are healthy",
   "bk_state_running": "Backing up…",

@@ -363,6 +363,17 @@ describe("student-release persistence boundary", () => {
     },
   );
 
+  it("rejects a schema-two paper whose required runtime shape is incomplete", async () => {
+    const stored = createEmptyEssay(
+      "en",
+      "2026-08-07T12:00:00.000Z",
+    ) as unknown as { id: string; titlePage: { authors?: string[] } };
+    delete stored.titlePage.authors;
+    persistence.files.set(`essays/${stored.id}.json`, stored);
+
+    expect(await essays.load(stored.id)).toBeNull();
+  });
+
   it("loads a professional file in student mode without deleting dormant metadata", async () => {
     const stored = professionalEssay();
     persistence.files.set(`essays/${stored.id}.json`, stored);

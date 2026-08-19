@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { fileURLToPath } from "node:url";
 import { buildArchive } from "../apps/desktop/src/lib/portable/archive.ts";
 import { fullLibraryFixture } from "../apps/desktop/src/lib/portable/fixtures/libraries.ts";
 import { ARCHIVE_LIMITS } from "../apps/desktop/src/lib/portable/limits.ts";
@@ -10,8 +11,8 @@ import {
 
 const FIXED_TIME = "2026-08-18T12:00:00.000Z";
 const decoder = new TextDecoder();
-const scriptPath = decodeURIComponent(
-  new URL("./inspect-portable-library-evidence.ts", import.meta.url).pathname,
+const scriptPath = fileURLToPath(
+  new URL("./inspect-portable-library-evidence.ts", import.meta.url),
 );
 
 async function fullLibraryArchive(

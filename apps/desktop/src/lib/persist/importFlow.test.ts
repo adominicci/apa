@@ -33,6 +33,16 @@ class MemoryAppData implements ImportFs {
   readBytes(p: string): Promise<Uint8Array | null> {
     return Promise.resolve(this.files.get(p) ?? null);
   }
+  readBytesBounded(
+    p: string,
+    maxBytes: number,
+  ): Promise<Uint8Array | null> {
+    const bytes = this.files.get(p);
+    if (bytes !== undefined && bytes.byteLength > maxBytes) {
+      return Promise.reject(new Error("file too large"));
+    }
+    return Promise.resolve(bytes ?? null);
+  }
   writeBytes(p: string, bytes: Uint8Array): Promise<void> {
     this.files.set(p, bytes);
     return Promise.resolve();

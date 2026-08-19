@@ -5,8 +5,9 @@ import {
   workflowSteps,
 } from "./workflow-policy.ts";
 
-const root = decodeURIComponent(new URL("../", import.meta.url).pathname);
-const source = await Deno.readTextFile(`${root}.github/workflows/ci.yml`);
+const source = await Deno.readTextFile(
+  new URL("../.github/workflows/ci.yml", import.meta.url),
+);
 const workflow = parseWorkflowYaml(source);
 
 function record(value: unknown, label: string): WorkflowRecord {

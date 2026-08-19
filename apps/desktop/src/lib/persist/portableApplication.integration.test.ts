@@ -54,6 +54,17 @@ class MemoryAppData implements ImportFs, SnapshotIo {
     return Promise.resolve(this.files.get(path) ?? null);
   }
 
+  readBytesBounded(
+    path: string,
+    maxBytes: number,
+  ): Promise<Uint8Array | null> {
+    const bytes = this.files.get(path);
+    if (bytes !== undefined && bytes.byteLength > maxBytes) {
+      return Promise.reject(new Error("file too large"));
+    }
+    return Promise.resolve(bytes ?? null);
+  }
+
   writeBytes(path: string, bytes: Uint8Array): Promise<void> {
     this.generation += 1;
     this.files.set(path, bytes);

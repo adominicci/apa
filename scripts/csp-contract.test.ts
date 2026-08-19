@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-const root = decodeURIComponent(new URL("../", import.meta.url).pathname);
 const config = JSON.parse(
-  await Deno.readTextFile(`${root}apps/desktop/src-tauri/tauri.conf.json`),
+  await Deno.readTextFile(
+    new URL("../apps/desktop/src-tauri/tauri.conf.json", import.meta.url),
+  ),
 ) as {
   app?: {
     security?: {
@@ -14,7 +15,10 @@ const config = JSON.parse(
 };
 const capability = JSON.parse(
   await Deno.readTextFile(
-    `${root}apps/desktop/src-tauri/capabilities/default.json`,
+    new URL(
+      "../apps/desktop/src-tauri/capabilities/default.json",
+      import.meta.url,
+    ),
   ),
 ) as { permissions?: unknown[] };
 

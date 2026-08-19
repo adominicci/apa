@@ -41,6 +41,39 @@ async function absolute(relPath: string): Promise<string> {
   return await join(await appDataDir(), relPath);
 }
 
+async function readLocalFileBounded(
+  path: string,
+  maxBytes: number,
+): Promise<Uint8Array> {
+  const file = await open(path, { read: true });
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const buffer = new Uint8Array(Math.min(64 * 1024, maxBytes - total + 1));
+      const read = await file.read(buffer);
+      if (read === null || read === 0) break;
+      total += read;
+      if (total > maxBytes) {
+        throw Object.assign(
+          new Error("selected archive exceeded its read limit"),
+          { code: "portable/file-too-large" },
+        );
+      }
+      chunks.push(buffer.slice(0, read));
+    }
+  } finally {
+    await file.close();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return bytes;
+}
+
 async function recoverWindowsTarget(target: string): Promise<void> {
   if (isWindowsWebView()) {
     await recoverInterruptedReplacement(target, { exists, remove, rename });
@@ -59,6 +92,12 @@ export const appDataImportFs: ImportFs = {
     await recoverWindowsTarget(target);
     if (!(await exists(target))) return null;
     return await readFile(target);
+  },
+  async readBytesBounded(relPath, maxBytes) {
+    const target = await absolute(relPath);
+    await recoverWindowsTarget(target);
+    if (!(await exists(target))) return null;
+    return await readLocalFileBounded(target, maxBytes);
   },
   async writeBytes(relPath, bytes) {
     persistence.noteDirectWrite();
@@ -329,35 +368,7 @@ export function externalDialogFs(authorizationToken?: string) {
         }
         return bytes;
       }
-      const file = await open(path, { read: true });
-      const chunks: Uint8Array[] = [];
-      let total = 0;
-      try {
-        while (true) {
-          const buffer = new Uint8Array(
-            Math.min(64 * 1024, maxBytes - total + 1),
-          );
-          const read = await file.read(buffer);
-          if (read === null || read === 0) break;
-          total += read;
-          if (total > maxBytes) {
-            throw Object.assign(
-              new Error("selected archive exceeded its read limit"),
-              { code: "portable/file-too-large" },
-            );
-          }
-          chunks.push(buffer.slice(0, read));
-        }
-      } finally {
-        await file.close();
-      }
-      const bytes = new Uint8Array(total);
-      let offset = 0;
-      for (const chunk of chunks) {
-        bytes.set(chunk, offset);
-        offset += chunk.length;
-      }
-      return bytes;
+      return await readLocalFileBounded(path, maxBytes);
     },
     async sha256File(path: string, maxBytes: number) {
       if (relatedFileKind(path) === "prev") {

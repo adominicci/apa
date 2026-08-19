@@ -22,6 +22,7 @@
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { backupStore, tauriBackupAdapter } from "$lib/persist/backupRuntime";
   import { describeBackupError } from "./backupErrorMessage.ts";
+  import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes.ts";
 
   /**
    * Home status surface (task 10.3): a dismissible optional setup card
@@ -114,7 +115,9 @@
       </h3>
       <p>
         {status.requiresReauthorization
-          ? m.bk_reauthorization_body()
+          ? m.bk_reauthorization_body({
+            version: bundledReleaseNotes.version,
+          })
           : m.bk_card_body()}
       </p>
     </div>

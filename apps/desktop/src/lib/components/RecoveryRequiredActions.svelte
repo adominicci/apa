@@ -54,11 +54,6 @@
     if (error !== undefined) {
       console.error("No se pudo reintentar la recuperación:", error);
     }
-    retryOutcomes = [{
-      kind: "recovery-required",
-      transactionId: "(current-import)",
-      reason: "import/recovery-required",
-    }];
   }
 
   async function retry(): Promise<void> {
@@ -79,6 +74,7 @@
         failClosedAfterRetry();
         return;
       }
+      retryOutcomes = next;
       await onRecovered(next);
     } catch (error) {
       failClosedAfterRetry(error);

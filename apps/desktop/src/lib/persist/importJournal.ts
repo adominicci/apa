@@ -39,6 +39,10 @@ export class ImportJournalError extends Error {
 export interface ImportFs {
   exists(relPath: string): Promise<boolean>;
   readBytes(relPath: string): Promise<Uint8Array | null>;
+  readBytesBounded(
+    relPath: string,
+    maxBytes: number,
+  ): Promise<Uint8Array | null>;
   /** Atomic (tmp + rename) write. */
   writeBytes(relPath: string, bytes: Uint8Array): Promise<void>;
   /** Same-volume rename; the target must not exist (checked by callers). */

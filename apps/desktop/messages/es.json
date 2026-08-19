@@ -548,7 +548,7 @@
   "bk_card_setup": "Configurar respaldos",
   "bk_card_dismiss": "Ahora no",
   "bk_reauthorization_title": "Selecciona otra vez tu carpeta de respaldos",
-  "bk_reauthorization_body": "Tesina v0.1.17 reforzó el acceso a carpetas. Debes seleccionar la carpeta otra vez y completar un respaldo de prueba real para renovar la autorización. Tus archivos de respaldo existentes permanecen intactos.",
+  "bk_reauthorization_body": "Tesina v{version} reforzó el acceso a carpetas. Debes seleccionar la carpeta otra vez y completar un respaldo de prueba real para renovar la autorización. Tus archivos de respaldo existentes permanecen intactos.",
   "bk_status_title": "Respaldos",
   "bk_state_healthy": "Los respaldos están al día",
   "bk_state_running": "Respaldando…",
