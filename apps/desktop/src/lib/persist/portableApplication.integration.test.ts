@@ -36,6 +36,7 @@ import {
 } from "./portableRuntime.ts";
 
 const EXPORT_PATH = "/exports/full-library.tesina";
+const RESTORED_EXPORT_PATH = "/exports/restored-library.tesina";
 const NOW = "2026-08-18T12:00:00.000Z";
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
@@ -112,6 +113,13 @@ class MemoryAppData implements ImportFs, SnapshotIo {
 
   readAssetFile(path: string): Promise<Uint8Array | null> {
     return this.readBytes(path);
+  }
+}
+
+class ReverseListMemoryAppData extends MemoryAppData {
+  override async list(directory: string): Promise<string[]> {
+    const entries = await super.list(directory);
+    return directory === "essays/assets" ? entries.reverse() : entries;
   }
 }
 
@@ -367,6 +375,65 @@ function createRuntime(
 }
 
 describe("portable library application integration", () => {
+  it("re-exports the complete fixture after restoring one deleted essay", async () => {
+    const fixture = fullLibraryFixture();
+    const duplicateFigurePath = `essays/assets/${fixtureUuid(4, 73)}.gif`;
+    const deletedEssay = fixture.essays.find((essay) =>
+      collectFigureSources(essay.content).includes(duplicateFigurePath)
+    );
+    expect(deletedEssay).toBeDefined();
+    const appData = new ReverseListMemoryAppData();
+    seedFixture(appData, fixture);
+    const externalFs = new MemoryExternalFs();
+    const replacementJournal = new MemoryReplacementJournal();
+    const coordinator = new PersistenceCoordinator();
+    const service = createArchiveService(
+      appData,
+      externalFs,
+      replacementJournal,
+      coordinator,
+      23,
+    );
+    const runtime = createRuntime(
+      appData,
+      service,
+      externalFs,
+      replacementJournal,
+      coordinator,
+      33,
+    );
+
+    await runtime.exportToFile(EXPORT_PATH);
+    await appData.remove(`essays/${deletedEssay!.id}.json`);
+
+    const restorePreview = await runtime.previewFile(EXPORT_PATH);
+    expect(restorePreview.preview.essays).toEqual({
+      new: 1,
+      identical: fixture.essays.length - 1,
+      conflicting: 0,
+    });
+    expect(restorePreview.preview.assets).toEqual({
+      reused: Object.keys(fixture.assets).length,
+      added: 0,
+    });
+    expect((await runtime.applyImport(restorePreview)).kind).toBe("applied");
+    const restoredEssay = await appData.readEssayFile(
+      `${deletedEssay!.id}.json`,
+    ) as Essay;
+    expect(collectFigureSources(restoredEssay.content)).toEqual(
+      collectFigureSources(deletedEssay!.content),
+    );
+
+    await runtime.exportToFile(RESTORED_EXPORT_PATH);
+    const restoredExport = await runtime.previewFile(RESTORED_EXPORT_PATH);
+    expect(restoredExport.archive.manifest.counts).toEqual({
+      essays: fixture.essays.length,
+      references: fixture.library.references.length,
+      collections: fixture.library.collections.length,
+      assets: Object.keys(fixture.assets).length,
+    });
+  });
+
   it("exports, reopens, merges, and reloads a complete library without overwriting local content", async () => {
     const fixture = fullLibraryFixture();
     const externalFs = new MemoryExternalFs();

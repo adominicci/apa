@@ -73,7 +73,7 @@ export async function captureLocalImportState(
   const reusableAssetPathByClass = new Map<string, string>();
   const assetClassByLocalPath = new Map<string, string>();
   const existingAssetPaths = new Set<string>();
-  for (const name of await fs.list("essays/assets")) {
+  for (const name of (await fs.list("essays/assets")).sort()) {
     const relPath = `essays/assets/${name}`;
     existingAssetPaths.add(relPath);
     const bytes = await fs.readBytes(relPath);

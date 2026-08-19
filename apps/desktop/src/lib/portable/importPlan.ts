@@ -236,7 +236,11 @@ export async function planImport(
   for (const archivePath of archiveAssetPaths) {
     const asset = archive.assets.get(archivePath)!;
     const assetClass = archiveAssetClasses.classByArchivePath.get(archivePath)!;
-    const reusablePath = local.reusableAssetPathByClass.get(assetClass);
+    const exactLocalPath = `essays/${archivePath}`;
+    const reusablePath = local.assetClassByLocalPath.get(exactLocalPath) ===
+        assetClass
+      ? exactLocalPath
+      : local.reusableAssetPathByClass.get(assetClass);
     if (reusablePath !== undefined) {
       figurePathMap.set(archivePath, reusablePath);
       assetClassByLocalPath.set(reusablePath, assetClass);
