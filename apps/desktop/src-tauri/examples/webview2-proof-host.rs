@@ -1,4 +1,6 @@
 #[cfg(any(target_os = "windows", test))]
+use serde_json::{json, Value};
+#[cfg(any(target_os = "windows", test))]
 use url::Url;
 
 #[cfg(any(target_os = "windows", test))]
@@ -80,9 +82,27 @@ fn incomplete_driver_result_error(result: impl std::fmt::Display) -> String {
     format!("Windows native input result arrived before driver completion; page result: {result}")
 }
 
+#[cfg(any(target_os = "windows", test))]
+fn incomplete_driver_failure(result: Value, cleanup_error: Option<&str>) -> Value {
+    let cleanup_complete = cleanup_error.is_none();
+    let mut error = incomplete_driver_result_error(&result);
+    if let Some(cleanup_error) = cleanup_error {
+        error = format!("{error}; {cleanup_error}");
+    }
+    json!({
+        "passed": false,
+        "error": error,
+        "nativeInputCleanupComplete": cleanup_complete,
+        "pageResult": result,
+    })
+}
+
 #[cfg(test)]
 mod loopback_tests {
-    use super::{incomplete_driver_result_error, loopback_url, PendingNativeInput};
+    use super::{
+        incomplete_driver_failure, incomplete_driver_result_error, loopback_url, PendingNativeInput,
+    };
+    use serde_json::json;
 
     #[test]
     fn accepts_http_loopback_hosts() {
@@ -140,12 +160,19 @@ mod loopback_tests {
             incomplete_driver_result_error("clipboard mismatch"),
             "Windows native input result arrived before driver completion; page result: clipboard mismatch"
         );
+        let page_result = json!({ "passed": false, "error": "page timeout" });
+        let failure = incomplete_driver_failure(page_result.clone(), None);
+        assert_eq!(failure["pageResult"], page_result);
+        assert_eq!(failure["passed"], false);
+        assert_eq!(failure["nativeInputCleanupComplete"], true);
+        let cleanup_failure =
+            incomplete_driver_failure(json!({ "passed": false }), Some("RestoreClipboard failed"));
+        assert_eq!(cleanup_failure["nativeInputCleanupComplete"], false);
     }
 }
 
 #[cfg(target_os = "windows")]
 mod windows_host {
-    use super::incomplete_driver_result_error;
     use super::loopback_url;
     use super::windows_native_input::WindowsNativeInputDriver;
     use super::PendingNativeInput;
@@ -194,6 +221,19 @@ mod windows_host {
         *control_flow = ControlFlow::ExitWithCode(exit_code);
     }
 
+    fn settle_incomplete_result(
+        control_flow: &mut ControlFlow,
+        driver: &mut Option<WindowsNativeInputDriver>,
+        result: Value,
+    ) {
+        let cleanup_error = driver.as_mut().and_then(|driver| driver.cleanup().err());
+        println!(
+            "{}",
+            super::incomplete_driver_failure(result, cleanup_error.as_deref())
+        );
+        *control_flow = ControlFlow::ExitWithCode(1);
+    }
+
     fn settle_result(
         control_flow: &mut ControlFlow,
         input_driver: &mut Option<WindowsNativeInputDriver>,
@@ -201,21 +241,9 @@ mod windows_host {
         drive_native_input: bool,
         mut result: Value,
     ) {
-        if let Some(driver) = input_driver.as_mut() {
-            if !driver.is_complete() {
-                settle_failure(
-                    control_flow,
-                    input_driver,
-                    1,
-                    incomplete_driver_result_error(&result),
-                );
-                return;
-            }
-            if let Err(error) = driver.cleanup() {
-                settle_failure(control_flow, input_driver, 1, error);
-                return;
-            }
-        }
+        let driver_complete = input_driver
+            .as_ref()
+            .is_some_and(WindowsNativeInputDriver::is_complete);
         if let Some(metrics) = result.get_mut("metrics").and_then(Value::as_object_mut) {
             metrics.insert("webView2Runtime".into(), Value::String(runtime.to_owned()));
             if drive_native_input {
@@ -225,12 +253,18 @@ mod windows_host {
                 );
                 metrics.insert(
                     "windowsNativeInputComplete".into(),
-                    Value::Bool(
-                        input_driver
-                            .as_ref()
-                            .is_some_and(WindowsNativeInputDriver::is_complete),
-                    ),
+                    Value::Bool(driver_complete),
                 );
+            }
+        }
+        if let Some(driver) = input_driver.as_mut() {
+            if !driver.is_complete() {
+                settle_incomplete_result(control_flow, input_driver, result);
+                return;
+            }
+            if let Err(error) = driver.cleanup() {
+                settle_failure(control_flow, input_driver, 1, error);
+                return;
             }
         }
         let passed = result["passed"].as_bool() == Some(true);

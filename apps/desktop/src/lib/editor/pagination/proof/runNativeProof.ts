@@ -16,9 +16,9 @@ import {
 import { AUTOMATED_NATIVE_PROOF_TIMEOUTS_MS } from "./nativeProofDeadlines.ts";
 import { nativeProofPhases } from "./nativeProofPhases.ts";
 import { nativeHostRuntimeIdentity } from "./nativeHostRuntimeIdentity.ts";
-import { isRetryableZeroEventNativeInputResult } from "./nativeManualRetry.ts";
+import { isRetryableNoKeyboardProgressNativeInputResult } from "./nativeManualRetry.ts";
 
-const MAX_ZERO_EVENT_NATIVE_INPUT_ATTEMPTS = 2;
+const MAX_NO_KEYBOARD_PROGRESS_ATTEMPTS = 2;
 
 const proofDir = dirname(fileURLToPath(import.meta.url));
 console.log(
@@ -88,12 +88,12 @@ async function runNativeHost(
     `Native proof origin ready after ${readiness.attempts} request(s): ${readiness.url}`,
   );
   const maxAttempts = mode === "windows-native-input"
-    ? MAX_ZERO_EVENT_NATIVE_INPUT_ATTEMPTS
+    ? MAX_NO_KEYBOARD_PROGRESS_ATTEMPTS
     : 1;
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const attemptProfileName = attempt === 0
       ? profileName
-      : `${profileName}-zero-event-retry`;
+      : `${profileName}-input-retry`;
     const host = nativeHostCommand(
       process.platform,
       {
@@ -138,10 +138,10 @@ async function runNativeHost(
     }
     if (
       attempt === 0 && mode === "windows-native-input" &&
-      isRetryableZeroEventNativeInputResult(result)
+      isRetryableNoKeyboardProgressNativeInputResult(result)
     ) {
       console.error(
-        "Retrying the complete Windows native-input proof in one fresh visible host/profile after an exact zero-event timeout",
+        "Retrying the complete Windows native-input proof in one fresh visible host/profile after a timeout with no keyboard progress",
       );
       continue;
     }
