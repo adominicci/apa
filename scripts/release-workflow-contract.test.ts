@@ -332,13 +332,7 @@ describe("release workflow contract", () => {
 
   it("preserves the merge workflow's no-upload policy", () => {
     const platforms = workflowPropertyValues(mergeDocument, "platform");
-    expect(platforms).toEqual(
-      expect.arrayContaining([
-        "macos-latest",
-        "windows-latest",
-        "ubuntu-22.04",
-      ]),
-    );
+    expect(platforms).toEqual(["macos-latest", "windows-latest"]);
     const tauriSteps = actionSteps(mergeDocument, "tauri-apps/tauri-action");
     expect(tauriSteps).toHaveLength(1);
     const inputs = recordField(tauriSteps[0], "with");

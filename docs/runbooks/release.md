@@ -58,8 +58,8 @@ another.
 
 | Surface                                 | Trigger                             | What it proves                                                                                                                                                                    | What it does not prove                                                                                                |
 | --------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `.github/workflows/ci.yml`              | Pull requests and pushes to `main`  | Frozen install and dependency audit, formatting, lint, Svelte checks, unit tests, locked Rust formatting/compile/tests, and native pagination proofs; when its feature-only Windows job passes, construction and silent installation of a non-shipping NSIS smoke flavor, launch of its installed executable, and bounded post-selection backup/persistence behavior | Literal shipping Windows folder/save dialogs, signing or notarization, updater artifacts or publication, provider synchronization, or bit identity with the ordinary release flavor |
-| `.github/workflows/build-artifacts.yml` | Pushes to `main` or manual dispatch | macOS, Windows, and Linux installers can be built with updater artifacts disabled; expected artifact types exist; the ordinary packaged macOS executable launches and remains live briefly; a separate feature-only macOS smoke flavor persists a full fixture through the production archive/native safe-write boundary and independently reopens every expected item and figure byte | Apple Developer ID signing, notarization, updater signatures, publication, shipping-app editing or dialogs, provider behavior, installer UX, or bit identity between the feature-only smoke flavor and the ordinary release flavor |
+| `.github/workflows/ci.yml`              | Pull requests and pushes to `main`  | Frozen install and dependency audit, formatting, lint, Svelte checks, unit tests, full locked Rust formatting/compile/tests on macOS, focused locked Rust library compile/tests on Windows, and native pagination proofs; when its feature-only Windows job passes, construction and silent installation of a non-shipping NSIS smoke flavor, launch of its installed executable, and bounded post-selection backup/persistence behavior | Linux runtime support, literal shipping Windows folder/save dialogs, signing or notarization, updater artifacts or publication, provider synchronization, or bit identity with the ordinary release flavor |
+| `.github/workflows/build-artifacts.yml` | Pushes to `main` or manual dispatch | macOS and Windows installers can be built with updater artifacts disabled; expected artifact types exist; the ordinary packaged macOS executable launches and remains live briefly; a separate feature-only macOS smoke flavor persists a full fixture through the production archive/native safe-write boundary and independently reopens every expected item and figure byte | Linux installers, Apple Developer ID signing, notarization, updater signatures, publication, shipping-app editing or dialogs, provider behavior, installer UX, or bit identity between the feature-only smoke flavor and the ordinary release flavor |
 | `.github/workflows/release.yml`         | Push of a `v*` tag                  | Version parity, universal macOS draft artifacts, Windows installers, Apple signing/notarization checks, updater artifacts and signatures, and the final draft/manifest contract   | Manual publication or broad interactive product acceptance                                                            |
 
 The ordinary packaged macOS smoke intentionally claims only bundle metadata,
@@ -80,12 +80,12 @@ these platform packages:
 
 - universal macOS `.app` and `.dmg`
 - Windows `.msi` and NSIS `-setup.exe`
-- Linux `.AppImage` and `.deb`
 
 `scripts/verify-installer-artifacts.ts` requires exactly one existing artifact
 for each expected suffix, rejects duplicate or missing paths, requires `.app` to
 be a directory, and requires installers to be files. This is structural evidence
-only. Linux packages are built in CI but are not currently published.
+only. Linux packaging code remains available in the repository, but Linux is
+not currently built or supported by the active workflows.
 
 The macOS job additionally runs `scripts/run-packaged-macos-smoke.ts`. The
 script records bundle identifier, app version, commit SHA, macOS version, WebKit

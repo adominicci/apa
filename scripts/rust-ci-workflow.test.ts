@@ -17,52 +17,29 @@ function record(value: unknown, label: string): WorkflowRecord {
   return value as WorkflowRecord;
 }
 
-function rustJob(): WorkflowRecord {
-  return record(record(workflow.jobs, "jobs").rust, "job rust");
-}
-
 describe("Rust CI contract", () => {
-  it("checks the locked Tauri crate on Linux without building installers", () => {
-    const job = rustJob();
-    expect(job["runs-on"]).toBe("ubuntu-22.04");
-    expect(job["timeout-minutes"]).toBe(45);
+  it("does not schedule Linux-native Rust checks", () => {
+    const jobs = record(workflow.jobs, "jobs");
+    expect(jobs).not.toHaveProperty("rust");
 
-    const steps = workflowSteps({ jobs: { rust: job } });
-    expect(steps.some((step) =>
-      typeof step.uses === "string" &&
-      step.uses.startsWith("dtolnay/rust-toolchain@")
-    )).toBe(true);
-    expect(steps.some((step) =>
-      typeof step.uses === "string" &&
-      step.uses.startsWith("swatinem/rust-cache@")
-    )).toBe(true);
+    const nativeJobs = [
+      record(jobs["pagination-native-macos"], "macOS native job"),
+      record(jobs["pagination-native-windows"], "Windows native job"),
+    ];
+    const macCommands = workflowSteps({ jobs: { native: nativeJobs[0] } })
+      .map((step) => step.run)
+      .filter((run): run is string => typeof run === "string");
+    expect(macCommands).toContain("cargo fmt --check");
+    expect(macCommands).toContain("cargo check --locked");
+    expect(macCommands).toContain("cargo test --locked");
 
-    const systemDependencies = steps.find((step) =>
-      step.name === "Install Linux system dependencies"
-    );
-    expect(systemDependencies?.run).toContain("libwebkit2gtk-4.1-dev");
+    const windowsCommands = workflowSteps({ jobs: { native: nativeJobs[1] } })
+      .map((step) => step.run)
+      .filter((run): run is string => typeof run === "string");
+    expect(windowsCommands).toContain("cargo check --locked --lib");
+    expect(windowsCommands).toContain("cargo test --locked --lib");
 
-    const cargoSteps = steps.filter((step) =>
-      typeof step.run === "string" && step.run.startsWith("cargo ")
-    );
-    expect(cargoSteps.map((step) => step.run)).toEqual([
-      "cargo fmt --check",
-      "cargo check --locked",
-      "cargo test --locked",
-    ]);
-    expect(
-      cargoSteps.every((step) =>
-        step["working-directory"] === "apps/desktop/src-tauri"
-      ),
-    ).toBe(true);
-
-    expect(steps.some((step) =>
-      typeof step.uses === "string" &&
-      step.uses.startsWith("tauri-apps/tauri-action@")
-    )).toBe(false);
-    const commands = steps.map((step) => step.run).filter((run) =>
-      typeof run === "string"
-    ).join("\n");
-    expect(commands).not.toMatch(/\btauri(?:\s+|:).*build\b/i);
+    expect(source).not.toMatch(/runs-on:\s*ubuntu-/);
+    expect(source).not.toContain("Install Linux system dependencies");
   });
 });

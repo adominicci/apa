@@ -31,6 +31,8 @@ describe("bundled release notes", () => {
   missing native trust anchor fails closed and asks for authorization again.
 - Tesina's packaged web content and build dependencies now use tighter
   security boundaries without changing native DOI, ISBN, or update access.
+- Linux packaging remains in the source, but Linux is no longer built or
+  supported by the active release workflows.
 
 ### Fixed
 

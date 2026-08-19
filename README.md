@@ -10,8 +10,8 @@ independently.
 
 Version 0.1.17 supports student papers on macOS 12 or newer, and ships an
 experimental Windows 10 or newer build. Both are distributed through GitHub
-Releases, not through an app store. Linux builds are checked in CI but are not
-published yet.
+Releases, not through an app store. Linux is not currently a supported or
+CI-built release target, although its implementation remains in the source.
 
 ## Install on macOS
 
