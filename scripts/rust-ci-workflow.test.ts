@@ -24,7 +24,7 @@ describe("Rust CI contract", () => {
   it("checks the locked Tauri crate on Linux without building installers", () => {
     const job = rustJob();
     expect(job["runs-on"]).toBe("ubuntu-22.04");
-    expect(job["timeout-minutes"]).toBe(20);
+    expect(job["timeout-minutes"]).toBe(45);
 
     const steps = workflowSteps({ jobs: { rust: job } });
     expect(steps.some((step) =>
