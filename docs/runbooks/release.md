@@ -59,12 +59,15 @@ another.
 | Surface                                 | Trigger                             | What it proves                                                                                                                                                                    | What it does not prove                                                                                                |
 | --------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `.github/workflows/ci.yml`              | Pull requests and pushes to `main`  | Frozen install and dependency audit, formatting, lint, Svelte checks, unit tests, locked Rust formatting/compile/tests, and native pagination proofs; when its feature-only Windows job passes, construction and silent installation of a non-shipping NSIS smoke flavor, launch of its installed executable, and bounded post-selection backup/persistence behavior | Literal shipping Windows folder/save dialogs, signing or notarization, updater artifacts or publication, provider synchronization, or bit identity with the ordinary release flavor |
-| `.github/workflows/build-artifacts.yml` | Pushes to `main` or manual dispatch | macOS, Windows, and Linux installers can be built with updater artifacts disabled; expected artifact types exist; the packaged macOS executable launches and remains live briefly | Apple Developer ID signing, notarization, updater signatures, publication, editing, IPC, persistence, or installer UX |
+| `.github/workflows/build-artifacts.yml` | Pushes to `main` or manual dispatch | macOS, Windows, and Linux installers can be built with updater artifacts disabled; expected artifact types exist; the ordinary packaged macOS executable launches and remains live briefly; a separate feature-only macOS smoke flavor persists a full fixture through the production archive/native safe-write boundary and independently reopens every expected item and figure byte | Apple Developer ID signing, notarization, updater signatures, publication, shipping-app editing or dialogs, provider behavior, installer UX, or bit identity between the feature-only smoke flavor and the ordinary release flavor |
 | `.github/workflows/release.yml`         | Push of a `v*` tag                  | Version parity, universal macOS draft artifacts, Windows installers, Apple signing/notarization checks, updater artifacts and signatures, and the final draft/manifest contract   | Manual publication or broad interactive product acceptance                                                            |
 
-The packaged macOS smoke intentionally claims only bundle metadata, executable
-launch, and process liveness. Editing, IPC, plugin persistence, backups, import
-and export, and installer UX require separate evidence on the named candidate.
+The ordinary packaged macOS smoke intentionally claims only bundle metadata,
+executable launch, and process liveness. The separate feature-only portable
+smoke claims bounded native safe-write IPC, persisted fixture export, and
+independent archive reopen on its named candidate. It does not prove shipping
+dialog UX, backup-folder persistence, provider behavior, signing, or installer
+UX.
 
 A contributor build uses the committed ad-hoc macOS signing identity. It can
 provide compile and packaging evidence, but it cannot prove Developer ID

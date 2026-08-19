@@ -7,6 +7,19 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [0.1.17] - 2026-08-18
 
+### Added
+
+- Export or import your complete library as one portable `.tesina` file,
+  including every paper, reference, collection, and figure.
+- Optional daily backups can write to a folder you choose when your library has
+  changed. Tesina keeps the seven newest backups it can prove belong to this
+  installation and leaves other files alone.
+- Restore a backup by merging it with your current library. Newer local work is
+  preserved, and differing older content is kept as a separate imported copy.
+- Portable library and backup files contain the complete library and are not
+  password-protected or encrypted. Anyone with the file can read its contents;
+  Tesina explains this before writing either kind of file.
+
 ### Changed
 
 - Backup setup now uses neutral first-time wording whenever no configured
