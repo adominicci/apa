@@ -57,6 +57,15 @@ describe("packaged backup smoke build contract", () => {
     expect(verifier).toContain("requiredAssertionsByPhase");
   });
 
+  it("keeps the long-running packaged scenario renderer active", async () => {
+    const config = JSON.parse(
+      await source("apps/desktop/src-tauri/tauri.backup-smoke.conf.json"),
+    ) as { app: { windows: Array<{ visible?: boolean }> } };
+
+    expect(config.app.windows).toHaveLength(1);
+    expect(config.app.windows[0]?.visible).toBe(true);
+  });
+
   it("runs the Windows package proof on the exact pull-request SHA", async () => {
     const ci = await source(".github/workflows/ci.yml");
 
