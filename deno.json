@@ -7,6 +7,8 @@
     "test:watch": "deno run -A npm:vitest",
     "check": "cd apps/desktop && deno task app:check",
     "spike:docx": "cd packages/docx-export && deno run -A scripts/generate-sample.ts",
+    "smoke:backup:packaged": "deno run -A scripts/run-packaged-backup-smoke.ts",
+    "smoke:portable:packaged": "deno run -A scripts/run-packaged-portable-export-smoke.ts",
     "fmt": "deno fmt",
     "lint": "deno lint"
   },

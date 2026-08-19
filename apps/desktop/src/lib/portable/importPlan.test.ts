@@ -14,6 +14,7 @@ import { pngBytes } from "./fixtures/images.ts";
 import {
   assertPlanConsistent,
   type AssetWriteOp,
+  createArchiveAssetClassIndex,
   type EssayWriteOp,
   type ImportArchiveContent,
   importedCopyTitleSuffix,
@@ -136,21 +137,40 @@ interface LocalParts {
   essays?: Essay[];
   references?: Reference[];
   collections?: RefCollection[];
-  /** local path -> sha256 of the identical local bytes */
-  assets?: Record<string, string>;
+  /** Local path → bytes and validated digest. */
+  assets?: Record<string, Pick<ValidatedAsset, "bytes" | "sha256">>;
   extraEssayIds?: string[];
   extraAssetPaths?: string[];
 }
 
-function localOf(parts: LocalParts): LocalImportState {
+function localOf(
+  parts: LocalParts,
+  archiveAssets: ReadonlyMap<string, ValidatedAsset> = new Map(),
+): LocalImportState {
   const assetEntries = Object.entries(parts.assets ?? {});
+  const archiveAssetClasses = createArchiveAssetClassIndex(archiveAssets);
+  const reusableAssetPathByClass = new Map<string, string>();
+  const assetClassByLocalPath = new Map<string, string>();
+  for (const [path, asset] of assetEntries) {
+    const assetClass = archiveAssetClasses.findClass(
+      asset.sha256,
+      asset.bytes,
+    );
+    if (assetClass !== undefined) {
+      assetClassByLocalPath.set(path, assetClass);
+      if (!reusableAssetPathByClass.has(assetClass)) {
+        reusableAssetPathByClass.set(assetClass, path);
+      }
+    }
+  }
   return {
     essays: parts.essays ?? [],
     library: {
       references: parts.references ?? [],
       collections: parts.collections ?? [],
     },
-    assetIndex: new Map(assetEntries.map(([path, sha]) => [sha, path])),
+    reusableAssetPathByClass,
+    assetClassByLocalPath,
     existingAssetPaths: new Set([
       ...assetEntries.map(([path]) => path),
       ...(parts.extraAssetPaths ?? []),
@@ -594,12 +614,14 @@ describe("planImport assets", () => {
       id: fixtureUuid(2, 1),
       figureSrcs: [archivePath],
     });
+    const asset = assetOf("sha-a");
+    const archive = archiveOf({
+      essays: [imported],
+      assets: { [archivePath]: asset },
+    });
     const plan = await planImport(
-      archiveOf({
-        essays: [imported],
-        assets: { [archivePath]: assetOf("sha-a") },
-      }),
-      localOf({ assets: { [localPath]: "sha-a" } }),
+      archive,
+      localOf({ assets: { [localPath]: asset } }, archive.assets),
       deps(),
     );
     expect(assetWrites(plan)).toHaveLength(0);
@@ -616,15 +638,18 @@ describe("planImport assets", () => {
       id: fixtureUuid(2, 1),
       figureSrcs: [archivePath],
     });
+    const archive = archiveOf({
+      essays: [imported],
+      assets: { [archivePath]: assetOf("sha-b") },
+    });
     const plan = await planImport(
-      archiveOf({
-        essays: [imported],
-        assets: { [archivePath]: assetOf("sha-b") },
-      }),
+      archive,
       localOf({
-        assets: { [`essays/assets/${fixtureUuid(4, 2)}.png`]: "sha-other" },
+        assets: {
+          [`essays/assets/${fixtureUuid(4, 2)}.png`]: assetOf("sha-other"),
+        },
         extraAssetPaths: [collidingPath],
-      }),
+      }, archive.assets),
       deps(),
     );
     const writes = assetWrites(plan);
@@ -636,6 +661,46 @@ describe("planImport assets", () => {
     expect(collectFigureSources(essayWrites(plan)[0].essay.content)).toEqual([
       writes[0].localPath,
     ]);
+  });
+
+  it("does not reuse a same-digest candidate with different bytes", async () => {
+    const sha256 = "c".repeat(64);
+    const archivePath = `assets/${fixtureUuid(4, 1)}.png`;
+    const localPath = `essays/assets/${fixtureUuid(4, 2)}.png`;
+    const archiveAsset = assetOf(sha256);
+    const imported = essayOf({
+      id: fixtureUuid(2, 1),
+      figureSrcs: [archivePath],
+    });
+    const localEssay = essayOf({
+      id: imported.id,
+      figureSrcs: [localPath],
+    });
+    const archive = archiveOf({
+      essays: [imported],
+      assets: { [archivePath]: archiveAsset },
+    });
+
+    const plan = await planImport(
+      archive,
+      localOf({
+        essays: [localEssay],
+        assets: {
+          [localPath]: {
+            sha256,
+            bytes: new Uint8Array(archiveAsset.bytes.byteLength).fill(8),
+          },
+        },
+      }, archive.assets),
+      deps(),
+    );
+
+    expect(plan.preview.assets).toEqual({ reused: 0, added: 1 });
+    expect(plan.preview.essays).toEqual({
+      new: 0,
+      identical: 0,
+      conflicting: 1,
+    });
   });
 });
 
@@ -795,15 +860,66 @@ describe("assertPlanConsistent", () => {
 });
 
 describe("planImport self-import (task 5.8)", () => {
-  it("fully skips re-importing an unchanged illustrated export", async () => {
+  it("fails closed when an unresolved path resembles an asset identity", async () => {
+    const sha256 = "a".repeat(64);
+    const archivePath = `assets/${fixtureUuid(4, 9)}.png`;
+    const imported = essayOf({
+      id: fixtureUuid(2, 9),
+      figureSrcs: [archivePath],
+    });
+    const unresolvedPath = `sha256:${sha256}`;
+    const local = essayOf({
+      id: imported.id,
+      figureSrcs: [unresolvedPath],
+    });
+
+    const plan = await planImport(
+      archiveOf({
+        essays: [imported],
+        assets: { [archivePath]: assetOf(sha256) },
+      }),
+      localOf({ essays: [local], extraAssetPaths: [unresolvedPath] }),
+      deps(),
+    );
+
+    expect(plan.preview.essays).toEqual({
+      new: 0,
+      identical: 0,
+      conflicting: 1,
+    });
+    expect(essayWrites(plan)).toHaveLength(1);
+  });
+
+  it("fully skips an unchanged export with duplicate-byte asset paths", async () => {
     const png = pngBytes(32, 24);
     const pngSha = await sha256Hex(png);
-    const localSrc = `essays/assets/${fixtureUuid(4, 1)}.png`;
+    const sourceSrcA = `essays/assets/${fixtureUuid(4, 1)}.png`;
+    const sourceSrcB = `essays/assets/${fixtureUuid(4, 2)}.png`;
+    const localSrcA = `essays/assets/${fixtureUuid(4, 101)}.png`;
+    const localSrcB = `essays/assets/${fixtureUuid(4, 102)}.png`;
     const ref = reference(1);
-    const localEssay = essayOf({
+    const sourceEssayA = essayOf({
       id: fixtureUuid(2, 1),
       cites: [ref.id],
-      figureSrcs: [localSrc],
+      figureSrcs: [sourceSrcA],
+      snapshot: [ref],
+    });
+    const sourceEssayB = essayOf({
+      id: fixtureUuid(2, 2),
+      cites: [ref.id],
+      figureSrcs: [sourceSrcB],
+      snapshot: [ref],
+    });
+    const localEssayA = essayOf({
+      id: sourceEssayA.id,
+      cites: [ref.id],
+      figureSrcs: [localSrcA],
+      snapshot: [ref],
+    });
+    const localEssayB = essayOf({
+      id: sourceEssayB.id,
+      cites: [ref.id],
+      figureSrcs: [localSrcB],
       snapshot: [ref],
     });
     const collection: RefCollection = {
@@ -815,13 +931,13 @@ describe("planImport self-import (task 5.8)", () => {
     // Export: normalize figure paths to `assets/...` exactly as a real
     // archive build does.
     const content = assembleArchiveContent({
-      essays: [localEssay],
+      essays: [sourceEssayA, sourceEssayB],
       library: {
         schemaVersion: 1,
         references: [ref],
         collections: [collection],
       },
-      assets: new Map([[localSrc, png]]),
+      assets: new Map([[sourceSrcA, png], [sourceSrcB, png]]),
     });
     const archiveAssets: Record<string, ValidatedAsset> = {};
     for (const [path, bytes] of content.assets) {
@@ -845,18 +961,21 @@ describe("planImport self-import (task 5.8)", () => {
     };
 
     const local = localOf({
-      essays: [localEssay],
+      essays: [localEssayA, localEssayB],
       references: [ref],
       collections: [collection],
-      assets: { [localSrc]: pngSha },
-    });
+      assets: {
+        [localSrcA]: { sha256: pngSha, bytes: png },
+        [localSrcB]: { sha256: pngSha, bytes: png },
+      },
+    }, archive.assets);
     const plan = await planImport(archive, local, deps());
 
     expect(plan.preview).toEqual({
-      essays: { new: 0, identical: 1, conflicting: 0 },
+      essays: { new: 0, identical: 2, conflicting: 0 },
       references: { new: 0, identical: 1, conflicting: 0 },
       collections: { new: 0, identical: 1, conflicting: 0 },
-      assets: { reused: 1, added: 0 },
+      assets: { reused: 2, added: 0 },
     });
     expect(essayWrites(plan)).toHaveLength(0);
     expect(assetWrites(plan)).toHaveLength(0);

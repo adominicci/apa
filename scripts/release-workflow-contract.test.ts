@@ -100,6 +100,27 @@ describe("release workflow contract", () => {
     }
   });
 
+  it("installs JavaScript dependencies from the committed lockfile", () => {
+    for (const workflow of workflowFiles) {
+      const installCommands = workflowSteps(
+        parseWorkflowYaml(workflow.source),
+      ).flatMap((step) => {
+        const run = step.run;
+        if (typeof run !== "string") return [];
+        return run
+          .split("\n")
+          .map((command) => command.trim())
+          .filter((command) => command.startsWith("deno install"));
+      });
+
+      for (const command of installCommands) {
+        expect(command, `${workflow.name}: ${command}`).toBe(
+          "deno install --frozen",
+        );
+      }
+    }
+  });
+
   it("publishes only one universal macOS app and DMG build", () => {
     expect(releaseWorkflow.match(/runs-on: macos-latest/g)).toHaveLength(1);
     expect(releaseWorkflow).toContain("--target universal-apple-darwin");
@@ -332,13 +353,7 @@ describe("release workflow contract", () => {
 
   it("preserves the merge workflow's no-upload policy", () => {
     const platforms = workflowPropertyValues(mergeDocument, "platform");
-    expect(platforms).toEqual(
-      expect.arrayContaining([
-        "macos-latest",
-        "windows-latest",
-        "ubuntu-22.04",
-      ]),
-    );
+    expect(platforms).toEqual(["macos-latest", "windows-latest"]);
     const tauriSteps = actionSteps(mergeDocument, "tauri-apps/tauri-action");
     expect(tauriSteps).toHaveLength(1);
     const inputs = recordField(tauriSteps[0], "with");

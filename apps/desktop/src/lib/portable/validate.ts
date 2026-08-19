@@ -9,6 +9,7 @@
 
 import type { Reference } from "@tesina/engine";
 import type { Essay } from "$lib/model/essay";
+import { isFontChoice } from "../model/fonts.ts";
 import type { RefCollection } from "$lib/model/collections";
 import {
   type ArchiveLimits,
@@ -420,15 +421,6 @@ function validateEssayPayload(
 
 const DOCUMENT_LANGUAGES = new Set(["en", "es"]);
 const PAPER_VARIANTS = new Set(["student", "professional"]);
-const FONT_CHOICES = new Set([
-  "times-new-roman-12",
-  "georgia-11",
-  "computer-modern-10",
-  "aptos-12",
-  "calibri-11",
-  "arial-11",
-  "lucida-sans-unicode-10",
-]);
 const PAPER_SIZES = new Set(["us-letter", "a4"]);
 
 function validateEssaySettings(value: unknown, where: string): void {
@@ -436,7 +428,7 @@ function validateEssaySettings(value: unknown, where: string): void {
   if (
     !DOCUMENT_LANGUAGES.has(String(settings.documentLanguage)) ||
     !PAPER_VARIANTS.has(String(settings.variant)) ||
-    !FONT_CHOICES.has(String(settings.font)) ||
+    !isFontChoice(settings.font) ||
     !PAPER_SIZES.has(String(settings.paperSize)) ||
     typeof settings.includeUncitedReferences !== "boolean" ||
     (settings.runningHead !== undefined &&

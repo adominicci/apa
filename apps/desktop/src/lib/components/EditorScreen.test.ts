@@ -309,6 +309,95 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
+describe("outline Add menu dismissal", () => {
+  function mountEditor() {
+    return mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay: essayWithBody("Seed"),
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+  }
+
+  function addTrigger(): HTMLButtonElement {
+    const button = document.querySelector<HTMLButtonElement>(
+      `.add-wrap > button[aria-label="${m.outline_add()}"]`,
+    );
+    if (!button) throw new Error("Outline Add button not found");
+    return button;
+  }
+
+  function addMenu(): HTMLElement | null {
+    return document.querySelector<HTMLElement>(".add-wrap [role='menu']");
+  }
+
+  it("dismisses on an outside pointer press", async () => {
+    const component = mountEditor();
+    flushSync();
+
+    addTrigger().click();
+    flushSync();
+    expect(addMenu()).not.toBeNull();
+
+    document.body.dispatchEvent(
+      new MouseEvent("pointerdown", { bubbles: true }),
+    );
+    flushSync();
+    expect(addMenu()).toBeNull();
+
+    await unmount(component);
+  });
+
+  it("dismisses on Escape and returns focus to the Add button", async () => {
+    const component = mountEditor();
+    flushSync();
+
+    const trigger = addTrigger();
+    trigger.click();
+    flushSync();
+    addMenu()?.querySelector<HTMLButtonElement>("[role='menuitem']")?.focus();
+
+    globalThis.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    flushSync();
+    expect(addMenu()).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+
+    await unmount(component);
+  });
+
+  it("keeps menu-item actions working while dismissable", async () => {
+    const component = mountEditor();
+    flushSync();
+
+    addTrigger().click();
+    flushSync();
+    const addAbstract = [...document.querySelectorAll<HTMLButtonElement>(
+      ".add-wrap [role='menuitem']",
+    )].find((button) => button.textContent?.trim() === m.editor_add_abstract());
+    if (!addAbstract) throw new Error("Add abstract item not found");
+    addAbstract.dispatchEvent(
+      new MouseEvent("pointerdown", { bubbles: true }),
+    );
+    flushSync();
+    expect(addMenu()).not.toBeNull();
+    addAbstract.click();
+    flushSync();
+
+    expect(addMenu()).toBeNull();
+    expect(runtime.editors[0]?.getJSON().content?.[0]?.type).toBe(
+      "sectionAbstract",
+    );
+
+    await unmount(component);
+  });
+});
+
 describe("editor preview round trip", () => {
   it("shows a native installed-version button beside APA 7 in the status bar", async () => {
     const component = mount(EditorScreen, {
@@ -377,7 +466,7 @@ describe("editor preview round trip", () => {
       `Tesina ${bundledReleaseNotes.version}`,
     );
     expect(dialog?.textContent).toContain(
-      "look and behave alike",
+      "One damaged paper file no longer hides every other paper",
     );
     document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
     flushSync();
@@ -431,7 +520,7 @@ describe("editor preview round trip", () => {
       "Las notas no están disponibles para esta versión.",
     );
     expect(dialog?.textContent).not.toContain(
-      "look and behave alike",
+      "One damaged paper file no longer hides every other paper",
     );
     globalThis.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),

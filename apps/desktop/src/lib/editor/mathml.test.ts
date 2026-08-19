@@ -83,6 +83,15 @@ describe("latexToMathTree", () => {
     expect(mathml).not.toContain("500em");
   });
 
+  it.each([
+    "\\includegraphics{https://example.test/tracker.png}",
+    "\\style{color:red}{x}",
+    "\\class{untrusted}{x}",
+  ])("rejects trust-sensitive markup: %s", (latex) => {
+    expect(() => latexToMathml(latex)).toThrow();
+    expect(isValidLatex(latex)).toBe(false);
+  });
+
   it("integra árboles reales de Temml con la exportación DOCX", async () => {
     const supported = ["E = mc^2", "\\frac{1}{2}"];
     const unsupported = [

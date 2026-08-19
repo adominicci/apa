@@ -2,15 +2,10 @@
  * Recoverable `.tesina` destination writes (design §7, tasks 4.3/4.4) over an
  * injected filesystem so every rename/cleanup boundary is fault-testable.
  *
- * Two write modes:
- * - `writeArchiveExclusive`: automatic backups — the final name is created
- *   exclusively; a collision picks a different unused name and never
- *   replaces a file this operation did not create (amended spec).
- * - `writeArchiveReplacing`: manual export over a user-chosen destination —
- *   direct same-filesystem replacement rename when the platform allows it,
- *   otherwise a journaled multi-rename that preserves the previous file
- *   until the new destination reopens and validates. Interrupted
- *   replacements are recovered by `recoverReplacements` on next access.
+ * Manual export uses a direct same-filesystem replacement rename when the
+ * platform allows it, otherwise a journaled multi-rename that preserves the
+ * previous file until the new destination reopens and validates. Interrupted
+ * replacements are recovered by `recoverReplacements` on next access.
  */
 
 export class PortableFileError extends Error {
@@ -31,29 +26,49 @@ export interface ExternalFs {
   /** Streams at most maxBytes and rejects before allocating beyond it. */
   readFileBounded(path: string, maxBytes: number): Promise<Uint8Array>;
   /** Computes SHA-256 incrementally without materializing the whole file. */
-  sha256File(path: string): Promise<string>;
+  sha256File(path: string, maxBytes: number): Promise<string>;
   writeFile(path: string, bytes: Uint8Array): Promise<void>;
-  /** Replaces an existing destination where the platform supports it. */
-  rename(from: string, to: string): Promise<void>;
+  /** Preserves an existing destination under its journaled digest. */
+  rename(from: string, to: string, expectedSha256: string): Promise<void>;
   /** Fails when the destination already exists. */
-  renameNoReplace(from: string, to: string): Promise<void>;
+  renameNoReplace(
+    from: string,
+    to: string,
+    expectedSha256: string,
+  ): Promise<void>;
   /** Atomically quarantines and deletes only bytes matching expectedSha256. */
-  removeIfHashMatches(path: string, expectedSha256: string): Promise<void>;
+  removeIfHashMatches(
+    path: string,
+    expectedSha256: string,
+    installedDestinationSha256?: string,
+  ): Promise<void>;
   remove(path: string): Promise<void>;
   /** Byte size, or null when the file does not exist. */
   statSize(path: string): Promise<number | null>;
 }
 
-export interface ReplacementRecord {
+interface ReplacementRecordBase {
   id: string;
   destinationPath: string;
   temporaryPath: string;
   previousPath: string;
   /** Hash of the new archive being installed. */
   expectedSha256: string;
+}
+
+export interface StagingReplacementRecord extends ReplacementRecordBase {
+  phase: "staging";
+}
+
+export interface ReplacingReplacementRecord extends ReplacementRecordBase {
+  phase: "replacing";
   /** Hash of the destination file before the replacement began. */
   previousSha256: string;
 }
+
+export type ReplacementRecord =
+  | StagingReplacementRecord
+  | ReplacingReplacementRecord;
 
 /** Durable store for in-flight replacement records (app-data backed). */
 export interface ReplacementJournal {
@@ -67,63 +82,12 @@ export interface WriteDeps {
   /** Reopens and validates written bytes; throws when invalid. */
   validate: (bytes: Uint8Array) => Promise<void>;
   uuid: () => string;
+  maxArchiveBytes: number;
   sha256: (bytes: Uint8Array) => Promise<string>;
 }
 
 function siblingTempPath(path: string, uuid: string): string {
   return `${path}.${uuid}.tmp`;
-}
-
-/**
- * Writes `bytes` to a brand-new exclusively-created file. `candidates`
- * yields destination paths to try in order (the caller derives them from the
- * backup filename grammar); an occupied name moves to the next candidate.
- */
-export async function writeArchiveExclusive(
-  deps: WriteDeps,
-  bytes: Uint8Array,
-  candidates: string[],
-): Promise<{ path: string }> {
-  let tmp: string | null = null;
-  const expectedSha256 = await deps.sha256(bytes);
-  try {
-    for (const candidate of candidates) {
-      if (await deps.fs.exists(candidate)) continue;
-      if (tmp === null) {
-        tmp = siblingTempPath(candidate, deps.uuid());
-        await deps.fs.writeFile(tmp, bytes);
-        await deps.validate(await deps.fs.readFile(tmp));
-      }
-      try {
-        await deps.fs.renameNoReplace(tmp, candidate);
-      } catch {
-        continue; // raced by another writer; try the next unused name
-      }
-      tmp = null;
-      const installed = await deps.fs.readFile(candidate);
-      if ((await deps.sha256(installed)) !== expectedSha256) {
-        throw new PortableFileError(
-          "portable/destination-changed",
-          "the installed archive changed before it could be verified",
-          candidate,
-        );
-      }
-      await deps.validate(installed);
-      return { path: candidate };
-    }
-    throw new PortableFileError(
-      "portable/no-free-name",
-      "every candidate backup filename is already occupied",
-    );
-  } finally {
-    if (tmp !== null) {
-      try {
-        await deps.fs.remove(tmp);
-      } catch {
-        // best-effort cleanup of this operation's own temp file
-      }
-    }
-  }
 }
 
 /**
@@ -141,11 +105,27 @@ export async function writeArchiveReplacing(
 ): Promise<{ path: string }> {
   const tmp = siblingTempPath(destinationPath, deps.uuid());
   const expectedSha256 = await deps.sha256(bytes);
+  const stagingRecord: StagingReplacementRecord = {
+    phase: "staging",
+    id: deps.uuid(),
+    destinationPath,
+    temporaryPath: tmp,
+    previousPath: `${destinationPath}.${deps.uuid()}.prev`,
+    expectedSha256,
+  };
   let journalSaved = false;
+  let destinationMutationStarted = false;
   try {
+    await abortable(signal, async () => {
+      await journal.save(stagingRecord);
+      journalSaved = true;
+    });
     await abortable(signal, () => deps.fs.writeFile(tmp, bytes));
     await deps.validate(
-      await abortable(signal, () => deps.fs.readFile(tmp)),
+      await abortable(
+        signal,
+        () => deps.fs.readFileBounded(tmp, deps.maxArchiveBytes),
+      ),
     );
 
     const hadPrevious = await abortable(
@@ -153,13 +133,14 @@ export async function writeArchiveReplacing(
       () => deps.fs.exists(destinationPath),
     );
     if (!hadPrevious) {
+      destinationMutationStarted = true;
       await abortable(
         signal,
-        () => deps.fs.renameNoReplace(tmp, destinationPath),
+        () => deps.fs.renameNoReplace(tmp, destinationPath, expectedSha256),
       );
       const installed = await abortable(
         signal,
-        () => deps.fs.readFile(destinationPath),
+        () => deps.fs.readFileBounded(destinationPath, deps.maxArchiveBytes),
       );
       if ((await deps.sha256(installed)) !== expectedSha256) {
         throw new PortableFileError(
@@ -169,28 +150,31 @@ export async function writeArchiveReplacing(
         );
       }
       await deps.validate(installed);
+      await abortable(signal, () => journal.remove(stagingRecord.id));
       return { path: destinationPath };
     }
 
     // Always journal an existing destination. Some rename implementations
     // replace successfully, but that would destroy the last known-good file
     // before the newly installed bytes pass their final reopen validation.
-    const record: ReplacementRecord = {
-      id: deps.uuid(),
-      destinationPath,
-      temporaryPath: tmp,
-      previousPath: `${destinationPath}.${deps.uuid()}.prev`,
-      expectedSha256,
+    const record: ReplacingReplacementRecord = {
+      ...stagingRecord,
+      phase: "replacing",
       previousSha256: await abortable(
         signal,
-        () => deps.fs.sha256File(destinationPath),
+        () => deps.fs.sha256File(destinationPath, deps.maxArchiveBytes),
       ),
     };
     await abortable(signal, () => journal.save(record));
-    journalSaved = true;
+    destinationMutationStarted = true;
     await abortable(
       signal,
-      () => deps.fs.rename(destinationPath, record.previousPath),
+      () =>
+        deps.fs.rename(
+          destinationPath,
+          record.previousPath,
+          record.previousSha256,
+        ),
     );
     if (!(await previousMatches(deps, record))) {
       throw new PortableFileError(
@@ -201,7 +185,7 @@ export async function writeArchiveReplacing(
     }
     await abortable(
       signal,
-      () => deps.fs.renameNoReplace(tmp, destinationPath),
+      () => deps.fs.renameNoReplace(tmp, destinationPath, expectedSha256),
     );
     if (!(await fileMatches(deps, destinationPath, record))) {
       throw new PortableFileError(
@@ -216,21 +200,22 @@ export async function writeArchiveReplacing(
         deps.fs.removeIfHashMatches(
           record.previousPath,
           record.previousSha256,
+          record.expectedSha256,
         ),
     );
     await abortable(signal, () => journal.remove(record.id));
     return { path: destinationPath };
   } catch (error) {
-    if (!journalSaved) {
-      // Before a durable record exists, this operation owns the temporary
-      // file exclusively. Cleanup is best-effort and deliberately detached
-      // from an already-aborted signal.
-      try {
-        await Promise.race([
-          deps.fs.remove(tmp),
-          new Promise<void>((resolve) => setTimeout(resolve, 1_000)),
-        ]);
-      } catch { /* preserve the primary error */ }
+    if (!destinationMutationStarted) {
+      // Before destination mutation, the staging record proves ownership of
+      // the temp. Clear both when possible; otherwise retain the record so a
+      // later authorized recovery can retry without guessing.
+      const removed = await removeIfExists(deps, tmp, expectedSha256);
+      if (journalSaved && removed) {
+        try {
+          await journal.remove(stagingRecord.id);
+        } catch { /* preserve the primary error and durable ownership */ }
+      }
     }
     throw error;
   }
@@ -300,6 +285,18 @@ export async function recoverReplacements(
       record.destinationPath !== authorizedDestination
     ) continue;
     const { destinationPath, temporaryPath, previousPath } = record;
+    if (record.phase === "staging") {
+      if (await deps.fs.exists(previousPath)) continue;
+      if (
+        !(await removeIfExists(
+          deps,
+          temporaryPath,
+          record.expectedSha256,
+        ))
+      ) continue;
+      await journal.remove(record.id);
+      continue;
+    }
     const destOk = await fileMatches(deps, destinationPath, record);
     if (destOk) {
       // New file fully installed: clear leftovers and close the record.
@@ -308,12 +305,19 @@ export async function recoverReplacements(
           await deps.fs.removeIfHashMatches(
             previousPath,
             record.previousSha256,
+            record.expectedSha256,
           );
         } catch {
           continue;
         }
       }
-      await removeIfExists(deps, temporaryPath);
+      if (
+        !(await removeIfExists(
+          deps,
+          temporaryPath,
+          record.expectedSha256,
+        ))
+      ) continue;
       await journal.remove(record.id);
       continue;
     }
@@ -327,7 +331,10 @@ export async function recoverReplacements(
       }
       if (await deps.fs.exists(destinationPath)) {
         if (
-          (await deps.fs.sha256File(destinationPath)) !== record.previousSha256
+          (await deps.fs.sha256File(
+            destinationPath,
+            deps.maxArchiveBytes,
+          )) !== record.previousSha256
         ) {
           // The destination is neither the old nor the new file — the user
           // (or another writer) changed it. Never guess; keep the evidence.
@@ -335,11 +342,19 @@ export async function recoverReplacements(
         }
         // Crash landed before the previous file was moved aside: complete
         // the replacement exactly as the original operation would have.
-        await deps.fs.rename(destinationPath, previousPath);
+        await deps.fs.rename(
+          destinationPath,
+          previousPath,
+          record.previousSha256,
+        );
         if (!(await previousMatches(deps, record))) continue;
       }
       try {
-        await deps.fs.renameNoReplace(temporaryPath, destinationPath);
+        await deps.fs.renameNoReplace(
+          temporaryPath,
+          destinationPath,
+          record.expectedSha256,
+        );
       } catch {
         // A destination appeared after preservation. It belongs to another
         // writer; retain every journaled candidate and do not replace it.
@@ -355,6 +370,7 @@ export async function recoverReplacements(
           await deps.fs.removeIfHashMatches(
             previousPath,
             record.previousSha256,
+            record.expectedSha256,
           );
         } catch {
           continue;
@@ -368,22 +384,41 @@ export async function recoverReplacements(
       if (!(await deps.fs.exists(destinationPath))) {
         if (!(await previousMatches(deps, record))) continue;
         try {
-          await deps.fs.renameNoReplace(previousPath, destinationPath);
+          await deps.fs.renameNoReplace(
+            previousPath,
+            destinationPath,
+            record.previousSha256,
+          );
         } catch {
           continue;
         }
         if (
-          (await deps.fs.sha256File(destinationPath)) !== record.previousSha256
+          (await deps.fs.sha256File(
+            destinationPath,
+            deps.maxArchiveBytes,
+          )) !== record.previousSha256
+        ) continue;
+        if (
+          !(await removeIfExists(
+            deps,
+            previousPath,
+            record.previousSha256,
+            record.previousSha256,
+          ))
         ) continue;
         await journal.remove(record.id);
         continue;
       }
       if (
-        (await deps.fs.sha256File(destinationPath)) === record.previousSha256
+        (await deps.fs.sha256File(
+          destinationPath,
+          deps.maxArchiveBytes,
+        )) === record.previousSha256
       ) {
         try {
           await deps.fs.removeIfHashMatches(
             previousPath,
+            record.previousSha256,
             record.previousSha256,
           );
         } catch {
@@ -401,10 +436,13 @@ export async function recoverReplacements(
 
 async function previousMatches(
   deps: WriteDeps,
-  record: ReplacementRecord,
+  record: ReplacingReplacementRecord,
 ): Promise<boolean> {
   try {
-    return (await deps.fs.sha256File(record.previousPath)) ===
+    return (await deps.fs.sha256File(
+      record.previousPath,
+      deps.maxArchiveBytes,
+    )) ===
       record.previousSha256;
   } catch {
     return false;
@@ -418,7 +456,7 @@ async function fileMatches(
 ): Promise<boolean> {
   if (!(await deps.fs.exists(path))) return false;
   try {
-    const bytes = await deps.fs.readFile(path);
+    const bytes = await deps.fs.readFileBounded(path, deps.maxArchiveBytes);
     if ((await deps.sha256(bytes)) !== record.expectedSha256) {
       return false;
     }
@@ -429,11 +467,24 @@ async function fileMatches(
   }
 }
 
-async function removeIfExists(deps: WriteDeps, path: string): Promise<void> {
+async function removeIfExists(
+  deps: WriteDeps,
+  path: string,
+  expectedSha256: string,
+  installedDestinationSha256?: string,
+): Promise<boolean> {
   try {
-    if (await deps.fs.exists(path)) await deps.fs.remove(path);
+    if (await deps.fs.exists(path)) {
+      await deps.fs.removeIfHashMatches(
+        path,
+        expectedSha256,
+        installedDestinationSha256,
+      );
+    }
+    return true;
   } catch {
     // best effort; leftovers are harmless and reported by the next recovery
+    return false;
   }
 }
 

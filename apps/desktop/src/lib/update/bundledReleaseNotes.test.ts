@@ -7,29 +7,44 @@ import {
 
 describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
-    const expectedNotes = `### Changed
+    const expectedNotes = `### Added
 
-- The small labels, filters and buttons around your paper now follow one
-  set of rules instead of five. A label that only says what something is,
-  such as a reference type or a language tag, is now plain grey at one
-  size and one shape everywhere. Colour is kept for the things that want
-  you to do something: "uncited" and "Duplicate" stay warm. The filter
-  buttons in the essay list and in the library now look and behave alike,
-  and the Cite and Delete actions in a reference row light up when you
-  point at them.
-- Short questions such as "Delete reference" and "Quit Tesina?" now open
-  in a narrower window that fits the question, instead of the wider one
-  every form uses.
-- Every small pop-up panel now looks the same — the update message, the
-  APA check, the citation picker and every toolbar menu. The ones that
-  report on something open with a coloured strip and a dot that tells
-  you at a glance whether it is good news: green when you are up to
-  date, blue when an update is waiting, amber when your paper has
-  something to look at.
-- Blue text is slightly darker throughout, so labels on a blue
-  background are easier to read.`;
+- Export or import your complete library as one portable \`.tesina\` file,
+  including every paper, reference, collection, and figure.
+- Optional daily backups can write to a folder you choose when your library has
+  changed. Tesina keeps the seven newest backups it can prove belong to this
+  installation and leaves other files alone.
+- Restore a backup by merging it with your current library. Newer local work is
+  preserved, and differing older content is kept as a separate imported copy.
+- Portable library and backup files contain the complete library and are not
+  password-protected or encrypted. Anyone with the file can read its contents;
+  Tesina explains this before writing either kind of file.
 
-    expect(bundledReleaseNotes.version).toBe("0.1.16");
+### Changed
+
+- Backup setup now uses neutral first-time wording whenever no configured
+  backup folder can be confirmed.
+- Backup folder access is now anchored entirely in native, renderer-denied
+  storage. People who configured backups in v0.1.16 must select the folder
+  again and complete one real test backup; existing backup files remain
+  untouched. Later v0.1.17 restarts keep the renewed authorization, while a
+  missing native trust anchor fails closed and asks for authorization again.
+- Tesina's packaged web content and build dependencies now use tighter
+  security boundaries without changing native DOI, ISBN, or update access.
+- Linux packaging remains in the source, but Linux is no longer built or
+  supported by the active release workflows.
+
+### Fixed
+
+- One damaged paper file no longer hides every other paper. Tesina preserves
+  unreadable files, names them in recovery guidance, and keeps reference
+  deletion blocked while the library scan is incomplete.
+- The editor's Add menu now closes when you click outside it or press Escape,
+  and keyboard focus returns to the Add button.
+- Opening Tesina again on a Mac now shows and focuses the existing window even
+  when it was hidden with the close button.`;
+
+    expect(bundledReleaseNotes.version).toBe("0.1.17");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");

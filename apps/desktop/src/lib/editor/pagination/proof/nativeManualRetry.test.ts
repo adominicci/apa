@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isRetryableZeroEventNativeInputResult } from "./nativeManualRetry.ts";
+import { isRetryableNoKeyboardProgressNativeInputResult } from "./nativeManualRetry.ts";
 
 const proofDir = dirname(fileURLToPath(import.meta.url));
 const runner = await readFile(resolve(proofDir, "runNativeProof.ts"), "utf8");
@@ -49,10 +49,40 @@ function zeroEventResult(): Record<string, unknown> {
   };
 }
 
-describe("Windows native-input zero-event retry policy", () => {
-  it("accepts only the exact no-input-desktop timeout signature", () => {
-    expect(isRetryableZeroEventNativeInputResult(zeroEventResult())).toBe(true);
+function hostFailure(pageResult: Record<string, unknown>) {
+  return {
+    passed: false,
+    error:
+      "Windows native input result arrived before driver completion; page result: {...}",
+    nativeInputCleanupComplete: true,
+    pageResult,
+  };
+}
 
+describe("Windows native-input no-keyboard-progress retry policy", () => {
+  it("accepts the exact zero-event host failure envelope", () => {
+    expect(isRetryableNoKeyboardProgressNativeInputResult(
+      hostFailure(zeroEventResult()),
+    )).toBe(true);
+  });
+
+  it("accepts a valid mouse selection when no keyboard input was observed", () => {
+    const result = zeroEventResult();
+    result.checks = {
+      nativeClipboard: false,
+      nativeComposedCharacterInput: false,
+      nativeMouseDragAcrossGap: true,
+    };
+    Object.assign(result.metrics as Record<string, unknown>, {
+      selectedTextLength: 8,
+      selectionFrom: 892,
+      selectionTo: 900,
+    });
+    expect(isRetryableNoKeyboardProgressNativeInputResult(hostFailure(result)))
+      .toBe(true);
+  });
+
+  it("rejects any keyboard progress or inconsistent mouse progress", () => {
     for (
       const [field, value] of [
         ["selectedTextLength", 8],
@@ -68,8 +98,34 @@ describe("Windows native-input zero-event retry policy", () => {
     ) {
       const result = zeroEventResult();
       (result.metrics as Record<string, unknown>)[field] = value;
-      expect(isRetryableZeroEventNativeInputResult(result), field).toBe(false);
+      expect(
+        isRetryableNoKeyboardProgressNativeInputResult(hostFailure(result)),
+        field,
+      ).toBe(false);
     }
+
+    const inconsistentMouse = zeroEventResult();
+    (inconsistentMouse.checks as Record<string, unknown>)[
+      "nativeMouseDragAcrossGap"
+    ] = true;
+    expect(isRetryableNoKeyboardProgressNativeInputResult(
+      hostFailure(inconsistentMouse),
+    )).toBe(false);
+  });
+
+  it("rejects raw page results and failed native cleanup", () => {
+    expect(isRetryableNoKeyboardProgressNativeInputResult(zeroEventResult()))
+      .toBe(false);
+    expect(isRetryableNoKeyboardProgressNativeInputResult({
+      ...hostFailure(zeroEventResult()),
+      nativeInputCleanupComplete: false,
+      error:
+        "Windows native input result arrived before driver completion; page result: {...}; RestoreClipboard failed",
+    })).toBe(false);
+    expect(isRetryableNoKeyboardProgressNativeInputResult({
+      ...hostFailure(zeroEventResult()),
+      error: "untrusted page result",
+    })).toBe(false);
   });
 
   it("never retries a partial semantic failure or a different timeout", () => {
@@ -88,14 +144,16 @@ describe("Windows native-input zero-event retry policy", () => {
         },
       ]
     ) {
-      expect(isRetryableZeroEventNativeInputResult(result)).toBe(false);
+      expect(isRetryableNoKeyboardProgressNativeInputResult(
+        "pageResult" in result ? result : hostFailure(result),
+      )).toBe(false);
     }
   });
 
   it("wires one fresh-profile manual retry without semantic fallback", () => {
-    expect(runner).toContain("MAX_ZERO_EVENT_NATIVE_INPUT_ATTEMPTS = 2");
-    expect(runner).toContain("isRetryableZeroEventNativeInputResult");
-    expect(runner).toContain("`${profileName}-zero-event-retry`");
+    expect(runner).toContain("MAX_NO_KEYBOARD_PROGRESS_ATTEMPTS = 2");
+    expect(runner).toContain("isRetryableNoKeyboardProgressNativeInputResult");
+    expect(runner).toContain("`${profileName}-input-retry`");
     expect(runner).toContain("attempt === 0");
     expect(runner).toContain("Native proof host exited with code");
     expect(runner).not.toMatch(/synthetic|dispatchEvent|execute_script/);

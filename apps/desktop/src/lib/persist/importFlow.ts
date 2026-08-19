@@ -9,8 +9,13 @@
 import type { Essay } from "$lib/model/essay";
 import { ARCHIVE_LIMITS, type ArchiveLimits } from "$lib/portable/limits";
 import { sha256Hex } from "$lib/portable/archive";
-import { validateArchive, type ValidatedArchive } from "$lib/portable/validate";
 import {
+  validateArchive,
+  type ValidatedArchive,
+  type ValidatedAsset,
+} from "$lib/portable/validate";
+import {
+  createArchiveAssetClassIndex,
   type ImportPlan,
   type ImportPreview,
   type LocalImportState,
@@ -38,11 +43,13 @@ export interface LocalStateCapture {
 /**
  * Reads the flushed local library into planner shape. Must run under the
  * maintenance lease with persistence flushed (the caller guarantees both).
- * The asset index covers EVERY existing asset file — orphans included — so
- * dedupe can reuse them and path allocation can avoid them.
+ * Every existing asset path is reserved, including orphans. Assets that match
+ * this archive are assigned exact-byte classes while their bytes are in hand,
+ * so the planner can dedupe without retaining the full local asset corpus.
  */
 export async function captureLocalImportState(
   fs: ImportFs,
+  archiveAssets: ReadonlyMap<string, ValidatedAsset> = new Map(),
 ): Promise<LocalStateCapture> {
   const essays: Essay[] = [];
   const existingEssayIds = new Set<string>();
@@ -62,14 +69,23 @@ export async function captureLocalImportState(
     }
   }
 
-  const assetIndex = new Map<string, string>();
+  const archiveAssetClasses = createArchiveAssetClassIndex(archiveAssets);
+  const reusableAssetPathByClass = new Map<string, string>();
+  const assetClassByLocalPath = new Map<string, string>();
   const existingAssetPaths = new Set<string>();
-  for (const name of await fs.list("essays/assets")) {
+  for (const name of (await fs.list("essays/assets")).sort()) {
     const relPath = `essays/assets/${name}`;
     existingAssetPaths.add(relPath);
     const bytes = await fs.readBytes(relPath);
     if (bytes !== null) {
-      assetIndex.set(await sha256Hex(bytes), relPath);
+      const sha256 = await sha256Hex(bytes);
+      const assetClass = archiveAssetClasses.findClass(sha256, bytes);
+      if (assetClass !== undefined) {
+        assetClassByLocalPath.set(relPath, assetClass);
+        if (!reusableAssetPathByClass.has(assetClass)) {
+          reusableAssetPathByClass.set(assetClass, relPath);
+        }
+      }
     }
   }
 
@@ -93,7 +109,8 @@ export async function captureLocalImportState(
     local: {
       essays,
       library: { references, collections },
-      assetIndex,
+      reusableAssetPathByClass,
+      assetClassByLocalPath,
       existingAssetPaths,
       existingEssayIds,
     },
@@ -141,6 +158,7 @@ export async function previewImport(
     await deps.flushPending();
     const { local, previousLibrarySha256 } = await captureLocalImportState(
       deps.fs,
+      archive.assets,
     );
     const plan = await planImport(archive, local, {
       transactionId: deps.uuid(),
@@ -191,6 +209,7 @@ export async function applyConfirmedImport(
         // detect an edited same-ID essay or changed asset dedupe candidate.
         const { local, previousLibrarySha256 } = await captureLocalImportState(
           deps.fs,
+          current.archive.assets,
         );
         const plan = await planImport(current.archive, local, {
           transactionId: deps.uuid(),
@@ -290,6 +309,7 @@ export async function applyConfirmedImport(
         await deps.flushPending();
         const { local, previousLibrarySha256 } = await captureLocalImportState(
           deps.fs,
+          current.archive.assets,
         );
         const plan = await planImport(current.archive, local, {
           transactionId: deps.uuid(),

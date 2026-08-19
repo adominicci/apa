@@ -33,6 +33,16 @@ class MemoryAppData implements ImportFs {
   readBytes(p: string): Promise<Uint8Array | null> {
     return Promise.resolve(this.files.get(p) ?? null);
   }
+  readBytesBounded(
+    p: string,
+    maxBytes: number,
+  ): Promise<Uint8Array | null> {
+    const bytes = this.files.get(p);
+    if (bytes !== undefined && bytes.byteLength > maxBytes) {
+      return Promise.reject(new Error("file too large"));
+    }
+    return Promise.resolve(bytes ?? null);
+  }
   writeBytes(p: string, bytes: Uint8Array): Promise<void> {
     this.files.set(p, bytes);
     return Promise.resolve();
@@ -160,6 +170,37 @@ async function exportFixtureArchive(
 }
 
 describe("import flow integration", () => {
+  it("chooses a deterministic reusable asset path from native directory order", async () => {
+    const fs = new MemoryAppData();
+    const bytes = new Uint8Array([1, 2, 3]);
+    const sha256 = await sha256Hex(bytes);
+    const firstArchivePath = `assets/${fixtureUuid(4, 1)}.png`;
+    const secondArchivePath = `assets/${fixtureUuid(4, 2)}.png`;
+    const firstLocalPath = `essays/${firstArchivePath}`;
+    const secondLocalPath = `essays/${secondArchivePath}`;
+    const validatedAsset = {
+      bytes,
+      extension: "png",
+      width: 1,
+      height: 1,
+      frames: 1,
+      sha256,
+    } as const;
+    const archiveAssets = new Map([
+      [firstArchivePath, validatedAsset],
+      [secondArchivePath, validatedAsset],
+    ]);
+    fs.files.set(secondLocalPath, bytes);
+    fs.files.set(firstLocalPath, bytes);
+
+    const { local } = await captureLocalImportState(fs, archiveAssets);
+    const assetClass = local.assetClassByLocalPath.get(firstLocalPath);
+    expect(assetClass).toBeDefined();
+    expect(local.reusableAssetPathByClass.get(assetClass!)).toBe(
+      firstLocalPath,
+    );
+  });
+
   it("previews, applies, and resolves everything without local overwrite", async () => {
     const fixture = figureHeavyLibraryFixture();
     const fs = new MemoryAppData();

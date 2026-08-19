@@ -1,6 +1,6 @@
 {
   "name": "@tesina/desktop",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "Tesina desktop app (Tauri 2 + Svelte 5)",
   "private": true,
   "type": "module",
@@ -39,7 +39,7 @@
   "devDependencies": {
     "@inlang/paraglide-js": "^2.4.0",
     "@sveltejs/adapter-static": "^3.0.6",
-    "@sveltejs/kit": "^2.9.0",
+    "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "jsdom": "^26.0.0",
     "svelte": "^5.0.0",

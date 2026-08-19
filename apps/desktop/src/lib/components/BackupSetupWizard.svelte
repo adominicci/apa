@@ -1,12 +1,14 @@
 <script module lang="ts">
   /** Injectable wizard I/O so tests run without Tauri (tasks 10.1/10.2). */
   export interface BackupWizardIo {
-    pickFolder(): Promise<string | null>;
-    begin(path: string): Promise<{
+    pickAndBegin(): Promise<{
       canonicalFolderPath: string;
       backupSubfolderPath: string;
-    }>;
-    writeTest(): Promise<{ fileName: string; contentDigest: string }>;
+      backupSetId: string;
+    } | null>;
+    writeTest(
+      backupSetId: string,
+    ): Promise<{ fileName: string; contentDigest: string }>;
     activate(test: { contentDigest: string }): Promise<void>;
     cancel(): Promise<void>;
   }
@@ -17,9 +19,8 @@
   import { m } from "$lib/paraglide/messages";
   import {
     activateBackupConfiguration,
-    beginBackupConfiguration,
     cancelBackupConfiguration,
-    pickBackupFolder,
+    pickAndBeginBackupConfiguration,
     writeWizardTestBackup,
   } from "$lib/persist/backupRuntime";
   import { describeBackupError } from "./backupErrorMessage.ts";
@@ -39,9 +40,8 @@
   }
 
   const realIo: BackupWizardIo = {
-    pickFolder: () => pickBackupFolder(),
-    begin: (path) => beginBackupConfiguration(path),
-    writeTest: () => writeWizardTestBackup(),
+    pickAndBegin: () => pickAndBeginBackupConfiguration(),
+    writeTest: (backupSetId) => writeWizardTestBackup(backupSetId),
     activate: async (test) => {
       await activateBackupConfiguration(test);
     },
@@ -61,7 +61,11 @@
 
   let step = $state<Step>("why");
   let pending = $state<
-    { canonicalFolderPath: string; backupSubfolderPath: string } | null
+    {
+      canonicalFolderPath: string;
+      backupSubfolderPath: string;
+      backupSetId: string;
+    } | null
   >(null);
   let locationError = $state<string | null>(null);
   let choosing = $state(false);
@@ -76,9 +80,9 @@
     choosing = true;
     locationError = null;
     try {
-      const picked = await io.pickFolder();
+      const picked = await io.pickAndBegin();
       if (picked === null) return; // cancelled picker: stay on this step
-      pending = await io.begin(picked);
+      pending = picked;
     } catch (error) {
       pending = null;
       locationError = describeBackupError(error);
@@ -92,7 +96,8 @@
     testing = true;
     testError = null;
     try {
-      const test = await io.writeTest();
+      if (pending === null) return;
+      const test = await io.writeTest(pending.backupSetId);
       await io.activate(test);
       activated = true;
       step = "success";

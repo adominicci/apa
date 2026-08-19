@@ -61,7 +61,25 @@ data directory.
 
 - **WHEN** Tesina restarts after the wizard's test backup succeeded
 - **THEN** it can access the selected folder for scheduled backups without
-  asking the user to select it again
+  asking the user to select it again, provided the renderer-nonwritable native
+  cache authority remains complete and valid
+
+#### Scenario: Upgrade from renderer-writable v0.1.16 authority
+
+- **WHEN** v0.1.17 finds folder metadata created by v0.1.16 without a matching
+  native cache trust anchor
+- **THEN** Tesina does not migrate or trust that authority, explains that folder
+  hardening requires selecting the folder again and completing a real test
+  backup under a new backup-set identity, and leaves all old metadata and
+  archive files unowned and untouched
+
+#### Scenario: Native cache authority is missing or invalid
+
+- **WHEN** protected backup authority is missing, malformed, oversized,
+  replaced, or internally inconsistent
+- **THEN** Tesina fails closed, schedules no backup, and requires the native
+  picker plus a real test backup before authorization becomes active again,
+  while preserving the evidence and keeping the editor available
 
 #### Scenario: User changes the folder
 
@@ -96,6 +114,12 @@ manifest successfully.
 - **THEN** Tesina shows the exact destination, explains that the complete
   unencrypted library will be written now, and requires an affirmative action
   before writing
+
+#### Scenario: Test identity matches the pending configuration
+
+- **WHEN** Tesina writes the real setup test archive
+- **THEN** the archive filename and manifest use the exact native-generated
+  pending `backupSetId` that successful activation will reuse
 
 #### Scenario: Test backup fails
 

@@ -8,6 +8,8 @@ import type {
   ImportApplyResult,
   ImportPreviewResult,
 } from "$lib/persist/importFlow";
+import type { RecoveryOutcome } from "$lib/persist/importJournal";
+import type { RecoveryActionDeps } from "./RecoveryRequiredActions.svelte";
 import LibraryImportModal from "./LibraryImportModal.svelte";
 
 /** Task 7.4: Merge modal states, counts, a11y, and language behavior. */
@@ -53,7 +55,8 @@ function mountModal(props: {
   loadPreview: () => Promise<ImportPreviewResult | null>;
   apply?: (c: ImportPreviewResult) => Promise<ImportApplyResult>;
   restoreMode?: boolean;
-  onDone?: () => void;
+  recoveryActions?: RecoveryActionDeps;
+  onDone?: () => void | Promise<void>;
   onClose?: () => void;
 }): void {
   component = mount(LibraryImportModal, {
@@ -72,6 +75,7 @@ function mountModal(props: {
       onClose: props.onClose ?? (() => {}),
       loadPreview: props.loadPreview,
       restoreMode: props.restoreMode ?? false,
+      recoveryActions: props.recoveryActions,
     },
   }) as Record<string, unknown>;
 }
@@ -173,6 +177,27 @@ describe("LibraryImportModal", () => {
     expect(document.body.textContent).toContain(m.imp_success());
   });
 
+  it("waits for the completion refresh before reporting apply success", async () => {
+    const refreshGate = deferred<void>();
+    mountModal({
+      loadPreview: () => Promise.resolve(fixturePreview()),
+      onDone: () => refreshGate.promise,
+    });
+    await settle();
+    const confirm = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.imp_confirm())
+    );
+    confirm!.click();
+    await settle();
+
+    expect(document.body.textContent).toContain(m.imp_applying());
+    expect(document.body.textContent).not.toContain(m.imp_success());
+
+    refreshGate.resolve();
+    await settle();
+    expect(document.body.textContent).toContain(m.imp_success());
+  });
+
   it("keeps recovery-required apply failures non-dismissible", async () => {
     const onClose = vi.fn();
     mountModal({
@@ -192,7 +217,7 @@ describe("LibraryImportModal", () => {
     confirm!.click();
     await settle();
 
-    expect(document.body.textContent).toContain(m.err_recovery_required());
+    expect(document.body.textContent).toContain(m.recovery_required_title());
     const buttons = [...document.querySelectorAll("button")];
     expect(
       buttons.some((button) =>
@@ -205,6 +230,321 @@ describe("LibraryImportModal", () => {
     );
     await settle();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("offers recovery actions and refreshes after a durable retry", async () => {
+    const initialOutcome: RecoveryOutcome = {
+      kind: "recovery-required",
+      transactionId: "(current-import)",
+      reason: "import/recovery-required",
+    };
+    const recoveredOutcome: RecoveryOutcome = {
+      kind: "resumed",
+      transactionId: "transaction-1",
+    };
+    const recoveryActions: RecoveryActionDeps = {
+      retry: vi.fn(() => Promise.resolve([recoveredOutcome])),
+      exportDiagnostic: vi.fn(() => Promise.resolve()),
+    };
+    const onDone = vi.fn();
+    mountModal({
+      loadPreview: () => Promise.resolve(fixturePreview()),
+      apply: () =>
+        Promise.reject(
+          Object.assign(new Error("recovery"), {
+            code: "import/recovery-required",
+          }),
+        ),
+      recoveryActions,
+      onDone,
+    });
+    await settle();
+    const confirm = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.imp_confirm())
+    );
+    confirm!.click();
+    await settle();
+
+    const text = document.body.textContent ?? "";
+    expect(text).toContain(m.recovery_required_title());
+    expect(text).toContain(m.recovery_required_body());
+    expect(text).toContain(m.recovery_quit_hint());
+
+    const exportButton = [...document.querySelectorAll("button")].find(
+      (button) => button.textContent?.includes(m.recovery_export_diagnostic()),
+    );
+    exportButton!.click();
+    await settle();
+    expect(recoveryActions.exportDiagnostic).toHaveBeenCalledWith([
+      initialOutcome,
+    ]);
+
+    const retryButton = [...document.querySelectorAll("button")].find(
+      (button) => button.textContent?.includes(m.recovery_retry()),
+    );
+    retryButton!.click();
+    await settle();
+    expect(recoveryActions.retry).toHaveBeenCalledOnce();
+    expect(onDone).toHaveBeenCalledOnce();
+    expect(document.body.textContent).toContain(m.recovery_resumed());
+  });
+
+  it("announces only retry while recovery and refresh are pending", async () => {
+    const exportGate = deferred<void>();
+    const retryGate = deferred<RecoveryOutcome[]>();
+    const refreshGate = deferred<void>();
+    mountModal({
+      loadPreview: () => Promise.resolve(fixturePreview()),
+      apply: () =>
+        Promise.reject(
+          Object.assign(new Error("recovery"), {
+            code: "import/recovery-required",
+          }),
+        ),
+      recoveryActions: {
+        retry: () => retryGate.promise,
+        exportDiagnostic: () => exportGate.promise,
+      },
+      onDone: () => refreshGate.promise,
+    });
+    await settle();
+    const confirm = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.imp_confirm())
+    );
+    confirm!.click();
+    await settle();
+
+    const recoveryButton = (label: string) =>
+      [...document.querySelectorAll("button")].find((button) =>
+        button.textContent?.includes(label)
+      );
+    const exportButton = recoveryButton(m.recovery_export_diagnostic());
+    const retryButton = recoveryButton(m.recovery_retry());
+
+    exportButton!.click();
+    await settle();
+    expect(document.querySelector('[role="status"]')).toBeNull();
+    expect(exportButton?.disabled).toBe(true);
+    expect(retryButton?.disabled).toBe(true);
+    exportGate.resolve();
+    await settle();
+
+    retryButton!.click();
+    await settle();
+    expect(document.querySelector('[role="status"]')?.textContent).toContain(
+      "Recuperando tu biblioteca de forma segura…",
+    );
+    expect(exportButton?.disabled).toBe(true);
+    expect(retryButton?.disabled).toBe(true);
+
+    retryGate.resolve([{
+      kind: "resumed",
+      transactionId: "transaction-1",
+    }]);
+    await settle();
+    expect(document.querySelector('[role="status"]')?.textContent).toContain(
+      "Recuperando tu biblioteca de forma segura…",
+    );
+
+    refreshGate.resolve();
+    await settle();
+    expect(document.querySelector('[role="status"]')?.textContent).toContain(
+      m.recovery_resumed(),
+    );
+  });
+
+  it("stays fail-closed when a retry still requires recovery", async () => {
+    const stillUnsafe: RecoveryOutcome = {
+      kind: "recovery-required",
+      transactionId: "transaction-1",
+      reason: "import/recovery-required",
+    };
+    const onDone = vi.fn();
+    mountModal({
+      loadPreview: () => Promise.resolve(fixturePreview()),
+      apply: () =>
+        Promise.reject(
+          Object.assign(new Error("recovery"), {
+            code: "import/recovery-required",
+          }),
+        ),
+      recoveryActions: {
+        retry: () => Promise.resolve([stillUnsafe]),
+        exportDiagnostic: () => Promise.resolve(),
+      },
+      onDone,
+    });
+    await settle();
+    const confirm = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.imp_confirm())
+    );
+    confirm!.click();
+    await settle();
+    const retry = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.recovery_retry())
+    );
+    retry!.click();
+    await settle();
+
+    expect(onDone).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain(m.recovery_required_title());
+    expect(document.body.textContent).toContain(m.recovery_retry());
+  });
+
+  it("stays fail-closed without a positive durable recovery outcome", async () => {
+    const onDone = vi.fn();
+    mountModal({
+      loadPreview: () => Promise.resolve(fixturePreview()),
+      apply: () =>
+        Promise.reject(
+          Object.assign(new Error("recovery"), {
+            code: "import/recovery-required",
+          }),
+        ),
+      recoveryActions: {
+        retry: () => Promise.resolve([]),
+        exportDiagnostic: () => Promise.resolve(),
+      },
+      onDone,
+    });
+    await settle();
+    const confirm = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.imp_confirm())
+    );
+    confirm!.click();
+    await settle();
+    const retry = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.recovery_retry())
+    );
+    retry!.click();
+    await settle();
+
+    expect(onDone).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain(m.recovery_required_title());
+  });
+
+  it("stays fail-closed when retry throws", async () => {
+    const onDone = vi.fn();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(
+      () => {},
+    );
+    mountModal({
+      loadPreview: () => Promise.resolve(fixturePreview()),
+      apply: () =>
+        Promise.reject(
+          Object.assign(new Error("recovery"), {
+            code: "import/recovery-required",
+          }),
+        ),
+      recoveryActions: {
+        retry: () => Promise.reject(new Error("disk unavailable")),
+        exportDiagnostic: () => Promise.resolve(),
+      },
+      onDone,
+    });
+    await settle();
+    const confirm = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.imp_confirm())
+    );
+    confirm!.click();
+    await settle();
+    const retry = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.recovery_retry())
+    );
+    retry!.click();
+    await settle();
+
+    expect(onDone).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain(m.recovery_required_title());
+    expect(retry?.disabled).toBe(false);
+    consoleError.mockRestore();
+  });
+
+  it("stays recovery-required when the recovery refresh rejects", async () => {
+    const refreshGate = deferred<void>();
+    void refreshGate.promise.catch(() => {});
+    const exportDiagnostic = vi.fn(() => Promise.resolve());
+    const consoleError = vi.spyOn(console, "error").mockImplementation(
+      () => {},
+    );
+    mountModal({
+      loadPreview: () => Promise.resolve(fixturePreview()),
+      apply: () =>
+        Promise.reject(
+          Object.assign(new Error("recovery"), {
+            code: "import/recovery-required",
+          }),
+        ),
+      recoveryActions: {
+        retry: () =>
+          Promise.resolve([{
+            kind: "resumed",
+            transactionId: "transaction-1",
+          }]),
+        exportDiagnostic,
+      },
+      onDone: () => refreshGate.promise,
+    });
+    await settle();
+    const confirm = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.imp_confirm())
+    );
+    confirm!.click();
+    await settle();
+    const retry = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.recovery_retry())
+    );
+    retry!.click();
+    refreshGate.reject(new Error("refresh failed"));
+    await settle();
+
+    expect(document.body.textContent).toContain(m.recovery_required_title());
+    expect(document.body.textContent).not.toContain(m.recovery_resumed());
+    const exportButton = [...document.querySelectorAll("button")].find(
+      (button) => button.textContent?.includes(m.recovery_export_diagnostic()),
+    );
+    exportButton!.click();
+    await settle();
+    expect(exportDiagnostic).toHaveBeenCalledWith([{
+      kind: "resumed",
+      transactionId: "transaction-1",
+    }]);
+    consoleError.mockRestore();
+  });
+
+  it("reports already-complete recovery without claiming it resumed", async () => {
+    mountModal({
+      loadPreview: () => Promise.resolve(fixturePreview()),
+      apply: () =>
+        Promise.reject(
+          Object.assign(new Error("recovery"), {
+            code: "import/recovery-required",
+          }),
+        ),
+      recoveryActions: {
+        retry: () =>
+          Promise.resolve([{
+            kind: "already-complete",
+            transactionId: "transaction-1",
+          }]),
+        exportDiagnostic: () => Promise.resolve(),
+      },
+    });
+    await settle();
+    const confirm = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.imp_confirm())
+    );
+    confirm!.click();
+    await settle();
+    const retry = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes(m.recovery_retry())
+    );
+    retry!.click();
+    await settle();
+
+    expect(document.body.textContent).toContain(m.recovery_complete());
+    expect(document.body.textContent).not.toContain(m.recovery_resumed());
+    expect(document.body.textContent).not.toContain(m.recovery_rolled_back());
   });
 
   it("re-presents a changed preview on replan-needed before applying", async () => {

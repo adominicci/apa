@@ -16,8 +16,9 @@ import { validateArchive } from "$lib/portable/validate";
 import { ARCHIVE_LIMITS, type ArchiveLimits } from "$lib/portable/limits";
 import {
   type ExternalFs,
+  PortableFileError,
+  recoverReplacements,
   type ReplacementJournal,
-  writeArchiveExclusive,
   writeArchiveReplacing,
   type WriteDeps,
 } from "./portableFiles.ts";
@@ -71,11 +72,6 @@ export interface LibraryArchiveService {
     sha256: string;
     contentDigest: string;
   }>;
-  /** Backup write with exclusive-create candidates (never overwrites). */
-  writeBackup(
-    candidatePaths: string[],
-    backupSetId: string,
-  ): Promise<{ path: string; contentDigest: string; sha256: string }>;
 }
 
 export function createLibraryArchiveService(
@@ -89,6 +85,7 @@ export function createLibraryArchiveService(
       await validateArchive(bytes, limits);
     },
     uuid: deps.uuid,
+    maxArchiveBytes: limits.maxArchiveBytes,
     sha256: deps.sha256,
   };
 
@@ -125,11 +122,32 @@ export function createLibraryArchiveService(
     };
   }
 
+  async function recoverAuthorizedDestination(
+    destinationPath: string,
+  ): Promise<void> {
+    await recoverReplacements(
+      writeDeps,
+      deps.replacementJournal,
+      destinationPath,
+    );
+    const blocked = (await deps.replacementJournal.list()).find((record) =>
+      record.destinationPath === destinationPath
+    );
+    if (blocked) {
+      throw new PortableFileError(
+        "portable/replacement-recovery-required",
+        "the interrupted export destination still requires recovery",
+        blocked.destinationPath,
+      );
+    }
+  }
+
   return {
     package: (options) => deps.runMaintenance(() => packageOnce(options)),
 
     exportToFile: (destinationPath, signal) =>
       deps.runMaintenance(async () => {
+        await recoverAuthorizedDestination(destinationPath);
         const packaged = await packageOnce();
         const { path } = await writeArchiveReplacing(
           writeDeps,
@@ -146,20 +164,5 @@ export function createLibraryArchiveService(
 
     createRollbackWithinMaintenance: (transactionId) =>
       rollbackOnce(transactionId),
-
-    writeBackup: (candidatePaths, backupSetId) =>
-      deps.runMaintenance(async () => {
-        const packaged = await packageOnce({ backupSetId });
-        const { path } = await writeArchiveExclusive(
-          writeDeps,
-          packaged.bytes,
-          candidatePaths,
-        );
-        return {
-          path,
-          contentDigest: packaged.contentDigest,
-          sha256: await deps.sha256(packaged.bytes),
-        };
-      }),
   };
 }

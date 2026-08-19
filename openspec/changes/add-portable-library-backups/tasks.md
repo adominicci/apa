@@ -111,7 +111,7 @@
       rollback creation, test backup, scheduled backup, and Back up now;
       return the digest of the exact archived snapshot and prohibit duplicate
       packaging implementations.
-- [ ] 4.6 Add a packaged-app smoke harness that exports a real current library,
+- [x] 4.6 Add a packaged-app smoke harness that exports a real current library,
       reopens it, and checks manifest counts, citations, references,
       collections, and figure bytes.
 
@@ -231,16 +231,26 @@
       provider, or network scope. Implement
       `apps/desktop/src-tauri/src/backup_directory.rs`, register commands in
       `lib.rs`, and make Rust exclusively own an atomic versioned
-      `$APPDATA/backup-directory.json` authorization record.
-- [ ] 8.2 Add native negative and restart proof on macOS and Windows: the active
-      folder supports child creation/reopen/replace/list/removal after process
-      restart, while its parent/sibling, an old backup folder, and manual
-      import/export selections are denied. Record the exact capability diff.
-- [ ] 8.3 Extend schema-version-1 `settings.json` additively with validated
+      configuration, ledger, and trust token beneath the renderer-nonwritable
+      `$APPCACHE/.tesina-native/` authority store. Treat
+      `$APPDATA/.tesina-native/` only as inert reauthorization evidence, never
+      as folder or deletion authority. Do not migrate v0.1.16's
+      renderer-writable authority: require the native picker, a real test
+      archive carrying a new pending `backupSetId`, and activation; leave old
+      metadata and archives unowned and untouched. Normal v0.1.17 restarts may
+      restore only validated cache authority; missing, malformed, or
+      mismatched evidence must fail closed to reauthorization.
+- [x] 8.2 Add native negative and restart proof on macOS and Windows: the active
+      folder supports exclusive child creation, reopen, list, and hash-checked
+      removal after process restart, while safe replacement remains limited to
+      manual dialog-selected exports. Its parent/sibling, an old backup folder,
+      and manual import/export selections remain denied. Record the exact
+      capability diff.
+- [x] 8.3 Extend schema-version-1 `settings.json` additively with validated
       backup UI/status fields and keep authoritative path/backup-set state in
       the native record, whose presence means configured (Turn off deletes the
       record; there is no pause flag). Add a Rust-owned atomic
-      `$APPDATA/backup-ledger.json` keyed by the native `backupSetId`; prove
+      protected backup ledger keyed by the native `backupSetId`; prove
       older settings load with backup disabled and every configuration/ledger
       file is excluded from `.tesina` archives.
 - [x] 8.4 Refactor `UiSettingsStore` writes into serialized requested/persisted
@@ -331,19 +341,19 @@
 - [x] 11.1 Add a deterministic full-library fixture with Spanish and English
       essays, collections, nested citations, same-ID conflicts, identical and
       colliding assets, and at least one figure in every supported image format.
-- [ ] 11.2 Add an application-level integration test that exports the fixture,
+- [x] 11.2 Add an application-level integration test that exports the fixture,
       imports it into a non-empty destination, checks preview counts, applies
       Merge, restarts state, and proves all
       essays/citations/references/collections/assets resolve with no local
       overwrite.
 - [x] 11.3 Add crash-restart E2E cases at journal fault points and prove each
       run resumes or rolls back to a consistent library without duplicates.
-- [ ] 11.4 In a packaged macOS app, complete manual export/import, configure a
+- [x] 11.4 In a packaged macOS app, complete manual export/import, configure a
       real local or synced folder, restart, run Back up now, create eight dated
       test backups, verify only seven recognized backups remain, and restore
       through Merge; record paths and screenshots without exposing essay
       content.
-- [ ] 11.5 Repeat native folder selection, child access, process restart without
+- [x] 11.5 Repeat native folder selection, child access, process restart without
       reprompt, negative old/transient-path checks, archive round-trip,
       retention, and restore on a packaged Windows app or native E2E job that
       actually launches the packaged app. Compilation, installer creation, and
@@ -358,7 +368,7 @@
       with offline placeholder, rehydration, concurrent provider activity,
       rename conflict, timeout, and restart cases; record privacy-redacted
       outcomes without treating provider upload as a Tesina assertion.
-- [ ] 11.8 Store durable privacy-redacted native evidence tied to the exact
+- [x] 11.8 Store durable privacy-redacted native evidence tied to the exact
       commit and package digest: OS/app version, scenario/result, archive
       hash/counts, restart proof, and screenshot/log attachment IDs—never essay
       content, usernames, or private folder names.
@@ -376,9 +386,11 @@
 - [x] 12.3 Bump the next patch version consistently in
       `apps/desktop/package.json`, `apps/desktop/src-tauri/tauri.conf.json`,
       `apps/desktop/src-tauri/Cargo.toml`, the Tesina package entry in
-      `Cargo.lock`, both message files, README current-version statements, and
-      exact release-verifier/tests. Add failing release-contract tests first and
-      extend automation so every listed surface is enforced.
+      `Cargo.lock`, README current-version statements, and exact
+      release-verifier/tests. Keep both Paraglide message files parameterized
+      with `{version}` rather than adding release literals. Add failing
+      release-contract tests first and extend automation so every
+      version-bearing surface is enforced.
 - [x] 12.4 Move completed `CHANGELOG.md` items from Unreleased into a dated
       version section, advance its comparison links, and add plain-language
       English changelog notes describing behavior visible in both UI languages:
@@ -391,8 +403,8 @@
       verified slice in English. Update PR CI to enforce root `deno fmt --check`
       and `deno lint`, not only package paths.
 - [ ] 12.6 Follow repository PR policy: synchronize protected branches without
-      closing them, target `dev` when it exists, request `@greptile review` on
-      the PR commit comment, address only validated feedback, and merge only
+      closing them, target `dev` when it exists, request `@coderabbitai review`
+      in a PR comment, address only validated feedback, and merge only
       with required checks green.
 - [ ] 12.7 After the change reaches `main`, synchronize local protected
       branches, tag the exact main commit with the matching `v` version, let the

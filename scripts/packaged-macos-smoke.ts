@@ -1,3 +1,5 @@
+import { dirname } from "node:path";
+
 export interface PackagedMacOSSmokeInputs {
   appPath: string;
   executablePath: string;
@@ -29,7 +31,52 @@ export interface OwnedProcessTerminationOptions {
 const DEFAULT_GRACEFUL_TIMEOUT_MS = 5_000;
 const DEFAULT_FORCED_TIMEOUT_MS = 2_000;
 
-async function statusWithin(
+export function environmentWithActiveDeno(
+  platform: string,
+  environment: Record<string, string | undefined>,
+): Record<string, string | undefined> {
+  const inheritedPath = Object.entries(environment).find(([key]) =>
+    key.toLowerCase() === "path"
+  )?.[1];
+  const environmentWithoutPath = Object.fromEntries(
+    Object.entries(environment).filter(([key]) => key.toLowerCase() !== "path"),
+  );
+  const denoDirectory = dirname(Deno.execPath());
+  return {
+    ...environmentWithoutPath,
+    PATH: inheritedPath
+      ? `${denoDirectory}${platform === "win32" ? ";" : ":"}${inheritedPath}`
+      : denoDirectory,
+  };
+}
+
+export function packagedSmokeBundleIdentifier(
+  base: string,
+  runUuid = crypto.randomUUID(),
+): string {
+  const suffix = runUuid.replaceAll("-", "").toLowerCase();
+  if (!/^[0-9a-f]{32}$/.test(suffix)) {
+    throw new Error("packaged smoke run identifier must be a UUID");
+  }
+  return `${base}.${suffix}`;
+}
+
+/** Publishes success only after task-owned cleanup has completed. */
+export async function runWithRequiredCleanup<T>(
+  operation: () => Promise<T>,
+  cleanup: () => Promise<void>,
+  publish: (result: T) => void,
+): Promise<void> {
+  let result!: T;
+  try {
+    result = await operation();
+  } finally {
+    await cleanup();
+  }
+  publish(result);
+}
+
+export async function ownedProcessStatusWithin(
   status: Promise<Deno.CommandStatus>,
   timeoutMs: number,
 ): Promise<Deno.CommandStatus | undefined> {
@@ -61,11 +108,17 @@ export async function terminateOwnedProcess(
   );
 
   child.kill("SIGTERM");
-  const gracefulStatus = await statusWithin(child.status, gracefulTimeoutMs);
+  const gracefulStatus = await ownedProcessStatusWithin(
+    child.status,
+    gracefulTimeoutMs,
+  );
   if (gracefulStatus) return { status: gracefulStatus, forced: false };
 
   child.kill("SIGKILL");
-  const forcedStatus = await statusWithin(child.status, forcedTimeoutMs);
+  const forcedStatus = await ownedProcessStatusWithin(
+    child.status,
+    forcedTimeoutMs,
+  );
   if (!forcedStatus) {
     throw new Error(
       `Packaged Tesina did not exit after SIGKILL within ${forcedTimeoutMs}ms`,

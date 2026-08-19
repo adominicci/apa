@@ -1,6 +1,6 @@
 [package]
 name = "tesina"
-version = "0.1.16"
+version = "0.1.17"
 description = "Tesina: APA 7 academic writing app"
 authors = ["Andres Dominicci and Tesina contributors"]
 license = "MIT"
@@ -20,6 +20,8 @@ tauri-build = { version = "2", features = [] }
 
 [features]
 native-proof-host = []
+packaged-backup-smoke = ["packaged-portable-smoke"]
+packaged-portable-smoke = []
 pdf-proof-host = []
 
 [dependencies]
@@ -42,6 +44,11 @@ tokio = { version = "1", features = ["macros", "rt", "sync", "time"] }
 # Cocoa printing for the silent PDF export. These exact versions already arrive
 # through the locked Wry graph, so nothing new enters the dependency tree, and
 # all are `Zlib OR Apache-2.0 OR MIT`.
+libc = "0.2"
+# Full Unicode case folding and canonical normalization for macOS filename quota
+# keys (both MIT OR Apache-2.0).
+unicode-casefold = "0.2.0"
+unicode-normalization = "0.1.25"
 objc2 = "=0.6.4"
 objc2-app-kit = { version = "=0.3.2", features = [
   "NSGraphics",
@@ -64,7 +71,15 @@ objc2-web-kit = { version = "=0.3.2", features = ["WKWebView"] }
 # arrive through the locked Tauri/Wry graph, so nothing new enters the
 # dependency tree, and both are `MIT OR Apache-2.0`.
 webview2-com = "=0.38.2"
-windows = "=0.61.3"
+windows = { version = "=0.61.3", features = [
+  "Win32_Foundation",
+  "Win32_Storage_FileSystem",
+] }
+
+[target.'cfg(unix)'.dependencies]
+# Single-syscall no-replace rename for publishing dialog-related siblings.
+# rustix already ships in the locked Tauri updater graph (Apache-2.0 OR MIT).
+rustix = { version = "1", features = ["fs"] }
 
 [dev-dependencies]
 tempfile = "3"

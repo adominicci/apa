@@ -33,6 +33,14 @@ const cargoManifest = await readFile(
 );
 
 describe("visible native manual-proof contract", () => {
+  it("keeps serde JSON values and macros in the Windows host module scope", () => {
+    const windowsHostModule = nativeHost.slice(
+      nativeHost.indexOf("mod windows_host {"),
+      nativeHost.indexOf("fn main()", nativeHost.indexOf("mod windows_host {")),
+    );
+    expect(windowsHostModule).toContain("use serde_json::{json, Value};");
+  });
+
   it("records native composition diagnostics plus trusted outcome, undo, clipboard, and drag paths", () => {
     expect(source).toContain('addEventListener("compositionstart"');
     expect(source).toContain('addEventListener("compositionend"');
@@ -203,8 +211,10 @@ describe("visible native manual-proof contract", () => {
     );
     expect(resultSettlement).toContain("if !driver.is_complete()");
     expect(resultSettlement).toContain(
-      "incomplete_driver_result_error(&result)",
+      "settle_incomplete_result(control_flow, input_driver, result)",
     );
+    expect(nativeHost).toContain("incomplete_driver_result_error(&result)");
+    expect(nativeHost).toContain('"pageResult": result');
     const driverCompletionGuard = resultSettlement.slice(
       resultSettlement.indexOf("if let Some(driver)"),
       resultSettlement.indexOf("if let Err(error) = driver.cleanup()"),

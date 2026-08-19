@@ -33,6 +33,7 @@
   let renamingId = $state<string | null>(null);
   let renameValue = $state("");
   let confirmingDelete = $state<string | null>(null);
+  const unreadableFiles = $derived([...essays.unreadableFiles].sort());
 
   // ── Backup surfaces (tasks 10.1–10.5) ───────────────────────────
   let backupWizardOpen = $state(false);
@@ -47,8 +48,8 @@
     backupStatusNonce += 1;
   }
 
-  function refreshAfterRestore() {
-    void Promise.all([library.reload(), essays.loadIndex()]);
+  async function refreshAfterRestore(): Promise<void> {
+    await Promise.all([library.reload(), essays.loadIndex()]);
   }
 
   const filtered = $derived.by(() => {
@@ -258,6 +259,54 @@
             </div>
           </div>
         </header>
+
+        {#if unreadableFiles.length > 0}
+          <div class="unreadable-notice ui-controls">
+            <div
+              class="status-panel"
+              data-tone="warn"
+              data-unreadable-essays
+              role="status"
+              aria-live="polite"
+            >
+              <span class="status-dot" aria-hidden="true"></span>
+              <div class="status-body">
+                <div class="status-title">
+                  {unreadableFiles.length === 1
+                    ? m.home_unreadable_files_one(undefined, {
+                      locale: uiLocale.current,
+                    })
+                    : m.home_unreadable_files_many({
+                      count: unreadableFiles.length,
+                    }, {
+                      locale: uiLocale.current,
+                    })}
+                </div>
+                <div class="status-meta">
+                  {m.home_unreadable_files_help(undefined, {
+                    locale: uiLocale.current,
+                  })}
+                </div>
+                <ul class="unreadable-files">
+                  {#each unreadableFiles as filename (filename)}
+                    <li>{filename}</li>
+                  {/each}
+                </ul>
+                <div>
+                  <button
+                    class="btn btn-secondary btn-sm"
+                    type="button"
+                    onclick={() => (backupSettingsOpen = true)}
+                  >
+                    {m.bk_open_settings(undefined, {
+                      locale: uiLocale.current,
+                    })}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        {/if}
 
         {#key backupStatusNonce}
           <BackupStatusCard
@@ -656,6 +705,19 @@
     align-items: center;
     gap: var(--sp-2);
     flex-wrap: wrap;
+  }
+
+  .unreadable-notice {
+    padding: 0 clamp(var(--sp-5), 4vw, 48px) var(--sp-3);
+  }
+
+  .unreadable-files {
+    margin: var(--sp-1) 0 0;
+    padding-left: var(--sp-4);
+    color: var(--fg-2);
+    font-family: var(--mono);
+    font-size: var(--t-small);
+    line-height: var(--lh-snug);
   }
 
   .search {

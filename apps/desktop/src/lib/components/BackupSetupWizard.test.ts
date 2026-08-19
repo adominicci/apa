@@ -38,14 +38,14 @@ async function settle(): Promise<void> {
 const PENDING = {
   canonicalFolderPath: "/Users/ana/Backups",
   backupSubfolderPath: "/Users/ana/Backups/Tesina Backups",
+  backupSetId: "a1b2c3d4-1111-4111-8111-111111111111",
 };
 
 function fakeIo(overrides: Partial<BackupWizardIo> = {}) {
   const io = {
-    pickFolder: vi.fn<BackupWizardIo["pickFolder"]>(() =>
-      Promise.resolve("/Users/ana/Backups")
+    pickAndBegin: vi.fn<BackupWizardIo["pickAndBegin"]>(() =>
+      Promise.resolve(PENDING)
     ),
-    begin: vi.fn<BackupWizardIo["begin"]>(() => Promise.resolve(PENDING)),
     writeTest: vi.fn<BackupWizardIo["writeTest"]>(() =>
       Promise.resolve({ fileName: "Test.tesina", contentDigest: "cd-1" })
     ),
@@ -129,7 +129,7 @@ describe("BackupSetupWizard", () => {
     expect(buttonByText(m.bk_continue())!.disabled).toBe(true);
     buttonByText(m.bk_choose_folder())!.click();
     await settle();
-    expect(io.begin).toHaveBeenCalledWith("/Users/ana/Backups");
+    expect(io.pickAndBegin).toHaveBeenCalledOnce();
     expect(bodyText()).toContain(
       m.bk_chosen_folder({ path: PENDING.canonicalFolderPath }),
     );
@@ -157,6 +157,7 @@ describe("BackupSetupWizard", () => {
     buttonByText(m.bk_test_write())!.click();
     await settle();
     expect(io.writeTest).toHaveBeenCalledOnce();
+    expect(io.writeTest).toHaveBeenCalledWith(PENDING.backupSetId);
     expect(io.activate).toHaveBeenCalledWith(
       expect.objectContaining({ contentDigest: "cd-1" }),
     );
@@ -215,11 +216,11 @@ describe("BackupSetupWizard", () => {
   });
 
   it("a cancelled folder picker stays on the location step", async () => {
-    const io = fakeIo({ pickFolder: vi.fn(() => Promise.resolve(null)) });
+    const io = fakeIo({ pickAndBegin: vi.fn(() => Promise.resolve(null)) });
     await advanceToLocation(io);
     buttonByText(m.bk_choose_folder())!.click();
     await settle();
-    expect(io.begin).not.toHaveBeenCalled();
+    expect(io.pickAndBegin).toHaveBeenCalledOnce();
     expect(bodyText()).toContain(m.bk_location_title());
     expect(bodyText()).toContain(m.bk_no_folder_yet());
     expect(buttonByText(m.bk_continue())!.disabled).toBe(true);
@@ -227,7 +228,7 @@ describe("BackupSetupWizard", () => {
 
   it("shows a localized rejection when the folder is inside app data", async () => {
     const io = fakeIo({
-      begin: vi.fn(() =>
+      pickAndBegin: vi.fn(() =>
         Promise.reject({ code: "inside_app_data", detail: "nope" })
       ),
     });
@@ -316,7 +317,7 @@ describe("BackupSetupWizard", () => {
     buttonByText(m.bk_choose_folder())!.click();
     await settle();
     expect(io.cancel.mock.invocationCallOrder[0]).toBeLessThan(
-      io.begin.mock.invocationCallOrder[1],
+      io.pickAndBegin.mock.invocationCallOrder[1],
     );
   });
 

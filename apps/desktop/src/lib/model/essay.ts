@@ -77,6 +77,18 @@ export interface EssaySummary {
   preview: string;
 }
 
+export type SummarizableEssay =
+  & Pick<
+    Essay,
+    "id" | "updatedAt" | "content"
+  >
+  & {
+    settings: Pick<EssaySettings, "documentLanguage">;
+    titlePage:
+      & Pick<TitlePage, "title">
+      & Partial<Pick<TitlePage, "course" | "instructor">>;
+  };
+
 /** Word count of a ProseMirror doc JSON (text nodes only, pure walk). */
 export function countDocWords(docJson: unknown): number {
   let count = 0;
@@ -163,7 +175,7 @@ export function normalizeForStudentRelease(essay: Essay): Essay {
   };
 }
 
-export function summarize(essay: Essay): EssaySummary {
+export function summarize(essay: SummarizableEssay): EssaySummary {
   return {
     id: essay.id,
     title: essay.titlePage.title,

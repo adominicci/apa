@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { APA_FONT_ORDER } from "$lib/model/fonts";
 import { buildArchive, sha256Hex } from "./archive.ts";
 import { canonicalJsonBytes } from "./canonicalJson.ts";
 import { assembleArchiveContent } from "./snapshot.ts";
@@ -119,6 +120,19 @@ describe("validateArchive accepts the golden profile", () => {
     for (const asset of result.assets.values()) {
       expect(asset.width).toBeGreaterThan(0);
       expect(asset.height).toBeGreaterThan(0);
+    }
+  });
+
+  it("accepts every supported APA font choice", async () => {
+    const baseFiles = await goldenFiles();
+
+    for (const font of APA_FONT_ORDER) {
+      const files = mutateEssay(baseFiles, (essay) => {
+        (essay.settings as Record<string, unknown>).font = font;
+      });
+
+      await expect(validateArchive(await rebuildArchive(files), ARCHIVE_LIMITS))
+        .resolves.toBeDefined();
     }
   });
 });

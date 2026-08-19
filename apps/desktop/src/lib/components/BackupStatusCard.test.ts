@@ -46,14 +46,17 @@ function fakeStore(
           {
             configured: true,
             folderAvailable: true,
+            requiresReauthorization: false,
             backupSetId: "aaaaaaaa-1111-4111-8111-111111111111",
             folderPath: "/synced/Tesina",
           } satisfies BackupAdapterStatus,
         ),
       writeArchive: () => Promise.resolve({ sha256: "x" }),
+      discardPendingArchive: () => Promise.resolve(),
       confirmArchive: () => Promise.resolve(),
       readArchive: () => Promise.resolve(new Uint8Array()),
       listArchives: () => Promise.resolve([]),
+      listArchiveNames: () => Promise.resolve([]),
       removeArchive: () => Promise.resolve(),
       ledgerEntries: () => Promise.resolve([]),
     },
@@ -62,7 +65,7 @@ function fakeStore(
     currentContentDigest: () => Promise.resolve("d"),
     validateArchiveBytes: () => Promise.resolve(),
     settings,
-    runOperation: (_kind, fn) => fn(),
+    runOperation: (_kind, fn) => fn(new AbortController().signal),
     subscribeActivity: () => () => {},
     now: () => new Date(2026, 7, 8, 10, 0, 0),
   });
@@ -71,6 +74,7 @@ function fakeStore(
 const CONFIGURED: BackupAdapterStatus = {
   configured: true,
   folderAvailable: true,
+  requiresReauthorization: false,
   folderPath: "/synced/Tesina",
   backupSetId: "aaaaaaaa-1111-4111-8111-111111111111",
 };
@@ -78,6 +82,13 @@ const CONFIGURED: BackupAdapterStatus = {
 const UNCONFIGURED: BackupAdapterStatus = {
   configured: false,
   folderAvailable: false,
+  requiresReauthorization: false,
+};
+
+const REAUTHORIZATION_REQUIRED: BackupAdapterStatus = {
+  configured: false,
+  folderAvailable: false,
+  requiresReauthorization: true,
 };
 
 let component: Record<string, unknown> | null = null;
@@ -143,6 +154,26 @@ describe("BackupStatusCard", () => {
     mountCard({ status: UNCONFIGURED, settings, store: fakeStore(settings) });
     await settle();
     expect(document.body.textContent).not.toContain(m.bk_card_title());
+  });
+
+  it("shows mandatory reauthorization guidance even when setup was dismissed", async () => {
+    const settings = fakeSettings({ setupCardDismissed: true });
+    const onSetup = vi.fn();
+    mountCard({
+      status: REAUTHORIZATION_REQUIRED,
+      settings,
+      store: fakeStore(settings),
+      onSetup,
+    });
+    await settle();
+
+    expect(document.body.textContent).toContain(m.bk_reauthorization_title());
+    expect(document.body.textContent).toContain(
+      m.bk_reauthorization_body({ version: "0.1.17" }),
+    );
+    expect(buttonByText(m.bk_card_dismiss())).toBeUndefined();
+    buttonByText(m.bk_card_setup())!.click();
+    expect(onSetup).toHaveBeenCalledOnce();
   });
 
   it("shows healthy state with last success and next expected condition", async () => {
@@ -218,6 +249,20 @@ describe("BackupStatusCard", () => {
     expect(text).toContain(m.bk_retention_help());
   });
 
+  it("prioritizes a native resource limit as manual-cleanup guidance", async () => {
+    const settings = fakeSettings({
+      lastSuccessAt: "2026-08-07T10:00:00.000Z",
+      lastErrorCode: "resource_limit",
+    });
+    const store = fakeStore(settings);
+    mountCard({ status: CONFIGURED, settings, store });
+    await settle();
+
+    expect(document.body.textContent).toContain(m.bk_state_retention());
+    expect(document.body.textContent).toContain(m.bk_retention_help());
+    expect(document.body.textContent).not.toContain(m.bk_state_warning());
+  });
+
   it("localizes the card in both UI languages", async () => {
     const settings = fakeSettings(undefined);
     mountCard({ status: UNCONFIGURED, settings, store: fakeStore(settings) });
@@ -236,5 +281,33 @@ describe("BackupStatusCard", () => {
     });
     await settle();
     expect(document.body.textContent).toContain("Back up your library");
+  });
+
+  it("localizes reauthorization guidance in both UI languages", async () => {
+    const settings = fakeSettings(undefined);
+    mountCard({
+      status: REAUTHORIZATION_REQUIRED,
+      settings,
+      store: fakeStore(settings),
+    });
+    await settle();
+    expect(document.body.textContent).toContain(
+      "seleccionar la carpeta otra vez",
+    );
+    if (component) unmount(component);
+    component = null;
+    document.body.innerHTML = "";
+
+    uiLocale.current = "en";
+    const settingsEn = fakeSettings(undefined);
+    mountCard({
+      status: REAUTHORIZATION_REQUIRED,
+      settings: settingsEn,
+      store: fakeStore(settingsEn),
+    });
+    await settle();
+    expect(document.body.textContent?.toLowerCase()).toContain(
+      "select the folder again",
+    );
   });
 });

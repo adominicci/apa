@@ -22,6 +22,7 @@
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import { backupStore, tauriBackupAdapter } from "$lib/persist/backupRuntime";
   import { describeBackupError } from "./backupErrorMessage.ts";
+  import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes.ts";
 
   /**
    * Home status surface (task 10.3): a dismissible optional setup card
@@ -67,10 +68,14 @@
   type Health = "running" | "warning" | "retention" | "healthy";
   const health = $derived.by((): Health => {
     if (store.running) return "running";
-    if (settings.backup?.lastErrorCode !== undefined) return "warning";
-    if (store.retentionWarning || store.accumulationWarning) {
+    if (
+      settings.backup?.lastErrorCode === "resource_limit" ||
+      store.retentionWarning ||
+      store.accumulationWarning
+    ) {
       return "retention";
     }
+    if (settings.backup?.lastErrorCode !== undefined) return "warning";
     return "healthy";
   });
 
@@ -95,19 +100,36 @@
   }
 </script>
 
-{#if status !== null && !status.configured && !dismissed}
-  <section class="backup-card setup ui-controls" aria-label={m.bk_card_title()}>
+{#if status !== null && !status.configured && (status.requiresReauthorization || !dismissed)}
+  <section
+    class="backup-card setup ui-controls"
+    aria-label={status.requiresReauthorization
+      ? m.bk_reauthorization_title()
+      : m.bk_card_title()}
+  >
     <div class="text">
-      <h3>{m.bk_card_title()}</h3>
-      <p>{m.bk_card_body()}</p>
+      <h3>
+        {status.requiresReauthorization
+          ? m.bk_reauthorization_title()
+          : m.bk_card_title()}
+      </h3>
+      <p>
+        {status.requiresReauthorization
+          ? m.bk_reauthorization_body({
+            version: bundledReleaseNotes.version,
+          })
+          : m.bk_card_body()}
+      </p>
     </div>
     <div class="actions">
       <button class="btn btn-sm btn-primary" onclick={onSetup}>
         {m.bk_card_setup()}
       </button>
-      <button class="btn btn-sm btn-secondary" onclick={dismiss}>
-        {m.bk_card_dismiss()}
-      </button>
+      {#if !status.requiresReauthorization}
+        <button class="btn btn-sm btn-secondary" onclick={dismiss}>
+          {m.bk_card_dismiss()}
+        </button>
+      {/if}
     </div>
   </section>
 {:else if status !== null && status.configured}

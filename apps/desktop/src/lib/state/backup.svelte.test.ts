@@ -34,9 +34,26 @@ class Harness {
   // Local-time constructor: daily gating uses the LOCAL calendar day.
   clock = new Date(2026, 2, 5, 10, 0, 0);
   writeError: { code: string } | null = null;
+  nativeOwnedCap: number | null = null;
   validationError: { code: string } | null = null;
   settingsFlushError: { code: string } | null = null;
+  settingsFlushCalls = 0;
+  settingsFlushGate: Promise<void> | null = null;
+  releaseSettingsFlush: (() => void) | null = null;
   removeError = false;
+  discardCalls = 0;
+  metadataListCalls = 0;
+  nameListCalls = 0;
+  ledgerEntryCalls = 0;
+  removeCalls = 0;
+  writeCalls = 0;
+  writeGate: Promise<void> | null = null;
+  releaseWrite: (() => void) | null = null;
+  confirmGate: Promise<void> | null = null;
+  releaseConfirm: (() => void) | null = null;
+  nameListGate: Promise<void> | null = null;
+  releaseNameList: (() => void) | null = null;
+  operationController = new AbortController();
   clockAfterConfirm: Date | null = null;
   packages = 0;
   activityListeners = new Set<() => void>();
@@ -49,18 +66,29 @@ class Harness {
         this.statusError ? Promise.reject(this.statusError) : Promise.resolve({
           configured: this.configured,
           folderAvailable: this.folderAvailable,
+          requiresReauthorization: false,
           backupSetId: this.configured ? SET_ID : undefined,
           folderPath: "/synced/Tesina",
         }),
-      writeArchive: (fileName, bytes) => {
+      writeArchive: async (fileName, bytes) => {
+        this.writeCalls += 1;
+        if (this.writeGate !== null) await this.writeGate;
         if (this.writeError) return Promise.reject(this.writeError);
+        if (
+          this.nativeOwnedCap !== null &&
+          this.ledger.filter((entry) => entry.backupSetId === SET_ID).length >=
+            this.nativeOwnedCap
+        ) {
+          return Promise.reject({ code: "resource_limit" });
+        }
         if (this.archives.has(fileName)) {
           return Promise.reject({ code: "name_taken" });
         }
         this.archives.set(fileName, bytes);
         return Promise.resolve({ sha256: `sha-${fileName}` });
       },
-      confirmArchive: (fileName, sha256) => {
+      confirmArchive: async (fileName, sha256) => {
+        if (this.confirmGate !== null) await this.confirmGate;
         this.ledger.push({
           fileName,
           sha256,
@@ -70,26 +98,41 @@ class Harness {
         if (this.clockAfterConfirm !== null) {
           this.clock = this.clockAfterConfirm;
         }
+      },
+      discardPendingArchive: (fileName) => {
+        this.discardCalls += 1;
+        this.archives.delete(fileName);
         return Promise.resolve();
       },
       readArchive: (fileName) => {
         const bytes = this.archives.get(fileName);
         return bytes ? Promise.resolve(bytes) : Promise.reject({ code: "io" });
       },
-      listArchives: () =>
-        Promise.resolve(
+      listArchives: () => {
+        this.metadataListCalls += 1;
+        return Promise.resolve(
           [...this.archives.keys()].map((fileName) => ({
             fileName,
             byteLength: this.archives.get(fileName)!.length,
           })),
-        ),
+        );
+      },
+      listArchiveNames: async () => {
+        this.nameListCalls += 1;
+        if (this.nameListGate !== null) await this.nameListGate;
+        return [...this.archives.keys()];
+      },
       removeArchive: (fileName) => {
+        this.removeCalls += 1;
         if (this.removeError) return Promise.reject({ code: "io" });
         this.archives.delete(fileName);
         this.ledger = this.ledger.filter((e) => e.fileName !== fileName);
         return Promise.resolve();
       },
-      ledgerEntries: () => Promise.resolve([...this.ledger]),
+      ledgerEntries: () => {
+        this.ledgerEntryCalls += 1;
+        return Promise.resolve([...this.ledger]);
+      },
     };
     const getSettingsValue = () => this.settingsValue;
     this.store = new BackupStore({
@@ -117,12 +160,15 @@ class Harness {
         updateBackup: (patch) => {
           this.settingsValue = { ...this.settingsValue, ...patch };
         },
-        flushPending: () =>
-          this.settingsFlushError
-            ? Promise.reject(this.settingsFlushError)
-            : Promise.resolve(),
+        flushPending: async () => {
+          this.settingsFlushCalls += 1;
+          if (this.settingsFlushGate !== null) {
+            await this.settingsFlushGate;
+          }
+          if (this.settingsFlushError) throw this.settingsFlushError;
+        },
       },
-      runOperation: (_kind, fn) => fn(),
+      runOperation: (_kind, fn) => fn(this.operationController.signal),
       subscribeActivity: (listener) => {
         this.activityListeners.add(listener);
         return () => this.activityListeners.delete(listener);
@@ -215,14 +261,26 @@ describe("BackupStore scheduling", () => {
   });
 
   it("fails and rolls back success gating when metadata cannot persist", async () => {
+    harnessRef.settingsValue = {
+      ...harnessRef.settingsValue,
+      lastSuccessAt: "2026-03-01T10:00:00.000Z",
+      lastSuccessContentDigest: "prior-digest",
+      lastAutoSuccessDay: "2026-03-01",
+    };
     harnessRef.settingsFlushError = { code: "settings_persist_failed" };
 
     expect(await harnessRef.store.runAutomatic()).toEqual({
       kind: "failed",
       errorCode: "settings_persist_failed",
     });
-    expect(harnessRef.settingsValue?.lastSuccessContentDigest).toBeUndefined();
-    expect(harnessRef.settingsValue?.lastAutoSuccessDay).toBeUndefined();
+    expect(harnessRef.settingsValue?.lastSuccessAt).toBe(
+      "2026-03-01T10:00:00.000Z",
+    );
+    expect(harnessRef.settingsValue?.lastSuccessContentDigest).toBe(
+      "prior-digest",
+    );
+    expect(harnessRef.settingsValue?.lastAutoSuccessDay).toBe("2026-03-01");
+    expect(harnessRef.settingsFlushCalls).toBe(2);
   });
 
   it("does not ledger a backup until reopen validation succeeds", async () => {
@@ -231,8 +289,111 @@ describe("BackupStore scheduling", () => {
       kind: "failed",
       errorCode: "archive_invalid",
     });
-    expect(harnessRef.archives.size).toBe(1);
+    expect(harnessRef.archives.size).toBe(0);
+    expect(harnessRef.discardCalls).toBe(1);
     expect(harnessRef.ledger).toEqual([]);
+  });
+
+  it("stops before confirmation when shutdown cancels an in-flight write", async () => {
+    harnessRef.writeGate = new Promise<void>((resolve) => {
+      harnessRef.releaseWrite = resolve;
+    });
+
+    const pending = harnessRef.store.runManual();
+    for (
+      let attempt = 0;
+      attempt < 20 && harnessRef.writeCalls === 0;
+      attempt++
+    ) {
+      await Promise.resolve();
+    }
+    expect(harnessRef.writeCalls).toBe(1);
+
+    harnessRef.operationController.abort();
+    harnessRef.releaseWrite?.();
+
+    expect(await pending).toEqual({ kind: "failed", errorCode: "cancelled" });
+    expect(harnessRef.archives.size).toBe(0);
+    expect(harnessRef.discardCalls).toBe(1);
+    expect(harnessRef.ledger).toEqual([]);
+    expect(harnessRef.settingsValue?.lastSuccessAt).toBeUndefined();
+  });
+
+  it("does not report success when shutdown aborts during confirmation", async () => {
+    harnessRef.confirmGate = new Promise<void>((resolve) => {
+      harnessRef.releaseConfirm = resolve;
+    });
+
+    const pending = harnessRef.store.runManual();
+    await vi.waitFor(() => expect(harnessRef.archives.size).toBe(1));
+    harnessRef.operationController.abort();
+    harnessRef.releaseConfirm?.();
+
+    expect(await pending).toEqual({ kind: "failed", errorCode: "cancelled" });
+    expect(harnessRef.ledger).toHaveLength(1);
+    expect(harnessRef.discardCalls).toBe(0);
+    expect(harnessRef.nameListCalls).toBe(0);
+    expect(harnessRef.settingsValue?.lastSuccessAt).toBeUndefined();
+  });
+
+  it("stops retention without fresh native calls when shutdown aborts", async () => {
+    harnessRef.settingsValue = {
+      ...harnessRef.settingsValue,
+      lastSuccessAt: "2026-03-01T10:00:00.000Z",
+      lastSuccessContentDigest: "prior-digest",
+      lastAutoSuccessDay: "2026-03-01",
+    };
+    harnessRef.nameListGate = new Promise<void>((resolve) => {
+      harnessRef.releaseNameList = resolve;
+    });
+
+    const pending = harnessRef.store.runManual();
+    await vi.waitFor(() => expect(harnessRef.nameListCalls).toBe(1));
+    harnessRef.operationController.abort();
+    harnessRef.releaseNameList?.();
+
+    expect(await pending).toEqual({ kind: "failed", errorCode: "cancelled" });
+    expect(harnessRef.ledgerEntryCalls).toBe(0);
+    expect(harnessRef.removeCalls).toBe(0);
+    expect(harnessRef.settingsFlushCalls).toBe(0);
+    expect(harnessRef.settingsValue?.lastSuccessAt).toBe(
+      "2026-03-01T10:00:00.000Z",
+    );
+    expect(harnessRef.settingsValue?.lastSuccessContentDigest).toBe(
+      "prior-digest",
+    );
+    expect(harnessRef.settingsValue?.lastAutoSuccessDay).toBe("2026-03-01");
+  });
+
+  it("treats the final success flush as the cancellation commit boundary", async () => {
+    harnessRef.settingsFlushGate = new Promise<void>((resolve) => {
+      harnessRef.releaseSettingsFlush = resolve;
+    });
+
+    const pending = harnessRef.store.runAutomatic();
+    await vi.waitFor(() => expect(harnessRef.settingsFlushCalls).toBe(1));
+    const nativeCallsAtCommit = {
+      names: harnessRef.nameListCalls,
+      ledger: harnessRef.ledgerEntryCalls,
+      removals: harnessRef.removeCalls,
+    };
+
+    harnessRef.operationController.abort();
+    harnessRef.releaseSettingsFlush?.();
+
+    expect(await pending).toEqual({
+      kind: "success",
+      fileName: expect.any(String),
+      retentionWarning: false,
+    });
+    expect(harnessRef.settingsValue?.lastSuccessContentDigest).toBe("digest-1");
+    expect(harnessRef.settingsValue?.lastAutoSuccessDay).toBe("2026-03-05");
+    expect(harnessRef.settingsFlushCalls).toBe(1);
+    expect({
+      names: harnessRef.nameListCalls,
+      ledger: harnessRef.ledgerEntryCalls,
+      removals: harnessRef.removeCalls,
+    }).toEqual(nativeCallsAtCommit);
   });
 
   it("serializes concurrent manual and automatic requests", async () => {
@@ -300,6 +461,26 @@ describe("BackupStore scheduling", () => {
 });
 
 describe("retention execution (task 9.5 wiring)", () => {
+  function seedOwnedArchives(count: number): void {
+    for (let day = 1; day <= count; day += 1) {
+      const stamp = `2026-02-${String(day).padStart(2, "0")}T10:00:00Z`;
+      const fileName = backupFileName(SET_ID, stamp);
+      harnessRef.archives.set(fileName, new Uint8Array([day]));
+      harnessRef.ledger.push({
+        fileName,
+        sha256: `sha-${fileName}`,
+        createdAt: stamp,
+        backupSetId: SET_ID,
+      });
+    }
+  }
+
+  it("enumerates names without opening archive metadata", async () => {
+    expect((await harnessRef.store.runAutomatic()).kind).toBe("success");
+    expect(harnessRef.nameListCalls).toBe(1);
+    expect(harnessRef.metadataListCalls).toBe(0);
+  });
+
   it("prunes beyond seven after a success and treats failures as warnings", async () => {
     // Seed 7 owned archives on earlier days.
     for (let day = 1; day <= 7; day += 1) {
@@ -340,5 +521,45 @@ describe("retention execution (task 9.5 wiring)", () => {
 
     expect(restarted.store.retentionWarning).toBe(true);
     expect(restarted.store.accumulationWarning).toBe(true);
+  });
+
+  it("recovers once from the sixteen-archive native cap by pruning first", async () => {
+    seedOwnedArchives(16);
+    harnessRef.nativeOwnedCap = 16;
+
+    const outcome = await harnessRef.store.runManual();
+
+    expect(outcome.kind).toBe("success");
+    expect(harnessRef.writeCalls).toBe(2);
+    expect(harnessRef.nameListCalls).toBe(2);
+    expect(harnessRef.archives.size).toBe(7);
+    expect(harnessRef.settingsValue?.lastSuccessContentDigest).toBe("digest-1");
+  });
+
+  it("retries the native cap only once and preserves success fields when pruning cannot recover", async () => {
+    seedOwnedArchives(16);
+    harnessRef.nativeOwnedCap = 16;
+    harnessRef.removeError = true;
+    harnessRef.settingsValue = {
+      ...harnessRef.settingsValue,
+      lastSuccessAt: "2026-02-01T10:00:00.000Z",
+      lastSuccessContentDigest: "prior-digest",
+      lastAutoSuccessDay: "2026-02-01",
+    };
+
+    expect(await harnessRef.store.runManual()).toEqual({
+      kind: "failed",
+      errorCode: "resource_limit",
+    });
+    expect(harnessRef.writeCalls).toBe(2);
+    expect(harnessRef.nameListCalls).toBe(1);
+    expect(harnessRef.settingsValue?.lastSuccessAt).toBe(
+      "2026-02-01T10:00:00.000Z",
+    );
+    expect(harnessRef.settingsValue?.lastSuccessContentDigest).toBe(
+      "prior-digest",
+    );
+    expect(harnessRef.settingsValue?.lastAutoSuccessDay).toBe("2026-02-01");
+    expect(harnessRef.settingsFlushCalls).toBe(0);
   });
 });

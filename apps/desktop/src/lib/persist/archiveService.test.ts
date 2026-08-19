@@ -9,6 +9,7 @@ import { ARCHIVE_LIMITS } from "$lib/portable/limits";
 import { canonicalJsonBytes } from "$lib/portable/canonicalJson";
 import type { LibrarySnapshotContent } from "$lib/portable/types";
 import { figureHeavyLibraryFixture } from "$lib/portable/fixtures/libraries";
+import type { ReplacementRecord } from "./portableFiles.ts";
 
 /** Task 4.5: one injected service, one packaging implementation. */
 
@@ -25,17 +26,20 @@ interface Harness {
   deps: LibraryArchiveServiceDeps;
   externalFiles: Map<string, Uint8Array>;
   appDataFiles: Map<string, Uint8Array>;
+  replacementRecords: Map<string, ReplacementRecord>;
   captures: number;
 }
 
 function makeHarness(): Harness {
   const externalFiles = new Map<string, Uint8Array>();
   const appDataFiles = new Map<string, Uint8Array>();
+  const replacementRecords = new Map<string, ReplacementRecord>();
   const coordinator = new PersistenceCoordinator();
   let uuidCounter = 0;
   const harness: Harness = {
     externalFiles,
     appDataFiles,
+    replacementRecords,
     captures: 0,
     deps: {
       captureSnapshot: () => {
@@ -89,7 +93,13 @@ function makeHarness(): Harness {
           externalFiles.delete(from);
           return Promise.resolve();
         },
-        removeIfHashMatches: () => Promise.resolve(),
+        removeIfHashMatches: async (path, expectedSha256) => {
+          const bytes = externalFiles.get(path);
+          if (!bytes || (await sha256Hex(bytes)) !== expectedSha256) {
+            throw new Error("hash mismatch");
+          }
+          externalFiles.delete(path);
+        },
         remove: (p) => {
           externalFiles.delete(p);
           return Promise.resolve();
@@ -97,9 +107,15 @@ function makeHarness(): Harness {
         statSize: (p) => Promise.resolve(externalFiles.get(p)?.length ?? null),
       },
       replacementJournal: {
-        save: () => Promise.resolve(),
-        list: () => Promise.resolve([]),
-        remove: () => Promise.resolve(),
+        save: (record) => {
+          replacementRecords.set(record.id, record);
+          return Promise.resolve();
+        },
+        list: () => Promise.resolve([...replacementRecords.values()]),
+        remove: (id) => {
+          replacementRecords.delete(id);
+          return Promise.resolve();
+        },
       },
     },
   };
@@ -107,24 +123,45 @@ function makeHarness(): Harness {
 }
 
 describe("createLibraryArchiveService", () => {
-  it("produces identical bytes for export, rollback, and backup", async () => {
+  it("recovers a journal-owned staging temp before reusing its destination", async () => {
+    const harness = makeHarness();
+    const orphan = new TextEncoder().encode("owned staging bytes");
+    const destinationPath = "/docs/manual.tesina";
+    const temporaryPath = `${destinationPath}.orphan.tmp`;
+    harness.externalFiles.set(temporaryPath, orphan);
+    harness.replacementRecords.set("orphan", {
+      phase: "staging",
+      id: "orphan",
+      destinationPath,
+      temporaryPath,
+      previousPath: `${destinationPath}.orphan.prev`,
+      expectedSha256: await sha256Hex(orphan),
+    });
+
+    await createLibraryArchiveService(harness.deps).exportToFile(
+      destinationPath,
+    );
+
+    expect(harness.externalFiles.has(temporaryPath)).toBe(false);
+    expect(harness.externalFiles.has(destinationPath)).toBe(true);
+    expect(harness.replacementRecords.size).toBe(0);
+  });
+
+  it("uses identical packaging for export, rollback, and backup", async () => {
     const harness = makeHarness();
     const service = createLibraryArchiveService(harness.deps);
 
     await service.exportToFile("/docs/manual.tesina");
     await service.createRollback("00000000-0000-4000-8000-000000000042");
-    await service.writeBackup(
-      ["/backups/Tesina Backups/auto.tesina"],
-      "00000000-0000-4000-8000-000000000077",
-    );
+    const packagedBackup = await service.package({
+      backupSetId: "00000000-0000-4000-8000-000000000077",
+    });
 
     const manual = harness.externalFiles.get("/docs/manual.tesina")!;
     const rollback = harness.appDataFiles.get(
       "backups/imports/00000000-0000-4000-8000-000000000042.tesina",
     )!;
-    const backup = harness.externalFiles.get(
-      "/backups/Tesina Backups/auto.tesina",
-    )!;
+    const backup = packagedBackup.bytes;
     expect(manual).toBeDefined();
     expect(rollback).toBeDefined();
     expect(backup).toBeDefined();

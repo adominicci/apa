@@ -5,13 +5,13 @@
  *
  * Order matters (design §5): asset checksums resolve to final local paths
  * FIRST, imported figure paths are normalized through that map, and only then
- * are essays compared semantically — so re-importing an unchanged export is
- * fully skipped even though archive and local figure paths differ. Nothing
- * here ever rewrites a pre-existing local essay, reference, collection, or
- * asset path; the merge is strictly additive. The only user-facing text this
- * module produces is the imported-copy title suffix, which follows each
- * essay's document language; all preview/chrome explanations belong to the UI
- * and its UI-language axis.
+ * are essays compared using exact figure-byte classes — so re-importing an
+ * unchanged export is fully skipped even when paths differ or duplicate the
+ * same bytes. Nothing here ever rewrites a pre-existing local essay,
+ * reference, collection, or asset path; the merge is strictly additive. The
+ * only user-facing text this module produces is the imported-copy title
+ * suffix, which follows each essay's document language; all preview/chrome
+ * explanations belong to the UI and its UI-language axis.
  */
 
 import type { DocLocale, Reference } from "@tesina/engine";
@@ -25,7 +25,7 @@ import {
   referenceDigest,
 } from "./semantic.ts";
 import { collectFigureSources } from "./snapshot.ts";
-import type { ValidatedArchive } from "./validate.ts";
+import type { ValidatedArchive, ValidatedAsset } from "./validate.ts";
 
 export class PlanError extends Error {
   readonly code: string;
@@ -48,8 +48,10 @@ export type ImportArchiveContent = Pick<
 export interface LocalImportState {
   essays: Essay[];
   library: { references: Reference[]; collections: RefCollection[] };
-  /** sha256 → local `essays/assets/...` path holding those exact bytes. */
-  assetIndex: ReadonlyMap<string, string>;
+  /** Archive-relative exact-byte class → one reusable local asset path. */
+  reusableAssetPathByClass: ReadonlyMap<string, string>;
+  /** Local asset path → archive-relative exact-byte class. */
+  assetClassByLocalPath: ReadonlyMap<string, string>;
   /** Every local `essays/assets/...` path already in use. */
   existingAssetPaths: ReadonlySet<string>;
   /** Every essay id that already exists as a local file. */
@@ -109,6 +111,81 @@ export interface ImportPreview {
   assets: { reused: number; added: number };
 }
 
+const EMPTY_ID_MAP = new Map<string, string>();
+
+interface ArchiveAssetClass {
+  id: string;
+  bytes: Uint8Array;
+}
+
+export interface ArchiveAssetClassIndex {
+  classByArchivePath: ReadonlyMap<string, string>;
+  findClass(sha256: string, bytes: Uint8Array): string | undefined;
+}
+
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.byteLength !== b.byteLength) return false;
+  for (let i = 0; i < a.byteLength; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+/** Groups validated archive assets only when both SHA-256 and bytes match. */
+export function createArchiveAssetClassIndex(
+  assets: ReadonlyMap<string, ValidatedAsset>,
+): ArchiveAssetClassIndex {
+  const classesBySha256 = new Map<string, ArchiveAssetClass[]>();
+  const classByArchivePath = new Map<string, string>();
+  let nextClass = 0;
+
+  for (const archivePath of [...assets.keys()].sort()) {
+    const asset = assets.get(archivePath)!;
+    const candidates = classesBySha256.get(asset.sha256) ?? [];
+    let assetClass = candidates.find((candidate) =>
+      bytesEqual(candidate.bytes, asset.bytes)
+    );
+    if (assetClass === undefined) {
+      assetClass = { id: `asset-class-${++nextClass}`, bytes: asset.bytes };
+      candidates.push(assetClass);
+      classesBySha256.set(asset.sha256, candidates);
+    }
+    classByArchivePath.set(archivePath, assetClass.id);
+  }
+
+  return {
+    classByArchivePath,
+    findClass(sha256, bytes) {
+      return classesBySha256.get(sha256)?.find((candidate) =>
+        bytesEqual(candidate.bytes, bytes)
+      )?.id;
+    },
+  };
+}
+
+function normalizeFigureSemantics(
+  essay: Essay,
+  assetClassByLocalPath: ReadonlyMap<string, string>,
+): Essay {
+  const figurePathMap = new Map(
+    collectFigureSources(essay.content).map((src) => {
+      const assetClass = assetClassByLocalPath.get(src);
+      return [
+        src,
+        JSON.stringify(
+          assetClass === undefined
+            ? ["unresolved-path", src]
+            : ["exact-asset-class", assetClass],
+        ),
+      ];
+    }),
+  );
+  return remapEssay(essay, {
+    referenceIdMap: EMPTY_ID_MAP,
+    figurePathMap,
+  });
+}
+
 export interface ImportPlan {
   transactionId: string;
   /** Asset writes, then essay writes, then the single library merge. */
@@ -152,13 +229,21 @@ export async function planImport(
   // imported figure paths can be normalized before semantic comparison.
   const usedAssetPaths = new Set(local.existingAssetPaths);
   const figurePathMap = new Map<string, string>();
+  const assetClassByLocalPath = new Map(local.assetClassByLocalPath);
+  const archiveAssetClasses = createArchiveAssetClassIndex(archive.assets);
   const assetWrites: AssetWriteOp[] = [];
   const archiveAssetPaths = [...archive.assets.keys()].sort();
   for (const archivePath of archiveAssetPaths) {
     const asset = archive.assets.get(archivePath)!;
-    const reusablePath = local.assetIndex.get(asset.sha256);
+    const assetClass = archiveAssetClasses.classByArchivePath.get(archivePath)!;
+    const exactLocalPath = `essays/${archivePath}`;
+    const reusablePath = local.assetClassByLocalPath.get(exactLocalPath) ===
+        assetClass
+      ? exactLocalPath
+      : local.reusableAssetPathByClass.get(assetClass);
     if (reusablePath !== undefined) {
       figurePathMap.set(archivePath, reusablePath);
+      assetClassByLocalPath.set(reusablePath, assetClass);
       preview.assets.reused += 1;
       continue;
     }
@@ -168,6 +253,7 @@ export async function planImport(
     }
     usedAssetPaths.add(localPath);
     figurePathMap.set(archivePath, localPath);
+    assetClassByLocalPath.set(localPath, assetClass);
     assetWrites.push({
       kind: "writeAsset",
       opId: nextOpId(),
@@ -178,7 +264,6 @@ export async function planImport(
     });
     preview.assets.added += 1;
   }
-
   // b. References: identical same-id entries are reused, conflicting same-id
   // entries get a new id recorded in the reference map, new ids add as-is.
   const localReferencesById = new Map(
@@ -333,13 +418,19 @@ export async function planImport(
       preview.essays.new += 1;
       continue;
     }
-    if (
-      localEssay !== undefined &&
-      (await essaySemanticDigest(localEssay)) ===
-        (await essaySemanticDigest(normalized))
-    ) {
-      preview.essays.identical += 1;
-      continue;
+    if (localEssay !== undefined) {
+      const [localDigest, importedDigest] = await Promise.all([
+        essaySemanticDigest(
+          normalizeFigureSemantics(localEssay, assetClassByLocalPath),
+        ),
+        essaySemanticDigest(
+          normalizeFigureSemantics(normalized, assetClassByLocalPath),
+        ),
+      ]);
+      if (localDigest === importedDigest) {
+        preview.essays.identical += 1;
+        continue;
+      }
     }
     // Conflicting same-id essay: preserve both. The imported copy keeps its
     // createdAt, records its origin and import time, and its title carries

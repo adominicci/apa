@@ -9,7 +9,6 @@
  */
 
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import {
   type BackupAdapter,
@@ -120,10 +119,19 @@ export const tauriBackupAdapter: BackupAdapter = {
       expectedSha256,
     });
   },
+  async discardPendingArchive(fileName, expectedSha256) {
+    await invokeBackup<void>("backup_discard_pending_archive", {
+      fileName,
+      expectedSha256,
+    });
+  },
   listArchives() {
     return invokeBackup<{ fileName: string; byteLength: number }[]>(
       "backup_list_archives",
     );
+  },
+  listArchiveNames() {
+    return invokeBackup<string[]>("backup_list_archive_names");
   },
   async removeArchive(fileName, expectedSha256) {
     await invokeBackup<void>("backup_remove_archive", {
@@ -153,6 +161,35 @@ function currentContentDigest(): Promise<string> {
   });
 }
 
+function throwIfBackupCancelled(signal: AbortSignal): void {
+  if (!signal.aborted) return;
+  throw Object.assign(new Error("backup cancelled"), { code: "cancelled" });
+}
+
+/**
+ * Couples the app-lifetime operation token to Rust's selected-folder epoch.
+ * The cancellation command is awaited so shutdown cannot release the token
+ * while a native worker can still publish or ledger a late result.
+ */
+async function runBackupOperation<T>(
+  operation: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  return await operations.run("backup", async (handle) => {
+    let cancellation: Promise<void> | null = null;
+    const cancelNative = () => {
+      cancellation ??= invokeBackup<void>("backup_cancel_current_operations");
+    };
+    handle.signal.addEventListener("abort", cancelNative, { once: true });
+    try {
+      throwIfBackupCancelled(handle.signal);
+      return await operation(handle.signal);
+    } finally {
+      handle.signal.removeEventListener("abort", cancelNative);
+      if (cancellation !== null) await cancellation;
+    }
+  });
+}
+
 /** Wires a BackupStore to the real Tauri adapters (design §9). */
 export function createBackupStore(): BackupStore {
   return new BackupStore({
@@ -167,7 +204,7 @@ export function createBackupStore(): BackupStore {
       await validateArchive(bytes, ARCHIVE_LIMITS);
     },
     settings: uiLocale,
-    runOperation: (kind, fn) => operations.run(kind, fn),
+    runOperation: (_kind, fn) => runBackupOperation(fn),
     subscribeActivity: (listener) => persistence.subscribeActivity(listener),
     now: () => new Date(),
   });
@@ -189,68 +226,68 @@ export interface PendingBackupConfiguration {
   canonicalFolderPath: string;
   /** Exact destination shown before consent (incl. `Tesina Backups`). */
   backupSubfolderPath: string;
+  /** Native-generated identity reused by the test manifest and activation. */
+  backupSetId: string;
 }
 
-/** Native recursive folder picker. Null when the user cancels. */
-export async function pickBackupFolder(): Promise<string | null> {
-  const selected = await open({ directory: true, recursive: true });
-  if (selected === null) return null;
-  return Array.isArray(selected) ? (selected[0] ?? null) : selected;
-}
-
-/** Validates the picked folder and creates the pending `Tesina Backups`. */
-export function beginBackupConfiguration(
-  path: string,
-): Promise<PendingBackupConfiguration> {
-  return invokeBackup<PendingBackupConfiguration>(
-    "backup_begin_configuration",
-    { path },
+/**
+ * Picks and validates the exact folder inside one native trust boundary.
+ * No renderer-controlled path or cumulative dialog scope can be substituted.
+ */
+export function pickAndBeginBackupConfiguration(): Promise<
+  PendingBackupConfiguration | null
+> {
+  return invokeBackup<PendingBackupConfiguration | null>(
+    "backup_pick_and_begin_configuration",
   );
 }
 
 /**
- * Wizard test-backup filename (design §10): the pending configuration has
- * no `backupSetId` yet — Rust generates it only at activation — so the
- * grammar's middle component is a fresh random 8-hex value instead of a set
- * prefix. The name still matches the strict retained-backup grammar and the
- * random component preserves collision avoidance in a shared synced folder;
- * activation records the file in the ledger under the new set id, which is
- * what makes it the first retained recovery archive (ledger-first
- * classification never reads the name's set component).
+ * Wizard test-backup filename (design §10): native setup creates the pending
+ * backup-set identity before any bytes are written. The test name therefore
+ * uses the exact same prefix as every later automatic backup in that set.
  */
-export function testBackupFileName(now: () => Date = () => new Date()): string {
-  return backupFileName(crypto.randomUUID(), now().toISOString());
+export function testBackupFileName(
+  backupSetId: string,
+  now: () => Date = () => new Date(),
+): string {
+  return backupFileName(backupSetId, now().toISOString());
 }
 
 /**
  * Packages and writes the REAL test archive into the pending subfolder,
- * then reopens and fully validates it. The archive has no manifest
- * `backup` field (no set id exists yet); retention never parses manifests,
- * so the ledger entry written at activation still counts it toward seven.
+ * then reopens and fully validates it. The manifest and filename both carry
+ * the native pending set identity that activation will make authoritative.
  */
-export function writeWizardTestBackup(): Promise<{
+export function writeWizardTestBackup(backupSetId: string): Promise<{
   fileName: string;
   contentDigest: string;
 }> {
-  return operations.run("backup", async () => {
+  return runBackupOperation(async (signal) => {
+    throwIfBackupCancelled(signal);
     const service = await libraryArchiveService();
-    const packaged = await service.package();
-    const fileName = testBackupFileName();
+    throwIfBackupCancelled(signal);
+    const packaged = await service.package({ backupSetId });
+    throwIfBackupCancelled(signal);
+    const fileName = testBackupFileName(backupSetId);
     await invokeBackupBinary<string>(
       "backup_write_test_archive",
       fileName,
       packaged.bytes,
     );
+    throwIfBackupCancelled(signal);
     // Spec: validated test = written, reopened, and fully validated.
     const rereadBytes = await invokeBackupBinary<ArrayBuffer | Uint8Array>(
       "backup_read_test_archive",
       fileName,
       new Uint8Array(),
     );
+    throwIfBackupCancelled(signal);
     const reread = rereadBytes instanceof Uint8Array
       ? rereadBytes
       : new Uint8Array(rereadBytes);
     await validateArchive(reread, ARCHIVE_LIMITS);
+    throwIfBackupCancelled(signal);
     return { fileName, contentDigest: packaged.contentDigest };
   });
 }

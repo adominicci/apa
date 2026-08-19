@@ -4,7 +4,10 @@
     getTerms,
     type Reference,
   } from "@tesina/engine";
-  import { essays } from "$lib/state/essays.svelte";
+  import {
+    essays,
+    IncompleteEssayScanError,
+  } from "$lib/state/essays.svelte";
   import { library } from "$lib/state/library.svelte";
   import { uiLocale } from "$lib/state/uiLocale.svelte";
   import RefEntry from "$lib/components/RefEntry.svelte";
@@ -169,12 +172,21 @@
     { ref: Reference; citing: { id: string; title: string }[] } | null
   >(null);
   let scanning = $state(false);
+  let deleteScanErrorFiles = $state<string[] | null>(null);
 
   async function askDelete(ref: Reference) {
     scanning = true;
+    deleteScanErrorFiles = null;
     try {
       const citing = await essays.essaysCiting(ref.id);
       deleteTarget = { ref, citing };
+    } catch (error) {
+      deleteScanErrorFiles = error instanceof IncompleteEssayScanError
+        ? error.unreadableFiles
+        : [];
+      if (!(error instanceof IncompleteEssayScanError)) {
+        console.error("No se pudo verificar el uso de la referencia:", error);
+      }
     } finally {
       scanning = false;
     }
@@ -525,6 +537,32 @@
   </Modal>
 {/if}
 
+{#if deleteScanErrorFiles}
+  <Modal
+    title={m.libm_delete_scan_title()}
+    subtitle={m.libm_delete_scan_error()}
+    size="sm"
+    onClose={() => (deleteScanErrorFiles = null)}
+  >
+    {#if deleteScanErrorFiles.length > 0}
+      <ul class="cited-list">
+        {#each deleteScanErrorFiles as filename (filename)}
+          <li>{filename}</li>
+        {/each}
+      </ul>
+    {/if}
+    <p class="del-note">{m.home_unreadable_files_help()}</p>
+    {#snippet footer()}
+      <button
+        class="btn btn-secondary"
+        onclick={() => (deleteScanErrorFiles = null)}
+      >
+        {m.common_close()}
+      </button>
+    {/snippet}
+  </Modal>
+{/if}
+
 {#if bibText !== null}
   <BibImportModal
     {bibText}
@@ -560,9 +598,7 @@
   <LibraryImportModal
     loadPreview={pickAndPreviewImport}
     apply={applyImportWithRuntime}
-    onDone={() => {
-      void refreshAfterImport();
-    }}
+    onDone={refreshAfterImport}
     onClose={() => (importOpen = false)}
   />
 {/if}

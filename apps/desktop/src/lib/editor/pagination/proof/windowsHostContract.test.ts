@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { execFileSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { executeBoundedProcess } from "./proofProcess.ts";
 
 interface CargoMetadata {
   packages: Array<{
@@ -22,35 +22,63 @@ interface CargoMetadata {
 const proofDir = dirname(fileURLToPath(import.meta.url));
 const tauriDir = resolve(proofDir, "../../../../../src-tauri");
 
-function cargoMetadata(): CargoMetadata {
-  return JSON.parse(
-    execFileSync(
-      "cargo",
-      ["metadata", "--locked", "--format-version=1", "--no-deps"],
-      { cwd: tauriDir, encoding: "utf8" },
-    ),
-  ) as CargoMetadata;
+async function cargoMetadata(): Promise<CargoMetadata> {
+  const output = await executeBoundedProcess(
+    "cargo",
+    [
+      "metadata",
+      "--locked",
+      "--format-version=1",
+      "--no-deps",
+      "--manifest-path",
+      resolve(tauriDir, "Cargo.toml"),
+    ],
+    { timeoutMs: 15_000 },
+  );
+  if (output.code !== 0) {
+    throw new Error(`cargo metadata failed: ${output.stderr.trim()}`);
+  }
+  return JSON.parse(output.stdout) as CargoMetadata;
 }
 
 describe("Windows native pagination host containment", () => {
-  it("builds only as a test example from the already-locked Tao/Wry backend", () => {
-    const metadata = cargoMetadata();
-    const tesina = metadata.packages.find((entry) => entry.name === "tesina");
-    expect(tesina).toBeDefined();
+  it(
+    "builds only as a test example from the already-locked Tao/Wry backend",
+    { timeout: 25_000 },
+    async () => {
+      const metadata = await cargoMetadata();
+      const tesina = metadata.packages.find((entry) => entry.name === "tesina");
+      expect(tesina).toBeDefined();
 
-    const target = tesina?.targets.find((entry) =>
-      entry.name === "webview2-proof-host"
-    );
-    expect(target).toMatchObject({ kind: ["example"], crate_types: ["bin"] });
-    expect(tesina?.targets.filter((entry) => entry.kind.includes("bin")))
-      .toEqual(
-        [expect.objectContaining({ name: "tesina" })],
+      const target = tesina?.targets.find((entry) =>
+        entry.name === "webview2-proof-host"
       );
+      expect(target).toMatchObject({
+        kind: ["example"],
+        crate_types: ["bin"],
+      });
+      expect(tesina?.targets.filter((entry) => entry.kind.includes("bin")))
+        .toEqual(
+          [expect.objectContaining({ name: "tesina" })],
+        );
 
-    expect(tesina?.dependencies).toEqual(expect.arrayContaining([
-      expect.objectContaining({ name: "tao", kind: "dev", req: "=0.35.3" }),
-      expect.objectContaining({ name: "url", kind: "dev", req: "=2.5.8" }),
-      expect.objectContaining({ name: "wry", kind: "dev", req: "=0.55.1" }),
-    ]));
-  });
+      expect(tesina?.dependencies).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          name: "tao",
+          kind: "dev",
+          req: "=0.35.3",
+        }),
+        expect.objectContaining({
+          name: "url",
+          kind: "dev",
+          req: "=2.5.8",
+        }),
+        expect.objectContaining({
+          name: "wry",
+          kind: "dev",
+          req: "=0.55.1",
+        }),
+      ]));
+    },
+  );
 });

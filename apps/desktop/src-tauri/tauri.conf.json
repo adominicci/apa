@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Tesina",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "identifier": "app.tesina.desktop",
   "build": {
     "beforeDevCommand": "deno task vite:dev",
@@ -22,7 +22,37 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": {
+        "base-uri": ["'none'"],
+        "connect-src": ["ipc:", "http://ipc.localhost", "blob:"],
+        "default-src": ["'self'"],
+        "font-src": ["'self'", "data:"],
+        "form-action": ["'none'"],
+        "frame-src": ["'none'"],
+        "img-src": ["'self'", "blob:", "data:"],
+        "object-src": ["'none'"],
+        "script-src": ["'self'"],
+        "style-src": ["'self'", "'unsafe-inline'", "blob:"]
+      },
+      "devCsp": {
+        "base-uri": ["'none'"],
+        "connect-src": [
+          "'self'",
+          "ipc:",
+          "http://ipc.localhost",
+          "blob:",
+          "ws:"
+        ],
+        "default-src": ["'self'"],
+        "font-src": ["'self'", "data:"],
+        "form-action": ["'none'"],
+        "frame-src": ["'none'"],
+        "img-src": ["'self'", "blob:", "data:"],
+        "object-src": ["'none'"],
+        "script-src": ["'self'"],
+        "style-src": ["'self'", "'unsafe-inline'", "blob:"]
+      },
+      "dangerousDisableAssetCspModification": ["style-src"]
     }
   },
   "plugins": {

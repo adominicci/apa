@@ -530,7 +530,7 @@ async fn render(
                 Arc::clone(&slot),
             );
             #[cfg(not(any(target_os = "macos", windows)))]
-            let started = {
+            let started: Result<(), String> = {
                 let _ = (&platform_webview, &target, paper);
                 Err(UNSUPPORTED_PLATFORM.to_string())
             };

@@ -10,6 +10,7 @@ import EssayHome from "./EssayHomeReleaseNotesHarness.test.svelte";
 const stores = vi.hoisted(() => ({
   create: vi.fn(),
   summaries: [] as EssaySummary[],
+  unreadableFiles: [] as string[],
   uiLanguage: "es" as "es" | "en",
 }));
 
@@ -19,7 +20,11 @@ vi.mock("$lib/state/essays.svelte", () => ({
     get summaries() {
       return stores.summaries;
     },
+    get unreadableFiles() {
+      return stores.unreadableFiles;
+    },
     create: stores.create,
+    loadIndex: vi.fn(),
     rename: vi.fn(),
     duplicate: vi.fn(),
     remove: vi.fn(),
@@ -51,6 +56,7 @@ afterEach(() => {
   document.body.replaceChildren();
   stores.create.mockReset();
   stores.summaries = [];
+  stores.unreadableFiles = [];
   stores.uiLanguage = "es";
 });
 
@@ -123,7 +129,7 @@ describe("essay launch context", () => {
       `Tesina ${bundledReleaseNotes.version}`,
     );
     expect(dialog?.textContent).toContain(
-      "look and behave alike",
+      "One damaged paper file no longer hides every other paper",
     );
     expect(dialog?.contains(document.activeElement)).toBe(true);
     globalThis.dispatchEvent(
@@ -139,7 +145,7 @@ describe("essay launch context", () => {
     versionButton.click();
     flushSync();
     expect(document.querySelector("[role='dialog']")?.textContent).toContain(
-      "look and behave alike",
+      "One damaged paper file no longer hides every other paper",
     );
     expect(globalThis.location.href).toBe(initialLocation);
     expect(onCreate).not.toHaveBeenCalled();
@@ -175,6 +181,63 @@ describe("essay launch context", () => {
     await unmount(component);
   });
 
+  it("shows unreadable paper filenames with backup recovery guidance", async () => {
+    stores.unreadableFiles = ["damaged-paper.json"];
+    const component = mount(EssayHome, {
+      target: document.body,
+      props: {
+        onCreate: vi.fn(),
+        onOpen: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    const recoveryStatus = document.querySelector<HTMLElement>(
+      "[data-unreadable-essays]",
+    );
+    expect(recoveryStatus?.getAttribute("role")).toBe("status");
+    expect(recoveryStatus?.textContent).toContain(
+      "No se pudo leer 1 archivo de ensayo",
+    );
+    expect(recoveryStatus?.textContent).toContain("damaged-paper.json");
+    expect(recoveryStatus?.textContent).toContain("respaldos");
+    await unmount(component);
+  });
+
+  it("localizes plural recovery details and links to Backup Settings", async () => {
+    stores.uiLanguage = "en";
+    stores.unreadableFiles = ["z-damaged.json", "a-damaged.json"];
+    const component = mount(EssayHome, {
+      target: document.body,
+      props: {
+        onCreate: vi.fn(),
+        onOpen: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+
+    const recoveryStatus = document.querySelector<HTMLElement>(
+      "[data-unreadable-essays]",
+    );
+    expect(recoveryStatus?.textContent).toContain(
+      "2 paper files could not be read",
+    );
+    expect(recoveryStatus?.textContent).toContain("a-damaged.json");
+    expect(recoveryStatus?.textContent).toContain("z-damaged.json");
+    expect(
+      [...(recoveryStatus?.querySelectorAll("li") ?? [])].map((item) =>
+        item.textContent
+      ),
+    ).toEqual(["a-damaged.json", "z-damaged.json"]);
+    expect(recoveryStatus?.textContent).toContain("left them unchanged");
+    expect(
+      recoveryStatus?.querySelector<HTMLButtonElement>("button")?.textContent,
+    ).toContain("Backup settings");
+    await unmount(component);
+  });
+
   it.each([null, undefined, "", "  ", 42, {}])(
     "keeps packaged notes available for malformed runtime version %j",
     async (runtimeVersion) => {
@@ -206,7 +269,7 @@ describe("essay launch context", () => {
       versionButton.click();
       flushSync();
       expect(document.querySelector("[role='dialog']")?.textContent).toContain(
-        "look and behave alike",
+        "One damaged paper file no longer hides every other paper",
       );
       expect(document.querySelector("[role='dialog']")?.textContent).not
         .toContain("Las notas no están disponibles.");

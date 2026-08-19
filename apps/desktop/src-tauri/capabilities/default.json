@@ -11,9 +11,33 @@
     "process:allow-restart",
     "process:allow-exit",
     "core:window:allow-hide",
-    "fs:default",
-    "fs:allow-appdata-read-recursive",
-    "fs:allow-appdata-write-recursive",
+    {
+      "identifier": "fs:default",
+      "deny": [
+        "$APPDATA/.tesina-native",
+        "$APPDATA/.tesina-native/**",
+        "$APPCACHE/.tesina-native",
+        "$APPCACHE/.tesina-native/**"
+      ]
+    },
+    {
+      "identifier": "fs:allow-appdata-read-recursive",
+      "deny": [
+        "$APPDATA/.tesina-native",
+        "$APPDATA/.tesina-native/**",
+        "$APPCACHE/.tesina-native",
+        "$APPCACHE/.tesina-native/**"
+      ]
+    },
+    {
+      "identifier": "fs:allow-appdata-write-recursive",
+      "deny": [
+        "$APPDATA/.tesina-native",
+        "$APPDATA/.tesina-native/**",
+        "$APPCACHE/.tesina-native",
+        "$APPCACHE/.tesina-native/**"
+      ]
+    },
     {
       "identifier": "http:default",
       "allow": [

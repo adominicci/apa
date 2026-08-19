@@ -1,0 +1,18 @@
+{
+  "productName": "Tesina Backup Smoke",
+  "identifier": "app.tesina.desktop.backup-smoke",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Tesina Backup Smoke",
+        "width": 1200,
+        "height": 800,
+        "visible": true
+      }
+    ]
+  },
+  "bundle": {
+    "createUpdaterArtifacts": false
+  }
+}

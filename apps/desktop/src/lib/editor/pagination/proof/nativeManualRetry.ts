@@ -1,8 +1,9 @@
-const ZERO_EVENT_TIMEOUT = "Manual native-input evidence timed out";
+const NO_KEYBOARD_PROGRESS_TIMEOUT = "Manual native-input evidence timed out";
 const WINDOWS_INPUT_DRIVER = "win32-sendinput-v1";
+const INCOMPLETE_DRIVER_ERROR_PREFIX =
+  "Windows native input result arrived before driver completion; page result: ";
 
-const ZERO_NUMBER_METRICS = [
-  "selectedTextLength",
+const ZERO_KEYBOARD_METRICS = [
   "rightKeys",
   "deadKeys",
   "copies",
@@ -14,9 +15,7 @@ const ZERO_NUMBER_METRICS = [
   "compositionEnds",
 ] as const;
 
-const NULL_PROGRESS_METRICS = [
-  "selectionFrom",
-  "selectionTo",
+const NULL_KEYBOARD_PROGRESS_METRICS = [
   "caretBeforePos",
   "caretAfterPos",
   "caretDocumentSize",
@@ -39,17 +38,43 @@ function record(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-export function isRetryableZeroEventNativeInputResult(
+function hasConsistentMouseProgress(
+  checks: Record<string, unknown>,
+  metrics: Record<string, unknown>,
+): boolean {
+  if (checks["nativeMouseDragAcrossGap"] === false) {
+    return metrics["selectedTextLength"] === 0 &&
+      metrics["selectionFrom"] === null && metrics["selectionTo"] === null;
+  }
+  if (checks["nativeMouseDragAcrossGap"] !== true) return false;
+  const from = metrics["selectionFrom"];
+  const to = metrics["selectionTo"];
+  const length = metrics["selectedTextLength"];
+  return Number.isInteger(from) && Number.isInteger(to) &&
+    Number.isInteger(length) && (length as number) > 0 &&
+    (to as number) - (from as number) === length;
+}
+
+export function isRetryableNoKeyboardProgressNativeInputResult(
   value: unknown,
 ): boolean {
-  const result = record(value);
+  const envelope = record(value);
+  const result = record(envelope?.["pageResult"]);
+  if (
+    !result || envelope?.["passed"] !== false ||
+    envelope["nativeInputCleanupComplete"] !== true ||
+    typeof envelope["error"] !== "string" ||
+    !envelope["error"].startsWith(INCOMPLETE_DRIVER_ERROR_PREFIX)
+  ) {
+    return false;
+  }
   const checks = record(result?.["checks"]);
   const metrics = record(result?.["metrics"]);
   if (
-    result?.["passed"] !== false || result["error"] !== ZERO_EVENT_TIMEOUT ||
+    result?.["passed"] !== false ||
+    result["error"] !== NO_KEYBOARD_PROGRESS_TIMEOUT ||
     checks?.["nativeClipboard"] !== false ||
     checks["nativeComposedCharacterInput"] !== false ||
-    checks["nativeMouseDragAcrossGap"] !== false ||
     metrics?.["inputDriver"] !== WINDOWS_INPUT_DRIVER ||
     metrics["windowsNativeInputDriver"] !== WINDOWS_INPUT_DRIVER ||
     metrics["windowsNativeInputComplete"] !== false ||
@@ -58,7 +83,8 @@ export function isRetryableZeroEventNativeInputResult(
   ) {
     return false;
   }
-  return ZERO_NUMBER_METRICS.every((name) => metrics[name] === 0) &&
-    NULL_PROGRESS_METRICS.every((name) => metrics[name] === null) &&
+  return hasConsistentMouseProgress(checks, metrics) &&
+    ZERO_KEYBOARD_METRICS.every((name) => metrics[name] === 0) &&
+    NULL_KEYBOARD_PROGRESS_METRICS.every((name) => metrics[name] === null) &&
     EMPTY_DIAGNOSTIC_METRICS.every((name) => metrics[name] === "");
 }
