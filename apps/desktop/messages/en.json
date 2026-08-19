@@ -506,6 +506,8 @@
   "err_unknown": "Unexpected error ({code}).",
   "recovery_resumed": "An interrupted library merge was completed safely.",
   "recovery_rolled_back": "An interrupted library merge was undone. Your library is exactly as it was before the merge.",
+  "recovery_complete": "Recovery finished. Your library is safe and ready to use.",
+  "recovery_in_progress": "Recovering your library safely…",
   "recovery_required_title": "Tesina needs your attention",
   "recovery_required_body": "A previous library merge was interrupted and could not be repaired automatically. Your essays are untouched, and all recovery evidence has been preserved. You can retry recovery, or export a privacy-safe diagnostic file (it contains technical codes only — never your writing) to get help.",
   "recovery_retry": "Retry recovery",

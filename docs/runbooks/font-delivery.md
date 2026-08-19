@@ -82,10 +82,13 @@ When adding, removing, or changing a document font, update all of these in one
 commit:
 
 1. `apps/desktop/src/lib/model/essay.ts` (`FontChoice`).
-2. `apps/desktop/src/lib/model/fonts.ts` (`APA_FONTS` and picker order).
+2. `apps/desktop/src/lib/model/fonts.ts` (`APA_FONTS`, `APA_FONT_ORDER`, and
+   the `isFontChoice` persisted-data guard). App validators must reuse this
+   guard rather than maintain separate font registries.
 3. `packages/docx-export/src/input.ts` (the pure-package input union).
 4. `packages/docx-export/src/styles.ts` (`FONT_MAP`, using half-points).
-5. Focused editor/preview and DOCX tests for the selected family and size.
+5. Focused app guard, editor/preview, and DOCX tests for the selected family
+   and size.
 
 Do not add a font file unless its license is compatible with the repository's
 dependency policy and the required attribution or license resource is included.

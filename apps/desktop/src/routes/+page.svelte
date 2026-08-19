@@ -5,6 +5,8 @@
   import EssayHome from "$lib/components/EssayHome.svelte";
   import EditorScreen from "$lib/components/EditorScreen.svelte";
   import LibraryScreen from "$lib/components/LibraryScreen.svelte";
+  import RecoveryRequiredActions from "$lib/components/RecoveryRequiredActions.svelte";
+  import { recoveryNoticeFromOutcomes } from "$lib/components/recoveryNotice";
   import { essays } from "$lib/state/essays.svelte";
   import { library } from "$lib/state/library.svelte";
   import { missingCitedRefs } from "$lib/model/reconcile";
@@ -34,6 +36,7 @@
   // Merge is resumed or rolled back before anything becomes interactive.
   let recoveryNotice = $state<"resumed" | "rolled-back" | null>(null);
   let recoveryRequired = $state<RecoveryOutcome[] | null>(null);
+  let recoveryInProgress = $state(false);
 
   async function runRecoveryPhase(): Promise<void> {
     if (
@@ -41,56 +44,20 @@
     ) {
       return; // browser dev: no app data to recover
     }
-    const { runStartupRecovery } = await import("$lib/persist/portableRuntime");
-    const outcomes = await runStartupRecovery();
-    const required = outcomes.filter((o) => o.kind === "recovery-required");
-    if (required.length > 0) {
-      recoveryRequired = outcomes;
-      return;
-    }
-    if (outcomes.some((o) => o.kind === "resumed")) {
-      recoveryNotice = "resumed";
-    } else if (outcomes.some((o) => o.kind === "rolled-back")) {
-      recoveryNotice = "rolled-back";
-    }
-  }
-
-  async function retryRecovery(): Promise<void> {
-    recoveryRequired = null;
+    recoveryInProgress = true;
     try {
-      await runRecoveryPhase();
-    } catch (err) {
-      console.error("No se pudo reintentar la recuperación:", err);
-      recoveryRequired = [{
-        kind: "recovery-required",
-        transactionId: "(startup)",
-        reason: err instanceof Error ? err.message : String(err),
-      }];
-      return;
-    }
-    if (recoveryRequired !== null) return;
-    await finishStartup(true);
-  }
-
-  async function exportDiagnostic(): Promise<void> {
-    try {
-      const [{ buildRecoveryDiagnostic }, { save }, { writeExternalText }] =
-        await Promise.all([
-          import("$lib/persist/portableRuntime"),
-          import("@tauri-apps/plugin-dialog"),
-          import("$lib/persist/appDataFs"),
-        ]);
-      const destination = await save({
-        defaultPath: "tesina-recovery-diagnostic.json",
-        filters: [{ name: "JSON", extensions: ["json"] }],
-      });
-      if (destination === null) return;
-      await writeExternalText(
-        destination,
-        await buildRecoveryDiagnostic(recoveryRequired ?? []),
+      const { runStartupRecovery } = await import(
+        "$lib/persist/portableRuntime"
       );
-    } catch (err) {
-      console.error("No se pudo exportar el diagnóstico:", err);
+      const outcomes = await runStartupRecovery();
+      const required = outcomes.filter((o) => o.kind === "recovery-required");
+      if (required.length > 0) {
+        recoveryRequired = outcomes;
+        return;
+      }
+      recoveryNotice = recoveryNoticeFromOutcomes(outcomes);
+    } finally {
+      recoveryInProgress = false;
     }
   }
 
@@ -128,6 +95,14 @@
     // keeps re-checking while the app stays open (T3 Code cadence).
     void updater.check();
     stopUpdateChecks ??= updater.startPeriodicChecks();
+  }
+
+  async function finishRecoveredStartup(
+    outcomes: RecoveryOutcome[],
+  ): Promise<void> {
+    await finishStartup(true);
+    recoveryNotice = recoveryNoticeFromOutcomes(outcomes);
+    recoveryRequired = null;
   }
 
   onMount(async () => {
@@ -226,25 +201,22 @@
   >
     <div class="recovery-card">
       <h1 id="recovery-title">{m.recovery_required_title()}</h1>
-      <p id="recovery-body">{m.recovery_required_body()}</p>
-      <p>{m.recovery_quit_hint()}</p>
-      <div class="recovery-actions">
-        <button class="btn btn-secondary" onclick={exportDiagnostic}>
-          {m.recovery_export_diagnostic()}
-        </button>
-        <button
-          class="btn btn-primary"
-          onclick={() => {
-            void retryRecovery();
-          }}
-        >
-          {m.recovery_retry()}
-        </button>
+      <div id="recovery-body">
+        <RecoveryRequiredActions
+          outcomes={recoveryRequired}
+          onRecovered={finishRecoveredStartup}
+        />
       </div>
     </div>
   </div>
 {:else if !booted}
-  <div class="boot">Cargando Tesina…</div>
+  <div
+    class="boot"
+    role={recoveryInProgress ? "status" : undefined}
+    aria-live={recoveryInProgress ? "polite" : undefined}
+  >
+    {recoveryInProgress ? m.recovery_in_progress() : m.home_loading()}
+  </div>
 {:else}
   {#if recoveryNotice !== null}
     <p class="recovery-notice" role="status" aria-live="polite">
@@ -312,12 +284,6 @@
   .recovery-card h1 {
     font-size: var(--t-h2);
     margin: 0;
-  }
-
-  .recovery-actions {
-    display: flex;
-    gap: var(--sp-3);
-    justify-content: flex-end;
   }
 
   .recovery-notice {

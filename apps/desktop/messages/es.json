@@ -506,6 +506,8 @@
   "err_unknown": "Error inesperado ({code}).",
   "recovery_resumed": "Una combinación de biblioteca interrumpida se completó sin problemas.",
   "recovery_rolled_back": "Una combinación de biblioteca interrumpida se deshizo. Tu biblioteca está exactamente como antes de la combinación.",
+  "recovery_complete": "La recuperación terminó. Tu biblioteca está segura y lista para usarse.",
+  "recovery_in_progress": "Recuperando tu biblioteca de forma segura…",
   "recovery_required_title": "Tesina necesita tu atención",
   "recovery_required_body": "Una combinación anterior se interrumpió y no se pudo reparar automáticamente. Tus ensayos están intactos y toda la evidencia de recuperación se conservó. Puedes reintentar la recuperación o exportar un archivo de diagnóstico seguro (solo contiene códigos técnicos, nunca tu escritura) para pedir ayuda.",
   "recovery_retry": "Reintentar recuperación",

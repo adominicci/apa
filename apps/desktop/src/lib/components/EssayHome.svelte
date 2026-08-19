@@ -48,8 +48,8 @@
     backupStatusNonce += 1;
   }
 
-  function refreshAfterRestore() {
-    void Promise.all([library.reload(), essays.loadIndex()]);
+  async function refreshAfterRestore(): Promise<void> {
+    await Promise.all([library.reload(), essays.loadIndex()]);
   }
 
   const filtered = $derived.by(() => {

@@ -598,9 +598,7 @@
   <LibraryImportModal
     loadPreview={pickAndPreviewImport}
     apply={applyImportWithRuntime}
-    onDone={() => {
-      void refreshAfterImport();
-    }}
+    onDone={refreshAfterImport}
     onClose={() => (importOpen = false)}
   />
 {/if}

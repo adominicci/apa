@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmptyEssay, type Essay, summarize } from "$lib/model/essay";
+import { APA_FONT_ORDER } from "$lib/model/fonts";
 import { LatestLaunch, type LaunchValue } from "$lib/state/latestLaunch";
 
 const persistence = vi.hoisted(() => {
@@ -79,6 +80,20 @@ beforeEach(() => {
 });
 
 describe("essay index recovery", () => {
+  it("indexes papers using every supported APA font choice", async () => {
+    APA_FONT_ORDER.forEach((font, index) => {
+      const essay = createEmptyEssay("en", "2026-08-18T08:00:00.000Z");
+      essay.id = `supported-font-${index}`;
+      essay.settings.font = font;
+      persistence.files.set(`essays/${essay.id}.json`, essay);
+    });
+
+    await essays.loadIndex();
+
+    expect(essays.summaries).toHaveLength(APA_FONT_ORDER.length);
+    expect(essays.unreadableFiles).toEqual([]);
+  });
+
   it("keeps every readable paper visible when one file cannot be read", async () => {
     const first = createEmptyEssay("en", "2026-08-18T08:00:00.000Z");
     first.id = "readable-first";

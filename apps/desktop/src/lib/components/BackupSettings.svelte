@@ -45,7 +45,7 @@
     /** Runs the five-step wizard (setup, re-enable, or change folder). */
     onRunWizard: () => void;
     /** Called after a successful restore merge so home/library reload. */
-    onRestored: () => void;
+    onRestored: () => void | Promise<void>;
     /** Called when native backup configuration changes. */
     onBackupChanged?: () => void;
     onClose: () => void;

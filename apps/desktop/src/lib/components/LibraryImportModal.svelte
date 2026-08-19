@@ -1,11 +1,19 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Modal from "$lib/components/Modal.svelte";
+  import RecoveryRequiredActions, {
+    type RecoveryActionDeps,
+  } from "$lib/components/RecoveryRequiredActions.svelte";
   import { m } from "$lib/paraglide/messages";
   import type {
     ImportApplyResult,
     ImportPreviewResult,
   } from "$lib/persist/importFlow";
+  import type { RecoveryOutcome } from "$lib/persist/importJournal";
+  import {
+    type RecoveryNotice,
+    recoveryNoticeFromOutcomes,
+  } from "./recoveryNotice";
   import {
     archiveErrorCode,
     describeArchiveError,
@@ -25,21 +33,29 @@
     /** Shown above the confirm button on the Restore path. */
     restoreMode?: boolean;
     /** Called after a successful merge so home/library state reloads. */
-    onDone: () => void;
+    onDone: () => void | Promise<void>;
     onClose: () => void;
+    /** Stable action seam for the fail-closed recovery surface. */
+    recoveryActions?: RecoveryActionDeps;
   }
 
-  let { loadPreview, apply, restoreMode = false, onDone, onClose }: Props =
-    $props();
+  let {
+    loadPreview,
+    apply,
+    restoreMode = false,
+    onDone,
+    onClose,
+    recoveryActions,
+  }: Props = $props();
 
   type Phase =
     | { kind: "validating" }
     | { kind: "invalid"; message: string }
     | { kind: "preview"; preview: ImportPreviewResult; replanned: boolean }
     | { kind: "applying" }
-    | { kind: "success" }
+    | { kind: "success"; recovery?: RecoveryNotice }
     | { kind: "failure"; message: string }
-    | { kind: "recovery-required"; message: string };
+    | { kind: "recovery-required"; outcomes: RecoveryOutcome[] };
 
   let phase = $state<Phase>({ kind: "validating" });
   const busy = $derived(
@@ -72,16 +88,30 @@
         phase = { kind: "preview", preview: result.next, replanned: true };
         return;
       }
+      await onDone();
       phase = { kind: "success" };
-      onDone();
     } catch (error) {
-      phase = {
-        kind: archiveErrorCode(error) === "import/recovery-required"
-          ? "recovery-required"
-          : "failure",
-        message: describeArchiveError(error),
-      };
+      if (archiveErrorCode(error) === "import/recovery-required") {
+        phase = {
+          kind: "recovery-required",
+          outcomes: [{
+            kind: "recovery-required",
+            transactionId: "(current-import)",
+            reason: "import/recovery-required",
+          }],
+        };
+      } else {
+        phase = { kind: "failure", message: describeArchiveError(error) };
+      }
     }
+  }
+
+  async function completeRecovery(outcomes: RecoveryOutcome[]): Promise<void> {
+    await onDone();
+    phase = {
+      kind: "success",
+      recovery: recoveryNoticeFromOutcomes(outcomes),
+    };
   }
 
   function close(): void {
@@ -150,9 +180,24 @@
     {:else if phase.kind === "applying"}
       <p role="status">{m.imp_applying()}</p>
     {:else if phase.kind === "success"}
-      <p role="status">{m.imp_success()}</p>
-    {:else if phase.kind === "failure" || phase.kind === "recovery-required"}
+      <p role="status">
+        {phase.recovery === null
+          ? m.recovery_complete()
+          : phase.recovery === "resumed"
+          ? m.recovery_resumed()
+          : phase.recovery === "rolled-back"
+          ? m.recovery_rolled_back()
+          : m.imp_success()}
+      </p>
+    {:else if phase.kind === "failure"}
       <p role="alert">{m.imp_failed({ reason: phase.message })}</p>
+    {:else if phase.kind === "recovery-required"}
+      <h3>{m.recovery_required_title()}</h3>
+      <RecoveryRequiredActions
+        outcomes={phase.outcomes}
+        onRecovered={completeRecovery}
+        actions={recoveryActions}
+      />
     {/if}
   </div>
 

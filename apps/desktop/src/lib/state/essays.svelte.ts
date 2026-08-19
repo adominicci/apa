@@ -9,6 +9,7 @@ import {
 } from "$lib/model/essay";
 import type { DocLocale } from "@tesina/engine";
 import { collectCitedRefIds } from "$lib/editor/citedRefs";
+import { isFontChoice } from "$lib/model/fonts";
 import {
   fileExists,
   listJsonFiles,
@@ -22,16 +23,6 @@ const LEGACY_DRAFT = "essays/draft.json";
 function essayPath(id: string): string {
   return `essays/${id}.json`;
 }
-
-const FONT_CHOICES = new Set([
-  "times-new-roman-12",
-  "georgia-11",
-  "computer-modern-10",
-  "aptos-12",
-  "calibri-11",
-  "arial-11",
-  "lucida-sans-unicode-10",
-]);
 
 function isIndexableEssay(
   value: unknown,
@@ -76,7 +67,7 @@ function isIndexableEssay(
       essay.settings.documentLanguage === "es") &&
     (essay.settings.variant === "student" ||
       essay.settings.variant === "professional") &&
-    FONT_CHOICES.has(String(essay.settings.font)) &&
+    isFontChoice(essay.settings.font) &&
     (essay.settings.paperSize === "us-letter" ||
       essay.settings.paperSize === "a4") &&
     typeof essay.settings.includeUncitedReferences === "boolean" &&

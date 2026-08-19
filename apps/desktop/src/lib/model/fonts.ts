@@ -4,10 +4,10 @@ import type { FontChoice } from "$lib/model/essay";
  * The seven fonts APA 7 accepts, per
  * https://apastyle.apa.org/style-grammar-guidelines/paper-format/font — three
  * serif and four sans serif, each at its prescribed point size. This map is
- * the single source of truth for on-screen (editor) and preview rendering; the
- * DOCX side keeps its own parallel table in `@tesina/docx-export` (styles.ts)
- * because that package must not depend on the app. Keep the two in sync — any
- * font added here must be added there in the same commit.
+ * the single source of truth for app rendering and persisted-data validation;
+ * the DOCX side keeps its own parallel table in `@tesina/docx-export`
+ * (styles.ts) because that package must not depend on the app. Keep the two in
+ * sync — any font added here must be added there in the same commit.
  */
 export interface FontDescriptor {
   /** Human label (a proper noun — never localized). */
@@ -65,6 +65,11 @@ export const APA_FONTS: Record<FontChoice, FontDescriptor> = {
     kind: "sans",
   },
 };
+
+/** Returns whether an untrusted value names a supported APA font choice. */
+export function isFontChoice(value: unknown): value is FontChoice {
+  return typeof value === "string" && Object.hasOwn(APA_FONTS, value);
+}
 
 /** Picker order: serif family first, then sans serif. */
 export const APA_FONT_ORDER: FontChoice[] = [
