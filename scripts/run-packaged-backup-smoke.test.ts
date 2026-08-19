@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   appDirectoriesForPlatform,
@@ -202,12 +202,40 @@ describe("packaged backup smoke runner helpers", () => {
       options: {
         timeoutMs: 15 * 60_000,
         env: {
-          PATH: "/stale-deno",
+          PATH: `${dirname(Deno.execPath())}:/stale-deno`,
           CARGO_TARGET_DIR: "/owned/cargo-target",
           VITE_TESINA_PACKAGED_BACKUP_SMOKE: "1",
         },
       },
     }]);
+  });
+
+  it("normalizes the Windows Path key before the nested packaged build", async () => {
+    const calls: Array<{
+      args: string[];
+      options: { env?: Record<string, string | undefined> };
+    }> = [];
+    const execute: Executor = (_command, args, options) => {
+      calls.push({ args, options });
+      return Promise.resolve({ code: 0, stdout: "", stderr: "" });
+    };
+
+    await executePackagedBackupBuild(
+      "win32",
+      "C:\\owned\\cargo-target",
+      "C:\\owned\\tauri-smoke.json",
+      { Path: "C:\\stale-deno", KEEP: "yes" },
+      execute,
+    );
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.args).toContain("nsis");
+    expect(calls[0]?.options.env).toEqual({
+      KEEP: "yes",
+      PATH: `${dirname(Deno.execPath())};C:\\stale-deno`,
+      CARGO_TARGET_DIR: "C:\\owned\\cargo-target",
+      VITE_TESINA_PACKAGED_BACKUP_SMOKE: "1",
+    });
   });
 
   it("launches phases with inherited stderr instead of a retained pipe", async () => {

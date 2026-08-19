@@ -635,6 +635,16 @@ export async function executePackagedBackupBuild(
   environment: Record<string, string | undefined>,
   execute: typeof executeBoundedProcess = executeBoundedProcess,
 ): Promise<void> {
+  const inheritedPath = Object.entries(environment).find(([key]) =>
+    key.toLowerCase() === "path"
+  )?.[1];
+  const environmentWithoutPath = Object.fromEntries(
+    Object.entries(environment).filter(([key]) => key.toLowerCase() !== "path"),
+  );
+  const denoDirectory = dirname(Deno.execPath());
+  const buildPath = inheritedPath
+    ? `${denoDirectory}${platform === "win32" ? ";" : ":"}${inheritedPath}`
+    : denoDirectory;
   const build = await execute(
     Deno.execPath(),
     [
@@ -654,7 +664,8 @@ export async function executePackagedBackupBuild(
     {
       timeoutMs: BUILD_TIMEOUT_MS,
       env: {
-        ...environment,
+        ...environmentWithoutPath,
+        PATH: buildPath,
         CARGO_TARGET_DIR: cargoTarget,
         VITE_TESINA_PACKAGED_BACKUP_SMOKE: "1",
       },
