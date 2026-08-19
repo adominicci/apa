@@ -53,7 +53,7 @@ jobs:
           deno-version: v2.x
 
       - name: Install dependencies
-        run: deno install
+        run: deno install --frozen
 
       - name: Svelte check
         run: deno task check
@@ -108,7 +108,7 @@ jobs:
         working-directory: apps/desktop/src-tauri
 
       - name: Install dependencies
-        run: deno install
+        run: deno install --frozen
 
       - name: Svelte check
         run: deno task check

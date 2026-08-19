@@ -48,7 +48,7 @@ jobs:
           workspaces: apps/desktop/src-tauri
 
       - name: Install dependencies
-        run: deno install
+        run: deno install --frozen
 
       - name: Compile installer bundles
         id: tauri-build

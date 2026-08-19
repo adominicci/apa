@@ -100,6 +100,27 @@ describe("release workflow contract", () => {
     }
   });
 
+  it("installs JavaScript dependencies from the committed lockfile", () => {
+    for (const workflow of workflowFiles) {
+      const installCommands = workflowSteps(
+        parseWorkflowYaml(workflow.source),
+      ).flatMap((step) => {
+        const run = step.run;
+        if (typeof run !== "string") return [];
+        return run
+          .split("\n")
+          .map((command) => command.trim())
+          .filter((command) => command.startsWith("deno install"));
+      });
+
+      for (const command of installCommands) {
+        expect(command, `${workflow.name}: ${command}`).toBe(
+          "deno install --frozen",
+        );
+      }
+    }
+  });
+
   it("publishes only one universal macOS app and DMG build", () => {
     expect(releaseWorkflow.match(/runs-on: macos-latest/g)).toHaveLength(1);
     expect(releaseWorkflow).toContain("--target universal-apple-darwin");
