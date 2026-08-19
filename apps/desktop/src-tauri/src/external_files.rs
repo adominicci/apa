@@ -3228,27 +3228,33 @@ mod tests {
 
     #[test]
     fn save_picker_command_definitions_are_mutually_exclusive() {
-        let source = include_str!("external_files.rs");
-        let production = source.split("\n#[cfg(test)]\nmod tests {").next().unwrap();
-        let marker = "pub async fn external_pick_save_destination(";
-        let definitions = production.match_indices(marker).collect::<Vec<_>>();
-        assert_eq!(
-            definitions.len(),
-            3,
-            "expected dialog, portable, and backup variants"
-        );
+        let assert_definitions = |source: &str| {
+            let source = source.replace("\r\n", "\n");
+            let production = source.split("\n#[cfg(test)]\nmod tests {").next().unwrap();
+            let marker = "pub async fn external_pick_save_destination(";
+            let definitions = production.match_indices(marker).collect::<Vec<_>>();
+            assert_eq!(
+                definitions.len(),
+                3,
+                "expected dialog, portable, and backup variants"
+            );
 
-        let cfg_window = |offset: usize| &production[offset.saturating_sub(180)..offset];
-        let dialog = cfg_window(definitions[0].0);
-        assert!(dialog.contains("not(feature = \"packaged-portable-smoke\")"));
+            let cfg_window = |offset: usize| &production[offset.saturating_sub(180)..offset];
+            let dialog = cfg_window(definitions[0].0);
+            assert!(dialog.contains("not(feature = \"packaged-portable-smoke\")"));
 
-        let portable = cfg_window(definitions[1].0);
-        assert!(portable.contains("feature = \"packaged-portable-smoke\""));
-        assert!(portable.contains("not(feature = \"packaged-backup-smoke\")"));
+            let portable = cfg_window(definitions[1].0);
+            assert!(portable.contains("feature = \"packaged-portable-smoke\""));
+            assert!(portable.contains("not(feature = \"packaged-backup-smoke\")"));
 
-        let backup = cfg_window(definitions[2].0);
-        assert!(backup.contains("feature = \"packaged-backup-smoke\""));
-        assert!(!backup.contains("not(feature = \"packaged-backup-smoke\")"));
+            let backup = cfg_window(definitions[2].0);
+            assert!(backup.contains("feature = \"packaged-backup-smoke\""));
+            assert!(!backup.contains("not(feature = \"packaged-backup-smoke\")"));
+        };
+
+        let source = include_str!("external_files.rs").replace("\r\n", "\n");
+        assert_definitions(&source);
+        assert_definitions(&source.replace('\n', "\r\n"));
     }
 
     #[test]
