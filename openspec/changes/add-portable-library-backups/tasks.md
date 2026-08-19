@@ -403,8 +403,8 @@
       verified slice in English. Update PR CI to enforce root `deno fmt --check`
       and `deno lint`, not only package paths.
 - [ ] 12.6 Follow repository PR policy: synchronize protected branches without
-      closing them, target `dev` when it exists, request `@greptile review` on
-      the PR commit comment, address only validated feedback, and merge only
+      closing them, target `dev` when it exists, request `@coderabbitai review`
+      in a PR comment, address only validated feedback, and merge only
       with required checks green.
 - [ ] 12.7 After the change reaches `main`, synchronize local protected
       branches, tag the exact main commit with the matching `v` version, let the
