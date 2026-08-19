@@ -240,7 +240,7 @@
       metadata and archives unowned and untouched. Normal v0.1.17 restarts may
       restore only validated cache authority; missing, malformed, or
       mismatched evidence must fail closed to reauthorization.
-- [ ] 8.2 Add native negative and restart proof on macOS and Windows: the active
+- [x] 8.2 Add native negative and restart proof on macOS and Windows: the active
       folder supports exclusive child creation, reopen, list, and hash-checked
       removal after process restart, while safe replacement remains limited to
       manual dialog-selected exports. Its parent/sibling, an old backup folder,
@@ -353,7 +353,7 @@
       test backups, verify only seven recognized backups remain, and restore
       through Merge; record paths and screenshots without exposing essay
       content.
-- [ ] 11.5 Repeat native folder selection, child access, process restart without
+- [x] 11.5 Repeat native folder selection, child access, process restart without
       reprompt, negative old/transient-path checks, archive round-trip,
       retention, and restore on a packaged Windows app or native E2E job that
       actually launches the packaged app. Compilation, installer creation, and
