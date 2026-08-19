@@ -628,6 +628,43 @@ async function gitHead(): Promise<string> {
   return head;
 }
 
+export async function executePackagedBackupBuild(
+  platform: typeof process.platform,
+  cargoTarget: string,
+  generatedConfig: string,
+  environment: Record<string, string | undefined>,
+  execute: typeof executeBoundedProcess = executeBoundedProcess,
+): Promise<void> {
+  const build = await execute(
+    Deno.execPath(),
+    [
+      "task",
+      "--cwd",
+      "apps/desktop",
+      "tauri",
+      "build",
+      "--features",
+      "packaged-backup-smoke",
+      "--bundles",
+      platform === "darwin" ? "app" : "nsis",
+      "--config",
+      generatedConfig,
+      "--ci",
+    ],
+    {
+      timeoutMs: BUILD_TIMEOUT_MS,
+      env: {
+        ...environment,
+        CARGO_TARGET_DIR: cargoTarget,
+        VITE_TESINA_PACKAGED_BACKUP_SMOKE: "1",
+      },
+    },
+  );
+  if (build.code !== 0) {
+    throw new Error(`packaged backup smoke build failed: ${build.stderr}`);
+  }
+}
+
 async function run(): Promise<void> {
   if (process.platform !== "darwin" && process.platform !== "win32") {
     throw new Error("Packaged backup smoke can run only on macOS or Windows");
@@ -717,34 +754,12 @@ async function run(): Promise<void> {
       smokeConfig.bundle.publisher = WINDOWS_NSIS_PUBLISHER;
       const generatedConfig = join(ownedRoot, "tauri.backup-smoke.conf.json");
       await Deno.writeTextFile(generatedConfig, JSON.stringify(smokeConfig));
-      const build = await executeBoundedProcess(
-        "deno",
-        [
-          "task",
-          "--cwd",
-          "apps/desktop",
-          "tauri",
-          "build",
-          "--features",
-          "packaged-backup-smoke",
-          "--bundles",
-          process.platform === "darwin" ? "app" : "nsis",
-          "--config",
-          generatedConfig,
-          "--ci",
-        ],
-        {
-          timeoutMs: BUILD_TIMEOUT_MS,
-          env: {
-            ...process.env,
-            CARGO_TARGET_DIR: cargoTarget,
-            VITE_TESINA_PACKAGED_BACKUP_SMOKE: "1",
-          },
-        },
+      await executePackagedBackupBuild(
+        process.platform,
+        cargoTarget,
+        generatedConfig,
+        process.env,
       );
-      if (build.code !== 0) {
-        throw new Error(`packaged backup smoke build failed: ${build.stderr}`);
-      }
       const artifacts = await resolvePackageArtifacts(
         process.platform,
         cargoTarget,

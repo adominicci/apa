@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   appDirectoriesForPlatform,
   cleanupMarkedDirectories,
+  executePackagedBackupBuild,
   launchPhase,
   MARKER_FILE_NAME,
   phaseEnvironment,
@@ -161,6 +162,52 @@ describe("packaged backup smoke runner helpers", () => {
     } finally {
       await Deno.remove(root, { recursive: true });
     }
+  });
+
+  it("uses the current Deno executable for the nested packaged build", async () => {
+    const calls: Array<{
+      command: string;
+      args: string[];
+      options: { timeoutMs: number; env?: Record<string, string | undefined> };
+    }> = [];
+    const execute: Executor = (command, args, options) => {
+      calls.push({ command, args, options });
+      return Promise.resolve({ code: 0, stdout: "", stderr: "" });
+    };
+
+    await executePackagedBackupBuild(
+      "darwin",
+      "/owned/cargo-target",
+      "/owned/tauri-smoke.json",
+      { PATH: "/stale-deno" },
+      execute,
+    );
+
+    expect(calls).toEqual([{
+      command: Deno.execPath(),
+      args: [
+        "task",
+        "--cwd",
+        "apps/desktop",
+        "tauri",
+        "build",
+        "--features",
+        "packaged-backup-smoke",
+        "--bundles",
+        "app",
+        "--config",
+        "/owned/tauri-smoke.json",
+        "--ci",
+      ],
+      options: {
+        timeoutMs: 15 * 60_000,
+        env: {
+          PATH: "/stale-deno",
+          CARGO_TARGET_DIR: "/owned/cargo-target",
+          VITE_TESINA_PACKAGED_BACKUP_SMOKE: "1",
+        },
+      },
+    }]);
   });
 
   it("launches phases with inherited stderr instead of a retained pipe", async () => {
