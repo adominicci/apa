@@ -23,9 +23,12 @@ use std::fs;
 use std::fs::OpenOptions;
 use std::io::{ErrorKind, Read, Seek, Write};
 use std::path::{Path, PathBuf};
+#[cfg(feature = "packaged-backup-smoke")]
+use std::sync::atomic::AtomicBool;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+#[cfg(not(feature = "packaged-backup-smoke"))]
 use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
 
@@ -52,6 +55,10 @@ const MAX_ARCHIVE_BYTES: usize = 128 * 1024 * 1024;
 const MAX_ACTIVE_ARCHIVE_COUNT: usize = 16;
 // Setup validation needs only one pending test archive at a time.
 const MAX_PENDING_TEST_ARCHIVE_COUNT: usize = 1;
+#[cfg(feature = "packaged-backup-smoke")]
+const PACKAGED_BACKUP_SMOKE_SELECTION_ENV: &str = "TESINA_PACKAGED_BACKUP_SMOKE_SELECTION";
+#[cfg(feature = "packaged-backup-smoke")]
+static PACKAGED_BACKUP_SMOKE_SELECTION_CONSUMED: AtomicBool = AtomicBool::new(false);
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -3788,6 +3795,46 @@ where
         .map(Some)
 }
 
+#[cfg(feature = "packaged-backup-smoke")]
+fn select_packaged_backup_smoke_folder(
+    consumed: &AtomicBool,
+    selection: Option<std::ffi::OsString>,
+) -> Result<Option<PathBuf>, BackupError> {
+    consumed
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .map_err(|_| {
+            BackupError::new(
+                BackupErrorCode::ResourceLimit,
+                "the packaged backup smoke selection was already consumed",
+            )
+        })?;
+    let selection = selection.ok_or_else(|| {
+        BackupError::new(
+            BackupErrorCode::Unauthorized,
+            "the packaged backup smoke selection is not configured",
+        )
+    })?;
+    if selection.to_str().is_none() {
+        return Err(BackupError::new(
+            BackupErrorCode::Unauthorized,
+            "the packaged backup smoke selection is not valid Unicode",
+        ));
+    }
+    let selection = PathBuf::from(selection);
+    if !selection.is_absolute() {
+        return Err(BackupError::new(
+            BackupErrorCode::Unauthorized,
+            "the packaged backup smoke selection must be an absolute path",
+        ));
+    }
+    Ok(Some(selection))
+}
+
+#[cfg(feature = "packaged-backup-smoke")]
+pub fn packaged_backup_smoke_picker_invocations() -> usize {
+    usize::from(PACKAGED_BACKUP_SMOKE_SELECTION_CONSUMED.load(Ordering::Acquire))
+}
+
 #[derive(Clone, Copy)]
 enum ArchiveWriteTarget {
     PendingTest,
@@ -3845,6 +3892,7 @@ async fn run_archive_write_request(
     .await
 }
 
+#[cfg(not(feature = "packaged-backup-smoke"))]
 #[tauri::command]
 pub async fn backup_pick_and_begin_configuration(
     window: tauri::Window,
@@ -3865,6 +3913,22 @@ pub async fn backup_pick_and_begin_configuration(
                 })
             })
             .transpose()
+    })
+    .await
+}
+
+#[cfg(feature = "packaged-backup-smoke")]
+#[tauri::command]
+pub async fn backup_pick_and_begin_configuration(
+    _window: tauri::Window,
+    state: tauri::State<'_, BackupDirectoryCore>,
+) -> Result<Option<PendingConfiguration>, BackupError> {
+    let core = state.inner().clone();
+    run_pick_and_begin_configuration_with_timeout(SELECTED_FOLDER_TIMEOUT, core, move || {
+        select_packaged_backup_smoke_folder(
+            &PACKAGED_BACKUP_SMOKE_SELECTION_CONSUMED,
+            std::env::var_os(PACKAGED_BACKUP_SMOKE_SELECTION_ENV),
+        )
     })
     .await
 }
@@ -6727,5 +6791,91 @@ mod tests {
         // 2026-08-08 19:42:00 UTC
         assert_eq!(rfc3339_from_unix(1_786_218_120), "2026-08-08T19:42:00Z");
         assert_eq!(rfc3339_from_unix(951_827_696), "2000-02-29T12:34:56Z");
+    }
+
+    #[cfg(feature = "packaged-backup-smoke")]
+    #[test]
+    fn packaged_backup_smoke_selection_preserves_the_exact_absolute_path() {
+        let root = TempDir::new().unwrap();
+        let selected = root.path().join("Selected Backups");
+        fs::create_dir(&selected).unwrap();
+
+        let result = select_packaged_backup_smoke_folder(
+            &std::sync::atomic::AtomicBool::new(false),
+            Some(selected.clone().into_os_string()),
+        )
+        .unwrap();
+
+        assert_eq!(result, Some(selected));
+    }
+
+    #[cfg(feature = "packaged-backup-smoke")]
+    #[test]
+    fn packaged_backup_smoke_selection_is_one_shot() {
+        let root = TempDir::new().unwrap();
+        let consumed = std::sync::atomic::AtomicBool::new(false);
+        select_packaged_backup_smoke_folder(
+            &consumed,
+            Some(root.path().join("Selected").into_os_string()),
+        )
+        .unwrap();
+
+        let repeated = select_packaged_backup_smoke_folder(
+            &consumed,
+            Some(root.path().join("Other").into_os_string()),
+        )
+        .unwrap_err();
+
+        assert_eq!(repeated.code, BackupErrorCode::ResourceLimit);
+    }
+
+    #[cfg(feature = "packaged-backup-smoke")]
+    #[test]
+    fn packaged_backup_smoke_selection_rejects_relative_paths() {
+        let error = select_packaged_backup_smoke_folder(
+            &std::sync::atomic::AtomicBool::new(false),
+            Some(std::ffi::OsString::from("relative")),
+        )
+        .unwrap_err();
+
+        assert_eq!(error.code, BackupErrorCode::Unauthorized);
+    }
+
+    #[cfg(feature = "packaged-backup-smoke")]
+    #[test]
+    fn packaged_backup_smoke_selection_missing_fails_closed() {
+        let error =
+            select_packaged_backup_smoke_folder(&std::sync::atomic::AtomicBool::new(false), None)
+                .unwrap_err();
+
+        assert_eq!(error.code, BackupErrorCode::Unauthorized);
+    }
+
+    #[cfg(all(feature = "packaged-backup-smoke", unix))]
+    #[test]
+    fn packaged_backup_smoke_selection_non_unicode_fails_closed() {
+        use std::os::unix::ffi::OsStringExt;
+
+        let error = select_packaged_backup_smoke_folder(
+            &std::sync::atomic::AtomicBool::new(false),
+            Some(std::ffi::OsString::from_vec(vec![b'/', 0xff])),
+        )
+        .unwrap_err();
+
+        assert_eq!(error.code, BackupErrorCode::Unauthorized);
+    }
+
+    #[cfg(all(feature = "packaged-backup-smoke", windows))]
+    #[test]
+    fn packaged_backup_smoke_selection_non_unicode_fails_closed() {
+        use std::os::windows::ffi::OsStringExt;
+
+        let error = select_packaged_backup_smoke_folder(
+            &std::sync::atomic::AtomicBool::new(false),
+            Some(std::ffi::OsString::from_wide(&[0xd800])),
+        )
+        .unwrap_err();
+
+        assert_eq!(error.code, BackupErrorCode::Unauthorized);
     }
 }

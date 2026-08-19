@@ -30,14 +30,26 @@ describe("native pagination host runtime identity", () => {
       readFile(resolve(proofDir, "runNativeProof.ts"), "utf8"),
     ]);
 
-    expect(workflow).toContain(
-      "TESINA_PROOF_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}",
+    const jobs = workflow.split(
+      /(?=^ {2}[a-z0-9][a-z0-9-]*:\r?$)/m,
     );
-    expect(
-      workflow.match(
-        /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/g,
-      ),
-    ).toHaveLength(2);
+
+    for (
+      const jobName of [
+        "pagination-native-macos",
+        "pagination-native-windows",
+      ]
+    ) {
+      const job = jobs.find((block) => block.startsWith(`  ${jobName}:`));
+
+      expect(job, `${jobName} workflow job`).toBeDefined();
+      expect(job).toContain(
+        "ref: ${{ github.event.pull_request.head.sha || github.sha }}",
+      );
+      expect(job).toContain(
+        "TESINA_PROOF_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}",
+      );
+    }
     expect(runner).toContain(
       'process.env["TESINA_PROOF_COMMIT_SHA"] ??',
     );

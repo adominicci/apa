@@ -571,7 +571,10 @@ impl ExternalSaveAuthorizations {
     }
 }
 
-#[cfg(feature = "packaged-portable-smoke")]
+#[cfg(all(
+    feature = "packaged-portable-smoke",
+    not(feature = "packaged-backup-smoke")
+))]
 fn register_packaged_smoke_destination(
     authorizations: &ExternalSaveAuthorizations,
     consumed: &AtomicBool,
@@ -591,6 +594,22 @@ fn register_packaged_smoke_destination(
         ));
     }
     authorizations.register_selected_destination(&destination)
+}
+
+#[cfg(feature = "packaged-backup-smoke")]
+fn register_packaged_backup_smoke_destination(
+    authorizations: &ExternalSaveAuthorizations,
+    consumed: &AtomicBool,
+    destination: &str,
+) -> Result<ExternalSaveSelection, ExternalFileError> {
+    consumed
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .map_err(|_| {
+            ExternalFileError::unauthorized(
+                "the packaged backup smoke destination was already consumed",
+            )
+        })?;
+    authorizations.register_selected_destination(Path::new(destination))
 }
 
 #[derive(Debug, Serialize)]
@@ -2073,7 +2092,10 @@ pub async fn external_pick_save_destination(
     state.register_selected_destination(&path).map(Some)
 }
 
-#[cfg(feature = "packaged-portable-smoke")]
+#[cfg(all(
+    feature = "packaged-portable-smoke",
+    not(feature = "packaged-backup-smoke")
+))]
 #[tauri::command]
 pub async fn external_pick_save_destination(
     _window: tauri::Window,
@@ -2088,6 +2110,27 @@ pub async fn external_pick_save_destination(
         })?;
     register_packaged_smoke_destination(&state, &PACKAGED_SMOKE_DESTINATION_CONSUMED, &destination)
         .map(Some)
+}
+
+#[cfg(feature = "packaged-backup-smoke")]
+#[tauri::command]
+pub async fn external_pick_save_destination(
+    _window: tauri::Window,
+    state: tauri::State<'_, ExternalSaveAuthorizations>,
+    _suggested_name: String,
+) -> Result<Option<ExternalSaveSelection>, ExternalFileError> {
+    let destination =
+        std::env::var("TESINA_PACKAGED_PORTABLE_SMOKE_DESTINATION").map_err(|_| {
+            ExternalFileError::unauthorized(
+                "the packaged portable smoke destination is not configured",
+            )
+        })?;
+    register_packaged_backup_smoke_destination(
+        &state,
+        &PACKAGED_SMOKE_DESTINATION_CONSUMED,
+        &destination,
+    )
+    .map(Some)
 }
 
 #[tauri::command]
@@ -3077,7 +3120,10 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "packaged-portable-smoke")]
+    #[cfg(all(
+        feature = "packaged-portable-smoke",
+        not(feature = "packaged-backup-smoke")
+    ))]
     #[test]
     fn packaged_smoke_destination_is_absent_exact_and_one_shot() {
         let root = TempDir::new().unwrap();
@@ -3124,6 +3170,85 @@ mod tests {
         .unwrap_err();
         assert_eq!(error.code, "portable/path-not-authorized");
         assert_eq!(fs::read(occupied).unwrap(), b"unrelated");
+    }
+
+    #[cfg(feature = "packaged-backup-smoke")]
+    #[test]
+    fn packaged_backup_smoke_accepts_absent_and_occupied_exact_destinations_without_writing() {
+        let root = TempDir::new().unwrap();
+        let authorizations = ExternalSaveAuthorizations::default();
+
+        let absent = root.path().join("New Library.tesina");
+        let absent_selection = register_packaged_backup_smoke_destination(
+            &authorizations,
+            &AtomicBool::new(false),
+            absent.to_str().unwrap(),
+        )
+        .unwrap();
+        assert_eq!(absent_selection.path, absent.to_str().unwrap());
+        assert!(!absent.exists());
+
+        let occupied = root.path().join("Existing Library.tesina");
+        let original = b"existing packaged export";
+        fs::write(&occupied, original).unwrap();
+        let consumed = AtomicBool::new(false);
+        let occupied_selection = register_packaged_backup_smoke_destination(
+            &authorizations,
+            &consumed,
+            occupied.to_str().unwrap(),
+        )
+        .unwrap();
+        assert_eq!(occupied_selection.path, occupied.to_str().unwrap());
+        assert_eq!(fs::read(&occupied).unwrap(), original);
+        assert!(authorizations
+            .authorize_destination(&occupied_selection.authorization_token, &occupied)
+            .is_ok());
+
+        let repeated = register_packaged_backup_smoke_destination(
+            &authorizations,
+            &consumed,
+            occupied.to_str().unwrap(),
+        )
+        .unwrap_err();
+        assert_eq!(repeated.code, "portable/path-not-authorized");
+
+        for invalid in [
+            "relative.tesina".to_owned(),
+            root.path().join("Library.zip").display().to_string(),
+        ] {
+            let error = register_packaged_backup_smoke_destination(
+                &authorizations,
+                &AtomicBool::new(false),
+                &invalid,
+            )
+            .unwrap_err();
+            assert_eq!(error.code, "portable/path-not-authorized");
+        }
+    }
+
+    #[test]
+    fn save_picker_command_definitions_are_mutually_exclusive() {
+        let source = include_str!("external_files.rs");
+        let production = source.split("\n#[cfg(test)]\nmod tests {").next().unwrap();
+        let marker = "pub async fn external_pick_save_destination(";
+        let definitions = production.match_indices(marker).collect::<Vec<_>>();
+        assert_eq!(
+            definitions.len(),
+            3,
+            "expected dialog, portable, and backup variants"
+        );
+
+        let cfg_window = |offset: usize| &production[offset.saturating_sub(180)..offset];
+        let dialog = cfg_window(definitions[0].0);
+        assert!(dialog.contains("not(feature = \"packaged-portable-smoke\")"));
+
+        let portable = cfg_window(definitions[1].0);
+        assert!(portable.contains("feature = \"packaged-portable-smoke\""));
+        assert!(portable.contains("not(feature = \"packaged-backup-smoke\")"));
+
+        let backup = cfg_window(definitions[2].0);
+        assert!(backup.contains("feature = \"packaged-backup-smoke\""));
+        assert!(!backup.contains("not(feature = \"packaged-backup-smoke\")"));
     }
 
     #[test]

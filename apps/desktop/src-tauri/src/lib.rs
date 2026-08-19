@@ -1,5 +1,7 @@
 mod backup_directory;
 mod external_files;
+#[cfg(feature = "packaged-backup-smoke")]
+mod packaged_backup_smoke;
 // Public so the live proof example can drive the real command end to end.
 pub mod pdf_export;
 
@@ -45,6 +47,8 @@ pub fn run() {
                 app_cache_dir,
             )?);
             app.manage(external_files::ExternalSaveAuthorizations::default());
+            #[cfg(feature = "packaged-backup-smoke")]
+            app.manage(packaged_backup_smoke::PackagedBackupSmokeState::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -77,6 +81,12 @@ pub fn run() {
             external_files::external_rename_no_replace,
             external_files::external_remove_temp,
             external_files::external_remove_if_hash_matches,
+            #[cfg(feature = "packaged-backup-smoke")]
+            packaged_backup_smoke::packaged_backup_smoke_context,
+            #[cfg(feature = "packaged-backup-smoke")]
+            packaged_backup_smoke::packaged_backup_smoke_seed_transient_scope,
+            #[cfg(feature = "packaged-backup-smoke")]
+            packaged_backup_smoke::packaged_backup_smoke_picker_call_count,
             pdf_export::export_pdf,
             host_os,
         ])
@@ -98,4 +108,34 @@ pub fn run() {
                 }
             }
         });
+}
+
+#[cfg(all(test, not(feature = "packaged-backup-smoke")))]
+mod tests {
+    #[test]
+    fn packaged_backup_smoke_symbols_are_feature_gated_out_of_default_builds() {
+        let source = include_str!("lib.rs");
+        let production = source.split("#[cfg(all(test").next().unwrap();
+        for symbol in [
+            "mod packaged_backup_smoke;",
+            "app.manage(packaged_backup_smoke::PackagedBackupSmokeState::default());",
+            "packaged_backup_smoke::packaged_backup_smoke_context,",
+            "packaged_backup_smoke::packaged_backup_smoke_seed_transient_scope,",
+            "packaged_backup_smoke::packaged_backup_smoke_picker_call_count,",
+        ] {
+            let offset = production
+                .find(symbol)
+                .unwrap_or_else(|| panic!("missing feature-only integration for {symbol}"));
+            let preceding_line = production[..offset]
+                .lines()
+                .rev()
+                .find(|line| !line.trim().is_empty())
+                .unwrap();
+            assert_eq!(
+                preceding_line.trim(),
+                "#[cfg(feature = \"packaged-backup-smoke\")]",
+                "{symbol} must be immediately feature-gated"
+            );
+        }
+    }
 }

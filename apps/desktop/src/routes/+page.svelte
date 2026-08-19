@@ -26,6 +26,8 @@
   const latestLaunch = new LatestLaunch();
   const packagedPortableSmoke =
     import.meta.env.VITE_TESINA_PACKAGED_PORTABLE_SMOKE === "1";
+  const packagedBackupSmoke =
+    import.meta.env.VITE_TESINA_PACKAGED_BACKUP_SMOKE === "1";
 
   // ── Startup import recovery (design §13, task 6.6) ──────────────
   // Runs BEFORE the essay index and library are loaded, so an interrupted
@@ -129,6 +131,13 @@
   }
 
   onMount(async () => {
+    if (packagedBackupSmoke) {
+      const { runPackagedBackupSmoke } = await import(
+        "$lib/persist/packagedBackupSmoke"
+      );
+      await runPackagedBackupSmoke();
+      return;
+    }
     if (packagedPortableSmoke) {
       const { runPackagedPortableSmoke } = await import(
         "$lib/persist/packagedPortableSmoke"
