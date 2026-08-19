@@ -1,4 +1,7 @@
+import { dirname } from "node:path";
+import process from "node:process";
 import { describe, expect, it } from "vitest";
+import { executePackagedPortableBuild } from "./run-packaged-portable-export-smoke.ts";
 
 async function source(path: string): Promise<string> {
   return await Deno.readTextFile(path);
@@ -49,5 +52,55 @@ describe("packaged portable smoke build contract", () => {
     expect(runner).toContain("terminateOwnedProcess");
     expect(runner).toContain("verifyPackagedPortableExport");
     expect(runner).toContain('stdout: "null"');
+  });
+
+  it("uses the active Deno executable for the nested packaged build", async () => {
+    const calls: Array<{
+      command: string;
+      args: string[];
+      options: {
+        timeoutMs: number;
+        env?: Record<string, string | undefined>;
+      };
+    }> = [];
+
+    await executePackagedPortableBuild(
+      "/owned/cargo-target",
+      "/owned/tauri-smoke.json",
+      { PATH: "/stale-deno", KEEP: "yes" },
+      (command, args, options) => {
+        calls.push({ command, args, options });
+        return Promise.resolve({ code: 0, stdout: "", stderr: "" });
+      },
+    );
+
+    expect(calls).toEqual([{
+      command: Deno.execPath(),
+      args: [
+        "task",
+        "--cwd",
+        "apps/desktop",
+        "tauri",
+        "build",
+        "--features",
+        "packaged-portable-smoke",
+        "--bundles",
+        "app",
+        "--config",
+        "/owned/tauri-smoke.json",
+        "--ci",
+      ],
+      options: {
+        timeoutMs: 10 * 60_000,
+        env: {
+          KEEP: "yes",
+          PATH: `${dirname(Deno.execPath())}${
+            process.platform === "win32" ? ";" : ":"
+          }/stale-deno`,
+          CARGO_TARGET_DIR: "/owned/cargo-target",
+          VITE_TESINA_PACKAGED_PORTABLE_SMOKE: "1",
+        },
+      },
+    }]);
   });
 });

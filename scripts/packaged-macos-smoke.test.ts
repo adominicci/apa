@@ -1,5 +1,7 @@
+import { dirname } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
+  environmentWithActiveDeno,
   ownedProcessStatusWithin,
   packagedSmokeBundleIdentifier,
   packagedSmokeResult,
@@ -13,6 +15,26 @@ function commandStatus(code: number): Deno.CommandStatus {
 }
 
 describe("packaged macOS smoke contract", () => {
+  it("prepends the active Deno executable directory to the build PATH", () => {
+    expect(environmentWithActiveDeno("darwin", {
+      PATH: "/stale-deno",
+      KEEP: "yes",
+    })).toEqual({
+      KEEP: "yes",
+      PATH: `${dirname(Deno.execPath())}:/stale-deno`,
+    });
+  });
+
+  it("normalizes a mixed-case Windows Path key", () => {
+    expect(environmentWithActiveDeno("win32", {
+      Path: "C:\\stale-deno",
+      KEEP: "yes",
+    })).toEqual({
+      KEEP: "yes",
+      PATH: `${dirname(Deno.execPath())};C:\\stale-deno`,
+    });
+  });
+
   it("derives a run-unique bundle identifier for single-instance isolation", () => {
     const base = "app.tesina.desktop.portable-smoke";
     expect(packagedSmokeBundleIdentifier(

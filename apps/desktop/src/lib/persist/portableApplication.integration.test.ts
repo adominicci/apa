@@ -355,7 +355,6 @@ function createRuntime(
   appData: MemoryAppData,
   archiveService: LibraryArchiveService,
   externalFs: MemoryExternalFs,
-  replacementJournal: MemoryReplacementJournal,
   coordinator: PersistenceCoordinator,
   uuidSpace: number,
 ): PortableLibraryRuntime {
@@ -363,7 +362,6 @@ function createRuntime(
   return createPortableLibraryRuntime({
     getArchiveService: () => Promise.resolve(archiveService),
     externalFs,
-    replacementJournal,
     importFs: appData,
     runMaintenance: (operation) => coordinator.runMaintenance(operation),
     flushPending: () => Promise.resolve(),
@@ -398,7 +396,6 @@ describe("portable library application integration", () => {
       appData,
       service,
       externalFs,
-      replacementJournal,
       coordinator,
       33,
     );
@@ -455,7 +452,6 @@ describe("portable library application integration", () => {
       sourceAppData,
       sourceService,
       externalFs,
-      replacementJournal,
       sourceCoordinator,
       40,
     );
@@ -501,7 +497,6 @@ describe("portable library application integration", () => {
       destinationAppData,
       destinationService,
       externalFs,
-      replacementJournal,
       destinationCoordinator,
       31,
     );
@@ -573,7 +568,6 @@ describe("portable library application integration", () => {
       reloadedAppData,
       reloadedService,
       externalFs,
-      replacementJournal,
       reloadedCoordinator,
       32,
     );

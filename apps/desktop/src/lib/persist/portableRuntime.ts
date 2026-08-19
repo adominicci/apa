@@ -21,11 +21,7 @@ import {
   createLibraryArchiveService,
   type LibraryArchiveService,
 } from "./archiveService.ts";
-import {
-  type ExternalFs,
-  readTesinaBounded,
-  type ReplacementJournal,
-} from "./portableFiles.ts";
+import { type ExternalFs, readTesinaBounded } from "./portableFiles.ts";
 import {
   applyConfirmedImport,
   type ImportApplyResult,
@@ -81,7 +77,6 @@ async function createProductionArchiveService(
 export interface PortableLibraryRuntimeDeps {
   getArchiveService(): Promise<LibraryArchiveService>;
   externalFs: ExternalFs;
-  replacementJournal: ReplacementJournal;
   importFs: ImportFs;
   runMaintenance<T>(operation: () => Promise<T>): Promise<T>;
   flushPending(): Promise<void>;
@@ -218,7 +213,6 @@ function createProductionPortableLibraryRuntime(
   return createPortableLibraryRuntime({
     getArchiveService,
     externalFs,
-    replacementJournal: appDataReplacementJournal,
     importFs: appDataImportFs,
     runMaintenance: (operation) => persistence.runMaintenance(operation),
     flushPending: () => persistence.flushPending(),

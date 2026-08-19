@@ -11,6 +11,7 @@ import {
 } from "../apps/desktop/src/lib/editor/pagination/proof/proofProcess.ts";
 import { readEvidenceFileBounded } from "./inspect-portable-library-evidence.ts";
 import {
+  environmentWithActiveDeno,
   ownedProcessStatusWithin,
   packagedSmokeBundleIdentifier,
   runWithRequiredCleanup,
@@ -635,16 +636,6 @@ export async function executePackagedBackupBuild(
   environment: Record<string, string | undefined>,
   execute: typeof executeBoundedProcess = executeBoundedProcess,
 ): Promise<void> {
-  const inheritedPath = Object.entries(environment).find(([key]) =>
-    key.toLowerCase() === "path"
-  )?.[1];
-  const environmentWithoutPath = Object.fromEntries(
-    Object.entries(environment).filter(([key]) => key.toLowerCase() !== "path"),
-  );
-  const denoDirectory = dirname(Deno.execPath());
-  const buildPath = inheritedPath
-    ? `${denoDirectory}${platform === "win32" ? ";" : ":"}${inheritedPath}`
-    : denoDirectory;
   const build = await execute(
     Deno.execPath(),
     [
@@ -664,8 +655,7 @@ export async function executePackagedBackupBuild(
     {
       timeoutMs: BUILD_TIMEOUT_MS,
       env: {
-        ...environmentWithoutPath,
-        PATH: buildPath,
+        ...environmentWithActiveDeno(platform, environment),
         CARGO_TARGET_DIR: cargoTarget,
         VITE_TESINA_PACKAGED_BACKUP_SMOKE: "1",
       },
