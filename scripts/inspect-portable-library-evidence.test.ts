@@ -36,6 +36,7 @@ async function runInspector(archivePath: string): Promise<Deno.CommandOutput> {
   return await new Deno.Command(Deno.execPath(), {
     args: [
       "run",
+      "--quiet",
       `--allow-read=${canonicalPath}`,
       scriptPath,
       canonicalPath,
