@@ -158,7 +158,7 @@ describe("verifyReleaseVersion", () => {
     }
   });
 
-  it("matches the real 0.1.17 metadata, README, links, and bundled Markdown", async () => {
+  it("matches the real 0.1.18 metadata, README, links, and bundled Markdown", async () => {
     const root = new URL("../", import.meta.url);
     const [
       tauriConfig,
@@ -183,7 +183,7 @@ describe("verifyReleaseVersion", () => {
     ]);
 
     const verified = verifyReleaseVersion({
-      tag: "v0.1.17",
+      tag: "v0.1.18",
       tauriConfig,
       packageJson,
       cargoToml,
@@ -193,12 +193,12 @@ describe("verifyReleaseVersion", () => {
 
     expect(verified.version).toBe(bundledReleaseNotes.version);
     expect(verified.notes).toBe(bundledReleaseNotes.body);
-    expect(readme).toContain("Version 0.1.17 supports");
+    expect(readme).toContain("Version 0.1.18 supports");
     expect(changelog).toContain(
-      "[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.17...HEAD",
+      "[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.18...HEAD",
     );
     expect(changelog).toContain(
-      "[0.1.17]: https://github.com/adominicci/tesina/compare/v0.1.16...v0.1.17",
+      "[0.1.18]: https://github.com/adominicci/tesina/compare/v0.1.17...v0.1.18",
     );
     expect(changelog).toContain(
       "[0.1.16]: https://github.com/adominicci/tesina/compare/v0.1.15...v0.1.16",
@@ -215,7 +215,7 @@ describe("verifyReleaseVersion", () => {
     for (const source of [englishMessages, spanishMessages]) {
       const messages = JSON.parse(source) as Record<string, string>;
       expect(messages.bk_reauthorization_body).toContain("v{version}");
-      expect(messages.bk_reauthorization_body).not.toContain("v0.1.17");
+      expect(messages.bk_reauthorization_body).not.toContain("v0.1.18");
     }
   });
 });

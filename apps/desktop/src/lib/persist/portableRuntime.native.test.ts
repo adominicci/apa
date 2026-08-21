@@ -22,7 +22,7 @@ const runtime = vi.hoisted(() => {
 });
 
 vi.mock("@tauri-apps/api/app", () => ({
-  getVersion: vi.fn(() => Promise.resolve("0.1.17")),
+  getVersion: vi.fn(() => Promise.resolve("0.1.18")),
 }));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: runtime.invoke }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }));

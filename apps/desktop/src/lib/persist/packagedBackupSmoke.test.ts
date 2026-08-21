@@ -45,7 +45,7 @@ class Harness {
     return {
       context: () =>
         Promise.resolve({ phase: this.phase, proofCommitSha: FEATURE_SHA }),
-      appVersion: () => Promise.resolve("0.1.17"),
+      appVersion: () => Promise.resolve("0.1.18"),
       bundleIdentifier: () => Promise.resolve("app.tesina.desktop.smoke"),
       loadUiSettings: () => {
         this.calls.push("load-settings");

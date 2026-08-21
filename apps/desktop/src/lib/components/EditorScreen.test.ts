@@ -8,8 +8,8 @@ import { strFromU8, unzipSync } from "fflate";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Essay } from "$lib/model/essay";
 import { m } from "$lib/paraglide/messages";
+import { createAutosaveController } from "$lib/persist/autosaveController.svelte";
 import { persistence } from "$lib/persist/coordinator";
-import { createQuitRequest } from "$lib/persist/windowClose";
 import { UpdaterStore } from "$lib/state/updater.svelte";
 import {
   readPendingReleaseNotes,
@@ -215,25 +215,6 @@ function docText(doc: unknown): string {
   if (!doc || typeof doc !== "object") return "";
   const node = doc as { text?: string; content?: unknown[] };
   return [node.text ?? "", ...(node.content ?? []).map(docText)].join("");
-}
-
-/**
- * The persistence barrier these tests exercise lives in the quit request; the
- * native close button only routes to it. Confirmation is pre-answered and the
- * deadline never elapses, so each test measures the flush alone.
- */
-function quitRequest(
-  flushPending: () => Promise<void>,
-  exitApp: () => Promise<void>,
-): () => Promise<void> {
-  return createQuitRequest({
-    flushPending,
-    exitApp,
-    confirmQuit: () => Promise.resolve(true),
-    confirmQuitWithoutSaving: () => Promise.resolve(false),
-    onError: vi.fn(),
-    delay: () => new Promise<void>(() => {}),
-  });
 }
 
 function essayWithBody(text: string): Essay {
@@ -466,7 +447,7 @@ describe("editor preview round trip", () => {
       `Tesina ${bundledReleaseNotes.version}`,
     );
     expect(dialog?.textContent).toContain(
-      "One damaged paper file no longer hides every other paper",
+      "dedicated autosave engine",
     );
     document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
     flushSync();
@@ -520,7 +501,7 @@ describe("editor preview round trip", () => {
       "Las notas no están disponibles para esta versión.",
     );
     expect(dialog?.textContent).not.toContain(
-      "One damaged paper file no longer hides every other paper",
+      "dedicated autosave engine",
     );
     globalThis.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
@@ -849,245 +830,6 @@ describe("editor preview round trip", () => {
     }
   });
 
-  it("keeps close pending until an edit made during the active write is persisted", async () => {
-    vi.useFakeTimers();
-    const firstWrite = deferred<void>();
-    runtime.persist
-      .mockReturnValueOnce(firstWrite.promise)
-      .mockResolvedValueOnce(undefined);
-    const component = mount(EditorScreen, {
-      target: document.body,
-      props: {
-        essay: essayWithBody("Seed"),
-        newlyCreated: false,
-        onLaunchConsumed: vi.fn(),
-        onBack: vi.fn(),
-        onOpenLibrary: vi.fn(),
-      },
-    });
-    flushSync();
-
-    runtime.editors[0]!.commands.setContent(bodyDoc("First close edit"));
-    const destroy = vi.fn<() => Promise<void>>().mockResolvedValue();
-    const close = quitRequest(() => persistence.flushPending(), destroy);
-    const closing = close();
-    await drainMicrotasks();
-    expect(runtime.persist).toHaveBeenCalledOnce();
-
-    runtime.editors[0]!.commands.setContent(bodyDoc("Edit during write"));
-    firstWrite.resolve();
-    try {
-      await closing;
-      expect(runtime.persist).toHaveBeenCalledTimes(2);
-      expect(docText(runtime.persist.mock.calls[1]![0].content)).toContain(
-        "Edit during write",
-      );
-      expect(destroy).toHaveBeenCalledOnce();
-    } finally {
-      await unmount(component);
-    }
-  });
-
-  it("does not queue the current revision twice when autosave is in flight", async () => {
-    vi.useFakeTimers();
-    const writing = deferred<void>();
-    runtime.persist.mockReturnValueOnce(writing.promise);
-    const component = mount(EditorScreen, {
-      target: document.body,
-      props: {
-        essay: essayWithBody("Seed"),
-        newlyCreated: false,
-        onLaunchConsumed: vi.fn(),
-        onBack: vi.fn(),
-        onOpenLibrary: vi.fn(),
-      },
-    });
-    flushSync();
-
-    runtime.editors[0]!.commands.setContent(bodyDoc("One revision"));
-    await vi.advanceTimersByTimeAsync(500);
-    const flushing = persistence.flushPending();
-    expect(runtime.persist).toHaveBeenCalledOnce();
-
-    writing.resolve();
-    try {
-      await flushing;
-      expect(runtime.persist).toHaveBeenCalledOnce();
-    } finally {
-      await unmount(component);
-    }
-  });
-
-  it("retries a transient editor flush without a new edit before updater relaunch", async () => {
-    vi.useFakeTimers();
-    const consoleError = vi.spyOn(console, "error").mockImplementation(
-      () => {},
-    );
-    runtime.persist
-      .mockRejectedValueOnce(new Error("temporary disk failure"))
-      .mockResolvedValueOnce(undefined);
-    const storage = new MemoryStorage();
-    let relaunches = 0;
-    const updater = new UpdaterStore({
-      check: () =>
-        Promise.resolve({
-          version: "0.2.0",
-          body: "Retry-safe persistence",
-          downloadAndInstall: () => Promise.resolve(),
-        }),
-      flushPending: () => persistence.flushPending(),
-      storage: () => storage,
-      relaunch: () => {
-        relaunches += 1;
-        return Promise.resolve();
-      },
-    });
-    const component = mount(EditorScreen, {
-      target: document.body,
-      props: {
-        essay: essayWithBody("Seed"),
-        newlyCreated: false,
-        onLaunchConsumed: vi.fn(),
-        onBack: vi.fn(),
-        onOpenLibrary: vi.fn(),
-      },
-    });
-    flushSync();
-    runtime.editors[0]!.commands.setContent(bodyDoc("Retry this edit"));
-    await updater.check();
-
-    try {
-      await updater.install();
-      expect(updater.status).toBe("error");
-      expect(readPendingReleaseNotes(storage)).toBeNull();
-      expect(relaunches).toBe(0);
-
-      await updater.install();
-      expect(readPendingReleaseNotes(storage)).toEqual({
-        version: "0.2.0",
-        body: "Retry-safe persistence",
-      });
-      expect(relaunches).toBe(1);
-      expect(runtime.persist).toHaveBeenCalledTimes(2);
-    } finally {
-      consoleError.mockRestore();
-      await unmount(component);
-    }
-  });
-
-  it("shares one persistence barrier between native close and updater relaunch", async () => {
-    vi.useFakeTimers();
-    const writing = deferred<void>();
-    runtime.persist.mockReturnValueOnce(writing.promise);
-    const storage = new MemoryStorage();
-    const destroy = vi.fn<() => Promise<void>>().mockResolvedValue();
-    const relaunch = vi.fn<() => Promise<void>>().mockResolvedValue();
-    const updater = new UpdaterStore({
-      check: () =>
-        Promise.resolve({
-          version: "0.2.0",
-          body: "Shared barrier",
-          downloadAndInstall: () => Promise.resolve(),
-        }),
-      flushPending: () => persistence.flushPending(),
-      storage: () => storage,
-      relaunch,
-    });
-    const component = mount(EditorScreen, {
-      target: document.body,
-      props: {
-        essay: essayWithBody("Seed"),
-        newlyCreated: false,
-        onLaunchConsumed: vi.fn(),
-        onBack: vi.fn(),
-        onOpenLibrary: vi.fn(),
-      },
-    });
-    flushSync();
-    runtime.editors[0]!.commands.setContent(bodyDoc("Shared close edit"));
-    await updater.check();
-    const close = quitRequest(() => persistence.flushPending(), destroy);
-
-    const closing = close();
-    const installing = updater.install();
-    await drainMicrotasks();
-    expect(runtime.persist).toHaveBeenCalledOnce();
-
-    writing.resolve();
-    await Promise.all([closing, installing]);
-    expect(runtime.persist).toHaveBeenCalledOnce();
-    expect(destroy).toHaveBeenCalledOnce();
-    expect(relaunch).toHaveBeenCalledOnce();
-    await unmount(component);
-  });
-
-  it("flushes the latest edit before an app close inside the debounce window", async () => {
-    vi.useFakeTimers();
-    const essay = essayWithBody("Seed");
-    const component = mount(EditorScreen, {
-      target: document.body,
-      props: {
-        essay,
-        newlyCreated: false,
-        onLaunchConsumed: vi.fn(),
-        onBack: vi.fn(),
-        onOpenLibrary: vi.fn(),
-      },
-    });
-    flushSync();
-
-    runtime.editors[0]!.commands.setContent(bodyDoc("Close-safe edit"));
-    flushSync();
-    const destroy = vi.fn<() => Promise<void>>().mockResolvedValue();
-    const close = quitRequest(() => persistence.flushPending(), destroy);
-    await close();
-
-    expect(runtime.persist).toHaveBeenCalledOnce();
-    expect(docText(runtime.persist.mock.calls[0]![0].content)).toContain(
-      "Close-safe edit",
-    );
-    expect(destroy).toHaveBeenCalledOnce();
-    await unmount(component);
-  });
-
-  it("serializes rapid edits so an older write cannot commit last", async () => {
-    vi.useFakeTimers();
-    const firstWrite = deferred<void>();
-    const committed: string[] = [];
-    runtime.persist.mockImplementation((saved: Essay) => {
-      const text = docText(saved.content);
-      if (runtime.persist.mock.calls.length === 1) {
-        return firstWrite.promise.then(() => {
-          committed.push(text);
-        });
-      }
-      committed.push(text);
-      return Promise.resolve();
-    });
-    const component = mount(EditorScreen, {
-      target: document.body,
-      props: {
-        essay: essayWithBody("Seed"),
-        newlyCreated: false,
-        onLaunchConsumed: vi.fn(),
-        onBack: vi.fn(),
-        onOpenLibrary: vi.fn(),
-      },
-    });
-    flushSync();
-
-    runtime.editors[0]!.commands.setContent(bodyDoc("Older edit"));
-    await vi.advanceTimersByTimeAsync(500);
-    runtime.editors[0]!.commands.setContent(bodyDoc("Newest edit"));
-    await vi.advanceTimersByTimeAsync(500);
-
-    expect(runtime.persist).toHaveBeenCalledOnce();
-    firstWrite.resolve();
-    await vi.waitFor(() => expect(runtime.persist).toHaveBeenCalledTimes(2));
-    expect(committed).toEqual(["Older edit", "Newest edit"]);
-    await unmount(component);
-  });
-
   it("keeps rapid edits visible and persists both sides of a preview toggle", async () => {
     vi.useFakeTimers();
     runtime.persist.mockImplementation((essay: Essay) => {
@@ -1144,6 +886,218 @@ describe("editor preview round trip", () => {
       "First edit Second edit",
     );
     await unmount(component);
+  });
+});
+
+describe("autosave controller integration", () => {
+  it("keeps close pending until an edit made during the active write is persisted", async () => {
+    vi.useFakeTimers();
+    const firstWrite = deferred<void>();
+    runtime.persist
+      .mockReturnValueOnce(firstWrite.promise)
+      .mockResolvedValueOnce(undefined);
+    const controller = createAutosaveController({
+      persist: runtime.persist,
+    });
+    const dispose = controller.bindPersistence(persistence);
+    controller.scheduleSave();
+    let destroyed = false;
+    const closing = persistence.flushPending().then(() => {
+      destroyed = true;
+    });
+    await drainMicrotasks();
+    expect(runtime.persist).toHaveBeenCalledOnce();
+
+    controller.scheduleSave();
+    firstWrite.resolve();
+    try {
+      await closing;
+      expect(runtime.persist).toHaveBeenCalledTimes(2);
+      expect(destroyed).toBe(true);
+    } finally {
+      dispose();
+      await drainMicrotasks();
+    }
+  });
+
+  it("does not queue the current revision twice when autosave is in flight", async () => {
+    vi.useFakeTimers();
+    const writing = deferred<void>();
+    runtime.persist.mockReturnValueOnce(writing.promise);
+    const controller = createAutosaveController({
+      persist: runtime.persist,
+    });
+    const dispose = controller.bindPersistence(persistence);
+    controller.scheduleSave();
+    await vi.advanceTimersByTimeAsync(500);
+    const flushing = persistence.flushPending();
+    expect(runtime.persist).toHaveBeenCalledOnce();
+
+    writing.resolve();
+    try {
+      await flushing;
+      expect(runtime.persist).toHaveBeenCalledOnce();
+    } finally {
+      dispose();
+      await drainMicrotasks();
+    }
+  });
+
+  it("retries a transient editor flush without a new edit before updater relaunch", async () => {
+    vi.useFakeTimers();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(
+      () => {},
+    );
+    runtime.persist
+      .mockRejectedValueOnce(new Error("temporary disk failure"))
+      .mockResolvedValueOnce(undefined);
+    const storage = new MemoryStorage();
+    let relaunches = 0;
+    const updater = new UpdaterStore({
+      check: () =>
+        Promise.resolve({
+          version: "0.2.0",
+          body: "Retry-safe persistence",
+          downloadAndInstall: () => Promise.resolve(),
+        }),
+      flushPending: () => persistence.flushPending(),
+      storage: () => storage,
+      relaunch: () => {
+        relaunches += 1;
+        return Promise.resolve();
+      },
+    });
+    const controller = createAutosaveController({
+      persist: runtime.persist,
+    });
+    const dispose = controller.bindPersistence(persistence);
+    controller.scheduleSave();
+    await updater.check();
+
+    try {
+      await updater.install();
+      expect(updater.status).toBe("error");
+      expect(readPendingReleaseNotes(storage)).toBeNull();
+      expect(relaunches).toBe(0);
+
+      await updater.install();
+      expect(readPendingReleaseNotes(storage)).toEqual({
+        version: "0.2.0",
+        body: "Retry-safe persistence",
+      });
+      expect(relaunches).toBe(1);
+      expect(runtime.persist).toHaveBeenCalledTimes(2);
+    } finally {
+      consoleError.mockRestore();
+      dispose();
+      await drainMicrotasks();
+    }
+  });
+
+  it("shares one persistence barrier between native close and updater relaunch", async () => {
+    vi.useFakeTimers();
+    const writing = deferred<void>();
+    runtime.persist.mockReturnValueOnce(writing.promise);
+    const storage = new MemoryStorage();
+    const relaunch = vi.fn<() => Promise<void>>().mockResolvedValue();
+    const updater = new UpdaterStore({
+      check: () =>
+        Promise.resolve({
+          version: "0.2.0",
+          body: "Shared barrier",
+          downloadAndInstall: () => Promise.resolve(),
+        }),
+      flushPending: () => persistence.flushPending(),
+      storage: () => storage,
+      relaunch,
+    });
+    const controller = createAutosaveController({
+      persist: runtime.persist,
+    });
+    const dispose = controller.bindPersistence(persistence);
+    controller.scheduleSave();
+    await updater.check();
+
+    const closing = persistence.flushPending();
+    const installing = updater.install();
+    await drainMicrotasks();
+    expect(runtime.persist).toHaveBeenCalledOnce();
+
+    writing.resolve();
+    try {
+      await Promise.all([closing, installing]);
+      expect(runtime.persist).toHaveBeenCalledOnce();
+      expect(relaunch).toHaveBeenCalledOnce();
+    } finally {
+      dispose();
+      await drainMicrotasks();
+    }
+  });
+
+  it("flushes the latest edit before an app close inside the debounce window", async () => {
+    vi.useFakeTimers();
+    runtime.persist.mockImplementation((essay: Essay) => {
+      runtime.persistedDocs.push(JSON.parse(JSON.stringify(essay.content)));
+    });
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay: essayWithBody("Seed"),
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+    try {
+      runtime.editors[0]!.commands.setContent(bodyDoc("Close-safe edit"));
+      flushSync();
+
+      await persistence.flushPending();
+
+      expect(runtime.persist).toHaveBeenCalledOnce();
+      expect(docText(runtime.persistedDocs[0])).toContain("Close-safe edit");
+    } finally {
+      await unmount(component);
+    }
+  });
+
+  it("serializes rapid edits so an older write cannot commit last", async () => {
+    vi.useFakeTimers();
+    const firstWrite = deferred<void>();
+    const committed: string[] = [];
+    let edit = "Older edit";
+    runtime.persist.mockImplementation(() => {
+      const seen = edit;
+      if (runtime.persist.mock.calls.length === 1) {
+        return firstWrite.promise.then(() => {
+          committed.push(seen);
+        });
+      }
+      committed.push(seen);
+      return Promise.resolve();
+    });
+    const controller = createAutosaveController({
+      persist: runtime.persist,
+    });
+    const dispose = controller.bindPersistence(persistence);
+
+    controller.scheduleSave();
+    await vi.advanceTimersByTimeAsync(500);
+    edit = "Newest edit";
+    controller.scheduleSave();
+    await vi.advanceTimersByTimeAsync(500);
+
+    try {
+      expect(runtime.persist).toHaveBeenCalledOnce();
+      firstWrite.resolve();
+      await vi.waitFor(() => expect(runtime.persist).toHaveBeenCalledTimes(2));
+      expect(committed).toEqual(["Older edit", "Newest edit"]);
+    } finally {
+      dispose();
+      await drainMicrotasks();
+    }
   });
 });
 

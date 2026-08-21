@@ -169,7 +169,7 @@ describe("BackupStatusCard", () => {
 
     expect(document.body.textContent).toContain(m.bk_reauthorization_title());
     expect(document.body.textContent).toContain(
-      m.bk_reauthorization_body({ version: "0.1.17" }),
+      m.bk_reauthorization_body({ version: "0.1.18" }),
     );
     expect(buttonByText(m.bk_card_dismiss())).toBeUndefined();
     buttonByText(m.bk_card_setup())!.click();
