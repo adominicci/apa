@@ -13,7 +13,7 @@ narrow interface that can be exercised directly.
 
 - Extract the inline autosave machinery (EditorScreen.svelte script ~lines 196–202 and
   435–535) into a new module exposing `createAutosaveController({ persist, delay })`
-  returning `{ scheduleSave, persistNow, status }`.
+  returning `{ status, scheduleSave, persistNow, bindPersistence }`.
 - EditorScreen becomes a thin adapter over the controller; no user-visible behavior change.
 - Persistence-focused tests in EditorScreen.test.ts move to direct controller tests;
   the existing mount suite stays green as the behavior net.
@@ -37,7 +37,8 @@ boundaries; this refactor preserves that behavior and its existing coverage.
 ## Impact
 
 - `apps/desktop/src/lib/components/EditorScreen.svelte` — engine removed, adapter wiring added.
-- New file `apps/desktop/src/lib/persist/autosaveController.ts` (location per design.md).
+- New file `apps/desktop/src/lib/persist/autosaveController.svelte.ts` — the
+  `.svelte.ts` extension is load-bearing: the module uses the `$state` rune.
 - `apps/desktop/src/lib/components/EditorScreen.test.ts` — persistence cases rewritten
   against the controller interface; mount smoke cases retained.
 - No changes to `persist/coordinator.ts`, storage formats, Paraglide messages, DOCX/PDF
