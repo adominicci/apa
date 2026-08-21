@@ -101,8 +101,8 @@
   import { m } from "$lib/paraglide/messages";
   import {
     persistence,
-    type PersistenceRegistration,
   } from "$lib/persist/coordinator";
+  import { createAutosaveController } from "$lib/persist/autosaveController.svelte";
   import { useReleaseNotesController } from "$lib/update/releaseNotesController.svelte";
 
   interface Props {
@@ -113,11 +113,6 @@
     onOpenLibrary: () => void;
   }
 
-  interface EssayWriteAttempt {
-    revision: number;
-    promise: Promise<void>;
-  }
-
   let {
     essay,
     newlyCreated,
@@ -126,13 +121,15 @@
     onOpenLibrary,
   }: Props = $props();
   const releaseNotes = useReleaseNotesController();
+  const autosave = createAutosaveController({
+    persist: () => essays.persist(capturePersistSnapshot()),
+  });
 
   // Remounted per essay via {#key essay.id}; initial captures are deliberate.
   let documentLanguage = $state<DocLocale>(
     untrack(() => essay.settings.documentLanguage),
   );
   let words = $state(untrack(() => 0));
-  let status = $state<"guardando" | "guardado" | "error">("guardado");
   let editor = $state<TiptapEditor | undefined>(undefined);
   let abstractPresent = $state(false);
   let inAppendix = $state(false);
@@ -193,13 +190,6 @@
     untrack(() => collectCitedRefIds(essay.content)),
   );
   let lastDoc = $state<unknown>(untrack(() => essay.content));
-  let saveTimer: ReturnType<typeof setTimeout> | undefined;
-  let requestedSaveRevision = 0;
-  let persistedSaveRevision = 0;
-  let saveChain: Promise<void> = Promise.resolve();
-  let activeSaveAttempt: EssayWriteAttempt | null = null;
-  let activePersistFlush: Promise<void> | null = null;
-  let persistenceRegistration: PersistenceRegistration | null = null;
 
   const citationEnv: CitationEnv = {
     refsById: untrack(() => library.byId()),
@@ -225,7 +215,7 @@
     const clamped = Math.min(100000, Math.max(100, n));
     essay.settings = { ...essay.settings, wordGoal: clamped };
     editingGoal = false;
-    scheduleSave();
+    autosave.scheduleSave();
   }
   const liveComposition = $derived.by(() => {
     const report = livePaginationReport;
@@ -240,7 +230,7 @@
 
   function setFont(font: FontChoice) {
     essay.settings = { ...essay.settings, font };
-    scheduleSave();
+    autosave.scheduleSave();
   }
 
   /** Editor sheets render in the chosen APA font via inherited CSS vars. */
@@ -439,94 +429,11 @@
     return structuredClone($state.snapshot(essay) as Essay);
   }
 
-  function enqueuePersist(revision: number): Promise<void> {
-    if (persistedSaveRevision >= revision) return Promise.resolve();
-    if (activeSaveAttempt?.revision === revision) {
-      return activeSaveAttempt.promise;
-    }
-
-    const snapshot = capturePersistSnapshot();
-    const write = saveChain.catch(() => undefined).then(async () => {
-      await essays.persist(snapshot);
-      persistedSaveRevision = Math.max(persistedSaveRevision, revision);
-      if (revision === requestedSaveRevision) status = "guardado";
-    });
-    const attempt = { revision, promise: write };
-    activeSaveAttempt = attempt;
-    saveChain = write;
-    const clear = () => {
-      if (activeSaveAttempt === attempt) activeSaveAttempt = null;
-    };
-    void write.then(clear, clear);
-    return write;
-  }
-
-  function reportPersistError(error: unknown, revision: number) {
-    console.error("No se pudo guardar el ensayo:", error);
-    if (revision === requestedSaveRevision) status = "error";
-  }
-
-  function scheduleSave() {
-    requestedSaveRevision += 1;
-    persistenceRegistration?.markDirty();
-    const revision = requestedSaveRevision;
-    status = "guardando";
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      saveTimer = undefined;
-      void enqueuePersist(revision).catch((error) => {
-        reportPersistError(error, revision);
-      });
-    }, 500);
-  }
-
-  function persistNow(): Promise<void> {
-    if (activePersistFlush) return activePersistFlush;
-    const active = flushUntilCaughtUp();
-    activePersistFlush = active;
-    const clear = () => {
-      if (activePersistFlush === active) activePersistFlush = null;
-    };
-    void active.then(clear, clear);
-    return active;
-  }
-
-  async function flushUntilCaughtUp(): Promise<void> {
-    while (persistedSaveRevision < requestedSaveRevision) {
-      clearTimeout(saveTimer);
-      saveTimer = undefined;
-      const revision = requestedSaveRevision;
-      status = "guardando";
-      try {
-        await enqueuePersist(revision);
-      } catch (error) {
-        reportPersistError(error, revision);
-        throw error;
-      }
-    }
-  }
-
-  onMount(() => {
-    const registration = persistence.register(persistNow);
-    persistenceRegistration = registration;
-    return () => {
-      // Svelte destruction cannot await cleanup. Keep the callback registered
-      // until its serialized final write settles so a concurrent app-close
-      // barrier can still observe it.
-      void persistNow().catch((error) => {
-        reportPersistError(error, requestedSaveRevision);
-      }).finally(() => {
-        if (persistenceRegistration === registration) {
-          persistenceRegistration = null;
-        }
-        registration.unregister();
-      });
-    };
-  });
+  onMount(() => autosave.bindPersistence(persistence));
 
   async function leaveEditor(destination: () => void) {
     try {
-      await persistNow();
+      await autosave.persistNow();
     } catch {
       // Stay in the editor so the visible error can be retried.
       return;
@@ -549,7 +456,7 @@
     essay.referencesSnapshot = snapshotForPersist();
     outline = buildOutline(docJson);
     if (editor) abstractPresent = hasAbstract(editor);
-    scheduleSave();
+    autosave.scheduleSave();
   }
 
   function updateBubble(instance: TiptapEditor) {
@@ -650,7 +557,7 @@
     if (documentLanguage === lang) return;
     documentLanguage = lang;
     syncCitationEnv();
-    scheduleSave();
+    autosave.scheduleSave();
   }
 
   function toggleAbstract() {
@@ -839,7 +746,7 @@
     resumeExportAfterTitlePage = false;
     exportMessage = "";
     titleFormOpen = false;
-    scheduleSave();
+    autosave.scheduleSave();
     /* Saving finishes the export the user already asked for. The advice is
        skipped: they just read it in the form, so re-raising the dialog would
        trap "fix and save" in a loop it cannot leave. */
@@ -850,7 +757,7 @@
   function handleCoverChange(patch: CoverPatch) {
     essay.titlePage = { ...essay.titlePage, ...patch };
     if (patch.title !== undefined) essayTitle = essay.titlePage.title;
-    scheduleSave();
+    autosave.scheduleSave();
   }
 </script>
 
@@ -1385,9 +1292,9 @@
     {#if exportMessage}
       <span class="export-msg">{exportMessage}</span>
     {/if}
-    <span class="saved" data-status={status}>
+    <span class="saved" data-status={autosave.status}>
       <span class="dot"></span>
-      {STATUS_LABELS[status]()}
+      {STATUS_LABELS[autosave.status]()}
     </span>
   </footer>
 </div>
