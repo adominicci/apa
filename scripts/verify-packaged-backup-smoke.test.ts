@@ -25,7 +25,7 @@ function validInput(): VerifyPackagedBackupSmokeInput {
     expected: {
       featureSha: SHA,
       bundleIdentifier: IDENTIFIER,
-      appVersion: "0.1.18",
+      appVersion: "0.1.19",
       exportPath: "/owned/export/Tesina Library.tesina",
     },
     phases: PACKAGED_BACKUP_PHASES.map((phase) => ({
@@ -33,7 +33,7 @@ function validInput(): VerifyPackagedBackupSmokeInput {
       phase,
       featureSha: SHA,
       bundleIdentifier: IDENTIFIER,
-      appVersion: "0.1.18",
+      appVersion: "0.1.19",
       passed: true,
       selectionInvocations: phase === "configure" || phase === "reconfigure"
         ? 1
@@ -138,7 +138,7 @@ describe("packaged backup smoke verification", () => {
       evidence: "packaged-backup-smoke",
       featureSha: SHA,
       bundleIdentifier: IDENTIFIER,
-      appVersion: "0.1.18",
+      appVersion: "0.1.19",
       processLaunches: 4,
       retainedArchives: 7,
       restoredLibrary,
