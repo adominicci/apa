@@ -5,6 +5,15 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.18] - 2026-08-21
+
+### Changed
+
+- Internal reliability work with no visible changes: saving now runs through a
+  dedicated autosave engine with the same save states as before, and document
+  building blocks share one source of truth for their names across the editor,
+  previews, and Word export.
+
 ## [0.1.17] - 2026-08-18
 
 ### Added
@@ -302,7 +311,8 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.17...HEAD
+[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.18...HEAD
+[0.1.18]: https://github.com/adominicci/tesina/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/adominicci/tesina/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/adominicci/tesina/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/adominicci/tesina/compare/v0.1.14...v0.1.15
