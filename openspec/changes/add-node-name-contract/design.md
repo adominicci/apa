@@ -70,9 +70,9 @@ every ProseMirror read site — out of scope, noted as future work.
 engine imports already exist, extend the existing import statement rather than
 adding a second one.
 
-**D6 · Authoritative file list (46).**
+**D6 · Authoritative file list (45 + the module).**
 
-Production (19):
+Production (17):
 `apps/desktop/src/lib/editor/blocks.ts`, `sections.ts`, `outline.ts`,
 `migrate.ts`, `tableCommands.ts`, `model/essay.ts`,
 `editor/pagination/measure.ts`, `editor/pagination/proof/nativeProof.ts`,
@@ -82,7 +82,7 @@ Production (19):
 `packages/docx-export/src/blocks.ts`, `body-title.ts`, `pm-visitor.ts`,
 `sample.ts`.
 
-Tests/fixtures (27): `EditorLaunch.test.ts`, `EditorScreen.test.ts`,
+Tests/fixtures (28): `EditorLaunch.test.ts`, `EditorScreen.test.ts`,
 `apaCheck.test.ts`, `citedRefs.test.ts`, `createEditorFocus.test.ts`,
 `equationCommands.test.ts`, `figureCommands.test.ts`, `mathml.test.ts`,
 `migrate.test.ts`, `pagination/extension.test.ts`, `pagination/measure.test.ts`,

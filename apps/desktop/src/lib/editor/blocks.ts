@@ -82,7 +82,7 @@ export const TableNote = Node.create({
 export const ApaTable = Node.create({
   name: NODE_NAMES.apaTable,
   group: "block",
-  content: "tableTitle table tableNote",
+  content: `${NODE_NAMES.tableTitle} table tableNote`,
   isolating: true,
   parseHTML() {
     return [{ tag: "figure[data-apa-table]" }];
@@ -307,7 +307,7 @@ export const FigureImage = Node.create({
 export const ApaFigure = Node.create({
   name: "figure",
   group: "block",
-  content: "figureTitle figureImage figureNote",
+  content: `${NODE_NAMES.figureTitle} figureImage figureNote`,
   isolating: true,
   parseHTML() {
     return [{ tag: "figure[data-apa-figure]" }];

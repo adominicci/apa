@@ -12,7 +12,7 @@ import { NODE_NAMES } from "@tesina/engine";
 export const TesinaDocument = Node.create({
   name: "doc",
   topNode: true,
-  content: "sectionAbstract? sectionBody sectionAppendix*",
+  content: `sectionAbstract? ${NODE_NAMES.sectionBody} sectionAppendix*`,
 });
 
 export const SectionBody = Node.create({
@@ -30,7 +30,7 @@ export const SectionBody = Node.create({
 
 export const SectionAbstract = Node.create({
   name: "sectionAbstract",
-  content: "paragraph+ keywordsLine?",
+  content: `paragraph+ ${NODE_NAMES.keywordsLine}?`,
   isolating: true,
   defining: true,
   parseHTML() {
