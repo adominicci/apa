@@ -1,3 +1,5 @@
+import { NODE_NAMES } from "@tesina/engine";
+
 interface DocNode {
   type?: string;
   content?: DocNode[];
@@ -5,7 +7,7 @@ interface DocNode {
 
 const SECTION_TYPES = new Set([
   "sectionAbstract",
-  "sectionBody",
+  NODE_NAMES.sectionBody,
   "sectionAppendix",
 ]);
 
@@ -13,7 +15,7 @@ export function defaultDoc(): DocNode {
   return {
     type: "doc",
     content: [
-      { type: "sectionBody", content: [{ type: "paragraph" }] },
+      { type: NODE_NAMES.sectionBody, content: [{ type: "paragraph" }] },
     ],
   };
 }
@@ -32,6 +34,6 @@ export function ensureSectionedDoc(docJson: unknown): unknown {
   if (firstType && SECTION_TYPES.has(firstType)) return docJson;
   return {
     type: "doc",
-    content: [{ type: "sectionBody", content: doc.content }],
+    content: [{ type: NODE_NAMES.sectionBody, content: doc.content }],
   };
 }

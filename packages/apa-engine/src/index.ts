@@ -1,3 +1,6 @@
+// Node name contract
+export { type ApaNodeName, NODE_NAMES } from "./nodeNames.ts";
+
 // Live APA structure check
 export {
   type ApaCheckIssue,

@@ -16,7 +16,7 @@ const scriptPath = fileURLToPath(
 );
 
 async function fullLibraryArchive(
-  appVersion = "0.1.18",
+  appVersion = "0.1.19",
 ): Promise<Uint8Array> {
   const fixture = fullLibraryFixture();
   return await buildArchive(
@@ -63,12 +63,12 @@ describe("portable-library evidence inspector", () => {
       archive: {
         byteLength: 32_099,
         sha256:
-          "fb7733b88103a8d1eee58bc3b90778e1562c552a4e865703337937477357cb49",
+          "98bad8c5c1299727bbeab3f26a6878d4dc9ad42e9d7b63b60f1e0d272ed42b75",
       },
       manifest: {
         kind: "tesina-library",
         formatVersion: 1,
-        appVersion: "0.1.18",
+        appVersion: "0.1.19",
         counts: {
           essays: 16,
           references: 30,
@@ -113,7 +113,7 @@ describe("portable-library evidence inspector", () => {
       expect(decoder.decode(output.stderr)).toBe("");
       expect(JSON.parse(stdout)).toMatchObject({
         valid: true,
-        manifest: { appVersion: "0.1.18" },
+        manifest: { appVersion: "0.1.19" },
       });
       expect(stdout).not.toContain("private-title");
       expect(stdout).not.toContain(directory);

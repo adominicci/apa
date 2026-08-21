@@ -1,3 +1,4 @@
+import { NODE_NAMES, type Reference } from "@tesina/engine";
 /**
  * Pure identity/path remapping walkers (tasks 5.3/5.4): citation refIds and
  * figure paths are rewritten in every supported block container — body,
@@ -5,7 +6,6 @@
  * references snapshot, and the input essay object is never mutated.
  */
 import { describe, expect, it } from "vitest";
-import type { Reference } from "@tesina/engine";
 import type { Essay } from "$lib/model/essay";
 import { fixtureUuid } from "./fixtures/libraries.ts";
 import {
@@ -45,7 +45,7 @@ function fixtureDoc(): unknown {
         )],
       },
       {
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           paragraphWith({ type: "text", text: "Cuerpo " }, citation(OLD_REF)),
           {

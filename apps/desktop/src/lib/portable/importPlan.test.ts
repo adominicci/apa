@@ -1,3 +1,4 @@
+import { NODE_NAMES, type Reference } from "@tesina/engine";
 /**
  * Deterministic Merge planner matrix (tasks 5.5–5.8, design §5/§6): asset
  * checksums resolve first, references then collections then essays are
@@ -5,7 +6,6 @@
  * and the final plan passes a pure consistency check.
  */
 import { describe, expect, it } from "vitest";
-import type { Reference } from "@tesina/engine";
 import type { Essay } from "$lib/model/essay";
 import type { RefCollection } from "$lib/model/collections";
 import { sha256Hex } from "./archive.ts";
@@ -98,7 +98,10 @@ function essayOf(options: EssayOptions): Essay {
       authors: [],
       affiliations: [],
     },
-    content: { type: "doc", content: [{ type: "sectionBody", content: body }] },
+    content: {
+      type: "doc",
+      content: [{ type: NODE_NAMES.sectionBody, content: body }],
+    },
     referencesSnapshot: options.snapshot ?? [],
   };
 }

@@ -6,13 +6,14 @@ import {
   normalizeForStudentRelease,
   summarize,
 } from "./essay.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 describe("docPreview", () => {
   const doc = {
     type: "doc",
     content: [
       {
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
             type: "paragraph",
@@ -43,7 +44,7 @@ describe("docPreview", () => {
     const emojiDoc = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [{
           type: "paragraph",
           content: [{ type: "text", text: "ab😀cd" }],
@@ -60,7 +61,7 @@ describe("docPreview", () => {
     const emojiDoc = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
             type: "paragraph",
@@ -86,7 +87,7 @@ describe("summarize with title-page fields and preview", () => {
       type: "doc",
       content: [
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "paragraph",
@@ -113,7 +114,10 @@ describe("createEmptyEssay", () => {
     expect(essay.titlePage.title).toBe("Ensayo sin título");
     expect(essay.content).toEqual({
       type: "doc",
-      content: [{ type: "sectionBody", content: [{ type: "paragraph" }] }],
+      content: [{
+        type: NODE_NAMES.sectionBody,
+        content: [{ type: "paragraph" }],
+      }],
     });
   });
 
@@ -159,7 +163,7 @@ describe("essayFromLegacyDraft", () => {
     const content = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [{
           type: "paragraph",
           content: [{ type: "text", text: "Hola" }],

@@ -1,7 +1,7 @@
 import { Packer } from "docx";
 import { strFromU8, unzipSync } from "fflate";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import type { Reference } from "@tesina/engine";
+import { NODE_NAMES, Reference } from "@tesina/engine";
 import { exportDocx, type ExportImage, type PMJson } from "../src/index.ts";
 import { sampleEssayInput as sampleInput } from "../src/sample.ts";
 
@@ -69,10 +69,10 @@ function innermostTableContaining(xml: string, text: string): string {
 
 function singleCellApaTable(title: string, cellText: string): PMJson {
   return {
-    type: "apaTable",
+    type: NODE_NAMES.apaTable,
     content: [
       {
-        type: "tableTitle",
+        type: NODE_NAMES.tableTitle,
         content: [{ type: "text", text: title }],
       },
       {
@@ -171,7 +171,7 @@ function figureBlock(title: string, src: string): PMJson {
     type: "figure",
     content: [
       {
-        type: "figureTitle",
+        type: NODE_NAMES.figureTitle,
         content: [{ type: "text", text: title }],
       },
       { type: "figureImage", attrs: { src } },
@@ -203,9 +203,9 @@ function tableCell(
 
 function apaTable(rows: PMJson[][]): PMJson {
   return {
-    type: "apaTable",
+    type: NODE_NAMES.apaTable,
     content: [
-      { type: "tableTitle" },
+      { type: NODE_NAMES.tableTitle },
       {
         type: "table",
         content: rows.map((content) => ({
@@ -226,7 +226,7 @@ function inputWithBody(
   input.images = images;
   input.content = {
     type: "doc",
-    content: [{ type: "sectionBody", content }],
+    content: [{ type: NODE_NAMES.sectionBody, content }],
   };
   return input;
 }
@@ -245,7 +245,7 @@ function inputCiting(refId: string) {
     type: "doc",
     content: [
       {
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [{
           type: "paragraph",
           content: [{
@@ -450,7 +450,7 @@ describe("exportDocx (student, es)", () => {
       type: "doc",
       content: [
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{
             type: "paragraph",
             content: [{ type: "text", text: "Body order marker" }],
@@ -495,9 +495,12 @@ describe("exportDocx (student, es)", () => {
     [
       "table",
       {
-        type: "apaTable",
+        type: NODE_NAMES.apaTable,
         content: [
-          { type: "tableTitle", content: [{ type: "text", text: "Data" }] },
+          {
+            type: NODE_NAMES.tableTitle,
+            content: [{ type: "text", text: "Data" }],
+          },
           {
             type: "table",
             content: [{
@@ -521,7 +524,7 @@ describe("exportDocx (student, es)", () => {
         type: "figure",
         content: [
           {
-            type: "figureTitle",
+            type: NODE_NAMES.figureTitle,
             content: [{ type: "text", text: "Distribution" }],
           },
           { type: "figureImage", attrs: { src: "missing.png" } },
@@ -542,7 +545,7 @@ describe("exportDocx (student, es)", () => {
             content: [{ type: "text", text: "Abstract text" }],
           }],
         },
-        { type: "sectionBody", content: [block] },
+        { type: NODE_NAMES.sectionBody, content: [block] },
       ],
     };
 
@@ -563,7 +566,7 @@ describe("exportDocx (student, es)", () => {
     input.content = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
             type: "heading",
@@ -624,7 +627,7 @@ describe("exportDocx (student, es)", () => {
     input.content = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
             type: "heading",
@@ -732,7 +735,7 @@ describe("exportDocx (student, es)", () => {
       input.content = {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "heading",
@@ -804,13 +807,13 @@ describe("exportDocx (student, es)", () => {
     input.content = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
-            type: "apaTable",
+            type: NODE_NAMES.apaTable,
             content: [
               {
-                type: "tableTitle",
+                type: NODE_NAMES.tableTitle,
                 content: [{ type: "text", text: "Citation order" }],
               },
               {
@@ -894,13 +897,13 @@ describe("exportDocx (student, es)", () => {
     input.content = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
-            type: "apaTable",
+            type: NODE_NAMES.apaTable,
             content: [
               {
-                type: "tableTitle",
+                type: NODE_NAMES.tableTitle,
                 content: [{ type: "text", text: "Top-level table" }],
               },
               {
@@ -926,7 +929,7 @@ describe("exportDocx (student, es)", () => {
             type: "figure",
             content: [
               {
-                type: "figureTitle",
+                type: NODE_NAMES.figureTitle,
                 content: [{ type: "text", text: "Top-level figure" }],
               },
               { type: "figureImage", attrs: { src: "missing-top.png" } },
@@ -939,10 +942,10 @@ describe("exportDocx (student, es)", () => {
               type: "blockquote",
               content: [
                 {
-                  type: "apaTable",
+                  type: NODE_NAMES.apaTable,
                   content: [
                     {
-                      type: "tableTitle",
+                      type: NODE_NAMES.tableTitle,
                       content: [
                         { type: "text", text: "NESTED QUOTE TABLE " },
                         citation,
@@ -977,7 +980,7 @@ describe("exportDocx (student, es)", () => {
                   type: "figure",
                   content: [
                     {
-                      type: "figureTitle",
+                      type: NODE_NAMES.figureTitle,
                       content: [
                         { type: "text", text: "NESTED QUOTE FIGURE " },
                         citation,
@@ -1035,8 +1038,8 @@ describe("exportDocx (student, es)", () => {
   it("keeps a table inside page bounds when quote nesting consumes its writable width", async () => {
     const input = sampleInput();
     const tableBlock = (input.content as PMJson).content
-      ?.find((node) => node.type === "sectionBody")?.content
-      ?.find((node) => node.type === "apaTable");
+      ?.find((node) => node.type === NODE_NAMES.sectionBody)?.content
+      ?.find((node) => node.type === NODE_NAMES.apaTable);
     if (!tableBlock) throw new Error("Sample table not found");
     const nestedTable = Array.from({ length: 13 }).reduce<PMJson>(
       (child) => ({ type: "blockquote", content: [child] }),
@@ -1044,7 +1047,7 @@ describe("exportDocx (student, es)", () => {
     );
     input.content = {
       type: "doc",
-      content: [{ type: "sectionBody", content: [nestedTable] }],
+      content: [{ type: NODE_NAMES.sectionBody, content: [nestedTable] }],
     };
 
     const xml = await documentXmlFor(input);
@@ -1059,11 +1062,11 @@ describe("exportDocx (student, es)", () => {
     input.content = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [{
-          type: "apaTable",
+          type: NODE_NAMES.apaTable,
           content: [
-            { type: "tableTitle" },
+            { type: NODE_NAMES.tableTitle },
             {
               type: "table",
               content: [{
@@ -1124,11 +1127,11 @@ describe("exportDocx (student, es)", () => {
     input.content = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [{
-          type: "apaTable",
+          type: NODE_NAMES.apaTable,
           content: [
-            { type: "tableTitle" },
+            { type: NODE_NAMES.tableTitle },
             {
               type: "table",
               content: [{
@@ -1422,7 +1425,7 @@ describe("exportDocx (student, es)", () => {
     input.content = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [{ type: "apaEquation", attrs: { latex: "E = mc^2" } }],
       }],
     };

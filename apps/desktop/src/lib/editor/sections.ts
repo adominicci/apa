@@ -1,4 +1,5 @@
 import { type Editor, Node } from "@tiptap/core";
+import { NODE_NAMES } from "@tesina/engine";
 
 /**
  * Tesina's document shape (plan §editor): one ProseMirror doc per essay,
@@ -11,11 +12,11 @@ import { type Editor, Node } from "@tiptap/core";
 export const TesinaDocument = Node.create({
   name: "doc",
   topNode: true,
-  content: "sectionAbstract? sectionBody sectionAppendix*",
+  content: `sectionAbstract? ${NODE_NAMES.sectionBody} sectionAppendix*`,
 });
 
 export const SectionBody = Node.create({
-  name: "sectionBody",
+  name: NODE_NAMES.sectionBody,
   content: "(block | equationBlock)+",
   isolating: true,
   defining: true,
@@ -29,7 +30,7 @@ export const SectionBody = Node.create({
 
 export const SectionAbstract = Node.create({
   name: "sectionAbstract",
-  content: "paragraph+ keywordsLine?",
+  content: `paragraph+ ${NODE_NAMES.keywordsLine}?`,
   isolating: true,
   defining: true,
   parseHTML() {
@@ -63,7 +64,7 @@ export const SectionAppendix = Node.create({
 
 /** "Keywords:" / "Palabras clave:" line at the end of the abstract. */
 export const KeywordsLine = Node.create({
-  name: "keywordsLine",
+  name: NODE_NAMES.keywordsLine,
   content: "inline*",
   marks: "italic",
   parseHTML() {
@@ -147,11 +148,11 @@ export function removeAppendixAtSelection(editor: Editor): boolean {
 export function addKeywordsLine(editor: Editor): void {
   const abstract = editor.state.doc.firstChild;
   if (!abstract || abstract.type.name !== "sectionAbstract") return;
-  if (abstract.lastChild?.type.name === "keywordsLine") return;
+  if (abstract.lastChild?.type.name === NODE_NAMES.keywordsLine) return;
   const insertAt = abstract.nodeSize - 1;
   editor
     .chain()
-    .insertContentAt(insertAt, { type: "keywordsLine" })
+    .insertContentAt(insertAt, { type: NODE_NAMES.keywordsLine })
     .focus(insertAt + 1)
     .run();
 }

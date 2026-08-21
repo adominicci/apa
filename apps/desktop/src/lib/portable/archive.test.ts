@@ -10,6 +10,7 @@ import {
   fixtureUuid,
   largeTextLibraryFixture,
 } from "./fixtures/libraries.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 /** Tasks 2.1–2.6: pure archive contract and deterministic bytes. */
 
@@ -262,7 +263,7 @@ describe("highly compressible local content", () => {
     const fixture = figureHeavyLibraryFixture();
     const essay = structuredClone(fixture.essays[0]);
     (essay.content as { content: unknown[] }).content.push({
-      type: "sectionBody",
+      type: NODE_NAMES.sectionBody,
       content: [{
         type: "paragraph",
         content: [{ type: "text", text: "a".repeat(2_000_000) }],

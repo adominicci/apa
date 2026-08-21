@@ -279,7 +279,7 @@ describe("packaged backup smoke runner helpers", () => {
     const root = await Deno.makeTempDir({ prefix: "backup-smoke-nsis-" });
     const cargoTarget = join(root, "cargo-target");
     const packageDir = join(cargoTarget, "release", "bundle", "nsis");
-    const packagePath = join(packageDir, "Tesina_0.1.18_x64-setup.exe");
+    const packagePath = join(packageDir, "Tesina_0.1.19_x64-setup.exe");
     const installDir = join(root, "Installed Package With Spaces");
     const calls: Array<{ command: string; args: string[] }> = [];
     await Deno.mkdir(packageDir, { recursive: true });
@@ -322,7 +322,7 @@ describe("packaged backup smoke runner helpers", () => {
     const root = await Deno.makeTempDir({ prefix: "backup-smoke-preseeded-" });
     const cargoTarget = join(root, "cargo-target");
     const packageDir = join(cargoTarget, "release", "bundle", "nsis");
-    const packagePath = join(packageDir, "Tesina_0.1.18_x64-setup.exe");
+    const packagePath = join(packageDir, "Tesina_0.1.19_x64-setup.exe");
     const installDir = join(root, "pre-existing-install");
     let executorCalled = false;
     await Deno.mkdir(packageDir, { recursive: true });

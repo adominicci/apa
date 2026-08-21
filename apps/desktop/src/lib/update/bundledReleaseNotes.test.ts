@@ -9,12 +9,11 @@ describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
     const expectedNotes = `### Changed
 
-- Internal reliability work with no visible changes: saving now runs through a
-  dedicated autosave engine with the same save states as before, and document
-  building blocks share one source of truth for their names across the editor,
-  previews, and Word export.`;
+- Internal consistency work with no visible changes: document building blocks
+  now share one source of truth for their names across the editor's schema,
+  live pagination, previews, portable archives, and Word export.`;
 
-    expect(bundledReleaseNotes.version).toBe("0.1.18");
+    expect(bundledReleaseNotes.version).toBe("0.1.19");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");

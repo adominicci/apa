@@ -5,6 +5,14 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-08-21
+
+### Changed
+
+- Internal consistency work with no visible changes: document building blocks
+  now share one source of truth for their names across the editor's schema,
+  live pagination, previews, portable archives, and Word export.
+
 ## [0.1.18] - 2026-08-21
 
 ### Changed
@@ -311,7 +319,8 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.18...HEAD
+[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.19...HEAD
+[0.1.19]: https://github.com/adominicci/tesina/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/adominicci/tesina/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/adominicci/tesina/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/adominicci/tesina/compare/v0.1.15...v0.1.16

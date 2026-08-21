@@ -5,6 +5,7 @@ import type { Editor as TiptapEditor } from "@tiptap/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Editor from "./Editor.svelte";
 import EditorLaunchHarness from "./EditorLaunchHarness.test.svelte";
+import { NODE_NAMES } from "@tesina/engine";
 
 Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 Range.prototype.getBoundingClientRect = () => new DOMRect();
@@ -12,7 +13,7 @@ Range.prototype.getBoundingClientRect = () => new DOMRect();
 const content = {
   type: "doc",
   content: [{
-    type: "sectionBody",
+    type: NODE_NAMES.sectionBody,
     content: [{
       type: "paragraph",
       content: [{ type: "text", text: "Existing body" }],

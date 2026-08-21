@@ -13,6 +13,7 @@ import { latexToMathml, latexToMathTree } from "./mathml.ts";
 import { deleteApaTableAt } from "./tableCommands.ts";
 import { deleteApaFigureAt } from "./figureCommands.ts";
 import { mathTreeToOmml } from "@tesina/docx-export";
+import { NODE_NAMES } from "@tesina/engine";
 
 /**
  * Wires a pencil button and its menu into an open/close pair that dismisses on
@@ -55,7 +56,7 @@ function createMenuToggle(menu: HTMLElement, trigger: HTMLElement) {
  * Structure: apaTable → tableTitle table tableNote.
  */
 export const TableTitle = Node.create({
-  name: "tableTitle",
+  name: NODE_NAMES.tableTitle,
   content: "inline*",
   defining: true,
   parseHTML() {
@@ -79,9 +80,9 @@ export const TableNote = Node.create({
 });
 
 export const ApaTable = Node.create({
-  name: "apaTable",
+  name: NODE_NAMES.apaTable,
   group: "block",
-  content: "tableTitle table tableNote",
+  content: `${NODE_NAMES.tableTitle} table tableNote`,
   isolating: true,
   parseHTML() {
     return [{ tag: "figure[data-apa-table]" }];
@@ -224,7 +225,7 @@ export const ApaTable = Node.create({
  * NodeView. Structure: figure → figureTitle figureImage figureNote.
  */
 export const FigureTitle = Node.create({
-  name: "figureTitle",
+  name: NODE_NAMES.figureTitle,
   content: "inline*",
   defining: true,
   parseHTML() {
@@ -306,7 +307,7 @@ export const FigureImage = Node.create({
 export const ApaFigure = Node.create({
   name: "figure",
   group: "block",
-  content: "figureTitle figureImage figureNote",
+  content: `${NODE_NAMES.figureTitle} figureImage figureNote`,
   isolating: true,
   parseHTML() {
     return [{ tag: "figure[data-apa-figure]" }];
@@ -633,9 +634,9 @@ export function insertApaTable(
     .chain()
     .focus()
     .insertContent({
-      type: "apaTable",
+      type: NODE_NAMES.apaTable,
       content: [
-        { type: "tableTitle" },
+        { type: NODE_NAMES.tableTitle },
         { type: "table", content: tableRows },
         { type: "tableNote" },
       ],
@@ -651,7 +652,7 @@ export function insertFigure(editor: Editor, src: string): void {
     .insertContent({
       type: "figure",
       content: [
-        { type: "figureTitle" },
+        { type: NODE_NAMES.figureTitle },
         { type: "figureImage", attrs: { src } },
         { type: "figureNote" },
       ],
@@ -667,7 +668,8 @@ export function canInsertApaEquation(state: EditorState): boolean {
     ? $from.depth - 1
     : $from.depth;
   const container = $from.node(containerDepth).type.name;
-  return container === "sectionBody" || container === "sectionAppendix";
+  return container === NODE_NAMES.sectionBody ||
+    container === "sectionAppendix";
 }
 
 export function insertApaEquation(editor: Editor, latex: string): void {

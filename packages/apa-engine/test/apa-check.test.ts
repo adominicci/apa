@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { checkApaDocument } from "../src/index.ts";
+import { NODE_NAMES } from "../src/nodeNames.ts";
 
 function doc(...sections: unknown[]) {
   return { type: "doc", content: sections };
 }
 
 function body(...children: unknown[]) {
-  return { type: "sectionBody", content: children };
+  return { type: NODE_NAMES.sectionBody, content: children };
 }
 
 function p(text?: string) {
@@ -96,9 +97,9 @@ describe("checkApaDocument", () => {
 
   it("flags an empty table title, pointing at the title node", () => {
     const table = {
-      type: "apaTable",
+      type: NODE_NAMES.apaTable,
       content: [
-        { type: "tableTitle" },
+        { type: NODE_NAMES.tableTitle },
         { type: "table" },
         { type: "tableNote", content: [{ type: "text", text: "Nota" }] },
       ],
@@ -112,7 +113,7 @@ describe("checkApaDocument", () => {
     const figure = {
       type: "figure",
       content: [
-        { type: "figureTitle" },
+        { type: NODE_NAMES.figureTitle },
         { type: "figureImage", attrs: { src: "x.png" } },
         { type: "figureNote" },
       ],
@@ -124,9 +125,12 @@ describe("checkApaDocument", () => {
 
   it("accepts a titled table and figure", () => {
     const table = {
-      type: "apaTable",
+      type: NODE_NAMES.apaTable,
       content: [
-        { type: "tableTitle", content: [{ type: "text", text: "Título" }] },
+        {
+          type: NODE_NAMES.tableTitle,
+          content: [{ type: "text", text: "Título" }],
+        },
         { type: "table" },
         { type: "tableNote" },
       ],
@@ -158,7 +162,7 @@ describe("checkApaDocument", () => {
   it("does not flag the abstract placeholder when a keywords line follows it", () => {
     const abstract = {
       type: "sectionAbstract",
-      content: [p(), { type: "keywordsLine" }],
+      content: [p(), { type: NODE_NAMES.keywordsLine }],
     };
     expect(checkApaDocument(doc(abstract, body(p("Hola"))))).toEqual([]);
   });
@@ -166,7 +170,7 @@ describe("checkApaDocument", () => {
   it("still flags a real blank line in an abstract with keywords", () => {
     const abstract = {
       type: "sectionAbstract",
-      content: [p("Resumen breve."), p(), { type: "keywordsLine" }],
+      content: [p("Resumen breve."), p(), { type: NODE_NAMES.keywordsLine }],
     };
     expect(checkApaDocument(doc(abstract, body(p("Hola"))))).toEqual([
       { rule: "empty-paragraph", path: [0, 1] },

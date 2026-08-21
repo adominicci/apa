@@ -1,7 +1,7 @@
 import type { Editor } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { TextSelection } from "@tiptap/pm/state";
-import type { Reference } from "@tesina/engine";
+import { NODE_NAMES, type Reference } from "@tesina/engine";
 import { createEmptyEssay } from "../../../model/essay.ts";
 import {
   renderEssayCss,
@@ -343,7 +343,7 @@ async function measureNativeHardBreakEvidence(
     content: {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
             type: "paragraph",
@@ -477,7 +477,7 @@ async function measureNativeOversizedTableTextEvidence(
     content: {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
             type: "heading",
@@ -498,10 +498,10 @@ async function measureNativeOversizedTableTextEvidence(
             content: [{ type: "text", text: heading }],
           },
           {
-            type: "apaTable",
+            type: NODE_NAMES.apaTable,
             content: [
               {
-                type: "tableTitle",
+                type: NODE_NAMES.tableTitle,
                 content: [{ type: "text", text: title }],
               },
               {
@@ -561,7 +561,7 @@ async function measureNativeOversizedTableTextEvidence(
     const headingPositions = positionsOf(editor.state.doc, "heading");
     const runInHeadingPos = headingPositions[0]!;
     const headingPos = headingPositions[1]!;
-    const titlePos = positionsOf(editor.state.doc, "tableTitle")[0]!;
+    const titlePos = positionsOf(editor.state.doc, NODE_NAMES.tableTitle)[0]!;
     const notePos = positionsOf(editor.state.doc, "tableNote")[0]!;
     const runInHeadingNode = editor.state.doc.nodeAt(runInHeadingPos)!;
     const headingNode = editor.state.doc.nodeAt(headingPos)!;
@@ -1127,7 +1127,7 @@ function renderedWorkloadContent(targetPages: NativePaginationWorkloadPages) {
   return {
     type: "doc",
     content: [{
-      type: "sectionBody",
+      type: NODE_NAMES.sectionBody,
       content: Array.from({ length: targetPages * 9 }, (_, index) => ({
         type: "paragraph",
         content: [{ type: "text", text: workloadParagraphText(index + 1) }],
@@ -1810,7 +1810,10 @@ async function runProof(): Promise<ProofResult> {
       fragment.kind === "tableRow"
     );
     const repeatedTableHeader = tableFragments[1]?.table?.repeatedHeader;
-    const bodySectionPos = positionsOf(editor.state.doc, "sectionBody")[0]!;
+    const bodySectionPos = positionsOf(
+      editor.state.doc,
+      NODE_NAMES.sectionBody,
+    )[0]!;
     const bodySection = editor.view.nodeDOM(bodySectionPos) as HTMLElement;
     const firstBodyBlock = [...bodySection.children].find((child) =>
       !child.matches("[data-pagination-gap], [data-pagination-proof-gap]")
@@ -1831,7 +1834,10 @@ async function runProof(): Promise<ProofResult> {
     const generatedHeadingMeasurementMatchesVisualSpan = Math.abs(
       generatedHeadingMeasuredHeight - generatedHeadingVisualHeight,
     ) < 0.5;
-    const firstTablePos = positionsOf(editor.state.doc, "apaTable")[0]!;
+    const firstTablePos = positionsOf(
+      editor.state.doc,
+      NODE_NAMES.apaTable,
+    )[0]!;
     const firstTableNode = editor.state.doc.nodeAt(firstTablePos)!;
     const firstTable = editor.view.nodeDOM(firstTablePos) as HTMLElement;
     const firstTableStyle = getComputedStyle(firstTable);

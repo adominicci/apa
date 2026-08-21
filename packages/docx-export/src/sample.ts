@@ -1,4 +1,4 @@
-import type { Reference } from "@tesina/engine";
+import { NODE_NAMES, Reference } from "@tesina/engine";
 import type { ExportInput, MathNode } from "./input.ts";
 
 /** Shorthand mirroring the MathML tag/children shape (see math.test.ts). */
@@ -108,13 +108,13 @@ export function sampleEssayInput(
               }],
             },
             {
-              type: "keywordsLine",
+              type: NODE_NAMES.keywordsLine,
               content: [{ type: "text", text: "lectura, pantallas" }],
             },
           ],
         },
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "paragraph",
@@ -176,10 +176,10 @@ export function sampleEssayInput(
               ],
             },
             {
-              type: "apaTable",
+              type: NODE_NAMES.apaTable,
               content: [
                 {
-                  type: "tableTitle",
+                  type: NODE_NAMES.tableTitle,
                   content: [{
                     type: "text",
                     text: "Horas de lectura por semana",
@@ -298,7 +298,7 @@ export function sampleEssayInput(
               type: "figure",
               content: [
                 {
-                  type: "figureTitle",
+                  type: NODE_NAMES.figureTitle,
                   content: [{ type: "text", text: "Distribución por curso" }],
                 },
                 {
@@ -330,10 +330,10 @@ export function sampleEssayInput(
                       }],
                     },
                     {
-                      type: "apaTable",
+                      type: NODE_NAMES.apaTable,
                       content: [
                         {
-                          type: "tableTitle",
+                          type: NODE_NAMES.tableTitle,
                           content: [{
                             type: "text",
                             text: "Tabla dentro de la lista",

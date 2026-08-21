@@ -1,12 +1,14 @@
 import {
   buildReferenceList,
   buildStudentTitlePage,
+  type CitationAttrs,
+  type DocLocale,
   formatCitation,
   getTerms,
+  NODE_NAMES,
   type Reference,
   type RichRun,
 } from "@tesina/engine";
-import type { CitationAttrs, DocLocale } from "@tesina/engine";
 import {
   buildDocContext,
   type DocContext,
@@ -135,7 +137,7 @@ function apaTableHtml(block: PMJson, state: RenderState): string {
   state.tableNo.n += 1;
   const t = getTerms(state.ctx.locale);
   const children = block.content ?? [];
-  const titleNode = children.find((c) => c.type === "tableTitle");
+  const titleNode = children.find((c) => c.type === NODE_NAMES.tableTitle);
   const tableNode = children.find((c) => c.type === "table");
   const noteNode = children.find((c) => c.type === "tableNote");
 
@@ -169,7 +171,7 @@ function apaFigureHtml(block: PMJson, state: RenderState): string {
   state.figureNo.n += 1;
   const t = getTerms(state.ctx.locale);
   const children = block.content ?? [];
-  const titleNode = children.find((c) => c.type === "figureTitle");
+  const titleNode = children.find((c) => c.type === NODE_NAMES.figureTitle);
   const imageNode = children.find((c) => c.type === "figureImage");
   const noteNode = children.find((c) => c.type === "figureNote");
 
@@ -297,13 +299,13 @@ function blocksHtml(
       }</blockquote>`;
     } else if (block.type === "bulletList" || block.type === "orderedList") {
       out += listHtml(block, state);
-    } else if (block.type === "apaTable") {
+    } else if (block.type === NODE_NAMES.apaTable) {
       out += apaTableHtml(block, state);
     } else if (block.type === "figure") {
       out += apaFigureHtml(block, state);
     } else if (block.type === "apaEquation") {
       out += apaEquationHtml(block, state);
-    } else if (block.type === "keywordsLine") {
+    } else if (block.type === NODE_NAMES.keywordsLine) {
       const t = getTerms(state.ctx.locale);
       out += `<p class="keywords"><em>${esc(t.headings.keywords)}</em> ${
         inlineHtml(block.content ?? [], state)
@@ -432,7 +434,7 @@ export function renderEssayHtml(
       html += `<section class="abstract"><h1>${esc(t.headings.abstract)}</h1>`;
       html += blocksHtml(section.content ?? [], state, "no-indent");
       html += "</section>";
-    } else if (section.type === "sectionBody") {
+    } else if (section.type === NODE_NAMES.sectionBody) {
       html += `<section class="body-sec">`;
       if (!hasAuthoredBodyTitle(section, titlePage.title)) {
         html += `<h1 class="body-title">${esc(titlePage.title)}</h1>`;

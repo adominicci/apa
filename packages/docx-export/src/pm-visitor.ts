@@ -6,7 +6,7 @@ import {
   TabStopType,
   TextRun,
 } from "docx";
-import { getTerms } from "@tesina/engine";
+import { getTerms, NODE_NAMES } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
 import { hasAuthoredBodyTitle } from "./body-title.ts";
 import { type DocContext, inlineToTextRuns } from "./runs.ts";
@@ -257,7 +257,7 @@ export function visitBlocks(
         visitList(block, 0);
         break;
       }
-      case "apaTable": {
+      case NODE_NAMES.apaTable: {
         emittedFirst = true;
         out.push(
           ...apaTableBlocks(
@@ -329,7 +329,7 @@ export function visitBlocks(
         );
         break;
       }
-      case "keywordsLine": {
+      case NODE_NAMES.keywordsLine: {
         const t = getTerms(state.ctx.locale);
         emit(options.paragraphStyle ?? "BodyText", [
           new TextRun({ text: `${t.headings.keywords} `, italics: true }),
@@ -394,7 +394,7 @@ export function visitDocument(
           firstParagraphStyle: "Normal",
         }),
       );
-    } else if (section.type === "sectionBody") {
+    } else if (section.type === NODE_NAMES.sectionBody) {
       const authoredBodyTitle = hasAuthoredBodyTitle(section, bodyTitle);
       if (!authoredBodyTitle) {
         beforeReferences.push(

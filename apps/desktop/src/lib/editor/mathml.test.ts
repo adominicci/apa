@@ -10,6 +10,7 @@ import {
   mathTreeToOmml,
 } from "@tesina/docx-export";
 import { isValidLatex, latexToMathml, latexToMathTree } from "./mathml.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 describe("latexToMathTree", () => {
   it("convierte una fracción en un árbol con mfrac", () => {
@@ -123,7 +124,7 @@ describe("latexToMathTree", () => {
       content: {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [...supported, ...unsupported].map((latex) => ({
             type: "apaEquation",
             attrs: { latex },

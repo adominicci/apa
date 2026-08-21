@@ -1,3 +1,4 @@
+import { NODE_NAMES, type Reference } from "@tesina/engine";
 /**
  * Deterministic representative library fixtures (task 1.3). Three profiles —
  * empty, large-text, and figure-heavy — whose measured sizes justify the
@@ -5,7 +6,6 @@
  * runs (or two processes) produce byte-identical content.
  */
 
-import type { Reference } from "@tesina/engine";
 import type { Essay } from "$lib/model/essay";
 import type { RefCollection } from "$lib/model/collections";
 import { bmpBytes, gifBytes, jpegBytes, pngBytes } from "./images.ts";
@@ -71,7 +71,10 @@ function figureNode(src: string, title: string): unknown {
   return {
     type: "figure",
     content: [
-      { type: "figureTitle", content: [{ type: "text", text: title }] },
+      {
+        type: NODE_NAMES.figureTitle,
+        content: [{ type: "text", text: title }],
+      },
       { type: "figureImage", attrs: { src, alt: title } },
       { type: "figureNote", content: [{ type: "text", text: "Nota." }] },
     ],
@@ -129,7 +132,10 @@ function fixtureEssay(n: number, options: EssayFixtureOptions): Essay {
       course: "PSY-101",
       instructor: "Docente Ejemplo",
     },
-    content: { type: "doc", content: [{ type: "sectionBody", content: body }] },
+    content: {
+      type: "doc",
+      content: [{ type: NODE_NAMES.sectionBody, content: body }],
+    },
     referencesSnapshot: citedRefs,
   };
 }

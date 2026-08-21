@@ -6,6 +6,7 @@ import { EditorState } from "@tiptap/pm/state";
 import { sectionExtensions } from "./sections.ts";
 import { OrderedListStyleAttr } from "./lists.ts";
 import { blockExtensions, createApaEquationExtension } from "./blocks.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 // The real editor schema (minus the citation extension, which needs a live
 // library env) so the test exercises the same node hierarchy the app uses.
@@ -33,14 +34,14 @@ const docJson = {
   type: "doc",
   content: [
     {
-      type: "sectionBody",
+      type: NODE_NAMES.sectionBody,
       content: [
         para("Antes de la figura."),
         {
           type: "figure",
           content: [
             {
-              type: "figureTitle",
+              type: NODE_NAMES.figureTitle,
               content: [{ type: "text", text: "Título" }],
             },
             { type: "figureImage", attrs: { src: "essays/assets/x.png" } },
@@ -81,7 +82,14 @@ describe("figure deletion", () => {
     const next = state.apply(
       state.tr.deleteRange(pos, pos + node.nodeSize),
     );
-    for (const name of ["figure", "figureTitle", "figureImage", "figureNote"]) {
+    for (
+      const name of [
+        "figure",
+        NODE_NAMES.figureTitle,
+        "figureImage",
+        "figureNote",
+      ]
+    ) {
       expect(countNodes(next.doc, name)).toBe(0);
     }
     // Surrounding text is untouched.

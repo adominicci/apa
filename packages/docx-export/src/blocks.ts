@@ -9,7 +9,7 @@ import {
   TextRun,
   WidthType,
 } from "docx";
-import { getTerms } from "@tesina/engine";
+import { getTerms, NODE_NAMES } from "@tesina/engine";
 import type { PMJson } from "./input.ts";
 import { type DocContext, inlineToTextRuns } from "./runs.ts";
 
@@ -185,7 +185,7 @@ export function apaTableBlocks(
   tableCounter.n += 1;
   const t = getTerms(ctx.locale);
   const children = block.content ?? [];
-  const titleNode = children.find((c) => c.type === "tableTitle");
+  const titleNode = children.find((c) => c.type === NODE_NAMES.tableTitle);
   const tableNode = children.find((c) => c.type === "table");
   const noteNode = children.find((c) => c.type === "tableNote");
 
@@ -319,7 +319,7 @@ export function apaFigureBlocks(
   figureCounter.n += 1;
   const t = getTerms(ctx.locale);
   const children = block.content ?? [];
-  const titleNode = children.find((c) => c.type === "figureTitle");
+  const titleNode = children.find((c) => c.type === NODE_NAMES.figureTitle);
   const imageNode = children.find((c) => c.type === "figureImage");
   const noteNode = children.find((c) => c.type === "figureNote");
 

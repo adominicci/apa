@@ -1,10 +1,10 @@
+import { NODE_NAMES, type Reference } from "@tesina/engine";
 /**
  * Semantic-identity digests (task 5.2, design §5): persistence and import
  * provenance timestamps never create false essay conflicts, while every
  * genuinely semantic field does change the digest.
  */
 import { describe, expect, it } from "vitest";
-import type { Reference } from "@tesina/engine";
 import type { Essay } from "$lib/model/essay";
 import type { RefCollection } from "$lib/model/collections";
 import { fixtureUuid } from "./fixtures/libraries.ts";
@@ -46,7 +46,7 @@ function baseEssay(): Essay {
     content: {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [{
           type: "paragraph",
           content: [{ type: "text", text: "Cuerpo del ensayo." }],
@@ -101,7 +101,10 @@ describe("essaySemanticDigest", () => {
       ...baseEssay(),
       content: {
         type: "doc",
-        content: [{ type: "sectionBody", content: [{ type: "paragraph" }] }],
+        content: [{
+          type: NODE_NAMES.sectionBody,
+          content: [{ type: "paragraph" }],
+        }],
       },
     };
     expect(await essaySemanticDigest(changed)).not.toBe(

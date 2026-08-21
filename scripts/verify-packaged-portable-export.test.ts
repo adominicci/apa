@@ -7,7 +7,7 @@ import {
   verifyPackagedPortableExport,
 } from "./verify-packaged-portable-export.ts";
 
-const APP_VERSION = "0.1.18";
+const APP_VERSION = "0.1.19";
 
 async function fixtureArchive(
   mutate?: (content: ReturnType<typeof assembleArchiveContent>) => void,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { hasAuthoredBodyTitle, type PMJson } from "../src/index.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 function documentWithBody(content: PMJson[]): PMJson {
   return {
@@ -9,7 +10,7 @@ function documentWithBody(content: PMJson[]): PMJson {
         type: "sectionAbstract",
         content: [{ type: "paragraph" }],
       },
-      { type: "sectionBody", content },
+      { type: NODE_NAMES.sectionBody, content },
     ],
   };
 }

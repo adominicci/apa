@@ -12,6 +12,7 @@ import {
   fixtureUuid,
 } from "./fixtures/libraries.ts";
 import { gifBytes, pngBytes } from "./fixtures/images.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 /** Tasks 3.1/3.3/3.4/3.5: semantic validation of untrusted archives. */
 
@@ -225,7 +226,7 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
       e.content = {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{ type: "script", attrs: { src: "evil" } }],
         }],
       };
@@ -258,7 +259,7 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
       essay.content = {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{ type: "apaEquation", attrs: { latex: { raw: "x" } } }],
         }],
       };
@@ -271,7 +272,7 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
       essay.content = {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{
             type: "apaEquation",
             attrs: { latex: "x".repeat(4_097) },
@@ -287,7 +288,7 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
       essay.content = {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{
             type: "apaEquation",
             attrs: { latex: `${"{".repeat(65)}x${"}".repeat(65)}` },
@@ -310,11 +311,11 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
         essay.content = {
           type: "doc",
           content: [{
-            type: "sectionBody",
+            type: NODE_NAMES.sectionBody,
             content: [{
-              type: "apaTable",
+              type: NODE_NAMES.apaTable,
               content: [
-                { type: "tableTitle" },
+                { type: NODE_NAMES.tableTitle },
                 {
                   type: "table",
                   content: [{
@@ -346,11 +347,11 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
       essay.content = {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{
-            type: "apaTable",
+            type: NODE_NAMES.apaTable,
             content: [
-              { type: "tableTitle" },
+              { type: NODE_NAMES.tableTitle },
               {
                 type: "table",
                 content: [{ type: "tableRow", content: cells }],
@@ -465,7 +466,9 @@ describe("JSON shape and identifier rejections (task 3.3)", () => {
       const doc = essay.content as {
         content: Array<{ type?: string; content?: unknown[] }>;
       };
-      const body = doc.content.find((node) => node.type === "sectionBody");
+      const body = doc.content.find((node) =>
+        node.type === NODE_NAMES.sectionBody
+      );
       if (!body?.content) throw new Error("fixture has no body section");
       body.content.unshift({
         type: "heading",

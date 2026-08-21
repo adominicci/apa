@@ -1,5 +1,6 @@
 import type { Editor } from "@tiptap/core";
 import type { ResolvedPos } from "@tiptap/pm/model";
+import { NODE_NAMES } from "@tesina/engine";
 
 /**
  * Whole-table deletion for APA tables. TipTap's own `deleteTable()` removes
@@ -16,12 +17,12 @@ export function apaTableRange(
 ): { from: number; to: number } | null {
   // A NodeSelection of the apaTable itself resolves *before* the node, so
   // the ancestor walk below would miss it.
-  if ($pos.nodeAfter?.type.name === "apaTable") {
+  if ($pos.nodeAfter?.type.name === NODE_NAMES.apaTable) {
     return { from: $pos.pos, to: $pos.pos + $pos.nodeAfter.nodeSize };
   }
   for (let depth = $pos.depth; depth > 0; depth--) {
     const node = $pos.node(depth);
-    if (node.type.name === "apaTable") {
+    if (node.type.name === NODE_NAMES.apaTable) {
       const from = $pos.before(depth);
       return { from, to: from + node.nodeSize };
     }
@@ -32,7 +33,7 @@ export function apaTableRange(
 /** Deletes the whole `apaTable` starting exactly at `pos` (node-view path). */
 export function deleteApaTableAt(editor: Editor, pos: number): boolean {
   const node = editor.state.doc.nodeAt(pos);
-  if (!node || node.type.name !== "apaTable") return false;
+  if (!node || node.type.name !== NODE_NAMES.apaTable) return false;
   return editor
     .chain()
     .focus()

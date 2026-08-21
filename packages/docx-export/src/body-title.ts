@@ -1,4 +1,5 @@
 import type { PMJson } from "./input.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 function isNode(value: unknown): value is PMJson {
   return typeof value === "object" && value !== null;
@@ -32,10 +33,10 @@ export function hasAuthoredBodyTitle(
   titlePageTitle: string,
 ): boolean {
   if (!isNode(documentOrBody)) return false;
-  const body = documentOrBody.type === "sectionBody"
+  const body = documentOrBody.type === NODE_NAMES.sectionBody
     ? documentOrBody
     : documentOrBody.content?.find(
-      (node) => isNode(node) && node.type === "sectionBody",
+      (node) => isNode(node) && node.type === NODE_NAMES.sectionBody,
     );
   if (!body || !isNode(body)) return false;
 

@@ -1,3 +1,5 @@
+import { NODE_NAMES } from "@tesina/engine";
+
 interface DocNode {
   type?: string;
   attrs?: { level?: number };
@@ -50,7 +52,7 @@ export function buildOutline(docJson: unknown): OutlineItem[] {
         words: wordsOf(section),
         sub: false,
       });
-    } else if (section.type === "sectionBody") {
+    } else if (section.type === NODE_NAMES.sectionBody) {
       let childPos = sectionStart + 1;
       let current: OutlineItem | null = null;
       for (const block of inner) {
