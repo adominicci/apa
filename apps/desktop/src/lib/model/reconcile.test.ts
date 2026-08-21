@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Reference } from "@tesina/engine";
+import { NODE_NAMES, type Reference } from "@tesina/engine";
 import { missingCitedRefs } from "./reconcile.ts";
 
 function ref(id: string): Reference {
@@ -17,7 +17,7 @@ function docCiting(...refIds: string[]): unknown {
     type: "doc",
     content: [
       {
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
             type: "paragraph",

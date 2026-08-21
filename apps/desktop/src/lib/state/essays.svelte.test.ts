@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmptyEssay, type Essay, summarize } from "$lib/model/essay";
 import { APA_FONT_ORDER } from "$lib/model/fonts";
 import { LatestLaunch, type LaunchValue } from "$lib/state/latestLaunch";
+import { NODE_NAMES } from "@tesina/engine";
 
 const persistence = vi.hoisted(() => {
   Object.defineProperty(globalThis, "$state", {
@@ -53,7 +54,7 @@ import { essays } from "./essays.svelte.ts";
 // Frozen pre-pagination schema-v2 bytes. Keep this independent from today's
 // factory so a future default cannot silently rewrite the compatibility case.
 const PRE_PAGINATION_SCHEMA_V2_JSON =
-  `{"schemaVersion":2,"id":"old-schema-two","createdAt":"2025-01-02T03:04:05.000Z","updatedAt":"2025-01-02T03:04:05.000Z","settings":{"documentLanguage":"en","variant":"student","font":"times-new-roman-12","paperSize":"us-letter","includeUncitedReferences":false},"titlePage":{"title":"Archived schema-two paper","authors":["Taylor Example"],"affiliations":["Invented College"]},"content":{"type":"doc","content":[{"type":"sectionBody","content":[{"type":"paragraph","content":[{"type":"text","text":"Authored before live pagination."}]},{"type":"figure","content":[{"type":"figureTitle","content":[{"type":"text","text":"A preserved figure"}]},{"type":"figureImage","attrs":{"src":"essays/assets/old-schema-two/figure.png","alt":"invented chart"}},{"type":"figureNote"}]}]}]},"referencesSnapshot":[{"id":"old-reference","type":"website","authors":[{"kind":"group","name":"Invented Archive"}],"date":{"year":2024},"title":"A preserved source","url":"https://example.test/source"}]}`;
+  `{"schemaVersion":2,"id":"old-schema-two","createdAt":"2025-01-02T03:04:05.000Z","updatedAt":"2025-01-02T03:04:05.000Z","settings":{"documentLanguage":"en","variant":"student","font":"times-new-roman-12","paperSize":"us-letter","includeUncitedReferences":false},"titlePage":{"title":"Archived schema-two paper","authors":["Taylor Example"],"affiliations":["Invented College"]},"content":{"type":"doc","content":[{"type":"${NODE_NAMES.sectionBody}","content":[{"type":"paragraph","content":[{"type":"text","text":"Authored before live pagination."}]},{"type":"figure","content":[{"type":"${NODE_NAMES.figureTitle}","content":[{"type":"text","text":"A preserved figure"}]},{"type":"figureImage","attrs":{"src":"essays/assets/old-schema-two/figure.png","alt":"invented chart"}},{"type":"figureNote"}]}]}]},"referencesSnapshot":[{"id":"old-reference","type":"website","authors":[{"kind":"group","name":"Invented Archive"}],"date":{"year":2024},"title":"A preserved source","url":"https://example.test/source"}]}`;
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -256,7 +257,7 @@ describe("student-release persistence boundary", () => {
     currentEssay.content = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [{
           type: "paragraph",
           content: [{ type: "text", text: "Texto actual conservado." }],

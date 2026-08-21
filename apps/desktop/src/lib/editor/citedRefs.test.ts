@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { collectCitedRefIds } from "./citedRefs.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 describe("collectCitedRefIds", () => {
   it("counts citation items across nested sections", () => {
@@ -7,7 +8,7 @@ describe("collectCitedRefIds", () => {
       type: "doc",
       content: [
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "paragraph",

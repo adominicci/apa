@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createTesinaEditor } from "./createEditor.ts";
 import { deleteIssueRanges, type PositionedApaIssue } from "./apaCheck.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 Range.prototype.getBoundingClientRect = () => new DOMRect();
@@ -12,7 +13,7 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 function docWith(...bodyChildren: unknown[]) {
   return {
     type: "doc",
-    content: [{ type: "sectionBody", content: bodyChildren }],
+    content: [{ type: NODE_NAMES.sectionBody, content: bodyChildren }],
   };
 }
 
@@ -90,9 +91,9 @@ describe("apa check editor integration", () => {
     const { editor, issues } = createEditor(docWith(
       { type: "paragraph", content: text("Hola") },
       {
-        type: "apaTable",
+        type: NODE_NAMES.apaTable,
         content: [
-          { type: "tableTitle" },
+          { type: NODE_NAMES.tableTitle },
           {
             type: "table",
             content: [{
@@ -110,7 +111,7 @@ describe("apa check editor integration", () => {
     await flush();
     expect(issues().map((i) => i.rule)).toEqual(["empty-table-title"]);
     const node = editor.state.doc.nodeAt(issues()[0].from);
-    expect(node?.type.name).toBe("tableTitle");
+    expect(node?.type.name).toBe(NODE_NAMES.tableTitle);
   });
 
   it("does not re-emit an unchanged issue list on plain typing", async () => {

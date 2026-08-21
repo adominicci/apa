@@ -1,4 +1,4 @@
-import type { DocLocale, Reference } from "@tesina/engine";
+import { type DocLocale, NODE_NAMES, type Reference } from "@tesina/engine";
 
 export type PaperVariant = "student" | "professional";
 /** The seven fonts APA 7 accepts (see model/fonts.ts for the descriptors). */
@@ -157,7 +157,10 @@ export function createEmptyEssay(
     },
     content: {
       type: "doc",
-      content: [{ type: "sectionBody", content: [{ type: "paragraph" }] }],
+      content: [{
+        type: NODE_NAMES.sectionBody,
+        content: [{ type: "paragraph" }],
+      }],
     },
     referencesSnapshot: [],
   };

@@ -1,4 +1,4 @@
-import type { DocLocale, Reference } from "@tesina/engine";
+import { type DocLocale, NODE_NAMES, type Reference } from "@tesina/engine";
 
 type GeneratedLabels = {
   abstract: string;
@@ -180,7 +180,7 @@ function buildContent(locale: DocLocale): Record<string, unknown> {
         content: [
           paragraph(copy.abstract),
           {
-            type: "keywordsLine",
+            type: NODE_NAMES.keywordsLine,
             content: [{
               type: "text",
               marks: [{ type: "italic" }],
@@ -190,7 +190,7 @@ function buildContent(locale: DocLocale): Record<string, unknown> {
         ],
       },
       {
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
             type: "paragraph",
@@ -252,10 +252,10 @@ function buildContent(locale: DocLocale): Record<string, unknown> {
             ],
           },
           {
-            type: "apaTable",
+            type: NODE_NAMES.apaTable,
             content: [
               {
-                type: "tableTitle",
+                type: NODE_NAMES.tableTitle,
                 content: [{ type: "text", text: copy.tableTitle }],
               },
               {
@@ -291,7 +291,7 @@ function buildContent(locale: DocLocale): Record<string, unknown> {
             type: "figure",
             content: [
               {
-                type: "figureTitle",
+                type: NODE_NAMES.figureTitle,
                 content: [{ type: "text", text: copy.figureTitle }],
               },
               {
@@ -316,7 +316,7 @@ function buildContent(locale: DocLocale): Record<string, unknown> {
             type: "figure",
             content: [
               {
-                type: "figureTitle",
+                type: NODE_NAMES.figureTitle,
                 content: [{ type: "text", text: copy.oversizeTitle }],
               },
               {
@@ -379,7 +379,7 @@ export function createStablePaginationParityFixture(
   for (const section of content.content ?? []) {
     section.content = (section.content ?? []).filter((node) => {
       const type = (node as { type?: string }).type;
-      return type !== "apaTable" && type !== "figure" &&
+      return type !== NODE_NAMES.apaTable && type !== "figure" &&
         type !== "apaEquation";
     });
   }

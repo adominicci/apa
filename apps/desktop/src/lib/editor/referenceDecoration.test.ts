@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { TextSelection } from "@tiptap/pm/state";
 import type { Node as PMNode } from "@tiptap/pm/model";
-import type { Reference } from "@tesina/engine";
+import { NODE_NAMES, type Reference } from "@tesina/engine";
 import { createTesinaEditor } from "./createEditor.ts";
 import {
   createReferencePagesElement,
@@ -34,7 +34,7 @@ const docJson = {
   type: "doc",
   content: [
     {
-      type: "sectionBody",
+      type: NODE_NAMES.sectionBody,
       content: [{
         type: "paragraph",
         content: [{ type: "text", text: "Body text" }],
@@ -429,7 +429,7 @@ describe("live reference-page decoration", () => {
       type: "doc",
       content: [
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "heading",

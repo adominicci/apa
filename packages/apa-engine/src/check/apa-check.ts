@@ -1,3 +1,5 @@
+import { NODE_NAMES } from "../nodeNames.ts";
+
 /**
  * Live APA structure check: a pure function over the persisted ProseMirror
  * doc JSON (the same tree the preview and DOCX renderers read). Structural
@@ -57,7 +59,9 @@ export function checkApaDocument(doc: unknown): ApaCheckIssue[] {
     const children = section.content ?? [];
     // The abstract's trailing keywords line is chrome-like, not body content;
     // it must not defeat the placeholder exemption below.
-    const blockCount = children.filter((c) => c.type !== "keywordsLine").length;
+    const blockCount = children.filter((c) =>
+      c.type !== NODE_NAMES.keywordsLine
+    ).length;
     // Every section opens with a generated heading the user never authors —
     // the paper title for the body, the "Apéndice A" label for appendices —
     // and APA treats it as the de facto Level 1 heading, so an authored
@@ -95,7 +99,9 @@ export function checkApaDocument(doc: unknown): ApaCheckIssue[] {
 
       // apaTable → tableTitle table tableNote; figure → figureTitle … — the
       // required title node is always the block's first child.
-      if (child.type === "apaTable" && !hasText(child.content?.[0] ?? {})) {
+      if (
+        child.type === NODE_NAMES.apaTable && !hasText(child.content?.[0] ?? {})
+      ) {
         issues.push({ rule: "empty-table-title", path: [...path, 0] });
         return;
       }

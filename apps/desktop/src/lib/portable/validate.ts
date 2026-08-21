@@ -1,3 +1,4 @@
+import { NODE_NAMES, type Reference } from "@tesina/engine";
 /**
  * Full semantic validation of an untrusted `.tesina` archive (design §4).
  * Layers on the structural reader: entry grammar, manifest counts, JSON
@@ -7,7 +8,6 @@
  * the localization keys the UI maps to Paraglide messages.
  */
 
-import type { Reference } from "@tesina/engine";
 import type { Essay } from "$lib/model/essay";
 import { isFontChoice } from "../model/fonts.ts";
 import type { RefCollection } from "$lib/model/collections";
@@ -473,9 +473,9 @@ function validateTitlePage(value: unknown, where: string): void {
 const SUPPORTED_NODE_TYPES = new Set([
   "doc",
   "sectionAbstract",
-  "sectionBody",
+  NODE_NAMES.sectionBody,
   "sectionAppendix",
-  "keywordsLine",
+  NODE_NAMES.keywordsLine,
   "paragraph",
   "text",
   "heading",
@@ -485,15 +485,15 @@ const SUPPORTED_NODE_TYPES = new Set([
   "listItem",
   "hardBreak",
   "citation",
-  "apaTable",
-  "tableTitle",
+  NODE_NAMES.apaTable,
+  NODE_NAMES.tableTitle,
   "table",
   "tableRow",
   "tableHeader",
   "tableCell",
   "tableNote",
   "figure",
-  "figureTitle",
+  NODE_NAMES.figureTitle,
   "figureImage",
   "figureNote",
   "apaEquation",
@@ -546,7 +546,7 @@ function validateProseMirrorDoc(value: unknown, where: string): void {
       : undefined
   );
   let index = sectionTypes[0] === "sectionAbstract" ? 1 : 0;
-  if (sectionTypes[index] !== "sectionBody") throwEssayContent(where);
+  if (sectionTypes[index] !== NODE_NAMES.sectionBody) throwEssayContent(where);
   index += 1;
   if (sectionTypes.slice(index).some((type) => type !== "sectionAppendix")) {
     throwEssayContent(where);
@@ -736,7 +736,7 @@ function validateNodeChildren(
     "blockquote",
     "bulletList",
     "orderedList",
-    "apaTable",
+    NODE_NAMES.apaTable,
     "figure",
   ]);
   const nonEmptyBlocks = new Set([...blocks, "apaEquation"]);
@@ -750,19 +750,20 @@ function validateNodeChildren(
       valid = children.length > 0 && childTypes[0] === "paragraph" &&
         childTypes.every((childType, index) =>
           childType === "paragraph" ||
-          (childType === "keywordsLine" && index === childTypes.length - 1)
+          (childType === NODE_NAMES.keywordsLine &&
+            index === childTypes.length - 1)
         );
       break;
-    case "sectionBody":
+    case NODE_NAMES.sectionBody:
     case "sectionAppendix":
       valid = children.length > 0 && all(nonEmptyBlocks);
       break;
     case "paragraph":
     case "heading":
-    case "keywordsLine":
-    case "tableTitle":
+    case NODE_NAMES.keywordsLine:
+    case NODE_NAMES.tableTitle:
     case "tableNote":
-    case "figureTitle":
+    case NODE_NAMES.figureTitle:
     case "figureNote":
       valid = all(inline);
       break;
@@ -779,8 +780,9 @@ function validateNodeChildren(
       valid = children.length > 0 && childTypes[0] === "paragraph" &&
         all(blocks);
       break;
-    case "apaTable":
-      valid = childTypes.length === 3 && childTypes[0] === "tableTitle" &&
+    case NODE_NAMES.apaTable:
+      valid = childTypes.length === 3 &&
+        childTypes[0] === NODE_NAMES.tableTitle &&
         childTypes[1] === "table" && childTypes[2] === "tableNote";
       break;
     case "table":
@@ -792,7 +794,8 @@ function validateNodeChildren(
         childTypes.every((t) => t === "tableHeader" || t === "tableCell");
       break;
     case "figure":
-      valid = childTypes.length === 3 && childTypes[0] === "figureTitle" &&
+      valid = childTypes.length === 3 &&
+        childTypes[0] === NODE_NAMES.figureTitle &&
         childTypes[1] === "figureImage" && childTypes[2] === "figureNote";
       break;
     case "text":

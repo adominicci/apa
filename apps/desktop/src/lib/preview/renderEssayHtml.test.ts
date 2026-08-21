@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Reference } from "@tesina/engine";
+import { NODE_NAMES, type Reference } from "@tesina/engine";
 import { createEmptyEssay } from "$lib/model/essay";
 import { renderEssayCss, renderEssayHtml } from "./renderEssayHtml.ts";
 
@@ -45,7 +45,7 @@ function citationOnlyEssay(refId: string) {
   essay.content = {
     type: "doc",
     content: [{
-      type: "sectionBody",
+      type: NODE_NAMES.sectionBody,
       content: [{
         type: "paragraph",
         content: [{
@@ -77,13 +77,13 @@ function sampleEssay() {
             content: [{ type: "text", text: "Resumen breve." }],
           },
           {
-            type: "keywordsLine",
+            type: NODE_NAMES.keywordsLine,
             content: [{ type: "text", text: "lectura" }],
           },
         ],
       },
       {
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
             type: "heading",
@@ -126,7 +126,7 @@ function listEssay() {
     type: "doc",
     content: [
       {
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
             type: "orderedList",
@@ -147,10 +147,10 @@ function listEssay() {
                     }],
                   },
                   {
-                    type: "apaTable",
+                    type: NODE_NAMES.apaTable,
                     content: [
                       {
-                        type: "tableTitle",
+                        type: NODE_NAMES.tableTitle,
                         content: [{
                           type: "text",
                           text: "Tabla dentro de la lista",
@@ -208,7 +208,7 @@ describe("renderEssayHtml", () => {
     essay.content = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
             type: "heading",
@@ -329,7 +329,7 @@ describe("renderEssayHtml", () => {
       type: "doc",
       content: [
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{
             type: "paragraph",
             content: [{ type: "text", text: "Body order marker" }],
@@ -372,13 +372,13 @@ describe("renderEssayHtml", () => {
       type: "doc",
       content: [
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
-              type: "apaTable",
+              type: NODE_NAMES.apaTable,
               content: [
                 {
-                  type: "tableTitle",
+                  type: NODE_NAMES.tableTitle,
                   content: [{ type: "text", text: "Horas <de> lectura" }],
                 },
                 {
@@ -436,13 +436,13 @@ describe("renderEssayHtml", () => {
     essay.content = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
-            type: "apaTable",
+            type: NODE_NAMES.apaTable,
             content: [
               {
-                type: "tableTitle",
+                type: NODE_NAMES.tableTitle,
                 content: [{ type: "text", text: "Contenido complejo" }],
               },
               {
@@ -593,7 +593,7 @@ describe("renderEssayHtml", () => {
       essay.content = {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "heading",
@@ -647,13 +647,13 @@ describe("renderEssayHtml", () => {
     essay.content = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [
           {
-            type: "apaTable",
+            type: NODE_NAMES.apaTable,
             content: [
               {
-                type: "tableTitle",
+                type: NODE_NAMES.tableTitle,
                 content: [{ type: "text", text: "Top-level table" }],
               },
               {
@@ -673,7 +673,7 @@ describe("renderEssayHtml", () => {
             type: "figure",
             content: [
               {
-                type: "figureTitle",
+                type: NODE_NAMES.figureTitle,
                 content: [{ type: "text", text: "Top-level figure" }],
               },
               { type: "figureImage", attrs: { src: "missing-top.png" } },
@@ -686,10 +686,10 @@ describe("renderEssayHtml", () => {
               type: "blockquote",
               content: [
                 {
-                  type: "apaTable",
+                  type: NODE_NAMES.apaTable,
                   content: [
                     {
-                      type: "tableTitle",
+                      type: NODE_NAMES.tableTitle,
                       content: [
                         { type: "text", text: "NESTED QUOTE TABLE " },
                         {
@@ -730,7 +730,7 @@ describe("renderEssayHtml", () => {
                   type: "figure",
                   content: [
                     {
-                      type: "figureTitle",
+                      type: NODE_NAMES.figureTitle,
                       content: [
                         { type: "text", text: "NESTED QUOTE FIGURE " },
                         {
@@ -786,13 +786,13 @@ describe("renderEssayHtml", () => {
       type: "doc",
       content: [
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "figure",
               content: [
                 {
-                  type: "figureTitle",
+                  type: NODE_NAMES.figureTitle,
                   content: [{ type: "text", text: "Distribución <por>" }],
                 },
                 {
@@ -826,7 +826,7 @@ describe("renderEssayHtml", () => {
       type: "doc",
       content: [
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             { type: "apaEquation", attrs: { latex: "E = mc^2" } },
             { type: "apaEquation", attrs: { latex: "a^2 + b^2 = c^2" } },
@@ -858,7 +858,7 @@ describe("renderEssayHtml", () => {
     essay.content = {
       type: "doc",
       content: [{
-        type: "sectionBody",
+        type: NODE_NAMES.sectionBody,
         content: [{ type: "apaEquation", attrs: { latex: "E = mc^2" } }],
       }],
     };
@@ -885,7 +885,7 @@ describe("renderEssayHtml", () => {
       type: "doc",
       content: [
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "apaEquation",
@@ -915,7 +915,7 @@ describe("renderEssayHtml", () => {
       type: "doc",
       content: [
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{ type: "apaEquation", attrs: { latex: "x" } }],
         },
       ],
@@ -954,7 +954,7 @@ describe("renderEssayHtml", () => {
       type: "doc",
       content: [
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "orderedList",

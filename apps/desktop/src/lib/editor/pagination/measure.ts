@@ -9,6 +9,7 @@ import type {
   SectionKind,
 } from "./types.ts";
 import { LETTER_PRINTABLE_HEIGHT } from "./geometry.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 export interface MeasureRequest {
   epoch: number;
@@ -572,7 +573,7 @@ function sectionKind(node: PMNode): SectionKind | null {
   switch (node.type.name) {
     case "sectionAbstract":
       return "abstract";
-    case "sectionBody":
+    case NODE_NAMES.sectionBody:
       return "body";
     case "sectionAppendix":
       return "appendix";
@@ -868,7 +869,7 @@ function paginatedTextBlockFragments(
   totalHeight: number,
 ): MeasuredFragment[] {
   const typeName = node.type.name;
-  const keepWholeWithNext = typeName === "tableTitle";
+  const keepWholeWithNext = typeName === NODE_NAMES.tableTitle;
   if (totalHeight <= LETTER_PRINTABLE_HEIGHT) {
     return [blockFragment(
       `${typeName}:${pos}`,
@@ -896,7 +897,9 @@ function paginatedTextBlockFragments(
   const beforeHeight = Math.max(
     0,
     (style ? cssNumber(style.marginTop) : 0) +
-      (typeName === "tableTitle" ? pseudoBlockHeight(element, scale) : 0),
+      (typeName === NODE_NAMES.tableTitle
+        ? pseudoBlockHeight(element, scale)
+        : 0),
   );
   const lineHeight = lines.reduce(
     (total, fragment) =>
@@ -935,7 +938,7 @@ function paginatedTextBlockFragments(
 }
 
 const MARGIN_COLLAPSING_BLOCKS = new Set([
-  "apaTable",
+  NODE_NAMES.apaTable,
   "figure",
   "apaEquation",
 ]);
@@ -1021,7 +1024,7 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
       const element = elementAt(view, pos);
       if (!element) return true;
 
-      if (node.type.name === "apaTable") {
+      if (node.type.name === NODE_NAMES.apaTable) {
         const ownerWindow = element.ownerDocument.defaultView;
         const marginTop = ownerWindow
           ? cssNumber(ownerWindow.getComputedStyle(element).marginTop)
@@ -1084,7 +1087,7 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
       }
 
       if (node.type.name === "tableRow") {
-        const tablePos = ancestorPosition(doc, pos, "apaTable") ?? pos;
+        const tablePos = ancestorPosition(doc, pos, NODE_NAMES.apaTable) ?? pos;
         const columnCount = parent?.type.name === "table"
           ? TableMap.get(parent).width
           : node.childCount;
@@ -1136,8 +1139,11 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
         return false;
       }
 
-      if (node.type.name === "tableTitle" || node.type.name === "tableNote") {
-        const tablePos = ancestorPosition(doc, pos, "apaTable");
+      if (
+        node.type.name === NODE_NAMES.tableTitle ||
+        node.type.name === "tableNote"
+      ) {
+        const tablePos = ancestorPosition(doc, pos, NODE_NAMES.apaTable);
         const tableElement = tablePos === null
           ? null
           : elementAt(view, tablePos);
@@ -1158,7 +1164,10 @@ function readBrowserLayout(view: EditorView): PaginationLayoutSnapshot {
         return false;
       }
 
-      if (node.type.name === "paragraph" || node.type.name === "keywordsLine") {
+      if (
+        node.type.name === "paragraph" ||
+        node.type.name === NODE_NAMES.keywordsLine
+      ) {
         sectionFragments.push(...textFragments(
           view,
           node,

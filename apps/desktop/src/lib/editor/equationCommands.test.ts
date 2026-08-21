@@ -10,6 +10,7 @@ import {
   canInsertApaEquation,
   createApaEquationExtension,
 } from "./blocks.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 const schema = getSchema([
   StarterKit.configure({
@@ -29,7 +30,7 @@ const schema = getSchema([
 function stateAt(text: string, content: unknown[]): EditorState {
   const doc = schema.nodeFromJSON({
     type: "doc",
-    content: [{ type: "sectionBody", content }],
+    content: [{ type: NODE_NAMES.sectionBody, content }],
   });
   let pos = -1;
   doc.descendants((node, nodePos) => {
@@ -55,7 +56,7 @@ function abstractState(): EditorState {
           content: [{ type: "text", text: "abstract" }],
         }],
       },
-      { type: "sectionBody", content: [{ type: "paragraph" }] },
+      { type: NODE_NAMES.sectionBody, content: [{ type: "paragraph" }] },
     ],
   });
   return EditorState.create({

@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createTesinaEditor } from "./createEditor.ts";
 import { paginationPluginKey } from "./pagination/extension.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 Range.prototype.getBoundingClientRect = () => new DOMRect();
@@ -10,7 +11,7 @@ Range.prototype.getBoundingClientRect = () => new DOMRect();
 const content = {
   type: "doc",
   content: [{
-    type: "sectionBody",
+    type: NODE_NAMES.sectionBody,
     content: [{
       type: "paragraph",
       content: [{ type: "text", text: "Start writing here" }],

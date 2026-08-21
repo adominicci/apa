@@ -12,6 +12,7 @@ import { calculatePaperScale } from "./paperScale.ts";
 import { PAGINATION_RESPONSIVENESS_BUDGET } from "./performanceBudget.ts";
 import type { MeasurementResult, PaginationMeasurer } from "./measure.ts";
 import type { MeasuredFragment, PaginationStateReport } from "./types.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 Range.prototype.getBoundingClientRect = () => new DOMRect();
@@ -116,7 +117,7 @@ describe("deterministic pagination controller budget contract", () => {
         content: {
           type: "doc",
           content: [{
-            type: "sectionBody",
+            type: NODE_NAMES.sectionBody,
             content: Array.from(
               { length: targetPages },
               (_, index) => paragraphContent(index + 1),

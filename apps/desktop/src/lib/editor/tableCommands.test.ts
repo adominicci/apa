@@ -7,6 +7,7 @@ import { sectionExtensions } from "./sections.ts";
 import { OrderedListStyleAttr } from "./lists.ts";
 import { blockExtensions, createApaEquationExtension } from "./blocks.ts";
 import { apaTableRange } from "./tableCommands.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 // The real editor schema (minus the citation extension, which needs a live
 // library env) so the test exercises the same node hierarchy the app uses.
@@ -34,13 +35,16 @@ const docJson = {
   type: "doc",
   content: [
     {
-      type: "sectionBody",
+      type: NODE_NAMES.sectionBody,
       content: [
         para("Antes de la tabla."),
         {
-          type: "apaTable",
+          type: NODE_NAMES.apaTable,
           content: [
-            { type: "tableTitle", content: [{ type: "text", text: "Título" }] },
+            {
+              type: NODE_NAMES.tableTitle,
+              content: [{ type: "text", text: "Título" }],
+            },
             {
               type: "table",
               content: [
@@ -97,7 +101,7 @@ describe("apaTableRange", () => {
     const range = apaTableRange($pos);
     expect(range).not.toBeNull();
     const node = doc.nodeAt(range!.from);
-    expect(node?.type.name).toBe("apaTable");
+    expect(node?.type.name).toBe(NODE_NAMES.apaTable);
     expect(range!.to - range!.from).toBe(node!.nodeSize);
   });
 
@@ -106,7 +110,7 @@ describe("apaTableRange", () => {
     // NodeSelection resolves before the node; find the apaTable's position.
     let tablePos = -1;
     doc.descendants((node, pos) => {
-      if (node.type.name === "apaTable") tablePos = pos;
+      if (node.type.name === NODE_NAMES.apaTable) tablePos = pos;
       return tablePos === -1;
     });
     const range = apaTableRange(doc.resolve(tablePos));
@@ -130,7 +134,14 @@ describe("apaTableRange", () => {
     });
     const range = apaTableRange(state.selection.$from)!;
     const next = state.apply(state.tr.deleteRange(range.from, range.to));
-    for (const name of ["apaTable", "table", "tableTitle", "tableNote"]) {
+    for (
+      const name of [
+        NODE_NAMES.apaTable,
+        "table",
+        NODE_NAMES.tableTitle,
+        "tableNote",
+      ]
+    ) {
       expect(countNodes(next.doc, name)).toBe(0);
     }
     // Surrounding text is untouched.

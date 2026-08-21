@@ -33,6 +33,7 @@ import {
   paginationPluginKey,
 } from "./extension.ts";
 import { createLongDocumentFixtures } from "./proof/longDocumentFixture.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 Range.prototype.getBoundingClientRect = () => new DOMRect();
@@ -239,7 +240,7 @@ describe("derived pagination extension", () => {
       type: "doc",
       content: [
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{
             type: "paragraph",
             content: [{ type: "text", text: "Body before references" }],
@@ -1238,7 +1239,7 @@ describe("derived pagination extension", () => {
       type: "doc",
       content: [
         {
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "paragraph",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultDoc, ensureSectionedDoc } from "./migrate.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 describe("ensureSectionedDoc", () => {
   it("wraps legacy flat docs in a sectionBody", () => {
@@ -12,7 +13,7 @@ describe("ensureSectionedDoc", () => {
     };
     expect(ensureSectionedDoc(legacy)).toEqual({
       type: "doc",
-      content: [{ type: "sectionBody", content: legacy.content }],
+      content: [{ type: NODE_NAMES.sectionBody, content: legacy.content }],
     });
   });
 
@@ -21,7 +22,7 @@ describe("ensureSectionedDoc", () => {
       type: "doc",
       content: [
         { type: "sectionAbstract", content: [{ type: "paragraph" }] },
-        { type: "sectionBody", content: [{ type: "paragraph" }] },
+        { type: NODE_NAMES.sectionBody, content: [{ type: "paragraph" }] },
       ],
     };
     expect(ensureSectionedDoc(sectioned)).toBe(sectioned);

@@ -16,6 +16,7 @@ import {
   type TextLineProbe,
 } from "./measure.ts";
 import { planPagination } from "./plan.ts";
+import { NODE_NAMES } from "@tesina/engine";
 
 function lineProbe(
   linesByOffset: readonly (number | null)[],
@@ -347,7 +348,7 @@ describe("text line sampling", () => {
       content: {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{
             type: "paragraph",
             content: [{ type: "text", text }],
@@ -433,7 +434,7 @@ describe("text line sampling", () => {
       content: {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "paragraph",
@@ -572,7 +573,7 @@ describe("text line sampling", () => {
       content: {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "paragraph",
@@ -745,12 +746,12 @@ describe("text line sampling", () => {
       content: {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{
-            type: "apaTable",
+            type: NODE_NAMES.apaTable,
             content: [
               {
-                type: "tableTitle",
+                type: NODE_NAMES.tableTitle,
                 content: [{ type: "text", text: titleText }],
               },
               {
@@ -778,12 +779,15 @@ describe("text line sampling", () => {
     });
     const positions = new Map<string, number>();
     editor.state.doc.descendants((node, pos) => {
-      if (node.type.name === "tableTitle" || node.type.name === "tableNote") {
+      if (
+        node.type.name === NODE_NAMES.tableTitle ||
+        node.type.name === "tableNote"
+      ) {
         positions.set(node.type.name, pos);
       }
       return true;
     });
-    const titlePos = positions.get("tableTitle")!;
+    const titlePos = positions.get(NODE_NAMES.tableTitle)!;
     const notePos = positions.get("tableNote")!;
     const title = editor.view.nodeDOM(titlePos) as HTMLElement;
     const note = editor.view.nodeDOM(notePos) as HTMLElement;
@@ -905,7 +909,7 @@ describe("text line sampling", () => {
       content: {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "heading",
@@ -1011,7 +1015,7 @@ describe("text line sampling", () => {
       content: {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [
             {
               type: "heading",
@@ -1180,12 +1184,12 @@ describe("text line sampling", () => {
       content: {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{
             type: "figure",
             content: [
               {
-                type: "figureTitle",
+                type: NODE_NAMES.figureTitle,
                 content: [{ type: "text", text: "Oversize proof" }],
               },
               { type: "figureImage", attrs: { src: "", alt: "proof" } },
@@ -1274,12 +1278,12 @@ describe("text line sampling", () => {
       content: {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{
-            type: "apaTable",
+            type: NODE_NAMES.apaTable,
             content: [
               {
-                type: "tableTitle",
+                type: NODE_NAMES.tableTitle,
                 content: [{ type: "text", text: "Oversize row" }],
               },
               {
@@ -1441,12 +1445,12 @@ describe("text line sampling", () => {
       content: {
         type: "doc",
         content: [{
-          type: "sectionBody",
+          type: NODE_NAMES.sectionBody,
           content: [{
             type: "figure",
             content: [
               {
-                type: "figureTitle",
+                type: NODE_NAMES.figureTitle,
                 content: [{ type: "text", text: "Fractional overflow" }],
               },
               { type: "figureImage", attrs: { src: "", alt: "proof" } },

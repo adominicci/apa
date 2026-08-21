@@ -4,6 +4,7 @@ import {
   collectEquationLatex,
   collectFigureSrcs,
 } from "$lib/export/exportAssets";
+import { NODE_NAMES } from "@tesina/engine";
 
 const runtime = vi.hoisted(() => ({
   readImageBytes: vi.fn(),
@@ -41,7 +42,7 @@ beforeEach(() => {
 describe("export asset collection", () => {
   it("finds figures and equations nested at any depth", () => {
     const nested = doc({
-      type: "sectionBody",
+      type: NODE_NAMES.sectionBody,
       content: [figure("a/one.png"), { content: [equation("x^2")] }],
     });
 

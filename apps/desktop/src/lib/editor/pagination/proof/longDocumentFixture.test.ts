@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it } from "vitest";
-import { buildReferenceList, getTerms } from "@tesina/engine";
+import { buildReferenceList, getTerms, NODE_NAMES } from "@tesina/engine";
 import { createTesinaEditor } from "../../createEditor.ts";
 import {
   createLongDocumentFixtures,
@@ -42,7 +42,7 @@ describe("long-document pagination proof fixtures", () => {
     const json = JSON.stringify(fixture.content);
 
     expect(json).toContain('"type":"sectionAbstract"');
-    expect(json).toContain('"type":"sectionBody"');
+    expect(json).toContain(`"type":"${NODE_NAMES.sectionBody}"`);
     expect(json).toContain('"type":"sectionAppendix"');
     expect(json).toContain('"type":"orderedList"');
     expect(json).not.toMatch(/"type":"(?:apaTable|figure|apaEquation)"/);
@@ -85,7 +85,8 @@ describe("long-document pagination proof fixtures", () => {
           ),
         ).toBe(true);
         expect(nodesOfType(fixture.content, "citation")).toHaveLength(1);
-        expect(nodesOfType(fixture.content, "keywordsLine")).toHaveLength(1);
+        expect(nodesOfType(fixture.content, NODE_NAMES.keywordsLine))
+          .toHaveLength(1);
         expect(nodesOfType(fixture.content, "orderedList")).toHaveLength(1);
         expect(nodesOfType(fixture.content, "bulletList")).toHaveLength(1);
         expect(nodesOfType(fixture.content, "tableRow").length)

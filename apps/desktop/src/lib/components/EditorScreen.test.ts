@@ -3,7 +3,7 @@
 import { flushSync, mount, tick, unmount } from "svelte";
 import type { Content, Editor as TiptapEditor } from "@tiptap/core";
 import { exportDocx } from "@tesina/docx-export";
-import type { Reference } from "@tesina/engine";
+import { NODE_NAMES, type Reference } from "@tesina/engine";
 import { strFromU8, unzipSync } from "fflate";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Essay } from "$lib/model/essay";
@@ -148,7 +148,7 @@ function bodyDoc(text: string): Content {
   return {
     type: "doc",
     content: [{
-      type: "sectionBody",
+      type: NODE_NAMES.sectionBody,
       content: [{
         type: "paragraph",
         content: [{ type: "text", text }],
@@ -161,7 +161,7 @@ function authoredBodyTitleDoc(title: string): Content {
   return {
     type: "doc",
     content: [{
-      type: "sectionBody",
+      type: NODE_NAMES.sectionBody,
       content: [
         {
           type: "heading",
@@ -181,7 +181,7 @@ function citationDoc(refId: string): Content {
   return {
     type: "doc",
     content: [{
-      type: "sectionBody",
+      type: NODE_NAMES.sectionBody,
       content: [{
         type: "paragraph",
         content: [{
