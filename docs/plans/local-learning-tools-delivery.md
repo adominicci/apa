@@ -221,10 +221,36 @@ interface WritingCoachIssue {
   source: "deterministic" | "local-model";
 }
 
+type InferenceCorrelation =
+  | { requestId: string; documentRevision: number; sourceSnapshotId?: never }
+  | { requestId: string; documentRevision?: never; sourceSnapshotId: string };
+
+type LocalInferenceRequest = InferenceCorrelation & {
+  input: WritingCoachRequest | GroundedQuizRequest;
+};
+
+type LocalInferenceResult =
+  | (InferenceCorrelation & {
+      status: "ok";
+      output: WritingCoachResult | GroundedQuizResult;
+    })
+  | (InferenceCorrelation & {
+      status: "error";
+      error: LocalInferenceError;
+    });
+
 interface LocalInferenceProvider {
   capability(): Promise<LocalInferenceCapability>;
-  run(request: WritingCoachRequest | GroundedQuizRequest): Promise<unknown>;
+  run(request: LocalInferenceRequest): Promise<LocalInferenceResult>;
   cancel(requestId: string): Promise<void>;
+}
+
+interface SourceSpan {
+  sourceId: string;
+  snapshotId: string;
+  from: number;
+  to: number;
+  unit: "utf16";
 }
 
 interface GroundedQuestion {
@@ -233,9 +259,20 @@ interface GroundedQuestion {
   correctIndex: 0 | 1 | 2 | 3;
   explanation: string;
   distractorExplanations: [string, string, string, string];
-  sourceSpans: SourceSpan[];
+  provenance: {
+    question: SourceSpan[];
+    options: [SourceSpan[], SourceSpan[], SourceSpan[], SourceSpan[]];
+    explanation: SourceSpan[];
+    distractorExplanations: [SourceSpan[], SourceSpan[], SourceSpan[], SourceSpan[]];
+  };
 }
 ```
+
+The caller creates an unguessable request ID before dispatch and includes it
+with the document revision or immutable source-snapshot identity. Every success
+and error repeats that correlation data. Cancellation owns only the matching
+request ID, and consumers reject results whose revision or snapshot no longer
+matches the active view.
 
 The webview may call typed Tauri commands. It may not connect directly to a
 loopback model server, own its process, choose arbitrary model paths, or pass
@@ -637,7 +674,9 @@ provider before downloading or running a real model.
 
 - Fake-provider integration proves lifecycle, auth, bounds, cancellation,
   shutdown, and recovery on macOS and Windows.
-- Direct unauthenticated loopback requests fail.
+- Direct unauthenticated inference and model requests fail. The public health
+  endpoint is tested separately and may return only a non-sensitive readiness
+  state with no document, model-path, prompt, or generated-content data.
 - The webview cannot request arbitrary commands, paths, or endpoints.
 - No essay/model text appears in application or sidecar logs.
 - Ordinary PR CI remains weight-free and source-build-free.
@@ -677,17 +716,25 @@ without bloating the application installer.
 
 1. Specify the model manifest: task compatibility, model ID/version, exact URL,
    SHA-256, expected bytes, license, minimum free disk, estimated working memory,
-   context cap, sidecar compatibility, and revoked status.
+   context cap, sidecar compatibility, signing-key ID, and revoked status. Pin
+   the manifest trust root in the application. A remote manifest may select only
+   a known active signing-key ID; it may not add or replace trusted keys. Key
+   rotation or revocation requires an application update that ships the new
+   active/revoked key set, with an overlap period for a planned rotation.
 2. Select Qwen3.5 2B Q4_K_M as the evaluation target with a hard model-file
    ceiling of 1.5 GB. Keep Qwen3.5 0.8B only as a lower-bound benchmark. Do not
    silently choose a larger fallback.
-3. Add failing Rust tests for free-space preflight, partial download, resume or
-   clean restart, checksum mismatch, manifest mismatch, cancellation, atomic
-   activation, old-model cleanup, removal, and concurrent attempts.
+3. Add failing Rust tests for unknown and revoked signing keys, invalid or
+   tampered manifest signatures before download and before activation,
+   free-space preflight, partial download, resume or clean restart, checksum
+   mismatch, manifest mismatch, cancellation, atomic activation, old-model
+   cleanup, removal, and concurrent attempts.
 4. Require explicit consent showing download size, storage location class,
    offline behavior, license, privacy, and Remove action before network access.
-5. Download through Rust to a temporary application-owned path, enforce byte
-   limits while streaming, verify checksum/signature, then atomically activate.
+5. Fail closed before network access when manifest trust validation fails.
+   Download through Rust to a temporary application-owned path, enforce byte
+   limits while streaming, revalidate manifest trust and checksum before
+   activation, then atomically activate.
 6. Separate model updates from app updates. Never replace a working model until
    the replacement is complete and verified.
 7. Add a capability probe that loads the model with the production context cap,
