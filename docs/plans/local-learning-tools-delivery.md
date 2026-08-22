@@ -225,23 +225,43 @@ type InferenceCorrelation =
   | { requestId: string; documentRevision: number; sourceSnapshotId?: never }
   | { requestId: string; documentRevision?: never; sourceSnapshotId: string };
 
-type LocalInferenceRequest = InferenceCorrelation & {
-  input: WritingCoachRequest | GroundedQuizRequest;
-};
+interface LocalInferenceTaskMap {
+  writingCoach: {
+    request: WritingCoachRequest;
+    result: WritingCoachResult;
+  };
+  groundedQuiz: {
+    request: GroundedQuizRequest;
+    result: GroundedQuizResult;
+  };
+}
 
-type LocalInferenceResult =
-  | (InferenceCorrelation & {
-      status: "ok";
-      output: WritingCoachResult | GroundedQuizResult;
-    })
-  | (InferenceCorrelation & {
-      status: "error";
-      error: LocalInferenceError;
-    });
+type LocalInferenceRequest = {
+  [K in keyof LocalInferenceTaskMap]: InferenceCorrelation & {
+    task: K;
+    input: LocalInferenceTaskMap[K]["request"];
+  };
+}[keyof LocalInferenceTaskMap];
+
+type LocalInferenceResult = {
+  [K in keyof LocalInferenceTaskMap]: InferenceCorrelation & {
+    task: K;
+  } & (
+      | { status: "ok"; output: LocalInferenceTaskMap[K]["result"] }
+      | { status: "error"; error: LocalInferenceError }
+    );
+}[keyof LocalInferenceTaskMap];
+
+type ResultFor<K extends keyof LocalInferenceTaskMap> = Extract<
+  LocalInferenceResult,
+  { task: K }
+>;
 
 interface LocalInferenceProvider {
   capability(): Promise<LocalInferenceCapability>;
-  run(request: LocalInferenceRequest): Promise<LocalInferenceResult>;
+  run<K extends keyof LocalInferenceTaskMap>(
+    request: Extract<LocalInferenceRequest, { task: K }>,
+  ): Promise<ResultFor<K>>;
   cancel(requestId: string): Promise<void>;
 }
 
@@ -652,9 +672,11 @@ provider before downloading or running a real model.
 1. Threat-model webview compromise, loopback cross-talk, arbitrary model paths,
    command injection, stale processes, port collision, oversized input/output,
    response smuggling, logs, crash recovery, and update tampering.
-2. Define a discriminated capability and error contract. Treat unsupported
-   hardware, sidecar absent, not installed, busy, cancelled, invalid response,
-   out of memory, and crash as ordinary recoverable states.
+2. Define a discriminated capability and error contract. Bind each task request
+   to only its matching success result and add compile-time tests that reject
+   writing-coach/quiz cross-pairs. Treat unsupported hardware, sidecar absent,
+   not installed, busy, cancelled, invalid response, out of memory, and crash as
+   ordinary recoverable states.
 3. Add a fake executable that speaks the minimum accepted protocol. Use it for
    deterministic lifecycle tests; do not download weights in normal CI.
 4. Have Rust start the process on demand with an ephemeral loopback port and a

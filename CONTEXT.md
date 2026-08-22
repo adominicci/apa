@@ -73,8 +73,9 @@ submits once before Tesina reveals the answer and explains every option.
 _Avoid_: Free response, select all that apply, self-graded question
 
 **Source span**:
-The UTF-16 range within a named, immutable source snapshot that supports one
-specific question, option, explanation, distractor explanation, or writing
-observation. Each grounded output component maps to its own source spans so
-Tesina can validate and navigate it against the same snapshot.
+The zero-based, half-open `[from, to)` range within a named, immutable source
+snapshot, measured in UTF-16 code units, that supports one specific question,
+option, explanation, distractor explanation, or writing observation. Each
+grounded output component maps to its own ordered source spans so Tesina can
+validate and navigate it against the same snapshot.
 _Avoid_: Citation, model rationale
