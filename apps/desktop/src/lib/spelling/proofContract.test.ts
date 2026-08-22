@@ -8,6 +8,7 @@ test("native spelling diagnostic reports the fixed proof contract on both hosted
   );
 
   expect(workflow).toContain("macos-latest");
+  expect(workflow).toContain("macos-15-intel");
   expect(workflow).toContain("windows-latest");
   expect(workflow).toContain("cargo run --locked --example spelling-proof");
   expect(workflow).toContain("spelling-proof-${{ matrix.platform }}.json");
