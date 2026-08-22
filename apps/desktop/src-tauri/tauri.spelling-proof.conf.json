@@ -1,0 +1,26 @@
+{
+  "productName": "Tesina Spelling Proof",
+  "identifier": "app.tesina.desktop.spelling-proof",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Tesina Spelling Proof",
+        "width": 1200,
+        "height": 800,
+        "visible": false
+      }
+    ],
+    "security": {
+      "capabilities": ["spelling-proof"]
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": []
+    }
+  },
+  "bundle": {
+    "createUpdaterArtifacts": false
+  }
+}

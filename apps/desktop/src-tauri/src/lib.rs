@@ -1,9 +1,12 @@
+#[cfg(not(feature = "packaged-spelling-proof"))]
 mod backup_directory;
+#[cfg(not(feature = "packaged-spelling-proof"))]
 mod external_files;
 #[cfg(feature = "packaged-backup-smoke")]
 mod packaged_backup_smoke;
 pub mod spelling;
 // Public so the live proof example can drive the real command end to end.
+#[cfg(not(feature = "packaged-spelling-proof"))]
 pub mod pdf_export;
 
 use tauri::Manager;
@@ -13,12 +16,37 @@ use tauri::Manager;
 /// in the Dock, everywhere else it quits. Returned from here rather than
 /// sniffed from the user agent, and without pulling in another plugin.
 #[tauri::command]
+#[cfg(not(feature = "packaged-spelling-proof"))]
 fn host_os() -> &'static str {
     std::env::consts::OS
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(feature = "packaged-spelling-proof")]
+    run_packaged_spelling_proof();
+    #[cfg(not(feature = "packaged-spelling-proof"))]
+    run_application();
+}
+
+#[cfg(feature = "packaged-spelling-proof")]
+fn run_packaged_spelling_proof() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
+        .setup(|app| {
+            app.manage(spelling::SpellingState::new(app.handle().clone()));
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            spelling::proof::spelling_packaged_proof,
+        ])
+        .build(tauri::generate_context!())
+        .expect("error while building packaged spelling proof")
+        .run(|_app, _event| {});
+}
+
+#[cfg(not(feature = "packaged-spelling-proof"))]
+fn run_application() {
     // The print protocol serves each PDF export's paginated document to its
     // hidden render window; protocols can only be registered at build time.
     pdf_export::attach_print_protocol(tauri::Builder::default())

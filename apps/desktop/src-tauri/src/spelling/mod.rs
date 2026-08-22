@@ -4,7 +4,7 @@ pub(crate) mod commands;
 mod ipc_test;
 #[cfg(target_os = "macos")]
 mod macos;
-mod proof;
+pub(crate) mod proof;
 #[cfg(windows)]
 mod windows;
 

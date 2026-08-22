@@ -10,7 +10,7 @@ async function source(path: string): Promise<string> {
 describe("packaged portable smoke build contract", () => {
   it("keeps the smoke feature and frontend bootstrap out of ordinary builds", async () => {
     const cargo = await source("apps/desktop/src-tauri/Cargo.toml");
-    const page = await source("apps/desktop/src/routes/+page.svelte");
+    const page = await source("apps/desktop/src/lib/components/AppPage.svelte");
     const workflow = await source(".github/workflows/build-artifacts.yml");
 
     expect(cargo).toContain("packaged-portable-smoke = []");

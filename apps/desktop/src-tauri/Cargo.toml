@@ -22,6 +22,7 @@ tauri-build = { version = "2", features = [] }
 native-proof-host = []
 packaged-backup-smoke = ["packaged-portable-smoke"]
 packaged-portable-smoke = []
+packaged-spelling-proof = []
 pdf-proof-host = []
 spelling-proof-host = []
 spelling-ipc-test = ["tauri/test"]

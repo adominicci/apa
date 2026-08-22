@@ -504,7 +504,8 @@ fn pre_admission_cancellation_retention_is_bounded() {
 
 #[test]
 fn proof_report_has_fixed_contract_and_target_metadata() {
-    let value = serde_json::to_value(run_proof(Boundary::new(FakeAdapter::available()))).unwrap();
+    let boundary = Boundary::new(FakeAdapter::available());
+    let value = serde_json::to_value(run_proof(&boundary)).unwrap();
     assert_eq!(value["contractVersion"], 1);
     assert_eq!(value["target"]["os"], std::env::consts::OS);
     assert_eq!(value["target"]["architecture"], std::env::consts::ARCH);
@@ -524,9 +525,11 @@ fn proof_report_fails_available_bad_fixtures_but_allows_capability_blocks() {
         length: 5,
         suggestions: vec!["wrong".into()],
     }];
-    assert!(run_proof(Boundary::new(bad_fixture)).has_native_fixture_failure());
+    let bad_fixture = Boundary::new(bad_fixture);
+    assert!(run_proof(&bad_fixture).has_native_fixture_failure());
 
     let mut blocked = FakeAdapter::available();
     blocked.languages.clear();
-    assert!(!run_proof(Boundary::new(blocked)).has_native_fixture_failure());
+    let blocked = Boundary::new(blocked);
+    assert!(!run_proof(&blocked).has_native_fixture_failure());
 }

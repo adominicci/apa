@@ -4,6 +4,9 @@ use super::boundary::{
 };
 use std::sync::Arc;
 
+#[cfg(feature = "packaged-spelling-proof")]
+use super::proof::{run_proof, ProofReport};
+
 #[cfg(any(
     test,
     not(any(target_os = "macos", windows)),
@@ -105,6 +108,15 @@ impl ManagedBoundary {
             Self::Test(boundary) => boundary.cancel(request_id),
         }
     }
+
+    #[cfg(feature = "packaged-spelling-proof")]
+    fn proof_report(&self) -> ProofReport {
+        match self {
+            Self::Native(boundary) => run_proof(boundary),
+            #[cfg(feature = "spelling-ipc-test")]
+            Self::Test(boundary) => run_proof(boundary),
+        }
+    }
 }
 
 pub struct SpellingState {
@@ -130,6 +142,14 @@ impl SpellingState {
         Self {
             boundary: Arc::new(ManagedBoundary::Test(Boundary::new(IpcTestAdapter))),
         }
+    }
+
+    #[cfg(feature = "packaged-spelling-proof")]
+    pub(super) async fn proof_report(&self) -> Result<ProofReport, String> {
+        let boundary = self.boundary.clone();
+        tauri::async_runtime::spawn_blocking(move || boundary.proof_report())
+            .await
+            .map_err(|_| "packaged spelling proof native work failed".to_owned())
     }
 }
 

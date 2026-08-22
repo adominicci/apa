@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Layout from "../../routes/+layout.svelte";
+  import Layout from "./AppLayout.svelte";
   import LayoutReleaseNotesConsumerHarness from "./LayoutReleaseNotesConsumerHarness.test.svelte";
 </script>
 
