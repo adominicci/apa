@@ -6,17 +6,45 @@ use std::sync::{
 
 pub(crate) struct MacOsAdapter {
     app: Option<tauri::AppHandle>,
+    #[cfg(test)]
+    installed_result: Option<Result<Vec<String>, AdapterError>>,
+    #[cfg(test)]
+    check_result: Option<Result<Vec<NativeIssue>, AdapterError>>,
 }
 
 impl Default for MacOsAdapter {
     fn default() -> Self {
-        Self { app: None }
+        Self {
+            app: None,
+            #[cfg(test)]
+            installed_result: None,
+            #[cfg(test)]
+            check_result: None,
+        }
     }
 }
 
 impl MacOsAdapter {
     pub(crate) fn new(app: tauri::AppHandle) -> Self {
-        Self { app: Some(app) }
+        Self {
+            app: Some(app),
+            #[cfg(test)]
+            installed_result: None,
+            #[cfg(test)]
+            check_result: None,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn for_test(
+        installed_result: Result<Vec<String>, AdapterError>,
+        check_result: Result<Vec<NativeIssue>, AdapterError>,
+    ) -> Self {
+        Self {
+            app: None,
+            installed_result: Some(installed_result),
+            check_result: Some(check_result),
+        }
     }
 
     fn on_main_thread<T: Send + 'static>(
@@ -37,6 +65,10 @@ impl MacOsAdapter {
 
 impl PlatformAdapter for MacOsAdapter {
     fn installed_languages(&self) -> Result<Vec<String>, AdapterError> {
+        #[cfg(test)]
+        if let Some(result) = &self.installed_result {
+            return result.clone();
+        }
         self.on_main_thread(installed_languages)
     }
 
@@ -46,11 +78,30 @@ impl PlatformAdapter for MacOsAdapter {
         text: &str,
         cancelled: &Arc<AtomicBool>,
     ) -> Result<Vec<NativeIssue>, AdapterError> {
+        #[cfg(test)]
+        if let Some(result) = &self.check_result {
+            return result.clone();
+        }
         let language_tag = language_tag.to_owned();
         let text = text.to_owned();
         let cancelled = cancelled.clone();
         self.on_main_thread(move || check_text(&language_tag, &text, &cancelled))
     }
+}
+
+pub(crate) fn collect_with_cancellation<T>(
+    count: usize,
+    cancelled: &AtomicBool,
+    mut value_at: impl FnMut(usize) -> Result<T, AdapterError>,
+) -> Result<Vec<T>, AdapterError> {
+    let mut result = Vec::with_capacity(count);
+    for index in 0..count {
+        if cancelled.load(Ordering::SeqCst) {
+            return Err(AdapterError::Cancelled);
+        }
+        result.push(value_at(index)?);
+    }
+    Ok(result)
 }
 
 fn installed_languages() -> Result<Vec<String>, AdapterError> {
@@ -118,14 +169,9 @@ fn check_text(
                 0,
             )
             .map(|values| {
-                let mut result = Vec::with_capacity(values.count());
-                for index in 0..values.count() {
-                    if cancelled.load(Ordering::SeqCst) {
-                        return Err(AdapterError::Cancelled);
-                    }
-                    result.push(values.objectAtIndex(index).to_string());
-                }
-                Ok(result)
+                collect_with_cancellation(values.count(), cancelled, |index| {
+                    Ok(values.objectAtIndex(index).to_string())
+                })
             })
             .transpose()?
             .unwrap_or_default();

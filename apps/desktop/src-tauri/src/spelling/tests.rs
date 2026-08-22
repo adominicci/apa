@@ -273,7 +273,10 @@ fn macos_adapter_reports_capability_and_checks_known_bilingual_fixtures() {
                 let result = boundary.check(check);
                 assert!(
                     matches!(result, CheckResult::Completed { ref issues, .. } if
-                        issues.iter().any(|issue| issue.word == fixture && !issue.suggestions.is_empty())),
+                        issues.iter().any(|issue|
+                            issue.word == fixture && issue.from == 0 &&
+                            issue.to == fixture.encode_utf16().count() as u64 &&
+                            !issue.suggestions.is_empty())),
                     "{language:?} fixture lacked a ranged issue with suggestions: {result:?}"
                 );
                 assert!(!selected_language_tag.is_empty());
@@ -284,6 +287,58 @@ fn macos_adapter_reports_capability_and_checks_known_bilingual_fixtures() {
             ),
         }
     }
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn macos_adapter_seam_distinguishes_missing_dictionary_and_sanitized_failure() {
+    let missing = Boundary::new(MacOsAdapter::for_test(
+        Ok(vec!["en".into()]),
+        Ok(Vec::new()),
+    ));
+    assert!(matches!(
+        missing.capability(DocumentLanguage::Spanish),
+        super::boundary::CapabilityResult::MissingDictionary { .. }
+    ));
+    let mut spanish = request("mac-missing", "palabraa");
+    spanish.language = DocumentLanguage::Spanish;
+    assert!(matches!(
+        missing.check(spanish),
+        CheckResult::Failed {
+            code: ErrorCode::MissingDictionary,
+            ..
+        }
+    ));
+
+    let failed = Boundary::new(MacOsAdapter::for_test(
+        Ok(vec!["en".into()]),
+        Err(AdapterError::Failure),
+    ));
+    assert_eq!(
+        serde_json::to_value(failed.check(request("mac-failure", "wrngg"))).unwrap(),
+        serde_json::json!({
+            "status": "failed",
+            "requestId": "mac-failure",
+            "documentRevision": 4,
+            "code": "adapter-failure"
+        })
+    );
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn macos_adapter_cancels_between_suggestion_enumeration_steps() {
+    let cancelled = AtomicBool::new(false);
+    let mut visited = Vec::new();
+    let result = super::macos::collect_with_cancellation(3, &cancelled, |index| {
+        visited.push(index);
+        if index == 0 {
+            cancelled.store(true, Ordering::SeqCst);
+        }
+        Ok(index)
+    });
+    assert_eq!(result, Err(AdapterError::Cancelled));
+    assert_eq!(visited, [0]);
 }
 
 #[cfg(target_os = "macos")]
@@ -299,7 +354,7 @@ fn macos_adapter_honors_cancellation_checkpoint() {
 #[cfg(windows)]
 #[test]
 fn windows_adapter_reports_capability_and_checks_known_bilingual_fixtures() {
-    let boundary = Boundary::new(WindowsAdapter);
+    let boundary = Boundary::new(WindowsAdapter::default());
     for (language, fixture) in [
         (DocumentLanguage::English, "wrngg"),
         (DocumentLanguage::Spanish, "palabraa"),
@@ -315,7 +370,10 @@ fn windows_adapter_reports_capability_and_checks_known_bilingual_fixtures() {
                 let result = boundary.check(check);
                 assert!(
                     matches!(result, CheckResult::Completed { ref issues, .. } if
-                        issues.iter().any(|issue| issue.word == fixture && !issue.suggestions.is_empty())),
+                        issues.iter().any(|issue|
+                            issue.word == fixture && issue.from == 0 &&
+                            issue.to == fixture.encode_utf16().count() as u64 &&
+                            !issue.suggestions.is_empty())),
                     "{language:?} fixture lacked a ranged issue with suggestions: {result:?}"
                 );
                 assert!(!selected_language_tag.is_empty());
@@ -333,9 +391,76 @@ fn windows_adapter_reports_capability_and_checks_known_bilingual_fixtures() {
 fn windows_adapter_honors_cancellation_checkpoint() {
     let cancelled = Arc::new(AtomicBool::new(true));
     assert_eq!(
-        WindowsAdapter.check("en-US", "wrngg", &cancelled),
+        WindowsAdapter::default().check("en-US", "wrngg", &cancelled),
         Err(AdapterError::Cancelled)
     );
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_adapter_seam_distinguishes_missing_dictionary_and_sanitized_com_failure() {
+    let missing = Boundary::new(WindowsAdapter::for_test(
+        Ok(vec!["en-US".into()]),
+        Ok(Vec::new()),
+    ));
+    assert!(matches!(
+        missing.capability(DocumentLanguage::Spanish),
+        super::boundary::CapabilityResult::MissingDictionary { .. }
+    ));
+    let mut spanish = request("windows-missing", "palabraa");
+    spanish.language = DocumentLanguage::Spanish;
+    assert!(matches!(
+        missing.check(spanish),
+        CheckResult::Failed {
+            code: ErrorCode::MissingDictionary,
+            ..
+        }
+    ));
+
+    let unavailable = Boundary::new(WindowsAdapter::for_test(
+        Err(AdapterError::ApiUnavailable),
+        Ok(Vec::new()),
+    ));
+    assert_eq!(
+        serde_json::to_value(unavailable.check(request("windows-com", "wrngg"))).unwrap(),
+        serde_json::json!({
+            "status": "failed",
+            "requestId": "windows-com",
+            "documentRevision": 4,
+            "code": "api-unavailable"
+        })
+    );
+
+    let failed = Boundary::new(WindowsAdapter::for_test(
+        Ok(vec!["en-US".into()]),
+        Err(AdapterError::Failure),
+    ));
+    assert_eq!(
+        serde_json::to_value(failed.check(request("windows-failure", "wrngg"))).unwrap(),
+        serde_json::json!({
+            "status": "failed",
+            "requestId": "windows-failure",
+            "documentRevision": 4,
+            "code": "adapter-failure"
+        })
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_adapter_cancels_between_com_enumeration_steps() {
+    let cancelled = AtomicBool::new(false);
+    let mut visited = Vec::new();
+    let result = super::windows::collect_with_cancellation(Some(&cancelled), || {
+        let index = visited.len();
+        visited.push(index);
+        if index == 0 {
+            cancelled.store(true, Ordering::SeqCst);
+        }
+        Ok(Some(index.to_string()))
+    });
+    assert_eq!(result, Err(AdapterError::Cancelled));
+    assert_eq!(visited, [0]);
 }
 
 #[test]

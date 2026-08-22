@@ -4,11 +4,34 @@ use std::sync::{
     Arc,
 };
 
-pub(crate) struct WindowsAdapter;
+pub(crate) struct WindowsAdapter {
+    #[cfg(test)]
+    installed_result: Option<Result<Vec<String>, AdapterError>>,
+    #[cfg(test)]
+    check_result: Option<Result<Vec<NativeIssue>, AdapterError>>,
+}
 
 impl Default for WindowsAdapter {
     fn default() -> Self {
-        Self
+        Self {
+            #[cfg(test)]
+            installed_result: None,
+            #[cfg(test)]
+            check_result: None,
+        }
+    }
+}
+
+#[cfg(test)]
+impl WindowsAdapter {
+    pub(crate) fn for_test(
+        installed_result: Result<Vec<String>, AdapterError>,
+        check_result: Result<Vec<NativeIssue>, AdapterError>,
+    ) -> Self {
+        Self {
+            installed_result: Some(installed_result),
+            check_result: Some(check_result),
+        }
     }
 }
 
@@ -49,6 +72,23 @@ fn spell_checker_factory(
     .map_err(|_| AdapterError::ApiUnavailable)
 }
 
+pub(crate) fn collect_with_cancellation<T>(
+    cancelled: Option<&AtomicBool>,
+    mut next: impl FnMut() -> Result<Option<T>, AdapterError>,
+) -> Result<Vec<T>, AdapterError> {
+    let mut result = Vec::new();
+    loop {
+        if cancelled.is_some_and(|flag| flag.load(Ordering::SeqCst)) {
+            return Err(AdapterError::Cancelled);
+        }
+        let Some(value) = next()? else {
+            break;
+        };
+        result.push(value);
+    }
+    Ok(result)
+}
+
 fn collect_enum_strings(
     values: &windows::Win32::System::Com::IEnumString,
     cancelled: Option<&AtomicBool>,
@@ -57,22 +97,18 @@ fn collect_enum_strings(
     use windows::Win32::Foundation::S_FALSE;
     use windows::Win32::System::Com::CoTaskMemFree;
 
-    let mut result = Vec::new();
-    loop {
-        if cancelled.is_some_and(|flag| flag.load(Ordering::SeqCst)) {
-            return Err(AdapterError::Cancelled);
-        }
+    collect_with_cancellation(cancelled, || {
         let mut raw = [PWSTR::null()];
         let mut fetched = 0u32;
         // SAFETY: the one-element output and fetched count remain valid for
         // the call. Windows allocates a returned string with CoTaskMemAlloc.
         let status = unsafe { values.Next(&mut raw, Some(&mut fetched)) };
         if status == S_FALSE {
-            break;
+            return Ok(None);
         }
         status.ok().map_err(|_| AdapterError::Failure)?;
         if fetched == 0 {
-            break;
+            return Ok(None);
         }
         let pointer = raw[0].as_ptr();
         // SAFETY: a successful IEnumString::Next returned a null-terminated
@@ -80,13 +116,16 @@ fn collect_enum_strings(
         let value = unsafe { raw[0].to_string() }.map_err(|_| AdapterError::Failure);
         // SAFETY: IEnumString assigns this pointer with COM task allocation.
         unsafe { CoTaskMemFree(Some(pointer.cast())) };
-        result.push(value?);
-    }
-    Ok(result)
+        Ok(Some(value?))
+    })
 }
 
 impl PlatformAdapter for WindowsAdapter {
     fn installed_languages(&self) -> Result<Vec<String>, AdapterError> {
+        #[cfg(test)]
+        if let Some(result) = &self.installed_result {
+            return result.clone();
+        }
         let _apartment = ComApartment::initialize()?;
         let factory = spell_checker_factory()?;
         // SAFETY: factory and enumeration stay in this operation's COM apartment.
@@ -106,6 +145,10 @@ impl PlatformAdapter for WindowsAdapter {
 
         if cancelled.load(Ordering::SeqCst) {
             return Err(AdapterError::Cancelled);
+        }
+        #[cfg(test)]
+        if let Some(result) = &self.check_result {
+            return result.clone();
         }
         let _apartment = ComApartment::initialize()?;
         let factory = spell_checker_factory()?;

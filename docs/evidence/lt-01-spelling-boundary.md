@@ -151,14 +151,24 @@ No UI or release claim consumes it.
 
 ## Focused proof status
 
-The macOS-gated adapter tests prove installed-language capability, bilingual
-known-fixture ranges and suggestions when both dictionaries are present, and a
-pre-call cancellation checkpoint. They do not yet prove a real
-missing-dictionary host case, force an AppKit adapter failure, or observe
-cancellation between real issue or suggestion enumeration steps. Those cases
-cannot be produced honestly on this host without changing installed system
-dictionaries or introducing a test-only native fault seam, so task 4.1 remains
-incomplete.
+The macOS-gated adapter suite now covers installed-language capability,
+bilingual known fixtures when dictionaries are present, exact UTF-16 fixture
+ranges, non-empty suggestions, deterministic missing-dictionary and sanitized
+adapter-failure results, pre-call cancellation, and cancellation between
+suggestion enumeration steps. The deterministic cases use fields compiled only
+under `cfg(test)`; production adapter behavior and installed dictionaries are
+unchanged. The local macOS run passed all 13 focused spelling tests. The
+workflow runs the same focused suite with uncaptured output before each native
+proof so any unavailable English or Spanish fixture emits its target,
+architecture, language, and typed capability block. Task 4.1 remains unchecked
+until a hosted macOS run passes this exact suite.
+
+The Windows-gated suite contains the equivalent exact-range fixture,
+missing-dictionary, sanitized COM/adapter-failure, pre-call cancellation, and
+between-COM-enumeration tests. The same `cfg(test)` restriction keeps its
+deterministic overrides out of production builds. Tasks 5.1 and 5.2 remain
+unchecked until the hosted Windows job compiles and passes these tests before
+running the real native proof.
 
 The focused `service.ipc.test.ts` integration test drives
 `createTauriSpellingClient` from TypeScript into a feature-gated Rust process.
