@@ -23,6 +23,7 @@ native-proof-host = []
 packaged-backup-smoke = ["packaged-portable-smoke"]
 packaged-portable-smoke = []
 pdf-proof-host = []
+spelling-proof-host = []
 
 [dependencies]
 tauri = { version = "2", features = [] }
@@ -55,10 +56,12 @@ objc2-app-kit = { version = "=0.3.2", features = [
   "NSPrintInfo",
   "NSPrintOperation",
   "NSResponder",
+  "NSSpellChecker",
   "NSView",
   "NSWindow",
 ] }
 objc2-foundation = { version = "=0.3.2", features = [
+  "NSArray",
   "NSDictionary",
   "NSGeometry",
   "NSString",
@@ -73,7 +76,9 @@ objc2-web-kit = { version = "=0.3.2", features = ["WKWebView"] }
 webview2-com = "=0.38.2"
 windows = { version = "=0.61.3", features = [
   "Win32_Foundation",
+  "Win32_Globalization",
   "Win32_Storage_FileSystem",
+  "Win32_System_Com",
 ] }
 
 [target.'cfg(unix)'.dependencies]
@@ -121,3 +126,8 @@ required-features = ["pdf-proof-host"]
 name = "pdf-export-live-proof"
 path = "examples/pdf-export-live-proof.rs"
 required-features = ["pdf-proof-host"]
+
+[[example]]
+name = "spelling-proof"
+path = "examples/spelling-proof.rs"
+required-features = ["spelling-proof-host"]

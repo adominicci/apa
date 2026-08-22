@@ -2,6 +2,7 @@ mod backup_directory;
 mod external_files;
 #[cfg(feature = "packaged-backup-smoke")]
 mod packaged_backup_smoke;
+pub mod spelling;
 // Public so the live proof example can drive the real command end to end.
 pub mod pdf_export;
 
@@ -47,6 +48,7 @@ pub fn run() {
                 app_cache_dir,
             )?);
             app.manage(external_files::ExternalSaveAuthorizations::default());
+            app.manage(spelling::SpellingState::new(app.handle().clone()));
             #[cfg(feature = "packaged-backup-smoke")]
             app.manage(packaged_backup_smoke::PackagedBackupSmokeState::default());
             Ok(())
@@ -88,6 +90,9 @@ pub fn run() {
             #[cfg(feature = "packaged-backup-smoke")]
             packaged_backup_smoke::packaged_backup_smoke_picker_call_count,
             pdf_export::export_pdf,
+            spelling::spelling_capability,
+            spelling::spelling_check,
+            spelling::spelling_cancel,
             host_os,
         ])
         .build(tauri::generate_context!())
