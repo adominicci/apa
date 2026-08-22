@@ -38,6 +38,13 @@ jobs:
         working-directory: apps/desktop/src-tauri
         run: "cargo test --locked spelling:: -- --nocapture"
 
+      - name: Prove cancellation before command future polling
+        working-directory: apps/desktop/src-tauri
+        run: >-
+          cargo test --locked --features spelling-ipc-test
+          cancel_before_check_future_polling_is_preserved_until_admission
+          -- --nocapture
+
       - name: Install Deno for the focused IPC contract
         if: matrix.platform == 'macos-latest'
         uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2

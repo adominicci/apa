@@ -36,4 +36,15 @@ test("native spelling diagnostic reports the fixed proof contract on both hosted
   expect(dependencyInstall).toBeGreaterThan(-1);
   expect(svelteSync).toBeGreaterThan(dependencyInstall);
   expect(ipcTest).toBeGreaterThan(svelteSync);
+  const cancellationRace = workflow.indexOf(
+    "cancel_before_check_future_polling_is_preserved_until_admission",
+  );
+  const featureTest = workflow.indexOf(
+    "cargo test --locked --features spelling-ipc-test",
+  );
+  expect(featureTest).toBeGreaterThan(
+    workflow.indexOf("Run focused native spelling tests"),
+  );
+  expect(cancellationRace).toBeGreaterThan(featureTest);
+  expect(cancellationRace).toBeLessThan(dependencyInstall);
 });
