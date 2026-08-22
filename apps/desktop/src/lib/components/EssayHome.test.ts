@@ -7,6 +7,11 @@ import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import { createReleaseNotesController } from "$lib/update/releaseNotesController.svelte";
 import EssayHome from "./EssayHomeReleaseNotesHarness.test.svelte";
 
+const canonicalNotesExcerpt = bundledReleaseNotes.body
+  .split("\n")
+  .find((line) => line.startsWith("- "))!
+  .slice(2);
+
 const stores = vi.hoisted(() => ({
   create: vi.fn(),
   summaries: [] as EssaySummary[],
@@ -128,9 +133,7 @@ describe("essay launch context", () => {
     expect(dialog?.textContent).toContain(
       `Tesina ${bundledReleaseNotes.version}`,
     );
-    expect(dialog?.textContent).toContain(
-      "source of truth for their names",
-    );
+    expect(dialog?.textContent).toContain(canonicalNotesExcerpt);
     expect(dialog?.contains(document.activeElement)).toBe(true);
     globalThis.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
@@ -145,7 +148,7 @@ describe("essay launch context", () => {
     versionButton.click();
     flushSync();
     expect(document.querySelector("[role='dialog']")?.textContent).toContain(
-      "source of truth for their names",
+      canonicalNotesExcerpt,
     );
     expect(globalThis.location.href).toBe(initialLocation);
     expect(onCreate).not.toHaveBeenCalled();
@@ -269,7 +272,7 @@ describe("essay launch context", () => {
       versionButton.click();
       flushSync();
       expect(document.querySelector("[role='dialog']")?.textContent).toContain(
-        "source of truth for their names",
+        canonicalNotesExcerpt,
       );
       expect(document.querySelector("[role='dialog']")?.textContent).not
         .toContain("Las notas no están disponibles.");

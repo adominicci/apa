@@ -23,6 +23,11 @@ import type {
   StablePaginationPlan,
 } from "$lib/editor/pagination/types";
 
+const canonicalNotesExcerpt = bundledReleaseNotes.body
+  .split("\n")
+  .find((line) => line.startsWith("- "))!
+  .slice(2);
+
 const runtime = vi.hoisted(() => ({
   editors: [] as TiptapEditor[],
   persist: vi.fn(),
@@ -446,9 +451,7 @@ describe("editor preview round trip", () => {
     expect(dialog?.textContent).toContain(
       `Tesina ${bundledReleaseNotes.version}`,
     );
-    expect(dialog?.textContent).toContain(
-      "source of truth for their names",
-    );
+    expect(dialog?.textContent).toContain(canonicalNotesExcerpt);
     document.querySelector<HTMLButtonElement>(".modal .btn-primary")!.click();
     flushSync();
     expect(document.activeElement).toBe(versionButton);
@@ -500,9 +503,7 @@ describe("editor preview round trip", () => {
     expect(dialog?.textContent).toContain(
       "Las notas no están disponibles para esta versión.",
     );
-    expect(dialog?.textContent).not.toContain(
-      "source of truth for their names",
-    );
+    expect(dialog?.textContent).not.toContain(canonicalNotesExcerpt);
     globalThis.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Tab", bubbles: true }),
     );
