@@ -81,13 +81,48 @@ with non-empty suggestions. The report status was `pass` and contained no
 fixture text. This is local adapter evidence. It does not replace the current
 macOS arm64 automation row.
 
-The Windows adapter and Windows-gated tests cannot compile on this host through
-the full Tauri graph. Cross-target `cargo check` stopped in the existing `ring`
-dependency because the macOS toolchain does not provide the MSVC `assert.h`
-header. It stopped before compiling Tesina. The hosted diagnostic workflow is
-ready to produce Windows compile and capability evidence after the branch is
-pushed, but hosted Windows does not replace the named packaged Windows 10 and
-Windows 11 runs.
+Cross-target `cargo check` for Windows still cannot compile on this macOS host
+through the full Tauri graph. It stops in the existing `ring` dependency
+because the macOS toolchain does not provide the MSVC `assert.h` header, before
+compiling Tesina. Hosted evidence below now proves that the Windows adapter
+itself compiles and runs on Windows.
+
+## Hosted diagnostic on 2026-08-22
+
+GitHub Actions run
+[`32583614705`](https://github.com/adominicci/tesina/actions/runs/32583614705)
+ran the `Spelling native diagnostic` workflow against commit
+`1e612240836e5f0fd269781695d3a56c038b3479` on
+`features/add-bilingual-spelling-service`. The pull-request workflow and both
+matrix jobs completed successfully:
+
+- macOS job
+  [`97056536382`](https://github.com/adominicci/tesina/actions/runs/32583614705/job/97056536382)
+  uploaded artifact `spelling-proof-macos-latest` with artifact ID
+  `9478464740`.
+- Windows job
+  [`97056536256`](https://github.com/adominicci/tesina/actions/runs/32583614705/job/97056536256)
+  uploaded artifact `spelling-proof-windows-latest` with artifact ID
+  `9478488992`.
+
+The macOS artifact reports macOS 26.5.2 arm64 and contract version 1. Generic
+`en` and `es` dictionaries were available. The fixed fixtures returned UTF-16
+ranges `0..5` and `0..8`, respectively, with non-empty suggestions, and the
+report status was `pass`.
+
+The Windows artifact reports Windows `10.0.26100.33296` x86_64, a Windows 11
+host, and contract version 1. English was available as `en-US`; the fixed
+fixture returned range `0..5` with non-empty suggestions. Spanish returned the
+typed `missing-dictionary` capability with help code
+`install-system-dictionary`, so the report status was `block`. This is an
+expected capability block, not a workflow failure.
+
+The workflow runs the native proof executable, so it proves that both platform
+adapters compile and execute on the hosted targets. It does not run the
+Windows-gated Rust test suite, exercise forced COM failures or cancellation
+between real enumeration steps, or produce packaged application evidence.
+Tasks 5.1 and 5.2 therefore remain incomplete. Hosted `latest` runners also do
+not replace the named packaged or historical targets in tasks 7.2 and 7.3.
 
 The incomplete automation and packaged rows keep the spelling service hidden.
 No UI or release claim consumes it.
