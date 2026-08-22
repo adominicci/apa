@@ -48,6 +48,10 @@ jobs:
         if: matrix.platform == 'macos-latest'
         run: deno install --frozen
 
+      - name: Sync SvelteKit configuration for the focused IPC contract
+        if: matrix.platform == 'macos-latest'
+        run: deno task check
+
       - name: Run focused TypeScript-to-Tauri spelling IPC contract
         if: matrix.platform == 'macos-latest'
         env:

@@ -24,4 +24,16 @@ test("native spelling diagnostic reports the fixed proof contract on both hosted
   expect(workflow).toContain(
     "apps/desktop/src/lib/spelling/service.ipc.test.ts",
   );
+  const dependencyInstall = workflow.indexOf(
+    "Install TypeScript dependencies for the focused IPC contract",
+  );
+  const svelteSync = workflow.indexOf(
+    "Sync SvelteKit configuration for the focused IPC contract",
+  );
+  const ipcTest = workflow.indexOf(
+    "Run focused TypeScript-to-Tauri spelling IPC contract",
+  );
+  expect(dependencyInstall).toBeGreaterThan(-1);
+  expect(svelteSync).toBeGreaterThan(dependencyInstall);
+  expect(ipcTest).toBeGreaterThan(svelteSync);
 });
