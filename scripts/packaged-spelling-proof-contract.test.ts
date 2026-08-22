@@ -6,22 +6,42 @@ async function source(path: string): Promise<string> {
 }
 
 describe("packaged spelling proof contract", () => {
-  it("keeps the hidden proof bootstrap out of normal builds and releases", async () => {
-    const [cargo, layout, page, lib, release] = await Promise.all([
-      source("apps/desktop/src-tauri/Cargo.toml"),
+  it("composes the normal application synchronously while selecting proof entries at build time", async () => {
+    const [config, layout, page] = await Promise.all([
+      source("apps/desktop/svelte.config.js"),
       source("apps/desktop/src/routes/+layout.svelte"),
       source("apps/desktop/src/routes/+page.svelte"),
-      source("apps/desktop/src-tauri/src/lib.rs"),
-      source(".github/workflows/release.yml"),
     ]);
+
+    expect(config).toContain("VITE_TESINA_PACKAGED_SPELLING_PROOF");
+    expect(config).toContain('"$tesina-layout"');
+    expect(config).toContain('"$tesina-page"');
+    expect(layout).toContain('import AppLayout from "$tesina-layout"');
+    expect(page).toContain('import AppPage from "$tesina-page"');
+    expect(layout).not.toContain("onMount");
+    expect(page).not.toContain("onMount");
+    expect(layout).not.toContain("void import(");
+    expect(page).not.toContain("void import(");
+  });
+
+  it("keeps the hidden proof bootstrap out of normal builds and releases", async () => {
+    const [cargo, config, layout, page, proofPage, lib, release] = await Promise
+      .all([
+        source("apps/desktop/src-tauri/Cargo.toml"),
+        source("apps/desktop/svelte.config.js"),
+        source("apps/desktop/src/routes/+layout.svelte"),
+        source("apps/desktop/src/routes/+page.svelte"),
+        source("apps/desktop/src/lib/spelling/PackagedProofPage.svelte"),
+        source("apps/desktop/src-tauri/src/lib.rs"),
+        source(".github/workflows/release.yml"),
+      ]);
 
     expect(cargo).toContain("packaged-spelling-proof = []");
     expect(cargo).not.toMatch(/^default\s*=.*packaged-spelling-proof/m);
-    expect(page).toContain("VITE_TESINA_PACKAGED_SPELLING_PROOF");
-    expect(page).toContain("$lib/spelling/packagedProof");
+    expect(config).toContain("VITE_TESINA_PACKAGED_SPELLING_PROOF");
+    expect(proofPage).toContain("$lib/spelling/packagedProof");
     expect(page).not.toContain("$lib/state/library.svelte");
     expect(page).not.toContain("$lib/state/updater.svelte");
-    expect(layout).toContain("VITE_TESINA_PACKAGED_SPELLING_PROOF");
     expect(layout).not.toContain("$lib/persist/coordinator");
     expect(layout).not.toContain("$lib/state/uiLocale.svelte");
     expect(lib).toMatch(
@@ -111,8 +131,7 @@ describe("packaged spelling proof contract", () => {
     );
     expect(runbook).toContain('"/D=$install"');
     expect(runbook).toContain("Get-Content $out");
-    expect(runbook).toMatch(
-      /does not complete OpenSpec task\s+7\.2 or 7\.3/,
-    );
+    expect(runbook).toContain("does not complete the final");
+    expect(runbook).toContain("deferred—not executed");
   });
 });

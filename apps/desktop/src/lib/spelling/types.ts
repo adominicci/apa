@@ -31,7 +31,7 @@ export type CapabilityResult =
   | {
     status: "unavailable";
     language: DocumentLanguage;
-    reason: "api-unavailable";
+    reason: "api-unavailable" | "adapter-failure";
   };
 
 export interface SpellingIssue {

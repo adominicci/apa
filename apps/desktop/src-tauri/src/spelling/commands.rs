@@ -45,11 +45,16 @@ impl PlatformAdapter for HostAdapter {
 
 #[cfg(feature = "spelling-ipc-test")]
 #[derive(Default)]
-struct IpcTestAdapter;
+struct IpcTestAdapter {
+    capability_failure: bool,
+}
 
 #[cfg(feature = "spelling-ipc-test")]
 impl PlatformAdapter for IpcTestAdapter {
     fn installed_languages(&self) -> Result<Vec<String>, AdapterError> {
+        if self.capability_failure {
+            return Err(AdapterError::Failure);
+        }
         Ok(vec!["en-US".into(), "es-ES".into()])
     }
 
@@ -140,7 +145,18 @@ impl SpellingState {
     #[cfg(feature = "spelling-ipc-test")]
     pub(super) fn for_ipc_test() -> Self {
         Self {
-            boundary: Arc::new(ManagedBoundary::Test(Boundary::new(IpcTestAdapter))),
+            boundary: Arc::new(ManagedBoundary::Test(Boundary::new(
+                IpcTestAdapter::default(),
+            ))),
+        }
+    }
+
+    #[cfg(all(feature = "spelling-ipc-test", test))]
+    pub(super) fn for_ipc_test_capability_failure() -> Self {
+        Self {
+            boundary: Arc::new(ManagedBoundary::Test(Boundary::new(IpcTestAdapter {
+                capability_failure: true,
+            }))),
         }
     }
 

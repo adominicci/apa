@@ -22,8 +22,12 @@ pub struct IpcTestHarness {
 
 impl IpcTestHarness {
     pub fn new() -> Result<Self, String> {
+        Self::with_state(SpellingState::for_ipc_test())
+    }
+
+    fn with_state(state: SpellingState) -> Result<Self, String> {
         let app = mock_builder()
-            .manage(SpellingState::for_ipc_test())
+            .manage(state)
             .invoke_handler(tauri::generate_handler![
                 commands::spelling_capability,
                 commands::spelling_check,
@@ -111,6 +115,24 @@ mod tests {
                 "requestId": "ipc:2",
                 "documentRevision": 24,
                 "code": "adapter-failure"
+            })
+        );
+    }
+
+    #[test]
+    fn mock_runtime_serializes_adapter_failure_capability_reason() {
+        let harness =
+            IpcTestHarness::with_state(SpellingState::for_ipc_test_capability_failure()).unwrap();
+        let unavailable = harness
+            .invoke(r#"{"command":"spelling_capability","args":{"language":"es"}}"#)
+            .unwrap();
+
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&unavailable).unwrap(),
+            serde_json::json!({
+                "status": "unavailable",
+                "language": "es",
+                "reason": "adapter-failure"
             })
         );
     }

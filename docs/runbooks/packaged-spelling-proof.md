@@ -63,6 +63,7 @@ missing-Spanish-dictionary case. The bilingual acceptance runs require both
 English and Spanish system language features. The missing-dictionary run must
 retain the structured `install-system-dictionary` block.
 
-Building an installer or collecting a report does not complete OpenSpec task
-7.2 or 7.3. Check a task only after its named machine and dictionary state have
-produced and recorded the required report.
+Building an installer or collecting one report does not complete the final
+rollout manual gate. Physical macOS 12 Intel, Windows 10 x64, Windows 11 x64,
+and the separate missing-dictionary case remain deferred—not executed—until
+the end-of-rollout handoff records each required machine and dictionary state.

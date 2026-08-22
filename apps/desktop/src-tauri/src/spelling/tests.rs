@@ -193,6 +193,56 @@ fn rejects_invalid_native_ranges_without_partial_issues() {
 }
 
 #[test]
+fn rejects_zero_length_native_ranges_without_partial_issues() {
+    let mut adapter = FakeAdapter::available();
+    adapter.issues = vec![
+        NativeIssue {
+            start: 0,
+            length: 5,
+            suggestions: vec!["wrong".into()],
+        },
+        NativeIssue {
+            start: 6,
+            length: 0,
+            suggestions: vec!["wrong".into()],
+        },
+    ];
+
+    assert!(matches!(
+        Boundary::new(adapter).check(request("zero-length", "wrngg wrngg")),
+        CheckResult::Failed {
+            code: ErrorCode::AdapterFailure,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn rejects_overlapping_native_ranges_without_partial_issues() {
+    let mut adapter = FakeAdapter::available();
+    adapter.issues = vec![
+        NativeIssue {
+            start: 0,
+            length: 5,
+            suggestions: vec!["wrong".into()],
+        },
+        NativeIssue {
+            start: 4,
+            length: 5,
+            suggestions: vec!["wrong".into()],
+        },
+    ];
+
+    assert!(matches!(
+        Boundary::new(adapter).check(request("overlap", "wrnggwrngg")),
+        CheckResult::Failed {
+            code: ErrorCode::AdapterFailure,
+            ..
+        }
+    ));
+}
+
+#[test]
 fn translates_stable_adapter_failures() {
     let mut adapter = FakeAdapter::available();
     adapter.failure = Some(AdapterError::ApiUnavailable);

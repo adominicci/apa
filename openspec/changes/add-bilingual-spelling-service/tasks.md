@@ -31,13 +31,13 @@
 ## 7. Hidden-service proof and deferred physical gate
 
 - [x] 7.1 Add or extend a structured proof harness and workflow contract tests so every acceptance target reports OS/version/architecture, contract version, English and Spanish capability, selected tags, known-misspelling UTF-16 ranges, non-empty suggestions, and pass/block status. Use fixed non-document fixtures and redact native error details.
-- [x] 7.2 Run exact-current-head hosted macOS arm64, current Intel, and Windows diagnostics; record target capability or precise block without treating hosted execution as a physical target run.
-- [x] 7.3 Construct private feature-gated macOS and Windows proof installers, record workflow/artifact identities and hashes, and record a downloaded current-arm64 packaged/manual bilingual pass. Do not publish a release.
+- [ ] 7.2 Run exact-current-head hosted macOS arm64, current Intel, and Windows diagnostics; record target capability or precise block without treating hosted execution as a physical target run.
+- [ ] 7.3 Construct private feature-gated macOS and Windows proof installers, record workflow/artifact identities and hashes, and record a downloaded current-arm64 packaged/manual bilingual pass. Do not publish a release.
 - [x] 7.4 Transfer physical macOS 12 Intel, Windows 10 x64, Windows 11 x64, bilingual installed-dictionary checks, and the separate missing-dictionary case to the canonical final rollout manual gate. Keep each unexecuted row explicit and keep spelling hidden with no visible release promise until that gate passes; do not bundle a dictionary or transmit text.
 - [x] 7.5 Record the exact Cargo feature/lockfile impact, compatible licenses and source packages for native bindings, and confirmation that no dictionary or other data asset is redistributed.
 
 ## 8. Final LT-01 gate
 
-- [x] 8.1 Run focused TypeScript and Rust spelling tests, command/integration tests, `deno task check`, `deno task test`, `deno fmt --check`, `deno lint`, `cargo fmt --check`, `cargo test --locked`, and strict OpenSpec validation; distinguish any environment capability block from a test failure.
-- [x] 8.2 Review the final diff against the hidden-service boundary and the single LT-01 branch/PR size gate. Confirm no editor UI, essay/app-setting change, persistence, grammar/style, model, network, OS dictionary mutation, bundled dictionary, or visible release promise entered the change.
+- [ ] 8.1 Run focused TypeScript and Rust spelling tests, command/integration tests, `deno task check`, `deno task test`, `deno fmt --check`, `deno lint`, `cargo fmt --check`, `cargo test --locked`, and strict OpenSpec validation; distinguish any environment capability block from a test failure.
+- [ ] 8.2 Review the final diff against the hidden-service boundary and the single LT-01 branch/PR size gate. Confirm no editor UI, essay/app-setting change, persistence, grammar/style, model, network, OS dictionary mutation, bundled dictionary, or visible release promise entered the change.
 - [x] 8.3 Apply the repository per-change version synchronization and one human CHANGELOG entry only when the implementation is ready for its single main-bound PR; do not create separate checklist PRs or release artifacts.

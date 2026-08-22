@@ -387,6 +387,9 @@ fn convert_issues(request: &CheckRequest, native: Vec<NativeIssue>) -> Option<Ve
     let units = request.text.encode_utf16().collect::<Vec<_>>();
     let mut issues = Vec::with_capacity(native.len());
     for issue in native {
+        if issue.length == 0 {
+            return None;
+        }
         let start = issue.start as usize;
         let end = start.checked_add(issue.length as usize)?;
         let word = String::from_utf16(units.get(start..end)?).ok()?;
@@ -407,6 +410,9 @@ fn convert_issues(request: &CheckRequest, native: Vec<NativeIssue>) -> Option<Ve
         });
     }
     issues.sort_by_key(|issue| (issue.from, issue.to));
+    if issues.windows(2).any(|pair| pair[1].from < pair[0].to) {
+        return None;
+    }
     Some(issues)
 }
 

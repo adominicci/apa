@@ -5,6 +5,7 @@ import {
   isEligibleSpellingSource,
 } from "./service";
 import type {
+  CapabilityResult,
   NativeCheckRequest,
   NativeClient,
   NativeSpellingResult,
@@ -92,6 +93,17 @@ describe("spelling service facade", () => {
       ["spelling_check", { request }],
       ["spelling_cancel", { requestId: "session:1" }],
     ]);
+  });
+
+  test("preserves adapter failures in unavailable capability responses", async () => {
+    const expected: CapabilityResult = {
+      status: "unavailable",
+      language: "es",
+      reason: "adapter-failure",
+    };
+    const client = createTauriSpellingClient(() => Promise.resolve(expected));
+
+    await expect(client.capability("es")).resolves.toEqual(expected);
   });
 
   test("reports English and Spanish capability without conflating an absent dictionary", async () => {

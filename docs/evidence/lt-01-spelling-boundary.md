@@ -68,11 +68,10 @@ rather than represented as work completed during LT-01.
 
 | LT-01 evidence | Status | Record |
 | --- | --- | --- |
-| Current-head CI | Passed | Run `32603506352` at `2e01ad8002a0a095cae71d8276814b23be27a886` |
-| Current-head hosted spelling diagnostics | Passed with precise Windows Spanish capability block | Run `32603506368`, macOS arm64, current Intel, and Windows |
-| Private proof installers | Constructed | Run `32603867576`, macOS artifact `9483708860`, Windows artifact `9483700434` |
-| Downloaded current-arm64 packaged proof | Passed | macOS 26.6.1 arm64, English and Spanish |
-| User current-arm64 manual proof | Passed | Redacted report and SHA-256 recorded below |
+| Replacement-head CI | Pending | Required after the reviewed production fixes land |
+| Replacement-head hosted spelling diagnostics | Pending | Required on macOS arm64, current Intel, and Windows |
+| Replacement-head private proof installers | Pending | Fresh macOS and Windows artifacts and hashes required |
+| Replacement-head downloaded current-arm64 packaged proof | Pending | Fresh downloaded DMG run required |
 
 | Final rollout physical target | Status | Required evidence before visibility |
 | --- | --- | --- |
@@ -84,9 +83,9 @@ rather than represented as work completed during LT-01.
 The feature remains hidden and has no visible release promise until every final
 rollout physical row passes.
 
-## Exact-current-head completion evidence on 2026-08-22
+## Historical implementation-head evidence on 2026-08-22
 
-Source head `2e01ad8002a0a095cae71d8276814b23be27a886` passed
+Historical source head `2e01ad8002a0a095cae71d8276814b23be27a886` passed
 [`CI` run `32603506352`](https://github.com/adominicci/tesina/actions/runs/32603506352)
 and
 [`Spelling native diagnostic` run `32603506368`](https://github.com/adominicci/tesina/actions/runs/32603506368).
@@ -121,6 +120,11 @@ has SHA-256
 It records contract version 1, macOS 26.6.1 arm64, English and Spanish
 available, selected generic `en` and `es`, ranges `0..5` and `0..8`, non-empty
 suggestions, and overall `pass`.
+
+These artifacts and reports remain valid historical evidence, but later
+production fixes mean they do not complete the replacement-head LT-01 gate.
+Fresh exact-head diagnostics, private artifacts and hashes, and a downloaded
+current-arm64 packaged run must be recorded before tasks 7.2 and 7.3 close.
 
 No physical macOS 12 Intel, Windows 10 x64, Windows 11 x64, or separate
 Windows missing-dictionary run was executed. Those rows are
