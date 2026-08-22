@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 test("native spelling diagnostic reports the fixed proof contract on both hosted platforms", async () => {
   const workflow = await readFile(
@@ -7,6 +8,7 @@ test("native spelling diagnostic reports the fixed proof contract on both hosted
     "utf8",
   );
 
+  expect(() => parse(workflow)).not.toThrow();
   expect(workflow).toContain("macos-latest");
   expect(workflow).toContain("macos-15-intel");
   expect(workflow).toContain("windows-latest");

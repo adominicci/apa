@@ -36,7 +36,7 @@ jobs:
 
       - name: Run focused native spelling tests
         working-directory: apps/desktop/src-tauri
-        run: cargo test --locked spelling:: -- --nocapture
+        run: "cargo test --locked spelling:: -- --nocapture"
 
       - name: Run native spelling proof
         shell: bash
