@@ -178,6 +178,12 @@ impl Drop for ActiveGuard {
     }
 }
 
+pub(crate) struct AdmittedCheck {
+    request: CheckRequest,
+    cancelled: Arc<AtomicBool>,
+    _guard: ActiveGuard,
+}
+
 pub(crate) struct Boundary<A> {
     adapter: A,
     registry: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
@@ -240,31 +246,51 @@ impl<A: PlatformAdapter> Boundary<A> {
     }
 
     pub(crate) fn check(&self, request: CheckRequest) -> CheckResult {
+        match self.admit(request) {
+            Ok(admitted) => self.check_admitted(admitted),
+            Err(result) => result,
+        }
+    }
+
+    pub(crate) fn admit(&self, request: CheckRequest) -> Result<AdmittedCheck, CheckResult> {
         let correlation = (request.request_id.clone(), request.document_revision);
         if !valid_request(&request) {
-            return failed(correlation, ErrorCode::InvalidRequest);
+            return Err(failed(correlation, ErrorCode::InvalidRequest));
         }
 
         let cancelled = {
             let mut registry = self.registry.lock().unwrap();
             if registry.contains_key(&request.request_id) {
-                return failed(correlation, ErrorCode::InvalidRequest);
+                return Err(failed(correlation, ErrorCode::InvalidRequest));
             }
             if registry.len() >= ACTIVE_REQUEST_LIMIT {
-                return CheckResult::Busy {
+                return Err(CheckResult::Busy {
                     request_id: correlation.0,
                     document_revision: correlation.1,
                     code: "busy",
-                };
+                });
             }
             let flag = Arc::new(AtomicBool::new(false));
             registry.insert(request.request_id.clone(), flag.clone());
             flag
         };
-        let _guard = ActiveGuard {
-            request_id: request.request_id.clone(),
-            registry: self.registry.clone(),
-        };
+        Ok(AdmittedCheck {
+            _guard: ActiveGuard {
+                request_id: request.request_id.clone(),
+                registry: self.registry.clone(),
+            },
+            request,
+            cancelled,
+        })
+    }
+
+    pub(crate) fn check_admitted(&self, admitted: AdmittedCheck) -> CheckResult {
+        let AdmittedCheck {
+            request,
+            cancelled,
+            _guard,
+        } = admitted;
+        let correlation = (request.request_id.clone(), request.document_revision);
 
         if cancelled.load(Ordering::SeqCst) {
             return cancelled_result(correlation);

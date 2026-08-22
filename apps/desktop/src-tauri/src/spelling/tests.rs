@@ -470,6 +470,22 @@ fn command_boundary_serializes_stable_results_without_native_details() {
 }
 
 #[test]
+fn command_admission_makes_cancellation_visible_before_worker_start() {
+    let boundary = Arc::new(Boundary::new(FakeAdapter::available()));
+    let admitted = boundary.admit(request("command-race", "text")).unwrap();
+    assert_eq!(boundary.active_count(), 1);
+    assert!(cancel_command(&boundary, "command-race"));
+
+    let worker_boundary = boundary.clone();
+    let result = thread::spawn(move || worker_boundary.check_admitted(admitted))
+        .join()
+        .unwrap();
+
+    assert!(matches!(result, CheckResult::Cancelled { .. }));
+    assert_eq!(boundary.active_count(), 0);
+}
+
+#[test]
 fn proof_report_has_fixed_contract_and_target_metadata() {
     let value = serde_json::to_value(run_proof(Boundary::new(FakeAdapter::available()))).unwrap();
     assert_eq!(value["contractVersion"], 1);

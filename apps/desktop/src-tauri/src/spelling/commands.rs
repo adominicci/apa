@@ -1,5 +1,6 @@
 use super::boundary::{
-    failed, Boundary, CapabilityResult, CheckRequest, CheckResult, DocumentLanguage, ErrorCode,
+    failed, AdmittedCheck, Boundary, CapabilityResult, CheckRequest, CheckResult, DocumentLanguage,
+    ErrorCode,
 };
 use std::sync::Arc;
 
@@ -81,11 +82,19 @@ impl ManagedBoundary {
         }
     }
 
-    fn check(&self, request: CheckRequest) -> CheckResult {
+    fn admit(&self, request: CheckRequest) -> Result<AdmittedCheck, CheckResult> {
         match self {
-            Self::Native(boundary) => boundary.check(request),
+            Self::Native(boundary) => boundary.admit(request),
             #[cfg(feature = "spelling-ipc-test")]
-            Self::Test(boundary) => boundary.check(request),
+            Self::Test(boundary) => boundary.admit(request),
+        }
+    }
+
+    fn check_admitted(&self, admitted: AdmittedCheck) -> CheckResult {
+        match self {
+            Self::Native(boundary) => boundary.check_admitted(admitted),
+            #[cfg(feature = "spelling-ipc-test")]
+            Self::Test(boundary) => boundary.check_admitted(admitted),
         }
     }
 
@@ -174,8 +183,12 @@ pub async fn spelling_check(
 ) -> Result<CheckResult, ()> {
     let boundary = state.boundary.clone();
     let correlation = (request.request_id.clone(), request.document_revision);
+    let admitted = match boundary.admit(request) {
+        Ok(admitted) => admitted,
+        Err(result) => return Ok(result),
+    };
     Ok(
-        tauri::async_runtime::spawn_blocking(move || boundary.check(request))
+        tauri::async_runtime::spawn_blocking(move || boundary.check_admitted(admitted))
             .await
             .unwrap_or_else(|_| failed(correlation, ErrorCode::AdapterFailure)),
     )
