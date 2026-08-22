@@ -51,6 +51,13 @@ impl SpellingState {
             boundary: Arc::new(Boundary::new(adapter)),
         }
     }
+
+    #[cfg(feature = "spelling-ipc-test")]
+    pub(super) fn for_ipc_test() -> Self {
+        Self {
+            boundary: Arc::new(host_boundary()),
+        }
+    }
 }
 
 pub(crate) fn host_boundary() -> Boundary<HostAdapter> {

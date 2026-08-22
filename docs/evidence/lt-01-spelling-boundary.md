@@ -124,10 +124,32 @@ between real enumeration steps, or produce packaged application evidence.
 Tasks 5.1 and 5.2 therefore remain incomplete. Hosted `latest` runners also do
 not replace the named packaged or historical targets in tasks 7.2 and 7.3.
 
+Current-head run
+[`32584119257`](https://github.com/adominicci/tesina/actions/runs/32584119257)
+executed the three-runner matrix against commit
+`f4c13fd81bdd04689954cfdff69a1aa49adf0fd1`. All workflow jobs succeeded:
+
+- arm64 job
+  [`97057802502`](https://github.com/adominicci/tesina/actions/runs/32584119257/job/97057802502)
+  uploaded `spelling-proof-macos-latest`, artifact ID `9478603814`;
+- Intel job
+  [`97057802604`](https://github.com/adominicci/tesina/actions/runs/32584119257/job/97057802604)
+  uploaded `spelling-proof-macos-15-intel`, artifact ID `9478619485`;
+- Windows job
+  [`97057802836`](https://github.com/adominicci/tesina/actions/runs/32584119257/job/97057802836)
+  uploaded `spelling-proof-windows-latest`, artifact ID `9478623519`.
+
+The arm64 report repeated the macOS 26.5.2 bilingual pass. The Intel report
+records macOS 15.7.7 x86_64 with `en` and `es` selected, fixture ranges `0..5`
+and `0..8`, non-empty suggestions, and overall `pass`. The Windows report
+repeated the Windows 11 English pass and typed Spanish dictionary block. This
+adds current Intel hosted automation, but not macOS 12 Intel manual or
+self-hosted proof and not a packaged run. Task 7.2 remains incomplete.
+
 The incomplete automation and packaged rows keep the spelling service hidden.
 No UI or release claim consumes it.
 
-## Incomplete focused proof
+## Focused proof status
 
 The macOS-gated adapter tests prove installed-language capability, bilingual
 known-fixture ranges and suggestions when both dictionaries are present, and a
@@ -138,11 +160,16 @@ cannot be produced honestly on this host without changing installed system
 dictionaries or introducing a test-only native fault seam, so task 4.1 remains
 incomplete.
 
-The TypeScript facade integration test uses an injected `invoke` stub to assert
-the command names and serialized payloads. Rust command tests separately assert
-the stable serde result shapes. No test currently crosses a live Tauri IPC
-boundary from TypeScript into the registered Rust commands, so task 6.2 remains
-incomplete.
+The focused `service.ipc.test.ts` integration test drives
+`createTauriSpellingClient` from TypeScript into a feature-gated Rust process.
+The Rust harness submits the received command and argument JSON through Tauri
+2's `MockRuntime`, `InvokeRequest`, and `get_ipc_response` to the actual
+`spelling_check` command macro and managed `SpellingState`. A deterministic
+invalid request crosses command-name selection, argument serialization, state
+injection, Rust validation, result-union serialization, and response parsing;
+the returned `invalid-request` result preserves request ID and revision. The
+Rust side is not replaced by a JavaScript stub, and the harness is excluded
+unless the test-only Cargo feature is enabled.
 
 ## Dependency and redistribution record
 
