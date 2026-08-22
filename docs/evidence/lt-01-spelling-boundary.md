@@ -160,15 +160,39 @@ under `cfg(test)`; production adapter behavior and installed dictionaries are
 unchanged. The local macOS run passed all 13 focused spelling tests. The
 workflow runs the same focused suite with uncaptured output before each native
 proof so any unavailable English or Spanish fixture emits its target,
-architecture, language, and typed capability block. Task 4.1 remains unchecked
-until a hosted macOS run passes this exact suite.
+architecture, language, and typed capability block.
 
 The Windows-gated suite contains the equivalent exact-range fixture,
 missing-dictionary, sanitized COM/adapter-failure, pre-call cancellation, and
 between-COM-enumeration tests. The same `cfg(test)` restriction keeps its
-deterministic overrides out of production builds. Tasks 5.1 and 5.2 remain
-unchecked until the hosted Windows job compiles and passes these tests before
-running the real native proof.
+deterministic overrides out of production builds.
+
+Hosted run
+[`32585128795`](https://github.com/adominicci/tesina/actions/runs/32585128795)
+executed the focused tests and native proof against commit
+`1e4e6aa0beefe2ae17236f7647fb5f90e5e16d7c`. All three jobs passed:
+
+- Intel macOS job
+  [`97060239533`](https://github.com/adominicci/tesina/actions/runs/32585128795/job/97060239533)
+  passed 13 of 13 focused tests and uploaded artifact
+  `spelling-proof-macos-15-intel`, ID `9478880003`;
+- arm64 macOS job
+  [`97060239647`](https://github.com/adominicci/tesina/actions/runs/32585128795/job/97060239647)
+  passed 13 of 13 focused tests and uploaded artifact
+  `spelling-proof-macos-latest`, ID `9478860637`;
+- Windows job
+  [`97060239687`](https://github.com/adominicci/tesina/actions/runs/32585128795/job/97060239687)
+  passed 13 of 13 focused tests and uploaded artifact
+  `spelling-proof-windows-latest`, ID `9478888600`.
+
+Both macOS jobs passed the deterministic missing-dictionary and sanitized
+failure cases, immediate and between-enumeration cancellation, and real
+bilingual fixture range and suggestion checks. Windows passed the equivalent
+missing-dictionary, sanitized COM/adapter-failure, immediate and
+between-COM-enumeration cases. Its real native fixture test emitted the precise
+Spanish block: `MissingDictionary` with help code
+`install-system-dictionary`. This run satisfies tasks 4.1, 5.1, and 5.2. It
+does not provide any packaged target evidence.
 
 The focused `service.ipc.test.ts` integration test drives
 `createTauriSpellingClient` from TypeScript into a feature-gated Rust process.

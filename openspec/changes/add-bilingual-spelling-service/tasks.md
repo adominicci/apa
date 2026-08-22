@@ -15,13 +15,13 @@
 
 ## 4. Red/green: macOS `NSSpellChecker` adapter
 
-- [ ] 4.1 Add failing macOS-gated tests for installed-language capability, English/Spanish known fixtures when available, UTF-16 range/suggestion extraction, missing dictionary, adapter failure translation, and cancellation checkpoints; record a precise capability block rather than silently passing when a required dictionary is absent.
+- [x] 4.1 Add failing macOS-gated tests for installed-language capability, English/Spanish known fixtures when available, UTF-16 range/suggestion extraction, missing dictionary, adapter failure translation, and cancellation checkpoints; record a precise capability block rather than silently passing when a required dictionary is absent.
 - [x] 4.2 Enable only the required pinned `objc2-app-kit`/Foundation features and implement the read-only `NSSpellChecker` adapter on the required native thread. Enumerate installed tags, iterate misspellings and guesses with cancellation checks, and do not call dictionary or ignore-list mutators. Make the focused macOS tests pass.
 
 ## 5. Red/green: Windows `ISpellChecker` adapter
 
-- [ ] 5.1 Add failing Windows-gated tests for installed-language capability, English/Spanish known fixtures when available, UTF-16 error/suggestion enumeration, missing dictionary, COM/adapter failure translation, and cancellation checkpoints; record a precise capability block rather than silently passing when a required dictionary is absent.
-- [ ] 5.2 Enable only the required pinned `windows` Globalization/COM features and implement the read-only `ISpellCheckerFactory`/`ISpellChecker` adapter with operation-scoped COM initialization. Keep COM objects on their initialized thread, check cancellation between enumeration steps, and do not call `Add`, `Ignore`, `AutoCorrect`, or other mutators. Make the focused Windows tests pass.
+- [x] 5.1 Add failing Windows-gated tests for installed-language capability, English/Spanish known fixtures when available, UTF-16 error/suggestion enumeration, missing dictionary, COM/adapter failure translation, and cancellation checkpoints; record a precise capability block rather than silently passing when a required dictionary is absent.
+- [x] 5.2 Enable only the required pinned `windows` Globalization/COM features and implement the read-only `ISpellCheckerFactory`/`ISpellChecker` adapter with operation-scoped COM initialization. Keep COM objects on their initialized thread, check cancellation between enumeration steps, and do not call `Add`, `Ignore`, `AutoCorrect`, or other mutators. Make the focused Windows tests pass.
 
 ## 6. Command registration and end-to-end contract
 
