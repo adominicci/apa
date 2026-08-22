@@ -9,11 +9,11 @@ describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
     const expectedNotes = `### Changed
 
-- Internal consistency work with no visible changes: document building blocks
-  now share one source of truth for their names across the editor's schema,
-  live pagination, previews, portable archives, and Word export.`;
+- Internal groundwork adds a hidden, local spelling boundary for English and
+  Spanish on macOS and Windows. The editor does not use it yet, so visible
+  behavior is unchanged.`;
 
-    expect(bundledReleaseNotes.version).toBe("0.1.19");
+    expect(bundledReleaseNotes.version).toBe("0.1.20");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");

@@ -61,16 +61,71 @@ settings types.
 
 ## Acceptance matrix
 
-| Target | Status | Evidence required before visibility |
-| --- | --- | --- |
-| Current macOS arm64 | Incomplete | Packaged English and Spanish fixture run |
-| Current macOS Intel | Incomplete | Packaged English and Spanish fixture run |
-| macOS 12 Intel | Incomplete | Recorded manual or self-hosted packaged run |
-| Windows 10 x64 | Incomplete | Packaged English and Spanish fixture run |
-| Windows 11 x64 | Incomplete | Packaged English and Spanish fixture run |
-| Windows missing dictionary | Incomplete | Packaged `missing-dictionary` result |
+LT-01 closes the hidden-service implementation with current-head hosted
+diagnostics, private installer construction, and current-arm64 packaged/manual
+proof. Physical Intel and Windows execution is retained as a final rollout gate
+rather than represented as work completed during LT-01.
 
-The feature remains hidden while any named row is incomplete.
+| LT-01 evidence | Status | Record |
+| --- | --- | --- |
+| Current-head CI | Passed | Run `32603506352` at `2e01ad8002a0a095cae71d8276814b23be27a886` |
+| Current-head hosted spelling diagnostics | Passed with precise Windows Spanish capability block | Run `32603506368`, macOS arm64, current Intel, and Windows |
+| Private proof installers | Constructed | Run `32603867576`, macOS artifact `9483708860`, Windows artifact `9483700434` |
+| Downloaded current-arm64 packaged proof | Passed | macOS 26.6.1 arm64, English and Spanish |
+| User current-arm64 manual proof | Passed | Redacted report and SHA-256 recorded below |
+
+| Final rollout physical target | Status | Required evidence before visibility |
+| --- | --- | --- |
+| macOS 12 Intel | Deferred—not executed | Recorded packaged bilingual run |
+| Windows 10 x64 | Deferred—not executed | Packaged English and Spanish run with both language features installed |
+| Windows 11 x64 | Deferred—not executed | Packaged English and Spanish run with both language features installed |
+| Windows missing dictionary | Deferred—not executed | Separate packaged `missing-dictionary` result |
+
+The feature remains hidden and has no visible release promise until every final
+rollout physical row passes.
+
+## Exact-current-head completion evidence on 2026-08-22
+
+Source head `2e01ad8002a0a095cae71d8276814b23be27a886` passed
+[`CI` run `32603506352`](https://github.com/adominicci/tesina/actions/runs/32603506352)
+and
+[`Spelling native diagnostic` run `32603506368`](https://github.com/adominicci/tesina/actions/runs/32603506368).
+The spelling matrix completed on hosted macOS arm64, current macOS Intel, and
+Windows. Both macOS jobs reported bilingual passes. Windows passed its native
+suite and reported English available plus the precise Spanish
+`missing-dictionary` capability block with `install-system-dictionary`; that
+hosted block is diagnostic, not a physical missing-dictionary final-gate run.
+
+Manual-dispatch-only private installer
+[`run 32603867576`](https://github.com/adominicci/tesina/actions/runs/32603867576)
+passed at the same source head. It created, but did not release:
+
+- artifact `9483708860`, `tesina-spelling-proof-macos-universal`; downloaded
+  `Tesina Spelling Proof_0.1.19_universal.dmg` SHA-256
+  `c24bdfb061baf4ae4840659e456fbfd85883c3d52cea598dafc66a84e649b270`,
+  whose executable contains both `x86_64` and `arm64` slices;
+- artifact `9483700434`, `tesina-spelling-proof-windows-x64`; downloaded
+  `Tesina Spelling Proof_0.1.19_x64-setup.exe` SHA-256
+  `b239bdd97a108f7e05562f901287021118d649145b8745dc4581806590521229`.
+
+The downloaded DMG was mounted and its hidden proof executable ran on macOS
+26.6.1 arm64. Contract version 1 reported English and Spanish available,
+selected generic `en` and `es`, ranges `0..5` and `0..8`, non-empty
+suggestions, and overall `pass`.
+
+The user then completed the established manual packaged handoff on the same
+current-arm64 Mac. Redacted report
+`/Users/andresdominicci/Desktop/lt-01-macos-arm64-20260822-192554.json`
+has SHA-256
+`11fc5d0088abf811005735bbbb42174f83056b0e5d899db58f6848a08220a53f`.
+It records contract version 1, macOS 26.6.1 arm64, English and Spanish
+available, selected generic `en` and `es`, ranges `0..5` and `0..8`, non-empty
+suggestions, and overall `pass`.
+
+No physical macOS 12 Intel, Windows 10 x64, Windows 11 x64, or separate
+Windows missing-dictionary run was executed. Those rows are
+`Deferred—not executed` and remain mandatory in the canonical final rollout
+manual gate.
 
 ## Local diagnostic on 2026-08-22
 
@@ -121,8 +176,10 @@ The workflow runs the native proof executable, so it proves that both platform
 adapters compile and execute on the hosted targets. It does not run the
 Windows-gated Rust test suite, exercise forced COM failures or cancellation
 between real enumeration steps, or produce packaged application evidence.
-Tasks 5.1 and 5.2 therefore remain incomplete. Hosted `latest` runners also do
-not replace the named packaged or historical targets in tasks 7.2 and 7.3.
+At this historical checkpoint, tasks 5.1 and 5.2 were still incomplete and the
+hosted `latest` runners did not constitute physical target evidence. Later
+sections record their completion and the product owner's transfer of physical
+target runs to the final rollout gate.
 
 Current-head run
 [`32584119257`](https://github.com/adominicci/tesina/actions/runs/32584119257)
@@ -144,10 +201,10 @@ records macOS 15.7.7 x86_64 with `en` and `es` selected, fixture ranges `0..5`
 and `0..8`, non-empty suggestions, and overall `pass`. The Windows report
 repeated the Windows 11 English pass and typed Spanish dictionary block. This
 adds current Intel-hosted automation, but not macOS 12 Intel manual or
-self-hosted proof and not a packaged run. Task 7.2 remains incomplete.
+self-hosted proof and not a packaged run. The physical macOS 12 Intel proof is
+now explicitly deferred to the final rollout gate.
 
-The incomplete automation and packaged rows keep the spelling service hidden.
-No UI or release claim consumes it.
+The spelling service remains hidden. No UI or release claim consumes it.
 
 ## Focused proof status
 

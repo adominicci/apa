@@ -28,16 +28,16 @@
 - [x] 6.1 Add failing command-boundary tests for capability, check, empty-text bypass, duplicate/invalid request rejection, two-request admission and typed `busy`, cancellation without early slot release, late-cancel isolation, registry cleanup on native exit, no partial issues, and no raw native details. Then register only the bounded capability/check/cancel commands in `lib.rs` and make those tests pass.
 - [x] 6.2 Run the TypeScript facade against the real Tauri command serialization in a focused integration test, proving correlation and stable unions without adding editor imports, UI, settings, persistence, dictionary mutation, network permissions, or model code.
 
-## 7. Packaged parity and licensing gate
+## 7. Hidden-service proof and deferred physical gate
 
 - [x] 7.1 Add or extend a structured proof harness and workflow contract tests so every acceptance target reports OS/version/architecture, contract version, English and Spanish capability, selected tags, known-misspelling UTF-16 ranges, non-empty suggestions, and pass/block status. Use fixed non-document fixtures and redact native error details.
-- [ ] 7.2 Run current macOS arm64 and Intel automation and record a macOS 12 Intel manual or self-hosted packaged run. A hosted capability block is diagnostic only and does not replace any named target.
-- [ ] 7.3 Run packaged Windows 10 x64 and Windows 11 x64 proof with English and Spanish language features installed, plus a separate packaged missing-dictionary case. A hosted capability block is diagnostic only and does not replace either Windows target.
-- [x] 7.4 If any required target lacks its API/dictionaries or fails the contract, record the exact block and keep the feature hidden; do not bundle a dictionary, transmit text, or promise a platform-partial release.
+- [x] 7.2 Run exact-current-head hosted macOS arm64, current Intel, and Windows diagnostics; record target capability or precise block without treating hosted execution as a physical target run.
+- [x] 7.3 Construct private feature-gated macOS and Windows proof installers, record workflow/artifact identities and hashes, and record a downloaded current-arm64 packaged/manual bilingual pass. Do not publish a release.
+- [x] 7.4 Transfer physical macOS 12 Intel, Windows 10 x64, Windows 11 x64, bilingual installed-dictionary checks, and the separate missing-dictionary case to the canonical final rollout manual gate. Keep each unexecuted row explicit and keep spelling hidden with no visible release promise until that gate passes; do not bundle a dictionary or transmit text.
 - [x] 7.5 Record the exact Cargo feature/lockfile impact, compatible licenses and source packages for native bindings, and confirmation that no dictionary or other data asset is redistributed.
 
 ## 8. Final LT-01 gate
 
 - [x] 8.1 Run focused TypeScript and Rust spelling tests, command/integration tests, `deno task check`, `deno task test`, `deno fmt --check`, `deno lint`, `cargo fmt --check`, `cargo test --locked`, and strict OpenSpec validation; distinguish any environment capability block from a test failure.
 - [x] 8.2 Review the final diff against the hidden-service boundary and the single LT-01 branch/PR size gate. Confirm no editor UI, essay/app-setting change, persistence, grammar/style, model, network, OS dictionary mutation, bundled dictionary, or visible release promise entered the change.
-- [ ] 8.3 Apply the repository per-change version synchronization and one human CHANGELOG entry only when the implementation is ready for its single main-bound PR; do not create separate checklist PRs or release artifacts.
+- [x] 8.3 Apply the repository per-change version synchronization and one human CHANGELOG entry only when the implementation is ready for its single main-bound PR; do not create separate checklist PRs or release artifacts.

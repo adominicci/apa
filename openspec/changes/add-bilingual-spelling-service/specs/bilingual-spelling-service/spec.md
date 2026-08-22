@@ -141,23 +141,33 @@ Adapter failures SHALL be translated to stable codes: `api-unavailable`, `missin
 - **THEN** the service returns `missing-dictionary` rather than an empty issue array or a different-language result
 
 ### Requirement: Cross-platform contract and packaged evidence
-The same contract tests SHALL cover English, Spanish, punctuation, Unicode, repeated words, empty text, stale revisions, session-unique correlation, late cancellation, global capacity and busy handling, missing dictionaries, cancellation, and adapter failures. Acceptance evidence SHALL demonstrate capability and a known misspelling with suggestions for both document languages on current macOS arm64 automation, current macOS Intel automation, a recorded macOS 12 Intel manual or self-hosted run, packaged Windows 10 x64, and packaged Windows 11 x64. Both Windows acceptance environments SHALL have English and Spanish language features installed, and packaged Windows evidence SHALL also exercise a missing-dictionary case. Ordinary hosted CI MAY record a capability block but MUST NOT substitute for any named acceptance target. The spelling feature SHALL remain hidden if the complete matrix does not satisfy the contract.
+The same contract tests SHALL cover English, Spanish, punctuation, Unicode, repeated words, empty text, stale revisions, session-unique correlation, late cancellation, global capacity and busy handling, missing dictionaries, cancellation, and adapter failures. LT-01 acceptance evidence SHALL record exact-current-head hosted diagnostics on macOS arm64, current macOS Intel, and Windows; construction of private macOS and Windows proof installers with artifact identities and hashes; and a downloaded current-arm64 packaged/manual run that demonstrates capability and a known misspelling with suggestions for both document languages.
 
-#### Scenario: macOS acceptance matrix satisfies the contract
-- **WHEN** current arm64 and Intel macOS automation plus a recorded macOS 12 Intel manual or self-hosted run each report available English and Spanish dictionaries and successful known-misspelling checks
-- **THEN** LT-01 records the OS/architecture, selected language tags, UTF-16 ranges, non-empty suggestions, and passing contract version for every macOS target
+The canonical final rollout gate SHALL retain physical macOS 12 Intel, Windows 10 x64, Windows 11 x64, and separate Windows missing-dictionary runs. Both physical Windows bilingual environments SHALL have English and Spanish language features installed. Hosted diagnostics and installer construction MUST NOT be represented as those physical runs. The spelling feature SHALL remain hidden, and Tesina SHALL make no visible cross-platform spelling release promise, until that final physical matrix satisfies the contract.
 
-#### Scenario: Windows acceptance matrix satisfies the contract
-- **WHEN** packaged Windows 10 x64 and Windows 11 x64 environments with installed English and Spanish language features each complete known-misspelling checks
-- **THEN** LT-01 records the OS version, architecture, selected language tags, UTF-16 ranges, non-empty suggestions, and passing contract version for both Windows targets
+#### Scenario: Current-head hosted diagnostics complete
+- **WHEN** the LT-01 source head runs the hosted macOS arm64, current macOS Intel, and Windows native diagnostics
+- **THEN** evidence records the exact head and run identities, each target's capability or precise block, selected tags when available, UTF-16 fixture ranges, suggestions, and contract status
+
+#### Scenario: Private proof installers are constructed
+- **WHEN** the manual-only proof workflow builds the feature-gated macOS and Windows installers at the exact LT-01 source head
+- **THEN** evidence records the private workflow, artifact identities, and downloaded installer hashes without publishing a release or treating construction as a physical target run
+
+#### Scenario: Current arm64 packaged proof passes
+- **WHEN** the downloaded private macOS package runs manually on the current arm64 target with English and Spanish dictionaries available
+- **THEN** evidence records the report path and hash, OS version, architecture, selected language tags, UTF-16 ranges, non-empty suggestions, and passing contract version
+
+#### Scenario: Deferred physical rollout matrix
+- **WHEN** LT-01 is accepted as a hidden service before physical macOS 12 Intel, Windows 10 x64, and Windows 11 x64 testing occurs
+- **THEN** those rows remain explicitly `Deferred—not executed` in LT-01 evidence and remain mandatory in the canonical final rollout manual gate
 
 #### Scenario: A packaged target lacks a required dictionary
-- **WHEN** the Windows packaged missing-dictionary case or any acceptance target cannot provide the requested dictionary
+- **WHEN** the final Windows packaged missing-dictionary case or any final physical acceptance target cannot provide the requested dictionary
 - **THEN** evidence records `missing-dictionary` for that language and no visible bilingual spelling promise is enabled unless the complete required matrix also has its separately configured available-dictionary evidence
 
 #### Scenario: Hosted CI reports a capability block
-- **WHEN** ordinary hosted CI lacks a required dictionary or cannot satisfy a named packaged OS/architecture target
-- **THEN** it records the precise capability block and does not count as replacement acceptance evidence
+- **WHEN** ordinary hosted CI lacks a required dictionary
+- **THEN** it records the precise capability block and does not count as a completed physical final-gate run
 
 #### Scenario: Dependency and dictionary licensing is reviewed
 - **WHEN** LT-01 platform integration is prepared for review

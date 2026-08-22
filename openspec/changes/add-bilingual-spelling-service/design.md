@@ -87,7 +87,20 @@ TypeScript tests use a fake native client for request validation, correlation, c
 
 Add a small proof harness only if existing Rust integration tests cannot run through the packaged command path. The proof emits structured non-document fixtures for English and Spanish: capability, selected tag, known misspelling, range, suggestions, contract version, platform/target, and pass/block status. It never emits user text, installed dictionary contents, or native error details.
 
-The acceptance matrix is current macOS arm64 automation, current macOS Intel automation, one recorded macOS 12 Intel manual or self-hosted run, packaged Windows 10 x64, and packaged Windows 11 x64. Both Windows acceptance environments explicitly install English and Spanish language features; a separate packaged Windows case removes or withholds the requested dictionary to prove `missing-dictionary`. Ordinary hosted CI continues running deterministic fake-adapter tests and may record a real capability block, but its runner image does not replace a named OS/architecture acceptance target.
+LT-01 acceptance uses exact-current-head hosted diagnostics on macOS arm64,
+current macOS Intel, and Windows; private proof installer construction for
+macOS and Windows; and one downloaded current-arm64 packaged/manual bilingual
+pass. A hosted capability block remains diagnostic rather than proof that a
+physical target has the required dictionaries.
+
+The product owner deliberately moved physical macOS 12 Intel, Windows 10 x64,
+Windows 11 x64, and separate Windows missing-dictionary runs to the final
+manual gate after the complete sequential rollout. The canonical delivery plan
+retains those targets. Both physical Windows bilingual environments must have
+English and Spanish language features installed, while the separate case
+removes or withholds the requested dictionary. No deferred physical run is
+represented as complete, and the service remains hidden with no visible
+release promise until the final gate passes.
 
 Alternative: accept unit tests alone. Rejected because installed dictionaries and packaging are properties of the target environment, not the fake boundary.
 
@@ -100,8 +113,20 @@ Alternative: accept unit tests alone. Rejected because installed dictionaries an
 - [The session counter grows for the lifetime of the app] → Use a non-wrapping integer representation and keep only the counter and nonce, not a growing set of issued IDs.
 - [A fixed preferred regional tag may not match every student's dialect] → Prefer a generic installed base dictionary first, expose the actual selected tag, and defer explicit dialect settings to a separately approved product change.
 - [Platform APIs may return malformed or overlapping ranges] → Validate each range and fail the operation without partial output rather than repairing native results heuristically.
-- [Hosted or packaged runners may lack Spanish dictionaries] → Install both language features on the named Windows acceptance environments, record precise blocks elsewhere, retain the separate missing-dictionary case, and do not bundle a workaround or expose a partial feature.
+- [Hosted or packaged runners may lack Spanish dictionaries] → Record precise
+  hosted blocks, construct private installers without claiming a physical run,
+  install both language features on the final Windows bilingual targets,
+  retain the separate missing-dictionary case, and do not bundle a workaround
+  or expose a partial feature.
 
 ## Migration Plan
 
-Implement the hidden module with failing contract tests first, then add both adapters and command registration in the same LT-01 branch. Run focused TypeScript/Rust tests, repository gates, and the full named macOS/Windows acceptance matrix. Because nothing calls the service from the editor and no data format changes, deployment does not migrate user state. Rollback removes the unreferenced facade, native module, command registrations, dependency features, tests, and proof harness.
+Implement the hidden module with failing contract tests first, then add both
+adapters and command registration in the same LT-01 branch. Run focused
+TypeScript/Rust tests, repository gates, exact-current-head hosted diagnostics,
+private installer construction, and the current-arm64 packaged/manual proof.
+The canonical delivery plan runs the deferred physical Intel/Windows matrix at
+the final sequential-rollout gate before visibility or release. Because nothing
+calls the service from the editor and no data format changes, deployment does
+not migrate user state. Rollback removes the unreferenced facade, native
+module, command registrations, dependency features, tests, and proof harness.
