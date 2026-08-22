@@ -114,7 +114,7 @@ describe("spelling service facade", () => {
     });
   });
 
-  test("returns valid empty issues and bypasses native checking for empty text", async () => {
+  test("routes empty text through native admission while the platform check stays bypassed", async () => {
     const native = fakeNative();
     const service = createSpellingService(native);
 
@@ -125,8 +125,77 @@ describe("spelling service facade", () => {
       selectedLanguageTag: "en-US",
       issues: [],
     });
-    expect(native.capability).toHaveBeenCalledWith("en");
-    expect(native.check).not.toHaveBeenCalled();
+    expect(native.capability).not.toHaveBeenCalled();
+    expect(native.check).toHaveBeenCalledOnce();
+    expect(vi.mocked(native.check).mock.calls[0][0].text).toBe("");
+  });
+
+  test("returns busy for a third empty request while two native slots are occupied", async () => {
+    const held = [
+      deferred<NativeSpellingResult>(),
+      deferred<NativeSpellingResult>(),
+    ];
+    let admitted = 0;
+    const native = fakeNative((request) => {
+      if (admitted < 2) return held[admitted++].promise;
+      return Promise.resolve({
+        status: "busy",
+        requestId: request.requestId,
+        documentRevision: request.documentRevision,
+        code: "busy",
+      });
+    });
+    const service = createSpellingService(native);
+    const first = service.check({
+      ...validInput,
+      contextId: "empty:1",
+      text: "",
+    });
+    const second = service.check({
+      ...validInput,
+      contextId: "empty:2",
+      text: "",
+    });
+    await vi.waitFor(() => expect(native.check).toHaveBeenCalledTimes(2));
+
+    await expect(
+      service.check({ ...validInput, contextId: "empty:3", text: "" }),
+    )
+      .resolves.toMatchObject({ status: "busy", code: "busy" });
+
+    const firstRequest = vi.mocked(native.check).mock.calls[0][0];
+    const secondRequest = vi.mocked(native.check).mock.calls[1][0];
+    held[0].resolve(completed(firstRequest));
+    held[1].resolve(completed(secondRequest));
+    await Promise.all([first, second]);
+  });
+
+  test("cancels empty text while native capability work is active", async () => {
+    const pending = deferred<NativeSpellingResult>();
+    const native = fakeNative(() => pending.promise);
+    const service = createSpellingService(native);
+    const controller = new AbortController();
+    const result = service.check(
+      { ...validInput, text: "" },
+      controller.signal,
+    );
+    await vi.waitFor(() => expect(native.check).toHaveBeenCalledOnce());
+    const request = vi.mocked(native.check).mock.calls[0][0];
+
+    controller.abort();
+    await vi.waitFor(() =>
+      expect(native.cancel).toHaveBeenCalledWith(request.requestId)
+    );
+    pending.resolve({
+      status: "cancelled",
+      requestId: request.requestId,
+      documentRevision: request.documentRevision,
+    });
+
+    await expect(result).resolves.toMatchObject({
+      status: "cancelled",
+      requestId: request.requestId,
+    });
   });
 
   test("generates session-unique request IDs across contexts and reports fixed dialects", async () => {
@@ -239,6 +308,28 @@ describe("spelling service facade", () => {
     });
     expect(second.status).toBe("completed");
     expect(native.cancel).toHaveBeenCalledWith(firstRequest.requestId);
+  });
+
+  test("discards a native response with mismatched correlation", async () => {
+    const native = fakeNative((request) =>
+      Promise.resolve({
+        status: "completed",
+        requestId: `${request.requestId}:wrong`,
+        documentRevision: request.documentRevision + 1,
+        selectedLanguageTag: "en-US",
+        issues: [{ from: 0, to: 3, word: "bad", suggestions: ["bed"] }],
+      })
+    );
+    const service = createSpellingService(native);
+
+    const result = await service.check(validInput);
+
+    expect(result).toMatchObject({
+      status: "stale",
+      documentRevision: validInput.documentRevision,
+    });
+    expect("issues" in result).toBe(false);
+    expect(result.requestId).not.toContain(":wrong");
   });
 
   test("forwards AbortSignal cancellation without affecting later requests", async () => {

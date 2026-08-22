@@ -15,7 +15,7 @@
 
 ## 4. Red/green: macOS `NSSpellChecker` adapter
 
-- [x] 4.1 Add failing macOS-gated tests for installed-language capability, English/Spanish known fixtures when available, UTF-16 range/suggestion extraction, missing dictionary, adapter failure translation, and cancellation checkpoints; record a precise capability block rather than silently passing when a required dictionary is absent.
+- [ ] 4.1 Add failing macOS-gated tests for installed-language capability, English/Spanish known fixtures when available, UTF-16 range/suggestion extraction, missing dictionary, adapter failure translation, and cancellation checkpoints; record a precise capability block rather than silently passing when a required dictionary is absent.
 - [x] 4.2 Enable only the required pinned `objc2-app-kit`/Foundation features and implement the read-only `NSSpellChecker` adapter on the required native thread. Enumerate installed tags, iterate misspellings and guesses with cancellation checks, and do not call dictionary or ignore-list mutators. Make the focused macOS tests pass.
 
 ## 5. Red/green: Windows `ISpellChecker` adapter
@@ -26,7 +26,7 @@
 ## 6. Command registration and end-to-end contract
 
 - [x] 6.1 Add failing command-boundary tests for capability, check, empty-text bypass, duplicate/invalid request rejection, two-request admission and typed `busy`, cancellation without early slot release, late-cancel isolation, registry cleanup on native exit, no partial issues, and no raw native details. Then register only the bounded capability/check/cancel commands in `lib.rs` and make those tests pass.
-- [x] 6.2 Run the TypeScript facade against the real Tauri command serialization in a focused integration test, proving correlation and stable unions without adding editor imports, UI, settings, persistence, dictionary mutation, network permissions, or model code.
+- [ ] 6.2 Run the TypeScript facade against the real Tauri command serialization in a focused integration test, proving correlation and stable unions without adding editor imports, UI, settings, persistence, dictionary mutation, network permissions, or model code.
 
 ## 7. Packaged parity and licensing gate
 

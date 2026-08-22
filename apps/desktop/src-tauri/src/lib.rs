@@ -90,9 +90,9 @@ pub fn run() {
             #[cfg(feature = "packaged-backup-smoke")]
             packaged_backup_smoke::packaged_backup_smoke_picker_call_count,
             pdf_export::export_pdf,
-            spelling::spelling_capability,
-            spelling::spelling_check,
-            spelling::spelling_cancel,
+            spelling::commands::spelling_capability,
+            spelling::commands::spelling_check,
+            spelling::commands::spelling_cancel,
             host_os,
         ])
         .build(tauri::generate_context!())

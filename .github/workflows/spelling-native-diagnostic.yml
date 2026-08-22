@@ -4,8 +4,12 @@ on:
   pull_request:
     paths:
       - ".github/workflows/spelling-native-diagnostic.yml"
-      - "apps/desktop/src-tauri/**"
       - "apps/desktop/src/lib/spelling/**"
+      - "apps/desktop/src-tauri/src/spelling/**"
+      - "apps/desktop/src-tauri/examples/spelling-proof.rs"
+      - "apps/desktop/src-tauri/Cargo.toml"
+      - "apps/desktop/src-tauri/Cargo.lock"
+      - "apps/desktop/src-tauri/src/lib.rs"
   workflow_dispatch:
 
 permissions:

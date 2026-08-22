@@ -92,6 +92,23 @@ Windows 11 runs.
 The incomplete automation and packaged rows keep the spelling service hidden.
 No UI or release claim consumes it.
 
+## Incomplete focused proof
+
+The macOS-gated adapter tests prove installed-language capability, bilingual
+known-fixture ranges and suggestions when both dictionaries are present, and a
+pre-call cancellation checkpoint. They do not yet prove a real
+missing-dictionary host case, force an AppKit adapter failure, or observe
+cancellation between real issue or suggestion enumeration steps. Those cases
+cannot be produced honestly on this host without changing installed system
+dictionaries or introducing a test-only native fault seam, so task 4.1 remains
+incomplete.
+
+The TypeScript facade integration test uses an injected `invoke` stub to assert
+the command names and serialized payloads. Rust command tests separately assert
+the stable serde result shapes. No test currently crosses a live Tauri IPC
+boundary from TypeScript into the registered Rust commands, so task 6.2 remains
+incomplete.
+
 ## Dependency and redistribution record
 
 `Cargo.toml` adds features to existing exact versions only:

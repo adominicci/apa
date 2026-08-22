@@ -50,20 +50,6 @@ function normalizedIssues(issues: SpellingIssue[]): SpellingIssue[] {
     .sort((left, right) => left.from - right.from || left.to - right.to);
 }
 
-function capabilityFailure(
-  request: NativeCheckRequest,
-  capability: Exclude<CapabilityResult, { status: "available" }>,
-): NativeSpellingResult {
-  return {
-    status: "failed",
-    requestId: request.requestId,
-    documentRevision: request.documentRevision,
-    code: capability.status === "missing-dictionary"
-      ? "missing-dictionary"
-      : "api-unavailable",
-  };
-}
-
 export function isEligibleSpellingSource(source: SpellingTextSource): boolean {
   return source === "body-prose" || source === "paper-title";
 }
@@ -138,25 +124,14 @@ export function createSpellingService(native: NativeClient): SpellingService {
       };
 
       try {
-        let result: NativeSpellingResult;
-        if (input.text.length === 0) {
-          const capability = await native.capability(input.language);
-          result = capability.status === "available"
-            ? {
-              status: "completed",
-              ...correlation,
-              selectedLanguageTag: capability.selectedLanguageTag,
-              issues: [],
-            }
-            : capabilityFailure(request, capability);
-        } else {
-          result = await native.check(request);
-        }
+        const result = await native.check(request);
 
         const latest = latestByContext.get(input.contextId);
         if (
           !latest || latest.requestId !== requestId ||
-          latest.documentRevision !== input.documentRevision
+          latest.documentRevision !== input.documentRevision ||
+          result.requestId !== requestId ||
+          result.documentRevision !== input.documentRevision
         ) {
           return { status: "stale", ...correlation };
         }
