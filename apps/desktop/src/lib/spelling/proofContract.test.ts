@@ -20,4 +20,8 @@ test("native spelling diagnostic reports the fixed proof contract on both hosted
   expect(workflow).toContain(
     "Hosted diagnostics do not replace packaged acceptance targets",
   );
+  expect(workflow).toContain('TESINA_RUN_SPELLING_IPC: "1"');
+  expect(workflow).toContain(
+    "apps/desktop/src/lib/spelling/service.ipc.test.ts",
+  );
 });

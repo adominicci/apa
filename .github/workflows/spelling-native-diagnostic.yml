@@ -38,6 +38,25 @@ jobs:
         working-directory: apps/desktop/src-tauri
         run: "cargo test --locked spelling:: -- --nocapture"
 
+      - name: Install Deno for the focused IPC contract
+        if: matrix.platform == 'macos-latest'
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
+        with:
+          deno-version: v2.x
+
+      - name: Install TypeScript dependencies for the focused IPC contract
+        if: matrix.platform == 'macos-latest'
+        run: deno install --frozen
+
+      - name: Run focused TypeScript-to-Tauri spelling IPC contract
+        if: matrix.platform == 'macos-latest'
+        env:
+          TESINA_RUN_SPELLING_IPC: "1"
+        run: >-
+          deno run -A npm:vitest run
+          apps/desktop/src/lib/spelling/service.ipc.test.ts
+          -t "facade correlation and stable unions"
+
       - name: Run native spelling proof
         shell: bash
         working-directory: apps/desktop/src-tauri
