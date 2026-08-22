@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
@@ -8,6 +8,9 @@ use std::sync::{
 const MAX_TEXT_UTF16: usize = 65_536;
 const MAX_SAFE_JS_INTEGER: u64 = 9_007_199_254_740_991;
 const ACTIVE_REQUEST_LIMIT: usize = 2;
+// Bridges command-future reordering without retaining arbitrary unknown IDs.
+// Facade request IDs are session-unique, so an evicted or consumed ID is never reused.
+const PENDING_CANCEL_LIMIT: usize = 64;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub(crate) enum DocumentLanguage {
@@ -169,13 +172,23 @@ pub(crate) fn resolve_language_tag<T: AsRef<str>>(
 
 struct ActiveGuard {
     request_id: String,
-    registry: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
+    registry: Arc<Mutex<RequestRegistry>>,
 }
 
 impl Drop for ActiveGuard {
     fn drop(&mut self) {
-        self.registry.lock().unwrap().remove(&self.request_id);
+        self.registry
+            .lock()
+            .unwrap()
+            .active
+            .remove(&self.request_id);
     }
+}
+
+#[derive(Default)]
+struct RequestRegistry {
+    active: HashMap<String, Arc<AtomicBool>>,
+    pending_cancellations: VecDeque<String>,
 }
 
 pub(crate) struct AdmittedCheck {
@@ -186,14 +199,14 @@ pub(crate) struct AdmittedCheck {
 
 pub(crate) struct Boundary<A> {
     adapter: A,
-    registry: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
+    registry: Arc<Mutex<RequestRegistry>>,
 }
 
 impl<A: PlatformAdapter> Boundary<A> {
     pub(crate) fn new(adapter: A) -> Self {
         Self {
             adapter,
-            registry: Arc::new(Mutex::new(HashMap::new())),
+            registry: Arc::new(Mutex::new(RequestRegistry::default())),
         }
     }
 
@@ -204,7 +217,7 @@ impl<A: PlatformAdapter> Boundary<A> {
 
     #[cfg(test)]
     pub(crate) fn active_count(&self) -> usize {
-        self.registry.lock().unwrap().len()
+        self.registry.lock().unwrap().active.len()
     }
 
     pub(crate) fn capability(&self, language: DocumentLanguage) -> CapabilityResult {
@@ -237,12 +250,26 @@ impl<A: PlatformAdapter> Boundary<A> {
     }
 
     pub(crate) fn cancel(&self, request_id: &str) -> bool {
-        let registry = self.registry.lock().unwrap();
-        let Some(cancelled) = registry.get(request_id) else {
+        let mut registry = self.registry.lock().unwrap();
+        if let Some(cancelled) = registry.active.get(request_id) {
+            cancelled.store(true, Ordering::SeqCst);
+            return true;
+        }
+        if request_id.is_empty()
+            || registry
+                .pending_cancellations
+                .iter()
+                .any(|pending| pending == request_id)
+        {
             return false;
-        };
-        cancelled.store(true, Ordering::SeqCst);
-        true
+        }
+        if registry.pending_cancellations.len() == PENDING_CANCEL_LIMIT {
+            registry.pending_cancellations.pop_front();
+        }
+        registry
+            .pending_cancellations
+            .push_back(request_id.to_owned());
+        false
     }
 
     pub(crate) fn check(&self, request: CheckRequest) -> CheckResult {
@@ -260,18 +287,25 @@ impl<A: PlatformAdapter> Boundary<A> {
 
         let cancelled = {
             let mut registry = self.registry.lock().unwrap();
-            if registry.contains_key(&request.request_id) {
+            let cancelled_before_admission = registry
+                .pending_cancellations
+                .iter()
+                .position(|pending| pending == &request.request_id)
+                .is_some_and(|index| registry.pending_cancellations.remove(index).is_some());
+            if registry.active.contains_key(&request.request_id) {
                 return Err(failed(correlation, ErrorCode::InvalidRequest));
             }
-            if registry.len() >= ACTIVE_REQUEST_LIMIT {
+            if registry.active.len() >= ACTIVE_REQUEST_LIMIT {
                 return Err(CheckResult::Busy {
                     request_id: correlation.0,
                     document_revision: correlation.1,
                     code: "busy",
                 });
             }
-            let flag = Arc::new(AtomicBool::new(false));
-            registry.insert(request.request_id.clone(), flag.clone());
+            let flag = Arc::new(AtomicBool::new(cancelled_before_admission));
+            registry
+                .active
+                .insert(request.request_id.clone(), flag.clone());
             flag
         };
         Ok(AdmittedCheck {

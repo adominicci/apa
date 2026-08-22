@@ -67,7 +67,9 @@ impl IpcTestHarness {
 
 #[cfg(test)]
 mod tests {
-    use super::IpcTestHarness;
+    use super::{commands, IpcTestHarness, SpellingState};
+    use crate::spelling::boundary::{CheckRequest, CheckResult, DocumentLanguage};
+    use tauri::Manager;
 
     #[test]
     fn persistent_mock_runtime_serializes_completed_and_failed_results() {
@@ -98,5 +100,30 @@ mod tests {
                 "code": "adapter-failure"
             })
         );
+    }
+
+    #[test]
+    fn cancel_before_check_future_polling_is_preserved_until_admission() {
+        let harness = IpcTestHarness::new().unwrap();
+        let request_id = "ipc:cancel-before-poll".to_owned();
+        let check = commands::spelling_check(
+            harness._app.state::<SpellingState>(),
+            CheckRequest {
+                request_id: request_id.clone(),
+                document_revision: 25,
+                language: DocumentLanguage::English,
+                document_start: 0,
+                text: "wrngg".into(),
+            },
+        );
+
+        tauri::async_runtime::block_on(commands::spelling_cancel(
+            harness._app.state::<SpellingState>(),
+            request_id,
+        ))
+        .unwrap();
+        let result = tauri::async_runtime::block_on(check).unwrap();
+
+        assert!(matches!(result, CheckResult::Cancelled { .. }));
     }
 }

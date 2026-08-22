@@ -486,6 +486,23 @@ fn command_admission_makes_cancellation_visible_before_worker_start() {
 }
 
 #[test]
+fn pre_admission_cancellation_retention_is_bounded() {
+    let boundary = Boundary::new(FakeAdapter::available());
+    for index in 0..=64 {
+        assert!(!boundary.cancel(&format!("pending:{index}")));
+    }
+
+    assert!(matches!(
+        boundary.check(request("pending:0", "text")),
+        CheckResult::Completed { .. }
+    ));
+    assert!(matches!(
+        boundary.check(request("pending:64", "text")),
+        CheckResult::Cancelled { .. }
+    ));
+}
+
+#[test]
 fn proof_report_has_fixed_contract_and_target_metadata() {
     let value = serde_json::to_value(run_proof(Boundary::new(FakeAdapter::available()))).unwrap();
     assert_eq!(value["contractVersion"], 1);
