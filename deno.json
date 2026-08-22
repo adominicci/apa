@@ -2,6 +2,7 @@
   "nodeModulesDir": "auto",
   "tasks": {
     "dev": "cd apps/desktop && deno task tauri dev",
+    "prototype:learning-tools": "cd apps/desktop && deno task vite:dev --open '/prototype/local-learning-tools?variant=A'",
     "build": "cd apps/desktop && deno task tauri build",
     "test": "deno run -A npm:vitest run",
     "test:watch": "deno run -A npm:vitest",

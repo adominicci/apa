@@ -1,0 +1,296 @@
+.prototype-route {
+  min-height: 100vh;
+  background: var(--canvas);
+  color: var(--fg);
+  font-family: var(--font);
+  overflow: hidden;
+}
+
+.prototype-disabled {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  background: var(--canvas);
+  color: var(--fg);
+  font-family: var(--font);
+}
+
+.prototype-switcher {
+  position: fixed;
+  z-index: var(--z-toast);
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: 38px minmax(180px, auto) 38px;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1);
+  border: 1px solid color-mix(in oklab, var(--fg), transparent 72%);
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--fg), transparent 4%);
+  color: var(--bg);
+  box-shadow: var(--elev-3);
+}
+
+.prototype-switcher button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.prototype-switcher button:hover {
+  background: color-mix(in oklab, var(--bg), transparent 86%);
+}
+
+.prototype-switcher button:focus-visible,
+.state-monitor button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.prototype-switcher svg {
+  width: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.prototype-switcher div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+}
+
+.prototype-switcher span {
+  color: color-mix(in oklab, var(--bg), transparent 35%);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.prototype-switcher strong {
+  margin-top: 3px;
+  font-size: var(--t-small);
+  font-weight: var(--w-strong);
+}
+
+.state-monitor {
+  position: fixed;
+  z-index: var(--z-toast);
+  top: 52px;
+  right: 14px;
+  width: 250px;
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--elevated), transparent 4%);
+  box-shadow: var(--elev-2);
+  font-size: var(--t-caption);
+}
+
+.state-monitor summary {
+  padding: var(--sp-2) var(--sp-3);
+  cursor: pointer;
+  font-weight: var(--w-strong);
+  user-select: none;
+}
+
+.state-monitor pre {
+  margin: 0;
+  padding: 0 var(--sp-3) var(--sp-3);
+  color: var(--fg-2);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.state-monitor button {
+  width: calc(100% - var(--sp-6));
+  margin: 0 var(--sp-3) var(--sp-3);
+  padding: var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.prototype-titlebar {
+  height: 40px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 var(--sp-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--chrome);
+  color: var(--muted);
+  font-size: var(--t-small);
+}
+
+.prototype-titlebar strong {
+  color: var(--fg-2);
+  font-weight: var(--w-strong);
+}
+
+.prototype-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.prototype-mark {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  background: var(--accent);
+  color: var(--accent-on);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.prototype-locale {
+  justify-self: end;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.mock-action {
+  min-height: 32px;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--fg-2);
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: var(--w-medium);
+  cursor: pointer;
+}
+
+.mock-action:hover {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.mock-action.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.mock-action.primary:hover {
+  background: var(--accent-hover);
+  color: var(--accent-on);
+}
+
+.mock-action:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.mock-action:focus-visible,
+.mock-option:focus-visible,
+.mock-word:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.mock-paper {
+  color: #161616;
+  background: #fff;
+  box-shadow: var(--shadow-paper);
+}
+
+.mock-paper h1,
+.mock-paper p {
+  font-family: "Times New Roman", Times, serif;
+}
+
+.mock-paper h1 {
+  margin: 0 0 36px;
+  font-size: 17px;
+  line-height: 2;
+  text-align: center;
+}
+
+.mock-paper p {
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 2;
+  text-indent: 36px;
+}
+
+.mock-word {
+  padding: 0 1px;
+  border: 0;
+  border-bottom: 2px wavy var(--danger);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mock-word.corrected {
+  border-bottom-color: transparent;
+}
+
+.mock-highlight {
+  border-radius: 2px;
+  background: color-mix(in oklab, var(--warn), transparent 76%);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--warn), transparent 76%);
+}
+
+.mock-option {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--fg-2);
+  text-align: left;
+  font: inherit;
+  font-size: var(--t-small);
+  cursor: pointer;
+}
+
+.mock-option.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+@media (max-width: 760px) {
+  .state-monitor {
+    display: none;
+  }
+
+  .prototype-switcher {
+    bottom: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
