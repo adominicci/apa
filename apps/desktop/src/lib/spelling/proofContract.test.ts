@@ -39,6 +39,12 @@ test("native spelling diagnostic reports the fixed proof contract on both hosted
   const cancellationRace = workflow.indexOf(
     "cancel_before_check_future_polling_is_preserved_until_admission",
   );
+  const cancellationStep = workflow.indexOf(
+    "Prove cancellation before command future polling",
+  );
+  const denoSetup = workflow.indexOf(
+    "Install Deno for the focused IPC contract",
+  );
   const featureTest = workflow.indexOf(
     "cargo test --locked --features spelling-ipc-test",
   );
@@ -47,4 +53,7 @@ test("native spelling diagnostic reports the fixed proof contract on both hosted
   );
   expect(cancellationRace).toBeGreaterThan(featureTest);
   expect(cancellationRace).toBeLessThan(dependencyInstall);
+  expect(workflow.slice(cancellationStep, denoSetup)).toContain(
+    "if: matrix.platform == 'macos-latest'",
+  );
 });

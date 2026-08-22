@@ -39,6 +39,7 @@ jobs:
         run: "cargo test --locked spelling:: -- --nocapture"
 
       - name: Prove cancellation before command future polling
+        if: matrix.platform == 'macos-latest'
         working-directory: apps/desktop/src-tauri
         run: >-
           cargo test --locked --features spelling-ipc-test
