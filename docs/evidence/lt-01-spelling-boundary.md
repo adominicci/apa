@@ -195,15 +195,25 @@ Spanish block: `MissingDictionary` with help code
 does not provide any packaged target evidence.
 
 The focused `service.ipc.test.ts` integration test drives
-`createTauriSpellingClient` from TypeScript into a feature-gated Rust process.
-The Rust harness submits the received command and argument JSON through Tauri
-2's `MockRuntime`, `InvokeRequest`, and `get_ipc_response` to the actual
-`spelling_check` command macro and managed `SpellingState`. A deterministic
-invalid request crosses command-name selection, argument serialization, state
-injection, Rust validation, result-union serialization, and response parsing;
-the returned `invalid-request` result preserves request ID and revision. The
-Rust side is not replaced by a JavaScript stub, and the harness is excluded
-unless the test-only Cargo feature is enabled.
+`createSpellingService(createTauriSpellingClient(...))` from TypeScript into
+one persistent, feature-gated Rust process. The Rust harness submits every
+command and argument through Tauri 2's `MockRuntime`, `InvokeRequest`, and
+`get_ipc_response` to the actual command macros and one managed
+`SpellingState`. An accepted request proves facade-generated correlation,
+UTF-16 range serialization, and the `completed` union; a second accepted
+request proves sanitized `adapter-failure` serialization through the same
+state. The test feature selects a deterministic Rust adapter only for the
+explicit test-state constructor; production state construction always selects
+the native adapter. This IPC test proves the TypeScript/Tauri/Rust contract,
+not native operating-system spelling behavior.
+
+Real macOS dictionary and known-fixture evidence now runs only in the
+serialized `spelling-proof` executable, whose process entry point owns the
+main thread. Parallel Rust libtests use deterministic adapter seams and never
+call `NSSpellChecker`. The executable returns a nonzero status when an
+available dictionary fails its known range/suggestion fixture, so the workflow
+cannot upload a passing-looking report for bad native behavior. A missing
+dictionary remains an explicit capability block rather than a test failure.
 
 ## Dependency and redistribution record
 

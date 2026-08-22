@@ -40,7 +40,10 @@ pub struct ProofReport {
 }
 
 pub fn run_host_proof() -> ProofReport {
-    let boundary = host_boundary();
+    run_proof(host_boundary())
+}
+
+pub(crate) fn run_proof<A: PlatformAdapter>(boundary: Boundary<A>) -> ProofReport {
     let languages = [
         (DocumentLanguage::English, "wrngg"),
         (DocumentLanguage::Spanish, "palabraa"),
@@ -62,6 +65,15 @@ pub fn run_host_proof() -> ProofReport {
         },
         languages,
         status,
+    }
+}
+
+impl ProofReport {
+    pub fn has_native_fixture_failure(&self) -> bool {
+        self.languages.iter().any(|entry| {
+            matches!(entry.capability, CapabilityResult::Available { .. })
+                && entry.known_issue.is_none()
+        })
     }
 }
 

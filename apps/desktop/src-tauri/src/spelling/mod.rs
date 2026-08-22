@@ -10,7 +10,7 @@ mod windows;
 
 pub(crate) use commands::SpellingState;
 #[cfg(feature = "spelling-ipc-test")]
-pub use ipc_test::run_ipc_test;
+pub use ipc_test::IpcTestHarness;
 pub use proof::run_host_proof;
 
 #[cfg(test)]

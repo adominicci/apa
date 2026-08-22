@@ -1,70 +1,104 @@
 import { spawn } from "node:child_process";
+import { createInterface } from "node:readline";
 import { expect, test } from "vitest";
-import { createTauriSpellingClient } from "./service";
-import type { NativeCheckRequest } from "./types";
+import { createSpellingService, createTauriSpellingClient } from "./service";
 
-async function invokeRealTauriCommand(
-  command: string,
-  args?: Record<string, unknown>,
-): Promise<unknown> {
-  return await new Promise((resolve, reject) => {
-    const child = spawn(
-      "cargo",
-      [
-        "run",
-        "--quiet",
-        "--locked",
-        "--manifest-path",
-        "apps/desktop/src-tauri/Cargo.toml",
-        "--example",
-        "spelling-ipc-test",
-        "--features",
-        "spelling-ipc-test",
-      ],
-      { stdio: ["pipe", "pipe", "pipe"] },
-    );
-    let stdout = "";
-    let stderr = "";
-    child.stdout.setEncoding("utf8").on("data", (chunk: string) => {
-      stdout += chunk;
-    });
-    child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
-      stderr += chunk;
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
+function startRealTauriBridge() {
+  const child = spawn(
+    "cargo",
+    [
+      "run",
+      "--quiet",
+      "--locked",
+      "--manifest-path",
+      "apps/desktop/src-tauri/Cargo.toml",
+      "--example",
+      "spelling-ipc-test",
+      "--features",
+      "spelling-ipc-test",
+    ],
+    { stdio: ["pipe", "pipe", "pipe"] },
+  );
+  let stderr = "";
+  child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
+    stderr += chunk;
+  });
+  const pending: Array<{
+    resolve: (value: unknown) => void;
+    reject: (reason: Error) => void;
+  }> = [];
+  createInterface({ input: child.stdout }).on("line", (line) => {
+    const request = pending.shift();
+    if (!request) return;
+    try {
+      request.resolve(JSON.parse(line));
+    } catch (error) {
+      request.reject(error instanceof Error ? error : new Error(String(error)));
+    }
+  });
+  child.on("close", (code) => {
+    if (code !== 0) {
+      const error = new Error(stderr || `IPC harness exited with ${code}`);
+      for (const request of pending.splice(0)) request.reject(error);
+    }
+  });
+
+  return {
+    invoke(command: string, args?: Record<string, unknown>): Promise<unknown> {
+      return new Promise((resolve, reject) => {
+        pending.push({ resolve, reject });
         try {
-          resolve(JSON.parse(stdout));
+          child.stdin.write(`${JSON.stringify({ command, args })}\n`);
         } catch (error) {
           reject(error);
         }
-      } else {
-        reject(new Error(stderr));
-      }
-    });
-    child.stdin.end(JSON.stringify({ command, args }));
-  });
+      });
+    },
+    close() {
+      child.stdin.end();
+    },
+  };
 }
 
 test(
-  "TypeScript serialization crosses the registered Tauri spelling command",
+  "facade correlation and stable unions cross the registered Tauri commands",
   async () => {
-    const client = createTauriSpellingClient(invokeRealTauriCommand);
-    const request: NativeCheckRequest = {
-      requestId: "ipc-integration:1",
-      documentRevision: 23,
-      language: "en",
-      documentStart: Number.MAX_SAFE_INTEGER + 1,
-      text: "bounded fixture",
-    };
+    const bridge = startRealTauriBridge();
+    const service = createSpellingService(
+      createTauriSpellingClient(bridge.invoke),
+    );
+    try {
+      const completed = await service.check({
+        contextId: "ipc-completed",
+        language: "en",
+        documentRevision: 23,
+        documentStart: 7,
+        text: "wrngg",
+      });
+      expect(completed).toMatchObject({
+        status: "completed",
+        documentRevision: 23,
+        selectedLanguageTag: "en-US",
+        issues: [{ from: 7, to: 12, word: "wrngg", suggestions: ["wrong"] }],
+      });
+      expect(completed.requestId).toMatch(/^[0-9a-f-]+:\d+$/);
 
-    await expect(client.check(request)).resolves.toEqual({
-      status: "failed",
-      requestId: request.requestId,
-      documentRevision: request.documentRevision,
-      code: "invalid-request",
-    });
+      const failed = await service.check({
+        contextId: "ipc-failed",
+        language: "es",
+        documentRevision: 24,
+        documentStart: 0,
+        text: "adapter-failure",
+      });
+      expect(failed).toMatchObject({
+        status: "failed",
+        documentRevision: 24,
+        code: "adapter-failure",
+      });
+      expect(failed.requestId).not.toBe(completed.requestId);
+    } finally {
+      bridge.close();
+    }
   },
   120_000,
 );

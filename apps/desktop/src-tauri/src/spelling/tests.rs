@@ -5,7 +5,7 @@ use super::boundary::{
 use super::commands::{cancel_command, capability_command, check_command};
 #[cfg(target_os = "macos")]
 use super::macos::MacOsAdapter;
-use super::proof::run_host_proof;
+use super::proof::run_proof;
 #[cfg(windows)]
 use super::windows::WindowsAdapter;
 use std::sync::{
@@ -256,41 +256,6 @@ fn capacity_duplicate_cancellation_and_cleanup_follow_native_exit() {
 
 #[cfg(target_os = "macos")]
 #[test]
-fn macos_adapter_reports_capability_and_checks_known_bilingual_fixtures() {
-    let boundary = Boundary::new(MacOsAdapter::default());
-    for (language, fixture) in [
-        (DocumentLanguage::English, "wrngg"),
-        (DocumentLanguage::Spanish, "palabraa"),
-    ] {
-        match boundary.capability(language) {
-            super::boundary::CapabilityResult::Available {
-                selected_language_tag,
-                ..
-            } => {
-                let mut check = request(language.base(), fixture);
-                check.language = language;
-                check.document_start = 0;
-                let result = boundary.check(check);
-                assert!(
-                    matches!(result, CheckResult::Completed { ref issues, .. } if
-                        issues.iter().any(|issue|
-                            issue.word == fixture && issue.from == 0 &&
-                            issue.to == fixture.encode_utf16().count() as u64 &&
-                            !issue.suggestions.is_empty())),
-                    "{language:?} fixture lacked a ranged issue with suggestions: {result:?}"
-                );
-                assert!(!selected_language_tag.is_empty());
-            }
-            capability => eprintln!(
-                "LT-01 capability block: target=macOS architecture={} language={language:?} result={capability:?}",
-                std::env::consts::ARCH
-            ),
-        }
-    }
-}
-
-#[cfg(target_os = "macos")]
-#[test]
 fn macos_adapter_seam_distinguishes_missing_dictionary_and_sanitized_failure() {
     let missing = Boundary::new(MacOsAdapter::for_test(
         Ok(vec!["en".into()]),
@@ -339,16 +304,6 @@ fn macos_adapter_cancels_between_suggestion_enumeration_steps() {
     });
     assert_eq!(result, Err(AdapterError::Cancelled));
     assert_eq!(visited, [0]);
-}
-
-#[cfg(target_os = "macos")]
-#[test]
-fn macos_adapter_honors_cancellation_checkpoint() {
-    let cancelled = Arc::new(AtomicBool::new(true));
-    assert_eq!(
-        MacOsAdapter::default().check("en-US", "wrngg", &cancelled),
-        Err(AdapterError::Cancelled)
-    );
 }
 
 #[cfg(windows)]
@@ -490,7 +445,7 @@ fn command_boundary_serializes_stable_results_without_native_details() {
 
 #[test]
 fn proof_report_has_fixed_contract_and_target_metadata() {
-    let value = serde_json::to_value(run_host_proof()).unwrap();
+    let value = serde_json::to_value(run_proof(Boundary::new(FakeAdapter::available()))).unwrap();
     assert_eq!(value["contractVersion"], 1);
     assert_eq!(value["target"]["os"], std::env::consts::OS);
     assert_eq!(value["target"]["architecture"], std::env::consts::ARCH);
@@ -500,4 +455,19 @@ fn proof_report_has_fixed_contract_and_target_metadata() {
     assert_eq!(value["languages"].as_array().unwrap().len(), 2);
     assert!(!value.to_string().contains("wrngg"));
     assert!(!value.to_string().contains("palabraa"));
+}
+
+#[test]
+fn proof_report_fails_available_bad_fixtures_but_allows_capability_blocks() {
+    let mut bad_fixture = FakeAdapter::available();
+    bad_fixture.issues = vec![NativeIssue {
+        start: 0,
+        length: 5,
+        suggestions: vec!["wrong".into()],
+    }];
+    assert!(run_proof(Boundary::new(bad_fixture)).has_native_fixture_failure());
+
+    let mut blocked = FakeAdapter::available();
+    blocked.languages.clear();
+    assert!(!run_proof(Boundary::new(blocked)).has_native_fixture_failure());
 }

@@ -1,15 +1,20 @@
-use std::io::Read;
+use std::io::{BufRead, Write};
 
 fn main() {
-    let mut input = String::new();
-    std::io::stdin()
-        .read_to_string(&mut input)
-        .expect("IPC test input must be readable");
-    match tesina_lib::spelling::run_ipc_test(&input) {
-        Ok(response) => println!("{response}"),
-        Err(error) => {
-            eprintln!("{error}");
-            std::process::exit(1);
+    let harness =
+        tesina_lib::spelling::IpcTestHarness::new().expect("IPC test harness must initialize");
+    let stdin = std::io::stdin();
+    let mut stdout = std::io::stdout().lock();
+    for input in stdin.lock().lines() {
+        match harness.invoke(&input.expect("IPC test input must be readable")) {
+            Ok(response) => {
+                writeln!(stdout, "{response}").expect("IPC response must be writable");
+                stdout.flush().expect("IPC response must flush");
+            }
+            Err(error) => {
+                eprintln!("{error}");
+                std::process::exit(1);
+            }
         }
     }
 }

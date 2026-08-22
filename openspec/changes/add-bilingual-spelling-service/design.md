@@ -83,7 +83,7 @@ Alternative: accept arbitrary text and document exclusions only in LT-02. Reject
 
 ### D7. Tests separate deterministic contracts from installed-dictionary proof
 
-TypeScript tests use a fake native client for request validation, correlation, capability distinctions, exclusions, stale results, cancellation, and error translation. Rust unit tests use fake adapters for the dialect resolver, UTF-16 range conversion, ordering, suggestion filtering, cancellation cleanup, and stable failures. Platform-gated native tests exercise the real adapter when dictionaries are available and report a precise skip/block reason otherwise.
+TypeScript tests use a fake native client for request validation, correlation, capability distinctions, exclusions, stale results, cancellation, and error translation. Rust unit tests use fake adapters for the dialect resolver, UTF-16 range conversion, ordering, suggestion filtering, cancellation cleanup, and stable failures. Platform-gated deterministic seam tests cover adapter translation and cancellation. A serialized native proof executable exercises the real macOS adapter on its process main thread and the real Windows adapter when dictionaries are available, reporting a precise block reason otherwise.
 
 Add a small proof harness only if existing Rust integration tests cannot run through the packaged command path. The proof emits structured non-document fixtures for English and Spanish: capability, selected tag, known misspelling, range, suggestions, contract version, platform/target, and pass/block status. It never emits user text, installed dictionary contents, or native error details.
 
