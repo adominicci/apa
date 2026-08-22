@@ -216,6 +216,30 @@ describe("spelling service facade", () => {
     expect(second).toMatchObject({ selectedLanguageTag: "es-ES" });
   });
 
+  test("clears completed context correlation before the next request", async () => {
+    const native = fakeNative();
+    const service = createSpellingService(native);
+
+    await service.check(validInput);
+    await service.check({ ...validInput, documentRevision: 8 });
+
+    expect(native.cancel).not.toHaveBeenCalled();
+  });
+
+  test("clears early-aborted context correlation before the next request", async () => {
+    const native = fakeNative();
+    const service = createSpellingService(native);
+    const controller = new AbortController();
+    controller.abort();
+
+    const aborted = await service.check(validInput, controller.signal);
+    await service.check({ ...validInput, documentRevision: 8 });
+
+    expect(aborted.status).toBe("cancelled");
+    expect(native.cancel).toHaveBeenCalledTimes(1);
+    expect(native.cancel).toHaveBeenCalledWith(aborted.requestId);
+  });
+
   test.each([
     [{ ...validInput, contextId: "" }, "empty context"],
     [{ ...validInput, documentRevision: -1 }, "negative revision"],

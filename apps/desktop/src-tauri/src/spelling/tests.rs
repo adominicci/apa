@@ -206,6 +206,32 @@ fn translates_stable_adapter_failures() {
 }
 
 #[test]
+fn capability_preserves_api_unavailable_and_adapter_failure_reasons() {
+    let mut unavailable = FakeAdapter::available();
+    unavailable.failure = Some(AdapterError::ApiUnavailable);
+    assert_eq!(
+        serde_json::to_value(Boundary::new(unavailable).capability(DocumentLanguage::English))
+            .unwrap(),
+        serde_json::json!({
+            "status": "unavailable",
+            "language": "en",
+            "reason": "api-unavailable"
+        })
+    );
+
+    let mut failed = FakeAdapter::available();
+    failed.failure = Some(AdapterError::Failure);
+    assert_eq!(
+        serde_json::to_value(Boundary::new(failed).capability(DocumentLanguage::English)).unwrap(),
+        serde_json::json!({
+            "status": "unavailable",
+            "language": "en",
+            "reason": "adapter-failure"
+        })
+    );
+}
+
+#[test]
 fn capacity_duplicate_cancellation_and_cleanup_follow_native_exit() {
     let gate = Arc::new((Mutex::new(false), Condvar::new()));
     let mut adapter = FakeAdapter::available();
@@ -428,7 +454,7 @@ fn command_boundary_serializes_stable_results_without_native_details() {
         serde_json::json!({
             "status": "unavailable",
             "language": "en",
-            "reason": "api-unavailable"
+            "reason": "adapter-failure"
         })
     );
     assert_eq!(

@@ -143,7 +143,7 @@ The arm64 report repeated the macOS 26.5.2 bilingual pass. The Intel report
 records macOS 15.7.7 x86_64 with `en` and `es` selected, fixture ranges `0..5`
 and `0..8`, non-empty suggestions, and overall `pass`. The Windows report
 repeated the Windows 11 English pass and typed Spanish dictionary block. This
-adds current Intel hosted automation, but not macOS 12 Intel manual or
+adds current Intel-hosted automation, but not macOS 12 Intel manual or
 self-hosted proof and not a packaged run. Task 7.2 remains incomplete.
 
 The incomplete automation and packaged rows keep the spelling service hidden.

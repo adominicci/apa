@@ -82,6 +82,18 @@ export function createSpellingService(native: NativeClient): SpellingService {
     string,
     { requestId: string; documentRevision: number }
   >();
+  const clearCurrent = (
+    contextId: string,
+    correlation: { requestId: string; documentRevision: number },
+  ) => {
+    const latest = latestByContext.get(contextId);
+    if (
+      latest?.requestId === correlation.requestId &&
+      latest.documentRevision === correlation.documentRevision
+    ) {
+      latestByContext.delete(contextId);
+    }
+  };
 
   return {
     capability(language: DocumentLanguage) {
@@ -109,6 +121,7 @@ export function createSpellingService(native: NativeClient): SpellingService {
 
       if (signal?.aborted) {
         void native.cancel(requestId).catch(() => undefined);
+        clearCurrent(input.contextId, correlation);
         return { status: "cancelled", ...correlation };
       }
 
@@ -143,6 +156,7 @@ export function createSpellingService(native: NativeClient): SpellingService {
         return { status: "failed", ...correlation, code: "adapter-failure" };
       } finally {
         signal?.removeEventListener("abort", abort);
+        clearCurrent(input.contextId, correlation);
       }
     },
   };

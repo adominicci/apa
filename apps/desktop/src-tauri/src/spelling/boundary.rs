@@ -217,10 +217,16 @@ impl<A: PlatformAdapter> Boundary<A> {
                 language,
                 help_code: "install-system-dictionary",
             },
-            Err(_) => CapabilityResult::Unavailable {
+            Err(AdapterError::Failure) => CapabilityResult::Unavailable {
                 language,
-                reason: ErrorCode::ApiUnavailable,
+                reason: ErrorCode::AdapterFailure,
             },
+            Err(AdapterError::ApiUnavailable | AdapterError::Cancelled) => {
+                CapabilityResult::Unavailable {
+                    language,
+                    reason: ErrorCode::ApiUnavailable,
+                }
+            }
         }
     }
 
