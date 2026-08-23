@@ -83,14 +83,15 @@ describe("SpellingCorrectionMenu", () => {
       },
     });
     await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     const menu = target.querySelector<HTMLElement>('[role="menu"]')!;
     const items = [...menu.querySelectorAll<HTMLElement>('[role="menuitem"]')];
     expect(items[0]?.textContent?.trim()).toBe(labels.noSuggestions);
-    expect(document.activeElement).toBe(items[0]);
+    expect(document.activeElement).toBe(items[1]);
     menu.dispatchEvent(
       new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }),
     );
-    expect(document.activeElement).toBe(items.at(-1));
+    expect(document.activeElement).toBe(items[0]);
     menu.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
     );

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount, tick, untrack } from "svelte";
+  import type { Attachment } from "svelte/attachments";
   import type { Editor } from "@tiptap/core";
   import type { DocLocale } from "@tesina/engine";
   import type { Essay } from "$lib/model/essay";
@@ -24,6 +25,7 @@
     replaceBodyIssue,
     replaceTitleIssue,
   } from "./actions";
+  import { titleOffsetAtPointer } from "./titlePointer";
   import SpellingCorrectionMenu, {
     type SpellingMenuAction,
   } from "./SpellingCorrectionMenu.svelte";
@@ -37,6 +39,7 @@
     essay,
     editor,
     titleInput,
+    titleFormOpen,
     title,
     doc,
     documentLanguage,
@@ -52,6 +55,7 @@
   let undoUnavailable = $state(false);
   let enDraft = $state("");
   let esDraft = $state("");
+  let navigateTitleAfterRecheck = false;
   const dictionaryLanguages: readonly DocLocale[] = ["en", "es"];
 
   const controller = createSpellingController({
@@ -72,6 +76,19 @@
         )
       ) menuIssue = undefined;
       if (editor && !editor.isDestroyed) refreshSpellingDecorations(editor);
+      if (navigateTitleAfterRecheck && next.status === "issues") {
+        navigateTitleAfterRecheck = false;
+        const titleIssue = next.issues.find((issue) =>
+          issue.source === "paper-title"
+        );
+        if (titleIssue) queueMicrotask(() => void openIssue(titleIssue));
+      } else if (
+        navigateTitleAfterRecheck &&
+        ["issue-free", "missing-dictionary", "unavailable", "failed"]
+          .includes(next.status)
+      ) {
+        navigateTitleAfterRecheck = false;
+      }
     },
   });
 
@@ -85,21 +102,36 @@
   });
 
   function invalidate(source: "body" | "paper-title" | "essay" | "disabled") {
+    menuIssue = undefined;
     controller.invalidate(source);
     if (uiLocale.spellingEnabled) controller.schedule();
   }
 
-  async function openIssue(issue: ExperienceSpellingIssue | undefined) {
+  async function openIssue(
+    issue: ExperienceSpellingIssue | undefined,
+    navigate = false,
+  ) {
     if (!issue) return;
-    menuIssue = issue;
-    await tick();
     if (issue.source === "paper-title") {
+      if (navigate && !titleFormOpen) {
+        navigateTitleAfterRecheck = true;
+        onOpenTitleForm();
+        await tick();
+        return;
+      }
       titleInput?.focus();
       titleInput?.setSelectionRange(issue.from, issue.to);
     } else {
       editor?.chain().focus().setTextSelection({ from: issue.from, to: issue.to }).run();
     }
+    menuIssue = issue;
+    await tick();
   }
+
+  const portal: Attachment<HTMLElement> = (node) => {
+    document.body.append(node);
+    return () => node.remove();
+  };
 
   function closeMenu(direction: "restore" | "forward" | "backward") {
     const issue = menuIssue;
@@ -176,7 +208,7 @@
         const status = uiLocale.addPersonalDictionaryTerm(issue.word, documentLanguage);
         return status !== "invalid" && status !== "overflow";
       });
-    } else void openIssue(controller.nextIssue(issue));
+    } else void openIssue(controller.nextIssue(issue), true);
   }
 
   function statusText() {
@@ -198,6 +230,8 @@
 
   function clearDictionary(language: DocLocale) {
     uiLocale.clearPersonalDictionary(language);
+    if (language === "en") enDraft = "";
+    else esDraft = "";
     if (language === documentLanguage) invalidate("essay");
   }
 
@@ -207,7 +241,7 @@
     return attachSpellingEditorAdapter(currentEditor, {
       getIssues: () => spellingState.issues,
       onBodyMutation: () => invalidate("body"),
-      onAltF7: () => void openIssue(controller.nextIssue(menuIssue)),
+      onAltF7: () => void openIssue(controller.nextIssue(menuIssue), true),
       onIssueContextMenu: (issue, event) => {
         event.preventDefault();
         menuPoint = { x: event.clientX, y: event.clientY };
@@ -222,7 +256,7 @@
     if (!input) return;
     const onInput = () => invalidate("paper-title");
     const onContextMenu = (event: MouseEvent) => {
-      const position = input.selectionStart ?? -1;
+      const position = titleOffsetAtPointer(input, event) ?? -1;
       const issue = spellingState.issues.find((candidate) =>
         candidate.source === "paper-title" && position >= candidate.from && position < candidate.to
       );
@@ -239,8 +273,40 @@
     };
   });
 
+  $effect(() => {
+    const input = titleInput;
+    if (!input) return;
+    const hasIssue = spellingState.issues.some((issue) =>
+      issue.source === "paper-title"
+    );
+    const priorInvalid = input.getAttribute("aria-invalid");
+    const priorIndicator = input.getAttribute("data-spelling-indicator");
+    const hadClass = input.classList.contains("tesina-spelling-title-issue");
+    if (hasIssue) {
+      input.classList.add("tesina-spelling-title-issue");
+      input.setAttribute("aria-invalid", "spelling");
+      input.setAttribute("data-spelling-indicator", "misspelled");
+    }
+    return () => {
+      if (!hadClass) input.classList.remove("tesina-spelling-title-issue");
+      if (priorInvalid === null) input.removeAttribute("aria-invalid");
+      else input.setAttribute("aria-invalid", priorInvalid);
+      if (priorIndicator === null) input.removeAttribute("data-spelling-indicator");
+      else input.setAttribute("data-spelling-indicator", priorIndicator);
+    };
+  });
+
   let priorTitle = untrack(() => title);
   let priorLanguage = untrack(() => documentLanguage);
+  let priorTitleInput = untrack(() => titleInput);
+  $effect(() => {
+    const nextTitleInput = titleInput;
+    if (nextTitleInput === priorTitleInput) return;
+    priorTitleInput = nextTitleInput;
+    menuIssue = undefined;
+    invalidate("paper-title");
+  });
+
   $effect(() => {
     const nextTitle = title;
     const nextLanguage = documentLanguage;
@@ -262,7 +328,7 @@
 <svelte:window onkeydown={(event) => {
   if (event.altKey && event.key === "F7" && document.activeElement === titleInput) {
     event.preventDefault();
-    void openIssue(controller.nextIssue(menuIssue));
+    void openIssue(controller.nextIssue(menuIssue), true);
   }
 }} />
 
@@ -307,19 +373,20 @@
     {/each}
   </details>
   {#if undoUnavailable}<p role="alert">{m.spelling_failed()}</p>{/if}
-  {#if menuIssue}
-    <div class="menu-anchor" style:left={`${menuPoint.x}px`} style:top={`${menuPoint.y}px`}>
-      <SpellingCorrectionMenu
-        issue={menuIssue}
-        {labels}
-        canAddDictionary={true}
-        canNext={spellingState.issues.length > 1}
-        onAction={handleAction}
-        onClose={closeMenu}
-      />
-    </div>
-  {/if}
 </aside>
+
+{#if menuIssue}
+  <div {@attach portal} class="menu-anchor" style:left={`${menuPoint.x}px`} style:top={`${menuPoint.y}px`}>
+    <SpellingCorrectionMenu
+      issue={menuIssue}
+      {labels}
+      canAddDictionary={true}
+      canNext={spellingState.issues.length > 1}
+      onAction={handleAction}
+      onClose={closeMenu}
+    />
+  </div>
+{/if}
 
 <style>
   .spelling-proof { position: fixed; right: 1rem; bottom: 3rem; z-index: 900; max-width: 24rem; padding: 0.75rem; border: 1px solid #777; border-radius: 0.5rem; background: white; color: #222; font: 0.82rem system-ui; }
@@ -329,4 +396,5 @@
   textarea { min-height: 3rem; }
   .menu-anchor { position: fixed; z-index: 1000; }
   :global(.tesina-spelling-issue) { text-decoration: underline wavy #8b1e1e 1.5px; text-decoration-skip-ink: none; }
+  :global(input.tesina-spelling-title-issue) { outline: 2px dashed currentColor; outline-offset: 2px; }
 </style>

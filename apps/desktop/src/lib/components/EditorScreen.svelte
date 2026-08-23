@@ -165,6 +165,7 @@
      saving finishes the export they already asked for. */
   let resumeExportAfterTitlePage = $state(false);
   let essayTitle = $state(untrack(() => essay.titlePage.title));
+  let titleFormDraft = $state(untrack(() => essay.titlePage.title));
   let outline = $state<OutlineItem[]>(
     untrack(() => buildOutline(essay.content)),
   );
@@ -746,6 +747,7 @@
       variant: "student",
     };
     essayTitle = titlePage.title;
+    titleFormDraft = titlePage.title;
     resumeExportAfterTitlePage = false;
     exportMessage = "";
     titleFormOpen = false;
@@ -761,6 +763,19 @@
     essay.titlePage = { ...essay.titlePage, ...patch };
     if (patch.title !== undefined) essayTitle = essay.titlePage.title;
     autosave.scheduleSave();
+  }
+
+  function openTitleForm() {
+    titleFormDraft = essayTitle;
+    titleFormOpen = true;
+  }
+
+  function closeTitleForm() {
+    titleFormOpen = false;
+    titleFormDraft = essayTitle;
+    // Dismissing the form abandons the export it was opened from, so a
+    // later unrelated save doesn't resume it unexpectedly.
+    resumeExportAfterTitlePage = false;
   }
 </script>
 
@@ -848,7 +863,7 @@
         </div>
       </div>
 
-      <button class="out-item" onclick={() => (titleFormOpen = true)}>
+      <button class="out-item" onclick={openTitleForm}>
         <span class="n">—</span>{m.outline_titlepage(undefined, {
           locale: documentLanguage,
         })}
@@ -951,7 +966,7 @@
                 titlePage={essay.titlePage}
                 language={documentLanguage}
                 onChange={handleCoverChange}
-                onOpenForm={() => (titleFormOpen = true)}
+                onOpenForm={openTitleForm}
                 bind:titleInput={coverTitleInput}
               />
               <Editor
@@ -1305,14 +1320,16 @@
     {essay}
     {editor}
     titleInput={titleFormInput ?? coverTitleInput}
+    {titleFormOpen}
     title={essayTitle}
     doc={lastDoc}
     {documentLanguage}
     onTitleChange={(value: string) => {
-      if (!titleFormInput) handleCoverChange({ title: value });
+      handleCoverChange({ title: value });
+      titleFormDraft = value;
     }}
     onEssayMutation={() => autosave.scheduleSave()}
-    onOpenTitleForm={() => (titleFormOpen = true)}
+    onOpenTitleForm={openTitleForm}
   />
 </div>
 
@@ -1371,7 +1388,7 @@
       exportWarnings = [];
       exportApaIssues = [];
       resumeExportAfterTitlePage = true;
-      titleFormOpen = true;
+      openTitleForm();
     }}
     onClose={() => {
       exportWarnings = [];
@@ -1386,12 +1403,8 @@
     settings={essay.settings}
     onSave={handleSaveTitlePage}
     bind:titleInput={titleFormInput}
-    onClose={() => {
-      titleFormOpen = false;
-      // Dismissing the form abandons the export it was opened from, so a
-      // later unrelated save doesn't resume it unexpectedly.
-      resumeExportAfterTitlePage = false;
-    }}
+    bind:titleDraft={titleFormDraft}
+    onClose={closeTitleForm}
   />
 {/if}
 

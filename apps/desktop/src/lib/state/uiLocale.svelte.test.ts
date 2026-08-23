@@ -166,6 +166,19 @@ describe("backup status cache (task 8.3)", () => {
 });
 
 describe("device-local spelling settings", () => {
+  it.each(["false", 0, {}, []])(
+    "ignores a non-boolean spelling.enabled direct setting: %j",
+    async (enabled) => {
+      runtime.readJson.mockResolvedValue({
+        schemaVersion: 1,
+        spelling: { enabled },
+      });
+      await store.load();
+      expect(store.spellingEnabled).toBe(true);
+      expect(runtime.writeJsonAtomic).not.toHaveBeenCalled();
+    },
+  );
+
   it("defaults enabled and sanitizes dictionaries without an eager write", async () => {
     runtime.readJson.mockResolvedValue({
       schemaVersion: 1,

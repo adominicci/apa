@@ -6,7 +6,7 @@
     essay: Essay;
   }
 
-  let { essay, titleInput, onEssayMutation }: Props = $props();
+  let { essay, titleInput, onTitleChange, onEssayMutation }: Props = $props();
 
   function persistDocumentIgnore() {
     essay.spelling = { documentIgnores: { en: ["Tesina"] } };
@@ -21,3 +21,9 @@
   data-title-input-owner={titleInput?.closest('[role="dialog"]') ? "form" : "cover"}
   onclick={persistDocumentIgnore}
 >Test editor addon</button>
+
+<button
+  type="button"
+  data-test-title-replacement
+  onclick={() => onTitleChange("Corrected title")}
+>Replace title</button>

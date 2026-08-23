@@ -6,6 +6,7 @@ export interface EditorAddonProps {
   essay: Essay;
   editor?: Editor;
   titleInput?: HTMLInputElement;
+  titleFormOpen: boolean;
   title: string;
   doc: unknown;
   documentLanguage: DocLocale;

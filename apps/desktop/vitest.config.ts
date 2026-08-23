@@ -12,6 +12,12 @@ export default defineConfig({
       "$tesina-editor-addon": fileURLToPath(
         new URL("./src/lib/editor/TestEditorAddon.svelte", import.meta.url),
       ),
+      "$tesina-spelling-settings": fileURLToPath(
+        new URL(
+          "./src/lib/spelling/ProofSpellingSettings.ts",
+          import.meta.url,
+        ),
+      ),
     },
   },
   test: {

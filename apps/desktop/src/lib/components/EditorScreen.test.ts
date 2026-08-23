@@ -937,10 +937,16 @@ describe("editor preview round trip", () => {
   });
 
   it("moves the proof title seam from the cover input into the canonical title form", async () => {
+    vi.useFakeTimers();
+    let persisted: Essay | undefined;
+    runtime.persist.mockImplementation((essay: Essay) => {
+      persisted = essay;
+    });
+    const essay = essayWithBody("Seed");
     const component = mount(EditorScreen, {
       target: document.body,
       props: {
-        essay: essayWithBody("Seed"),
+        essay,
         newlyCreated: false,
         onLaunchConsumed: vi.fn(),
         onBack: vi.fn(),
@@ -956,6 +962,17 @@ describe("editor preview round trip", () => {
     flushSync();
     expect(addon.dataset.titleInputOwner).toBe("form");
     expect(document.activeElement?.closest('[role="dialog"]')).not.toBeNull();
+    document.querySelector<HTMLButtonElement>(
+      "[data-test-title-replacement]",
+    )!.click();
+    flushSync();
+    const formTitle = document.querySelector<HTMLInputElement>(
+      '[role="dialog"] input[type="text"]',
+    )!;
+    expect(essay.titlePage.title).toBe("Corrected title");
+    expect(formTitle.value).toBe("Corrected title");
+    await vi.advanceTimersByTimeAsync(500);
+    expect(persisted?.titlePage.title).toBe("Corrected title");
     await unmount(component);
   });
 });

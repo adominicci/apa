@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import type { ExperienceSpellingIssue } from "./controller";
 
   export type SpellingMenuAction =
@@ -92,7 +92,13 @@
     if (enabled) onAction(action);
   }
 
-  onMount(() => focusIndex(0));
+  onMount(async () => {
+    await tick();
+    const firstEnabled = itemElements().findIndex((item) =>
+      item.getAttribute("aria-disabled") !== "true"
+    );
+    focusIndex(firstEnabled < 0 ? 0 : firstEnabled);
+  });
 </script>
 
 <div

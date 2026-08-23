@@ -33,6 +33,9 @@ const config = {
       "$tesina-editor-addon": spellingExperienceProof
         ? "./src/lib/spelling/SpellingExperienceEditorAddon.svelte"
         : "./src/lib/editor/NoopEditorAddon.svelte",
+      "$tesina-spelling-settings": spellingExperienceProof
+        ? "./src/lib/spelling/ProofSpellingSettings.ts"
+        : "./src/lib/editor/NoopSpellingSettings.ts",
     },
   },
 };

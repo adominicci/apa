@@ -31,6 +31,16 @@ describe("essay spelling persistence", () => {
     expect(malformed.spelling.documentIgnores.en[0]).toBe(" first ");
   });
 
+  it.each([null, "not-an-object", [], 42])(
+    "sanitizes a malformed direct-load essay.spelling shape in memory: %j",
+    (spelling) => {
+      const essay = Object.assign(createEmptyEssay("en"), { spelling });
+      expect(sanitizeEssaySpelling(essay as never).spelling).toEqual({
+        documentIgnores: {},
+      });
+    },
+  );
+
   it("applies trusted document mutations atomically and language-locally", () => {
     const essay = createEmptyEssay("es");
     expect(addDocumentIgnore(essay, " Cafe\u0301 ", "es").status).toBe("added");

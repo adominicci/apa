@@ -14,21 +14,27 @@ describe("LT-02 compile-time proof boundary", () => {
     expect(config).toMatch(
       /"\$tesina-editor-addon": spellingExperienceProof\s*\?\s*"\.\/src\/lib\/spelling\/SpellingExperienceEditorAddon\.svelte"\s*:\s*"\.\/src\/lib\/editor\/NoopEditorAddon\.svelte"/,
     );
+    expect(config).toMatch(
+      /"\$tesina-spelling-settings": spellingExperienceProof\s*\?\s*"\.\/src\/lib\/spelling\/ProofSpellingSettings\.ts"\s*:\s*"\.\/src\/lib\/editor\/NoopSpellingSettings\.ts"/,
+    );
     expect(config).not.toMatch(
       /spellingExperienceProof\s*\?\s*"\.\/src\/lib\/spelling\/SpellingExperienceProofPage\.svelte"/,
     );
   });
 
   it("keeps ordinary editor and settings entries free of proof imports and IPC calls", async () => {
-    const [appPage, editorScreen, settings, noopAddon] = await Promise.all([
-      source("apps/desktop/src/lib/components/AppPage.svelte"),
-      source("apps/desktop/src/lib/components/EditorScreen.svelte"),
-      source("apps/desktop/src/lib/state/uiLocale.svelte.ts"),
-      source("apps/desktop/src/lib/editor/NoopEditorAddon.svelte"),
-    ]);
+    const [appPage, editorScreen, settings, noopAddon, noopSettings] =
+      await Promise.all([
+        source("apps/desktop/src/lib/components/AppPage.svelte"),
+        source("apps/desktop/src/lib/components/EditorScreen.svelte"),
+        source("apps/desktop/src/lib/state/uiLocale.svelte.ts"),
+        source("apps/desktop/src/lib/editor/NoopEditorAddon.svelte"),
+        source("apps/desktop/src/lib/editor/NoopSpellingSettings.ts"),
+      ]);
     expect(editorScreen).toContain('from "$tesina-editor-addon"');
+    expect(settings).toContain('from "$tesina-spelling-settings"');
     expect(appPage).toContain("{#key currentEssayKey}");
-    for (const ordinary of [appPage, settings, noopAddon]) {
+    for (const ordinary of [appPage, settings, noopAddon, noopSettings]) {
       expect(ordinary).not.toContain("SpellingExperienceProofPage");
       expect(ordinary).not.toContain("spelling_capability");
       expect(ordinary).not.toContain("spelling_check");

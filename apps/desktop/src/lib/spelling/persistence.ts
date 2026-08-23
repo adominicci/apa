@@ -25,6 +25,12 @@ export function effectiveDocumentIgnores(
 
 export function sanitizeEssaySpelling(essay: Essay): Essay {
   if (essay.spelling === undefined) return essay;
+  if (
+    essay.spelling === null || typeof essay.spelling !== "object" ||
+    Array.isArray(essay.spelling)
+  ) {
+    return { ...essay, spelling: { documentIgnores: {} } };
+  }
   const raw = essay.spelling.documentIgnores;
   const en = canonicalizeStoredTerms(raw?.en, "en");
   const es = canonicalizeStoredTerms(raw?.es, "es");
