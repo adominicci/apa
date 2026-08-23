@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { TextSelection } from "@tiptap/pm/state";
+import { Plugin, TextSelection } from "@tiptap/pm/state";
 import { undoDepth } from "@tiptap/pm/history";
 import { NODE_NAMES } from "@tesina/engine";
 import { createTesinaEditor } from "$lib/editor/createEditor.ts";
 import { refreshCitations } from "$lib/editor/citation.ts";
 import { analyzeCoachPassages } from "./analysisAdapter.ts";
 import { createWritingCoachController } from "./controller.ts";
+import { createCoachSuppression, mapCoachSuppression } from "./mapping.ts";
 import type { CoachEditorBridge, CoachEditorHandle } from "./editorPlugin.ts";
 
 Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
@@ -75,11 +76,81 @@ describe("schema-free coach editor bridge", () => {
       doc: installedState.doc,
       docChanged: true,
       externalCitationRefresh: true,
-      citationEnvironmentVersion: 0,
+      citationEnvironmentVersion: 1,
     });
 
     editor.view.updateState(installedState);
     expect(transactions).toHaveLength(1);
+    editor.destroy();
+  });
+
+  it("emits one ordered mapping for root and appended transactions", () => {
+    const { editor, handle, transactions } = createHarness(
+      "The policy changed in many ways during review.",
+    );
+    const analyzed = analyzeCoachPassages(
+      handle.capture("essay-1").passages,
+      1,
+    );
+    if (analyzed.status !== "available") throw new Error("expected analysis");
+    const suppression = createCoachSuppression(analyzed.issues[0]!, "dismiss");
+    let appendedInsideSuppression: number | null = null;
+    const APPENDED = "test:coach-appended-transaction";
+    editor.registerPlugin(
+      new Plugin({
+        appendTransaction(rootTransactions, _oldState, newState) {
+          if (
+            !rootTransactions.some((transaction) => transaction.docChanged) ||
+            rootTransactions.some((transaction) =>
+              transaction.getMeta(APPENDED)
+            )
+          ) return null;
+          const position = appendedInsideSuppression ??
+            newState.doc.content.size - 2;
+          return newState.tr.insertText(
+            appendedInsideSuppression === null ? " Tail" : "x",
+            position,
+          ).setMeta(APPENDED, true);
+        },
+      }),
+    );
+    transactions.length = 0;
+
+    editor.view.dispatch(
+      editor.state.tr.insertText("Earlier ", 2).setMeta("apa:external", true),
+    );
+
+    expect(transactions).toHaveLength(1);
+    const firstEvent = transactions[0]!;
+    expect(firstEvent.docChanged).toBe(true);
+    expect(firstEvent.externalCitationRefresh).toBe(true);
+    expect(firstEvent.doc).toBe(editor.state.doc);
+    expect(firstEvent.citationEnvironmentVersion).toBe(
+      handle.capture("essay-1").citationEnvironmentVersion,
+    );
+    const shifted = mapCoachSuppression(
+      suppression,
+      firstEvent.mapping,
+      (range) => firstEvent.doc.textBetween(range.from, range.to, "", ""),
+    );
+    expect(shifted?.editorRange).toEqual({
+      from: suppression.editorRange.from + 8,
+      to: suppression.editorRange.to + 8,
+    });
+
+    transactions.length = 0;
+    appendedInsideSuppression = shifted!.editorRange.from + 1;
+    editor.view.dispatch(
+      editor.state.tr.insertText(" End", editor.state.doc.content.size - 2),
+    );
+
+    expect(transactions).toHaveLength(1);
+    const secondEvent = transactions[0]!;
+    expect(mapCoachSuppression(
+      shifted!,
+      secondEvent.mapping,
+      (range) => secondEvent.doc.textBetween(range.from, range.to, "", ""),
+    )).toBeNull();
     editor.destroy();
   });
 

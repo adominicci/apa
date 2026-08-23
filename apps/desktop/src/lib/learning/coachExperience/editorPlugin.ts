@@ -2,7 +2,7 @@ import { Extension } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
-import type { Mapping } from "@tiptap/pm/transform";
+import { Mapping } from "@tiptap/pm/transform";
 import {
   type CitationEnv,
   citationEnvironmentVersion,
@@ -84,12 +84,22 @@ export function createCoachEditorExtension(
                 transaction.docChanged || transaction.getMeta("apa:external") ||
                 (transaction.selectionSet && !requested);
               const highlight = requested ?? (clear ? null : prior.highlight);
+              const appended = transaction.getMeta("appendedTransaction") !==
+                undefined;
+              const mapping = new Mapping();
+              if (appended && prior.pendingTransaction) {
+                mapping.appendMapping(prior.pendingTransaction.mapping);
+              }
+              mapping.appendMapping(transaction.mapping);
               const pendingTransaction: CoachEditorTransaction = {
-                mapping: transaction.mapping,
+                mapping,
                 doc: newState.doc,
-                docChanged: transaction.docChanged,
+                docChanged: transaction.docChanged ||
+                  (appended && prior.pendingTransaction?.docChanged === true),
                 externalCitationRefresh: Boolean(
-                  transaction.getMeta("apa:external"),
+                  transaction.getMeta("apa:external") ||
+                    (appended &&
+                      prior.pendingTransaction?.externalCitationRefresh),
                 ),
                 citationEnvironmentVersion: citationEnvironmentVersion(
                   newState,
@@ -169,7 +179,13 @@ export function createCoachEditorExtension(
                   ?.pendingTransaction ?? null;
                 if (pending && pending !== emittedTransaction) {
                   emittedTransaction = pending;
-                  bridge.onTransaction?.(pending);
+                  bridge.onTransaction?.({
+                    ...pending,
+                    doc: updatedView.state.doc,
+                    citationEnvironmentVersion: citationEnvironmentVersion(
+                      updatedView.state,
+                    ),
+                  });
                 }
               },
               destroy: () => bridge.attach(null),

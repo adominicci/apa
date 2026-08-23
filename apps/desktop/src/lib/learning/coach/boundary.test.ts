@@ -120,7 +120,9 @@ describe("hidden coach module boundary", () => {
     const entryPoints = files.filter((file) =>
       file.path.startsWith(COACH_EXPERIENCE_DIR.pathname)
     ).map((file) => file.path);
-    expect(auditProductionImports(files, entryPoints, forbidden)).toEqual([]);
+    expect(auditProductionImports(files, entryPoints, forbidden, {
+      "$lib/editor/": new URL("lib/editor/", APP_SRC_DIR).pathname,
+    })).toEqual([]);
   });
 
   it("detects forbidden code in a transitively imported production helper", () => {
@@ -141,6 +143,30 @@ describe("hidden coach module boundary", () => {
         ["fetch("],
       ),
     ).toEqual([{ path: "/app/shared/helper.ts", token: "fetch(" }]);
+  });
+
+  it("detects forbidden code in a transitively imported $lib helper", () => {
+    const files: SourceFile[] = [
+      {
+        path: "/app/src/lib/learning/coachExperience/controller.ts",
+        source: 'import "$lib/editor/helper.ts";',
+      },
+      {
+        path: "/app/src/lib/editor/helper.ts",
+        source: "export const persisted = localStorage.getItem('coach');",
+      },
+    ];
+    expect(
+      auditProductionImports(
+        files,
+        ["/app/src/lib/learning/coachExperience/controller.ts"],
+        ["localStorage"],
+        { "$lib/editor/": "/app/src/lib/editor/" },
+      ),
+    ).toEqual([{
+      path: "/app/src/lib/editor/helper.ts",
+      token: "localStorage",
+    }]);
   });
 
   it("is registered only through the sanctioned desktop editor seams, never routes, state, or Tauri", async () => {
