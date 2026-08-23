@@ -32,6 +32,8 @@ function bodyDecorations(editor: Editor, env: SpellingEditorEnvironment) {
         class: "tesina-spelling-issue",
         "data-spelling-indicator": "misspelled",
         "data-spelling-issue": spellingIssueIdentity(issue),
+      }, {
+        spellingIssueIdentity: spellingIssueIdentity(issue),
       })
     );
   return DecorationSet.create(editor.state.doc, decorations);
@@ -74,8 +76,28 @@ export function attachSpellingEditorAdapter(
             top: event.clientY,
           });
           if (!point) return false;
-          const issue = issueAtBodyPosition(env.getIssues(), point.pos);
-          return issue ? env.onIssueContextMenu(issue, event) : false;
+          const decorations = spellingEditorPluginKey.getState(
+            view.state,
+          ) as DecorationSet;
+          const decoration = decorations.find(
+            point.pos,
+            point.pos + 1,
+            (spec) => typeof spec.spellingIssueIdentity === "string",
+          ).find((candidate) =>
+            point.pos >= candidate.from && point.pos < candidate.to
+          );
+          const identity = decoration?.spec.spellingIssueIdentity;
+          const issue = typeof identity === "string"
+            ? env.getIssues().find((candidate) =>
+              spellingIssueIdentity(candidate) === identity
+            )
+            : undefined;
+          const mappedIssue = issue && decoration
+            ? { ...issue, from: decoration.from, to: decoration.to }
+            : undefined;
+          return mappedIssue
+            ? env.onIssueContextMenu(mappedIssue, event)
+            : false;
         },
       },
     },

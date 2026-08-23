@@ -62,11 +62,12 @@ describe("ProseMirror spelling adapter", () => {
       suggestions: [],
     }];
     const onBodyMutation = vi.fn();
+    const onIssueContextMenu = vi.fn(() => true);
     const detach = attachSpellingEditorAdapter(editor, {
       getIssues: () => issues,
       onBodyMutation,
       onAltF7: vi.fn(),
-      onIssueContextMenu: vi.fn(() => false),
+      onIssueContextMenu,
     });
     refreshSpellingDecorations(editor);
     const mark = element.querySelector(".tesina-spelling-issue");
@@ -76,6 +77,24 @@ describe("ProseMirror spelling adapter", () => {
     expect(onBodyMutation).toHaveBeenCalled();
     expect(element.querySelector(".tesina-spelling-issue")?.textContent).toBe(
       "wrng",
+    );
+    editor.view.posAtCoords = vi.fn(() => ({ pos: 10, inside: -1 }));
+    const event = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      clientX: 20,
+      clientY: 10,
+    });
+    editor.view.dom.dispatchEvent(event);
+    expect(onIssueContextMenu).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: "body",
+        generation: 1,
+        from: 9,
+        to: 13,
+        termKey: "wrng",
+      }),
+      event,
     );
     detach();
     editor.destroy();
