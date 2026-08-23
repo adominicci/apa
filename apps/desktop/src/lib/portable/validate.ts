@@ -9,6 +9,7 @@ import { NODE_NAMES, type Reference } from "@tesina/engine";
  */
 
 import type { Essay } from "$lib/model/essay";
+import { assertCanonicalEssaySpelling } from "../spelling/persistence.ts";
 import { isFontChoice } from "../model/fonts.ts";
 import type { RefCollection } from "$lib/model/collections";
 import {
@@ -367,6 +368,15 @@ function validateEssayPayload(
     );
   }
   validateEssaySettings(essay.settings, where);
+  try {
+    assertCanonicalEssaySpelling(essay as Essay);
+  } catch {
+    throw new ValidateError(
+      "validate/essay-schema",
+      "an essay has malformed document spelling ignores",
+      where,
+    );
+  }
   validateTitlePage(essay.titlePage, where);
   validateProseMirrorDoc(essay.content, where);
   const id = requireCanonicalId(essay.id, `${where}: essay id`);

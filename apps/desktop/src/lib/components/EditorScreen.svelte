@@ -18,6 +18,7 @@
   } from "$lib/model/essay";
   import { APA_FONTS } from "$lib/model/fonts";
   import Editor from "$lib/components/Editor.svelte";
+  import EditorAddon from "$tesina-editor-addon";
   import Toolbar from "$lib/components/Toolbar.svelte";
   import CoverSheet, {
     type CoverPatch,
@@ -131,6 +132,8 @@
   );
   let words = $state(untrack(() => 0));
   let editor = $state<TiptapEditor | undefined>(undefined);
+  let coverTitleInput = $state<HTMLInputElement | undefined>(undefined);
+  let titleFormInput = $state<HTMLInputElement | undefined>(undefined);
   let abstractPresent = $state(false);
   let inAppendix = $state(false);
   let citePopoverOpen = $state(false);
@@ -162,6 +165,7 @@
      saving finishes the export they already asked for. */
   let resumeExportAfterTitlePage = $state(false);
   let essayTitle = $state(untrack(() => essay.titlePage.title));
+  let titleFormDraft = $state(untrack(() => essay.titlePage.title));
   let outline = $state<OutlineItem[]>(
     untrack(() => buildOutline(essay.content)),
   );
@@ -743,6 +747,7 @@
       variant: "student",
     };
     essayTitle = titlePage.title;
+    titleFormDraft = titlePage.title;
     resumeExportAfterTitlePage = false;
     exportMessage = "";
     titleFormOpen = false;
@@ -758,6 +763,19 @@
     essay.titlePage = { ...essay.titlePage, ...patch };
     if (patch.title !== undefined) essayTitle = essay.titlePage.title;
     autosave.scheduleSave();
+  }
+
+  function openTitleForm() {
+    titleFormDraft = essayTitle;
+    titleFormOpen = true;
+  }
+
+  function closeTitleForm() {
+    titleFormOpen = false;
+    titleFormDraft = essayTitle;
+    // Dismissing the form abandons the export it was opened from, so a
+    // later unrelated save doesn't resume it unexpectedly.
+    resumeExportAfterTitlePage = false;
   }
 </script>
 
@@ -845,7 +863,7 @@
         </div>
       </div>
 
-      <button class="out-item" onclick={() => (titleFormOpen = true)}>
+      <button class="out-item" onclick={openTitleForm}>
         <span class="n">—</span>{m.outline_titlepage(undefined, {
           locale: documentLanguage,
         })}
@@ -948,7 +966,8 @@
                 titlePage={essay.titlePage}
                 language={documentLanguage}
                 onChange={handleCoverChange}
-                onOpenForm={() => (titleFormOpen = true)}
+                onOpenForm={openTitleForm}
+                bind:titleInput={coverTitleInput}
               />
               <Editor
                 initialDoc={lastDoc}
@@ -1297,6 +1316,21 @@
       {STATUS_LABELS[autosave.status]()}
     </span>
   </footer>
+  <EditorAddon
+    {essay}
+    {editor}
+    titleInput={titleFormInput ?? coverTitleInput}
+    {titleFormOpen}
+    title={essayTitle}
+    doc={lastDoc}
+    {documentLanguage}
+    onTitleChange={(value: string) => {
+      titleFormDraft = value;
+      if (!titleFormOpen) handleCoverChange({ title: value });
+    }}
+    onEssayMutation={() => autosave.scheduleSave()}
+    onOpenTitleForm={openTitleForm}
+  />
 </div>
 
 {#if refFormOpen}
@@ -1354,7 +1388,7 @@
       exportWarnings = [];
       exportApaIssues = [];
       resumeExportAfterTitlePage = true;
-      titleFormOpen = true;
+      openTitleForm();
     }}
     onClose={() => {
       exportWarnings = [];
@@ -1368,12 +1402,9 @@
     titlePage={essay.titlePage}
     settings={essay.settings}
     onSave={handleSaveTitlePage}
-    onClose={() => {
-      titleFormOpen = false;
-      // Dismissing the form abandons the export it was opened from, so a
-      // later unrelated save doesn't resume it unexpectedly.
-      resumeExportAfterTitlePage = false;
-    }}
+    bind:titleInput={titleFormInput}
+    bind:titleDraft={titleFormDraft}
+    onClose={closeTitleForm}
   />
 {/if}
 

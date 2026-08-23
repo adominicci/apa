@@ -1,0 +1,23 @@
+{
+  "productName": "Tesina Spelling Experience Proof",
+  "identifier": "app.tesina.desktop.spelling-experience-proof",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Tesina Spelling Experience Proof",
+        "width": 1200,
+        "height": 800,
+        "visible": true
+      }
+    ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": []
+    }
+  },
+  "bundle": {
+    "createUpdaterArtifacts": false
+  }
+}

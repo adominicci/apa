@@ -164,3 +164,123 @@ describe("backup status cache (task 8.3)", () => {
     expect(last.backup).toBeUndefined();
   });
 });
+
+describe("device-local spelling settings", () => {
+  it.each(["false", 0, {}, []])(
+    "ignores a non-boolean spelling.enabled direct setting: %j",
+    async (enabled) => {
+      runtime.readJson.mockResolvedValue({
+        schemaVersion: 1,
+        spelling: { enabled },
+      });
+      await store.load();
+      expect(store.spellingEnabled).toBe(true);
+      expect(runtime.writeJsonAtomic).not.toHaveBeenCalled();
+    },
+  );
+
+  it("defaults enabled and sanitizes dictionaries without an eager write", async () => {
+    runtime.readJson.mockResolvedValue({
+      schemaVersion: 1,
+      spelling: {
+        personalDictionaries: {
+          en: [" first ", "FIRST", "two words"],
+          es: [" Cafe\u0301 ", "CAFÉ"],
+        },
+      },
+    });
+    await store.load();
+    expect(store.spellingEnabled).toBe(true);
+    expect(store.personalDictionaries).toEqual({
+      en: ["first"],
+      es: ["Café"],
+    });
+    expect(runtime.writeJsonAtomic).not.toHaveBeenCalled();
+  });
+
+  it("persists canonical trusted mutations and retains schema version 1", async () => {
+    expect(store.addPersonalDictionaryTerm(" Cafe\u0301 ", "es")).toBe("added");
+    expect(store.addPersonalDictionaryTerm("CAFÉ", "es")).toBe("duplicate");
+    expect(store.addPersonalDictionaryTerm("two words", "es")).toBe("invalid");
+    store.setSpellingEnabled(false);
+    await store.flushPending();
+    const payload = runtime.writeJsonAtomic.mock.calls.at(-1)![1] as {
+      schemaVersion: number;
+      spelling: unknown;
+    };
+    expect(payload).toMatchObject({
+      schemaVersion: 1,
+      spelling: {
+        enabled: false,
+        personalDictionaries: { es: ["Café"] },
+      },
+    });
+  });
+
+  it("persists dictionary edits and clears without crossing the language boundary", async () => {
+    expect(store.setPersonalDictionary("en", ["Alpha", "Beta"])).toBe(true);
+    expect(store.setPersonalDictionary("es", ["Árbol"])).toBe(true);
+    store.clearPersonalDictionary("en");
+    await store.flushPending();
+    expect(store.personalDictionaries).toEqual({ en: [], es: ["Árbol"] });
+    const payload = runtime.writeJsonAtomic.mock.calls.at(-1)![1] as {
+      schemaVersion: number;
+      spelling: { personalDictionaries: { en?: string[]; es?: string[] } };
+    };
+    expect(payload.schemaVersion).toBe(1);
+    expect(payload.spelling.personalDictionaries).toEqual({ es: ["Árbol"] });
+  });
+
+  it("canonicalizes complete trusted dictionary edits atomically in both languages", async () => {
+    expect(
+      store.setPersonalDictionary("es", [
+        "\u00a0Cafe\u0301\u00a0",
+        "CAFÉ",
+        "Árbol",
+      ]),
+    ).toBe(true);
+    expect(store.setPersonalDictionary("en", [" First ", "FIRST", "Second"]))
+      .toBe(true);
+    expect(store.personalDictionaries).toEqual({
+      en: ["First", "Second"],
+      es: ["Café", "Árbol"],
+    });
+
+    const beforeInvalid = structuredClone(store.personalDictionaries);
+    const writesBeforeInvalid = runtime.writeJsonAtomic.mock.calls.length;
+    expect(store.setPersonalDictionary("en", ["Valid", "two words"])).toBe(
+      false,
+    );
+    expect(store.setPersonalDictionary("es", ["Valid", "bad\u0000term"])).toBe(
+      false,
+    );
+    expect(store.setPersonalDictionary(
+      "en",
+      Array.from({ length: 257 }, (_, index) => `term${index}`),
+    )).toBe(false);
+    expect(store.personalDictionaries).toEqual(beforeInvalid);
+    expect(runtime.writeJsonAtomic).toHaveBeenCalledTimes(writesBeforeInvalid);
+
+    await store.flushPending();
+    const payload = runtime.writeJsonAtomic.mock.calls.at(-1)![1] as {
+      spelling: { personalDictionaries: { en: string[]; es: string[] } };
+    };
+    expect(payload.spelling.personalDictionaries).toEqual({
+      en: ["First", "Second"],
+      es: ["Café", "Árbol"],
+    });
+  });
+
+  it("refuses a new term at capacity while retaining duplicate no-op semantics", async () => {
+    const full = Array.from({ length: 256 }, (_, index) => `term${index}`);
+    runtime.readJson.mockResolvedValue({
+      schemaVersion: 1,
+      spelling: { personalDictionaries: { en: full } },
+    });
+    await store.load();
+    expect(store.addPersonalDictionaryTerm("newterm", "en")).toBe("overflow");
+    expect(store.addPersonalDictionaryTerm("TERM0", "en")).toBe("duplicate");
+    expect(runtime.writeJsonAtomic).not.toHaveBeenCalled();
+    expect(store.personalDictionaries.en).toEqual(full);
+  });
+});

@@ -36,6 +36,13 @@ export interface TitlePage {
   authorNote?: string;
 }
 
+export interface EssaySpelling {
+  documentIgnores?: {
+    en?: string[];
+    es?: string[];
+  };
+}
+
 export interface Essay {
   schemaVersion: 2;
   id: string;
@@ -50,6 +57,8 @@ export interface Essay {
    * if the library entry is deleted (plan §library/essay reconciliation).
    */
   referencesSnapshot: Reference[];
+  /** Essay-owned spelling terms. Optional so older schema-version-2 files stay unchanged. */
+  spelling?: EssaySpelling;
   /**
    * ISO time a library import created this essay as an imported copy.
    * Additive under schema version 2; absent on ordinary essays and excluded

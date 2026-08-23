@@ -5,6 +5,8 @@ export default defineConfig({
     projects: [
       "packages/*",
       "apps/desktop",
+      "apps/desktop/vitest.spelling-ordinary.config.ts",
+      "apps/desktop/vitest.spelling-proof.config.ts",
       {
         test: {
           name: "scripts",

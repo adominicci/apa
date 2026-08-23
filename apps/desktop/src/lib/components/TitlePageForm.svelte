@@ -20,6 +20,8 @@
     settings: EssaySettings;
     onSave: (titlePage: TitlePage, settings: EssaySettings) => void;
     onClose: () => void;
+    titleInput?: HTMLInputElement;
+    titleDraft?: string;
   }
 
   let {
@@ -27,10 +29,11 @@
     settings,
     onSave,
     onClose,
+    titleInput = $bindable(),
+    titleDraft = $bindable(untrack(() => titlePage.title)),
   }: Props = $props();
 
   // Editing works on local copies; nothing touches the essay until Guardar.
-  let title = $state(untrack(() => titlePage.title));
   let authorsText = $state(untrack(() => titlePage.authors.join("\n")));
   let affiliationsText = $state(
     untrack(() => titlePage.affiliations.join("\n")),
@@ -66,7 +69,7 @@
   function buildDraft(): TitlePage {
     const draft: TitlePage = {
       ...titlePage,
-      title: title.trim() || titlePage.title,
+      title: titleDraft.trim() || titlePage.title,
       authors: lines(authorsText),
       affiliations: lines(affiliationsText),
     };
@@ -108,7 +111,7 @@
 
   <label class="field">
     <span>{m.titlepage_essay_title()}</span>
-    <input type="text" bind:value={title} />
+    <input type="text" bind:this={titleInput} bind:value={titleDraft} />
   </label>
 
   <label class="field">

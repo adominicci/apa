@@ -7,6 +7,7 @@ import {
   type SummarizableEssay,
   summarize,
 } from "$lib/model/essay";
+import { sanitizeEssaySpelling } from "$lib/spelling/persistence";
 import type { DocLocale } from "@tesina/engine";
 import { collectCitedRefIds } from "$lib/editor/citedRefs";
 import { isFontChoice } from "$lib/model/fonts";
@@ -191,7 +192,7 @@ class EssaysStore {
   async load(id: string): Promise<Essay | null> {
     const essay = await readJson<unknown>(essayPath(id));
     return isIndexableEssay(essay, `${id}.json`)
-      ? normalizeForStudentRelease(essay)
+      ? sanitizeEssaySpelling(normalizeForStudentRelease(essay))
       : null;
   }
 

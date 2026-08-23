@@ -25,6 +25,7 @@ export function essaySemanticDigest(essay: Essay): Promise<string> {
     titlePage: essay.titlePage,
     content: essay.content,
     referencesSnapshot: essay.referencesSnapshot,
+    ...(essay.spelling ? { spelling: essay.spelling } : {}),
   }));
 }
 

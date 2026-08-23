@@ -10,6 +10,11 @@ import process from "node:process";
 
 const packagedSpellingProof =
   process.env.VITE_TESINA_PACKAGED_SPELLING_PROOF === "1";
+const spellingExperienceProof =
+  process.env.VITE_TESINA_SPELLING_EXPERIENCE_PROOF === "1";
+const selectedPage = packagedSpellingProof
+  ? "./src/lib/spelling/PackagedProofPage.svelte"
+  : "./src/lib/components/AppPage.svelte";
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -24,9 +29,13 @@ const config = {
       "$tesina-layout": packagedSpellingProof
         ? "./src/lib/spelling/PackagedProofLayout.svelte"
         : "./src/lib/components/AppLayout.svelte",
-      "$tesina-page": packagedSpellingProof
-        ? "./src/lib/spelling/PackagedProofPage.svelte"
-        : "./src/lib/components/AppPage.svelte",
+      "$tesina-page": selectedPage,
+      "$tesina-editor-addon": spellingExperienceProof
+        ? "./src/lib/spelling/SpellingExperienceEditorAddon.svelte"
+        : "./src/lib/editor/NoopEditorAddon.svelte",
+      "$tesina-spelling-settings": spellingExperienceProof
+        ? "./src/lib/spelling/ProofSpellingSettings.ts"
+        : "./src/lib/editor/NoopSpellingSettings.ts",
     },
   },
 };

@@ -5,6 +5,14 @@ import {
   parseDock,
   type ToolbarDock,
 } from "$lib/state/toolbarDock";
+import type { DocLocale } from "@tesina/engine";
+import {
+  addPersonalTerm,
+  loadSpellingSettings,
+  replacePersonalDictionary,
+  serializeSpellingSettings,
+} from "$tesina-spelling-settings";
+import type { SpellingSettingsState } from "$lib/spelling/settingsAddon";
 
 const SETTINGS_FILE = "settings.json";
 
@@ -39,6 +47,7 @@ interface AppSettings {
   toolbarDock?: ToolbarDock;
   /** Additive (schema stays 1): absent means backup was never touched. */
   backup?: BackupUiSettings;
+  spelling?: unknown;
 }
 
 function sanitizeBackup(value: unknown): BackupUiSettings | undefined {
@@ -88,6 +97,11 @@ export class UiSettingsStore {
   theme = $state<UiTheme>("system");
   dock = $state<ToolbarDock>(DEFAULT_DOCK);
   backup = $state<BackupUiSettings | undefined>(undefined);
+  spellingEnabled = $state(true);
+  personalDictionaries = $state<{ en: string[]; es: string[] }>({
+    en: [],
+    es: [],
+  });
   loaded = $state(false);
   #requestedRevision = 0;
   #persistedRevision = 0;
@@ -95,6 +109,9 @@ export class UiSettingsStore {
   #activeWrite: SettingsWriteAttempt | null = null;
   #activeFlush: Promise<void> | null = null;
   #notifyPersistenceDirty: (() => void) | null = null;
+  #spellingSettingsState: SpellingSettingsState = loadSpellingSettings(
+    undefined,
+  );
 
   constructor() {
     overwriteGetLocale(() => this.current);
@@ -107,6 +124,10 @@ export class UiSettingsStore {
       if (settings?.uiTheme) this.theme = settings.uiTheme;
       this.dock = parseDock(settings?.toolbarDock);
       this.backup = sanitizeBackup(settings?.backup);
+      const spelling = loadSpellingSettings(settings?.spelling);
+      this.#spellingSettingsState = spelling;
+      this.spellingEnabled = spelling.enabled;
+      this.personalDictionaries = spelling.personalDictionaries;
     } catch (err) {
       console.error("No se pudo cargar settings.json:", err);
     } finally {
@@ -115,6 +136,11 @@ export class UiSettingsStore {
   }
 
   #snapshot(): AppSettings {
+    const spelling = serializeSpellingSettings({
+      ...this.#spellingSettingsState,
+      enabled: this.spellingEnabled,
+      personalDictionaries: this.personalDictionaries,
+    });
     return {
       schemaVersion: 1,
       uiLanguage: this.current,
@@ -123,6 +149,7 @@ export class UiSettingsStore {
       ...(this.backup
         ? { backup: $state.snapshot(this.backup) as BackupUiSettings }
         : {}),
+      ...(spelling === undefined ? {} : { spelling }),
     };
   }
 
@@ -197,6 +224,49 @@ export class UiSettingsStore {
   setDock(dock: ToolbarDock): void {
     if (this.dock === dock) return;
     this.dock = dock;
+    this.#persist();
+  }
+
+  setSpellingEnabled(enabled: boolean): void {
+    if (this.spellingEnabled === enabled) return;
+    this.spellingEnabled = enabled;
+    this.#persist();
+  }
+
+  addPersonalDictionaryTerm(candidate: unknown, language: DocLocale) {
+    const state = {
+      enabled: this.spellingEnabled,
+      personalDictionaries: this.personalDictionaries,
+    };
+    const status = addPersonalTerm(
+      state,
+      candidate,
+      language,
+    );
+    if (status === "added") {
+      this.personalDictionaries = state.personalDictionaries;
+      this.#persist();
+    }
+    return status;
+  }
+
+  setPersonalDictionary(language: DocLocale, terms: unknown): boolean {
+    const state = {
+      enabled: this.spellingEnabled,
+      personalDictionaries: this.personalDictionaries,
+    };
+    if (!replacePersonalDictionary(state, language, terms)) return false;
+    this.personalDictionaries = state.personalDictionaries;
+    this.#persist();
+    return true;
+  }
+
+  clearPersonalDictionary(language: DocLocale): void {
+    if (this.personalDictionaries[language].length === 0) return;
+    this.personalDictionaries = {
+      ...this.personalDictionaries,
+      [language]: [],
+    };
     this.#persist();
   }
 

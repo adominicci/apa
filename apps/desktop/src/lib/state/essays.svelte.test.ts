@@ -337,6 +337,16 @@ describe("student-release persistence boundary", () => {
     );
   });
 
+  it.each([null, "not-an-object", [], 42])(
+    "sanitizes malformed optional spelling on direct local load: %j",
+    async (spelling) => {
+      const stored = Object.assign(professionalEssay(), { spelling });
+      persistence.files.set(`essays/${stored.id}.json`, stored);
+      const loaded = await essays.load(stored.id);
+      expect(loaded?.spelling).toEqual({ documentIgnores: {} });
+    },
+  );
+
   it.each([
     ["legacy", 1],
     ["future", 3],

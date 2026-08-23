@@ -9,11 +9,24 @@ export default defineConfig({
     alias: {
       // Mirror SvelteKit's $lib alias for pure-TS tests in this project.
       $lib: fileURLToPath(new URL("./src/lib", import.meta.url)),
+      "$tesina-editor-addon": fileURLToPath(
+        new URL("./src/lib/editor/TestEditorAddon.svelte", import.meta.url),
+      ),
+      "$tesina-spelling-settings": fileURLToPath(
+        new URL(
+          "./src/lib/spelling/ProofSpellingSettings.ts",
+          import.meta.url,
+        ),
+      ),
     },
   },
   test: {
     name: "desktop",
     include: ["src/**/*.test.ts"],
+    exclude: [
+      "src/lib/spelling/integration/**/*.test.ts",
+      "src/lib/spelling/ordinary/**/*.test.ts",
+    ],
     environment: "node",
   },
 });
