@@ -1,0 +1,2994 @@
+{
+  "schemaVersion": "writing-coach-review-submission-v1",
+  "submissionStatus": "submittable",
+  "sourceHead": "b149e4695a690c07908b12b912e5175b21281061",
+  "bundleSha256": "dbe6d00c8e5e15964978b3ccc8295687135471e1150c745841b1e26f4d9e51b6",
+  "aggregateDigest": "5d1de45b2826127a8ec903b2a56ad556cb1cd94300d0e5b09a63756c0e0c1b36",
+  "assignment": {
+    "slot": 2,
+    "role": "independent-bilingual-reviewer",
+    "reviewerId": "BR-02",
+    "bilingualAttestation": true,
+    "independenceAttestation": true
+  },
+  "decisions": [
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-01",
+        "issueKey": "0\u000030\u000042\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"in many ways\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "62fa755b93a63eefae90da7df5f225de447eaab30d4b3d0d4c72107ca0a4e7b3",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-01",
+        "issueKey": "0\u000030\u000042\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"in many ways\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "7c58153c604e7c1eda6077d22959fdcb6695e71c8f580f705de1998c20f42e4f",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-01",
+        "issueKey": "1\u0000109\u0000128\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"clearly proves that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "a23894a7cc629f2682cac192c1727b9436a2a1a1e2df6730cf85ca4787348e16",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-01",
+        "issueKey": "1\u0000109\u0000128\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"clearly proves that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "67503d17aaac92f8279b172eca6a8c7e21cb15d24a5458ded1913bf3e4216bc2",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-01",
+        "issueKey": "2\u0000197\u0000638\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Because the advising team compared six weeks of appointment logs across three departments, although several records lacked a final outcome code, while counselors changed their scheduling practice midway through the pilot, the report combines enrollment patterns, staffing limits, travel constraints, and cancellation reasons in one sentence, which makes the sequence difficult to follow but preserves each measured detail for later analysis.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "4ad0407dc768a881ca1c8eebc5b61964fcaddd4c27705048ad266d511e2fb483",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-01",
+        "issueKey": "2\u0000197\u0000638\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Because the advising team compared six weeks of appointment logs across three departments, although several records lacked a final outcome code, while counselors changed their scheduling practice midway through the pilot, the report combines enrollment patterns, staffing limits, travel constraints, and cancellation reasons in one sentence, which makes the sequence difficult to follow but preserves each measured detail for later analysis.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "0034b85a2fef162cd30edd6b3e6414c6f3e0915655ffa174a360ae5490929680",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-01",
+        "issueKey": "3\u0000658\u0000669\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"in order to\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "5875f8e650518ed2d22719375b1a98d300022d5a7b3cad6d74b2802248e2ef13",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-01",
+        "issueKey": "3\u0000658\u0000669\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"in order to\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "5405c09bfc2a2e8455bd518bbf3943b6c8ba37552e961a09273eecb40760e935",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-01",
+        "issueKey": "4\u0000787\u0000818\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"local attendance records shaped\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "d4c839ba19f732ef1d021a86416fa2f563bb95ec477884e36c12fa475baf4e23",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-01",
+        "issueKey": "4\u0000787\u0000818\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"local attendance records shaped\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "c4bef7527f84ad0d9fc56589ff14c9e4905ba18a16dae4a98cc5432487f0a124",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-01",
+        "issueKey": "5\u0000862\u0000890\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"It is important to note that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "4116655e00952e5a0ca420713884b3c5a96c88b0406fbc9fe86f001b35669a1f",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-01",
+        "issueKey": "5\u0000862\u0000890\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"It is important to note that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "3d7bace071612bccec6e7ddf6fbecba67124c695daf45bf5748066b072ce9af1",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-02",
+        "issueKey": "0\u00000\u000015\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"Various aspects\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "8b1db3e653fd0e1aeb15b4627b8e4ef54a52a472e6c694ed45a0b6a13c88d53b",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-02",
+        "issueKey": "0\u00000\u000015\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"Various aspects\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "a78e9734d448c3692059422313c64a7520f1e6d3fac642fb88e99c431ea5a2fb",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-02",
+        "issueKey": "1\u000091\u0000113\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Research clearly shows\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "e175801d29a3a0bb550ea05c436a0f2b623137e409cc00050810949bbae73a23",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-02",
+        "issueKey": "1\u000091\u0000113\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Research clearly shows\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "300680fbfe6f3c52024d8603745ae8785924904ccc1a44ff6546c482d5cd03a4",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-02",
+        "issueKey": "2\u0000191\u0000630\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Although the librarians recorded completion time for each search exercise, because the workshop groups entered with different levels of database experience, while two facilitators offered extra demonstrations during the second session, the analysis discusses keyword choice, filter use, source evaluation, and confidence ratings together, which obscures when each observation occurred but retains the distinctions needed for a later table.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "19d95cf027b5566e4ba7933fd9b3d5be500364d81c3f9b8f62bb38438ff08666",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-02",
+        "issueKey": "2\u0000191\u0000630\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Although the librarians recorded completion time for each search exercise, because the workshop groups entered with different levels of database experience, while two facilitators offered extra demonstrations during the second session, the analysis discusses keyword choice, filter use, source evaluation, and confidence ratings together, which obscures when each observation occurred but retains the distinctions needed for a later table.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "af318ded8205d74a8cda22f45ffef26c59ac5395714c58020b054b5302888da5",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-02",
+        "issueKey": "3\u0000667\u0000687\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"due to the fact that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "d70a4f4d8aaab2feba64275317bad55ca9d65f5eb9f5b38d8b8c55357b9af863",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-02",
+        "issueKey": "3\u0000667\u0000687\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"due to the fact that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "d4bb0584409d28a10bb24af88c48c4e95a9387b30339aeec81a2191031b42952",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-02",
+        "issueKey": "4\u0000796\u0000829\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"focused catalog practice improved\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "d41afb0139582ebb4b1bb55061c6b3938c240e7f2108d4b0f7033bdc7a60df9b",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-02",
+        "issueKey": "4\u0000796\u0000829\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"focused catalog practice improved\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "a2b49b4f3e62d976a6e8ef22a929cb8f1137bf0374e7bbd9e9e0934c27664c1f",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-02",
+        "issueKey": "5\u0000855\u0000870\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Needless to say\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "bedb63fd25e8ce2be94afb95f772fa6bc18dfc6f1a21c6c8fd45abfc612abcfd",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-02",
+        "issueKey": "5\u0000855\u0000870\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Needless to say\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "bdef581ba37e81a9ba9e14d7a3119eaef457f705bb7009fccb1745a42cb021d8",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-03",
+        "issueKey": "0\u000027\u000039\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"in many ways\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "62fa755b93a63eefae90da7df5f225de447eaab30d4b3d0d4c72107ca0a4e7b3",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-03",
+        "issueKey": "0\u000027\u000039\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"in many ways\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "7c58153c604e7c1eda6077d22959fdcb6695e71c8f580f705de1998c20f42e4f",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-03",
+        "issueKey": "1\u0000107\u0000126\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"clearly proves that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "a23894a7cc629f2682cac192c1727b9436a2a1a1e2df6730cf85ca4787348e16",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-03",
+        "issueKey": "1\u0000107\u0000126\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"clearly proves that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "67503d17aaac92f8279b172eca6a8c7e21cb15d24a5458ded1913bf3e4216bc2",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-03",
+        "issueKey": "2\u0000200\u0000623\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"While volunteers counted bicycles at four intersections during morning and evening periods, because rain interrupted two scheduled observations, although the city changed signal timing before the final count, the report compares rider volume, turning behavior, helmet use, and near conflicts across every location, which complicates the temporal comparison but provides enough detail to reconstruct the collection schedule.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "b903abbcfe98d1f083ed430f0cf0951f934d3da3326dc6c54e06bea2623efbb2",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-03",
+        "issueKey": "2\u0000200\u0000623\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"While volunteers counted bicycles at four intersections during morning and evening periods, because rain interrupted two scheduled observations, although the city changed signal timing before the final count, the report compares rider volume, turning behavior, helmet use, and near conflicts across every location, which complicates the temporal comparison but provides enough detail to reconstruct the collection schedule.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "973fb42021c66f49858f1b158e3123ae95f91ef1fdaa864230754dffb1b8a151",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-03",
+        "issueKey": "3\u0000660\u0000671\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"in order to\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "5875f8e650518ed2d22719375b1a98d300022d5a7b3cad6d74b2802248e2ef13",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-03",
+        "issueKey": "3\u0000660\u0000671\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"in order to\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "5405c09bfc2a2e8455bd518bbf3943b6c8ba37552e961a09273eecb40760e935",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-03",
+        "issueKey": "4\u0000759\u0000790\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"morning bicycle counts informed\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "4f3fcd1e73d59fc5b49dbe3da2ece42c2f43b337bc524d46d4bd04a0104e1ca7",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-03",
+        "issueKey": "4\u0000759\u0000790\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"morning bicycle counts informed\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "cbd40d8be47c0222ca12a28c30852dbe202a194d6e6e0545b3072f8e35c35964",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-03",
+        "issueKey": "5\u0000837\u0000865\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"It is important to note that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "4116655e00952e5a0ca420713884b3c5a96c88b0406fbc9fe86f001b35669a1f",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-03",
+        "issueKey": "5\u0000837\u0000865\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"It is important to note that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "3d7bace071612bccec6e7ddf6fbecba67124c695daf45bf5748066b072ce9af1",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-04",
+        "issueKey": "0\u00000\u000015\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"Various aspects\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "8b1db3e653fd0e1aeb15b4627b8e4ef54a52a472e6c694ed45a0b6a13c88d53b",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-04",
+        "issueKey": "0\u00000\u000015\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"Various aspects\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "a78e9734d448c3692059422313c64a7520f1e6d3fac642fb88e99c431ea5a2fb",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-04",
+        "issueKey": "1\u000098\u0000120\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Research clearly shows\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "e175801d29a3a0bb550ea05c436a0f2b623137e409cc00050810949bbae73a23",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-04",
+        "issueKey": "1\u000098\u0000120\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Research clearly shows\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "300680fbfe6f3c52024d8603745ae8785924904ccc1a44ff6546c482d5cd03a4",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-04",
+        "issueKey": "2\u0000197\u0000595\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Because the greenhouse sensors logged temperature every fifteen minutes, while assistants measured soil moisture only at midday, although one tray moved closer to the cooling vent during the third week, the summary links leaf count, stem height, water volume, and room conditions across all observations, which leaves the causal order uncertain but documents each procedural change for replication.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "d2ceee7ccb9a1e82399ac6381bd01e5805572fbf2b011a3c64c0cde00282dc78",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-04",
+        "issueKey": "2\u0000197\u0000595\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Because the greenhouse sensors logged temperature every fifteen minutes, while assistants measured soil moisture only at midday, although one tray moved closer to the cooling vent during the third week, the summary links leaf count, stem height, water volume, and room conditions across all observations, which leaves the causal order uncertain but documents each procedural change for replication.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "8fb7cb978b9afdd8ff2cb30f6b69371e90d30157b3d64c87d1aa8a9f3260e71e",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-04",
+        "issueKey": "3\u0000627\u0000647\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"due to the fact that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "d70a4f4d8aaab2feba64275317bad55ca9d65f5eb9f5b38d8b8c55357b9af863",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-04",
+        "issueKey": "3\u0000627\u0000647\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"due to the fact that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "d4bb0584409d28a10bb24af88c48c4e95a9387b30339aeec81a2191031b42952",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-04",
+        "issueKey": "4\u0000755\u0000784\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"measured soil moisture guided\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "53471307bf90d3c2b9ff79dd7500ae098d2e76309e2550fd434d47652bb5c5e2",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-04",
+        "issueKey": "4\u0000755\u0000784\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"measured soil moisture guided\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "1b96de372ff96da873ab99c5311f67c0d260faccd5664e497baa74d9e74a9ec8",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-04",
+        "issueKey": "5\u0000822\u0000837\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Needless to say\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "bedb63fd25e8ce2be94afb95f772fa6bc18dfc6f1a21c6c8fd45abfc612abcfd",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-04",
+        "issueKey": "5\u0000822\u0000837\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Needless to say\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "bdef581ba37e81a9ba9e14d7a3119eaef457f705bb7009fccb1745a42cb021d8",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-05",
+        "issueKey": "0\u000034\u000046\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"in many ways\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "62fa755b93a63eefae90da7df5f225de447eaab30d4b3d0d4c72107ca0a4e7b3",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-05",
+        "issueKey": "0\u000034\u000046\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"in many ways\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "7c58153c604e7c1eda6077d22959fdcb6695e71c8f580f705de1998c20f42e4f",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-05",
+        "issueKey": "1\u0000106\u0000125\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"clearly proves that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "a23894a7cc629f2682cac192c1727b9436a2a1a1e2df6730cf85ca4787348e16",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-05",
+        "issueKey": "1\u0000106\u0000125\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"clearly proves that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "67503d17aaac92f8279b172eca6a8c7e21cb15d24a5458ded1913bf3e4216bc2",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-05",
+        "issueKey": "2\u0000201\u0000635\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Although the archive team indexed each interview by date and neighborhood, because several recordings mentioned the same storefront under different names, while the public catalog grouped speakers by decade, the narrative connects migration, business ownership, street design, and community celebrations in one extended account, which blurs the source transitions but preserves the historical relationships identified during indexing.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "567309788aa6b4d38ca5ea8657571835dc7f8d8408779c9230150cee3a05600f",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-05",
+        "issueKey": "2\u0000201\u0000635\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Although the archive team indexed each interview by date and neighborhood, because several recordings mentioned the same storefront under different names, while the public catalog grouped speakers by decade, the narrative connects migration, business ownership, street design, and community celebrations in one extended account, which blurs the source transitions but preserves the historical relationships identified during indexing.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "a4dd0fa3faaa485947caf52b198ffe20d89445f828b5df54a10c0bbdbc8e7f3d",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-05",
+        "issueKey": "3\u0000678\u0000689\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"in order to\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "5875f8e650518ed2d22719375b1a98d300022d5a7b3cad6d74b2802248e2ef13",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-05",
+        "issueKey": "3\u0000678\u0000689\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"in order to\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "5405c09bfc2a2e8455bd518bbf3943b6c8ba37552e961a09273eecb40760e935",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-05",
+        "issueKey": "4\u0000792\u0000832\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"recorded neighborhood memories supported\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "da8838d729e058b1d7a5d02d7ecf0106d9f7b601e9eeaed298c148f1b7d72f6c",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-05",
+        "issueKey": "4\u0000792\u0000832\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"recorded neighborhood memories supported\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "f1f8e4abe6328a370247f156f8ed6b717d9a05465210d722a99fb9c0b99deeae",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-05",
+        "issueKey": "5\u0000872\u0000900\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"It is important to note that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "4116655e00952e5a0ca420713884b3c5a96c88b0406fbc9fe86f001b35669a1f",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-05",
+        "issueKey": "5\u0000872\u0000900\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"It is important to note that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "3d7bace071612bccec6e7ddf6fbecba67124c695daf45bf5748066b072ce9af1",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-06",
+        "issueKey": "0\u00000\u000015\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"Various aspects\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "8b1db3e653fd0e1aeb15b4627b8e4ef54a52a472e6c694ed45a0b6a13c88d53b",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-06",
+        "issueKey": "0\u00000\u000015\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"Various aspects\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "a78e9734d448c3692059422313c64a7520f1e6d3fac642fb88e99c431ea5a2fb",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-06",
+        "issueKey": "1\u000090\u0000112\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Research clearly shows\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "e175801d29a3a0bb550ea05c436a0f2b623137e409cc00050810949bbae73a23",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-06",
+        "issueKey": "1\u000090\u0000112\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Research clearly shows\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "300680fbfe6f3c52024d8603745ae8785924904ccc1a44ff6546c482d5cd03a4",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-06",
+        "issueKey": "2\u0000192\u0000593\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"While researchers collected water at high and low tide, because the northern station became inaccessible after heavy rain, although laboratory calibration changed between the first and second batches, the results combine salinity, suspended sediment, dissolved oxygen, and nutrient readings from all stations, which hinders direct comparison but records the conditions needed to interpret each sample.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "37198c81f00259680cae51c0c7361cd3eda4c0b3cbdc51b7a8ef46f7cdeb28c8",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-06",
+        "issueKey": "2\u0000192\u0000593\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"While researchers collected water at high and low tide, because the northern station became inaccessible after heavy rain, although laboratory calibration changed between the first and second batches, the results combine salinity, suspended sediment, dissolved oxygen, and nutrient readings from all stations, which hinders direct comparison but records the conditions needed to interpret each sample.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "c745d0e003dcbfad4903f8b1b6efe022c3abf6a0aeef13f0f736608480e1141d",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-06",
+        "issueKey": "3\u0000625\u0000645\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"due to the fact that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "d70a4f4d8aaab2feba64275317bad55ca9d65f5eb9f5b38d8b8c55357b9af863",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-06",
+        "issueKey": "3\u0000625\u0000645\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"due to the fact that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "d4bb0584409d28a10bb24af88c48c4e95a9387b30339aeec81a2191031b42952",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-06",
+        "issueKey": "4\u0000743\u0000771\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"tidal water samples anchored\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "9f430337cb227da145795a412faff6d2ba542b035392aa53bbf5d4548662d4c7",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-06",
+        "issueKey": "4\u0000743\u0000771\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"tidal water samples anchored\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "8348df5226d4a176bb773da1cc93fd353b0544434aea02f1da331453ed600ea1",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-06",
+        "issueKey": "5\u0000811\u0000826\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Needless to say\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "bedb63fd25e8ce2be94afb95f772fa6bc18dfc6f1a21c6c8fd45abfc612abcfd",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-06",
+        "issueKey": "5\u0000811\u0000826\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Needless to say\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "bdef581ba37e81a9ba9e14d7a3119eaef457f705bb7009fccb1745a42cb021d8",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-07",
+        "issueKey": "0\u000037\u000049\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"in many ways\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "62fa755b93a63eefae90da7df5f225de447eaab30d4b3d0d4c72107ca0a4e7b3",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-07",
+        "issueKey": "0\u000037\u000049\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"in many ways\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "7c58153c604e7c1eda6077d22959fdcb6695e71c8f580f705de1998c20f42e4f",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-07",
+        "issueKey": "1\u0000106\u0000125\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"clearly proves that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "a23894a7cc629f2682cac192c1727b9436a2a1a1e2df6730cf85ca4787348e16",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-07",
+        "issueKey": "1\u0000106\u0000125\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"clearly proves that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "67503d17aaac92f8279b172eca6a8c7e21cb15d24a5458ded1913bf3e4216bc2",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-07",
+        "issueKey": "2\u0000200\u0000614\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Because mentors recorded meeting topics in weekly logs, although participants could skip questions they considered private, while program staff changed the reflection prompt after midterm, the evaluation combines study planning, campus navigation, financial concerns, and social adjustment across one broad summary, which makes individual pathways difficult to distinguish but retains the full set of coded themes.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "ea286873803b7daacce9c63267ca56b2437dbe4d46720befd378a132ca5bb720",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-07",
+        "issueKey": "2\u0000200\u0000614\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Because mentors recorded meeting topics in weekly logs, although participants could skip questions they considered private, while program staff changed the reflection prompt after midterm, the evaluation combines study planning, campus navigation, financial concerns, and social adjustment across one broad summary, which makes individual pathways difficult to distinguish but retains the full set of coded themes.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "4c74517041bb87c176c6317a1f218681659b25aef782eaa4b140cf3bf77cfb2b",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-07",
+        "issueKey": "3\u0000653\u0000664\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"in order to\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "5875f8e650518ed2d22719375b1a98d300022d5a7b3cad6d74b2802248e2ef13",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-07",
+        "issueKey": "3\u0000653\u0000664\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"in order to\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "5405c09bfc2a2e8455bd518bbf3943b6c8ba37552e961a09273eecb40760e935",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-07",
+        "issueKey": "4\u0000760\u0000787\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"weekly mentor logs informed\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "2223731c5ec23e59c39ce6d7dd1008cef6212bddc120515559d82290c1ee91d9",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-07",
+        "issueKey": "4\u0000760\u0000787\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"weekly mentor logs informed\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "3798adce712484b6fbcd86706af32a7ace8a14cea6018897c46e5507101ecb14",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-07",
+        "issueKey": "5\u0000835\u0000863\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"It is important to note that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "4116655e00952e5a0ca420713884b3c5a96c88b0406fbc9fe86f001b35669a1f",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-07",
+        "issueKey": "5\u0000835\u0000863\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"It is important to note that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "3d7bace071612bccec6e7ddf6fbecba67124c695daf45bf5748066b072ce9af1",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-08",
+        "issueKey": "0\u00000\u000015\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"Various aspects\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "8b1db3e653fd0e1aeb15b4627b8e4ef54a52a472e6c694ed45a0b6a13c88d53b",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-08",
+        "issueKey": "0\u00000\u000015\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"Various aspects\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "a78e9734d448c3692059422313c64a7520f1e6d3fac642fb88e99c431ea5a2fb",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-08",
+        "issueKey": "1\u000092\u0000114\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Research clearly shows\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "e175801d29a3a0bb550ea05c436a0f2b623137e409cc00050810949bbae73a23",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-08",
+        "issueKey": "1\u000092\u0000114\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Research clearly shows\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "300680fbfe6f3c52024d8603745ae8785924904ccc1a44ff6546c482d5cd03a4",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-08",
+        "issueKey": "2\u0000195\u0000597\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Although student teams weighed each collection bin after dinner, because weekend meal schedules differed from weekday service, while two halls began compost education before the others, the report combines plate waste, kitchen scraps, participation counts, and menu changes across the entire month, which complicates comparison between halls but documents the operational context for every measurement.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "b41f50e528ddfb9e986b1be37f0563d8ff270739138b6b0af26f6d2776f493ce",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-08",
+        "issueKey": "2\u0000195\u0000597\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Although student teams weighed each collection bin after dinner, because weekend meal schedules differed from weekday service, while two halls began compost education before the others, the report combines plate waste, kitchen scraps, participation counts, and menu changes across the entire month, which complicates comparison between halls but documents the operational context for every measurement.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "518256d0490ae020052472f40f1df193ca9d161943b529d5fee2b4db93e30c52",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-08",
+        "issueKey": "3\u0000638\u0000658\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"due to the fact that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "d70a4f4d8aaab2feba64275317bad55ca9d65f5eb9f5b38d8b8c55357b9af863",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-08",
+        "issueKey": "3\u0000638\u0000658\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"due to the fact that\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "d4bb0584409d28a10bb24af88c48c4e95a9387b30339aeec81a2191031b42952",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-08",
+        "issueKey": "4\u0000755\u0000783\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"measured dining waste shaped\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "a528a2ff45ef984ccc70abb9b2e5a41292b4e6352973f5ead34c9610e4ee3530",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-08",
+        "issueKey": "4\u0000755\u0000783\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"measured dining waste shaped\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "27b0aca3f7f789bf7adb424738419dc89ee4408c568b2a8c628f69cce7610f38",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-08",
+        "issueKey": "5\u0000831\u0000846\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Needless to say\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "bedb63fd25e8ce2be94afb95f772fa6bc18dfc6f1a21c6c8fd45abfc612abcfd",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "en-weak-08",
+        "issueKey": "5\u0000831\u0000846\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Needless to say\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "bdef581ba37e81a9ba9e14d7a3119eaef457f705bb7009fccb1745a42cb021d8",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-01",
+        "issueKey": "0\u000033\u000049\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"de alguna manera\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "b984c611e01c7d0166918a2ec2e42b3ffe6e4f8903ecc67d1739068c79751252",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-01",
+        "issueKey": "0\u000033\u000049\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"de alguna manera\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "b8b3827b9d21af6c235ef112b3a081a9ea5c9ed64e4c6eda15806df92f2dd494",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-01",
+        "issueKey": "1\u0000118\u0000142\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"demuestra claramente que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "420aa271c6632760e296f899b1ac5b46f33cb68ee66e4a44f1f8004512e51131",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-01",
+        "issueKey": "1\u0000118\u0000142\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"demuestra claramente que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "2401807a486171891601f4b12c95ec7280045e9af9c2e45c8fa332a666c20faa",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-01",
+        "issueKey": "2\u0000222\u0000638\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Porque el equipo de orientación comparó seis semanas de citas en tres departamentos, aunque varios registros carecían de un código final, mientras el personal modificó los horarios a mitad del programa, el informe reúne patrones de matrícula, límites de personal, tiempos de traslado y cancelaciones en una sola oración, pero conserva cada dato necesario cuando otras personas reconstruyan la secuencia del análisis.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "aed6f3c6a5f99bb6d80063d49def4a09af8f88e1931cacbd3ef4f166bd0effb4",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-01",
+        "issueKey": "2\u0000222\u0000638\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Porque el equipo de orientación comparó seis semanas de citas en tres departamentos, aunque varios registros carecían de un código final, mientras el personal modificó los horarios a mitad del programa, el informe reúne patrones de matrícula, límites de personal, tiempos de traslado y cancelaciones en una sola oración, pero conserva cada dato necesario cuando otras personas reconstruyan la secuencia del análisis.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "926111cdb152731eeca28e2e3387abad3efbdc93e101bd97300543afa86de2a8",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-01",
+        "issueKey": "3\u0000660\u0000673\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"con el fin de\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "336520be7f62f4cfe679716eeda91090cf630d93606b83530d74c0118cc79f92",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-01",
+        "issueKey": "3\u0000660\u0000673\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"con el fin de\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "556987789eb77714c76458c4267a55c5f20b080d015644263df86179387a5045",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-01",
+        "issueKey": "4\u0000794\u0000833\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"registros locales de asistencia guiaron\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "1a6801d6d44bd94cfd70b2ec81ad4bf16c95998da03f0e776e978e8a789fe3e1",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-01",
+        "issueKey": "4\u0000794\u0000833\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"registros locales de asistencia guiaron\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "f4a574cfca515b823ca56bfac4606bbb0f22d7f3e939c59cce2b5a9f7f963990",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-01",
+        "issueKey": "5\u0000872\u0000888\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Cabe señalar que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "bb0d91f8adda5004d4c6d41e292b6df0e0962d390ef23f492ad78b43ab759d55",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-01",
+        "issueKey": "5\u0000872\u0000888\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Cabe señalar que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "becacecf223bf207cc8cfb0f0d67aba6e03dd226f65648d53fd661f2bcba86ed",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-02",
+        "issueKey": "0\u00000\u000020\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"En diversos sentidos\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "7e24c36e215ef0b9ba0be9facc858bfcc8f9ae7cc944e09d817902b234b87c42",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-02",
+        "issueKey": "0\u00000\u000020\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"En diversos sentidos\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "ab016092275e1133ef1599d155d92d47cc9a6a89d3996fdb0da01c8470ce07dc",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-02",
+        "issueKey": "1\u0000107\u0000130\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Los datos confirman que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "1cfd6273d179a6eadc353f8f0e5cbacdedd9065f709e74366e38782b54203cff",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-02",
+        "issueKey": "1\u0000107\u0000130\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Los datos confirman que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "182089e66887e3e471801a320dc17eb3738d5ded3f88150880c15ad9d356f1a6",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-02",
+        "issueKey": "2\u0000220\u0000650\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Aunque el personal bibliotecario registró el tiempo de cada ejercicio, porque los grupos llegaron con distinta experiencia en bases de datos, mientras dos facilitadores ofrecieron demostraciones adicionales durante la segunda sesión, el análisis discute palabras clave, filtros, evaluación de fuentes y confianza en conjunto, pero no distingue con claridad cuándo ocurrió cada observación ni cómo cambió el desempeño entre tareas.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "f3ba46ebc02e32c4668993ae431787800c45c4e9f799892b2e4dacb056b869c3",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-02",
+        "issueKey": "2\u0000220\u0000650\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Aunque el personal bibliotecario registró el tiempo de cada ejercicio, porque los grupos llegaron con distinta experiencia en bases de datos, mientras dos facilitadores ofrecieron demostraciones adicionales durante la segunda sesión, el análisis discute palabras clave, filtros, evaluación de fuentes y confianza en conjunto, pero no distingue con claridad cuándo ocurrió cada observación ni cómo cambió el desempeño entre tareas.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "afbce534f3f8bdd5d7e80386b265097a5f3232b0c6319bccee9ff44ec01227a5",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-02",
+        "issueKey": "3\u0000674\u0000696\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"debido al hecho de que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "61a3748d12dd33e836ba3c0daa56c90f8c6bd35fe89f79d04c67e74004f45794",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-02",
+        "issueKey": "3\u0000674\u0000696\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"debido al hecho de que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "ec69f553e37c1a30a397893cfd768f502c3ab556b202fd2fb4a8040cf91a7e81",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-02",
+        "issueKey": "4\u0000811\u0000848\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"práctica enfocada del catálogo mejoró\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "756646c6470a55000ebf72d058dbe9fae068314ae60e8d23267a86e2286f1207",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-02",
+        "issueKey": "4\u0000811\u0000848\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"práctica enfocada del catálogo mejoró\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "f67af46b23f7060fdde780669514d4f5289821026125e05fb70ccb56d9614bb2",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-02",
+        "issueKey": "5\u0000880\u0000896\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Huelga decir que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "1b6c0345b0aed0405e32470822ccb896c4fe2a05651ed1812244ff83fb06f112",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-02",
+        "issueKey": "5\u0000880\u0000896\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Huelga decir que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "ba0cd064039602cf80f89428d9068b133c83cad213a1bff4e7d40941b9179a6b",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-03",
+        "issueKey": "0\u000032\u000048\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"de alguna manera\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "b984c611e01c7d0166918a2ec2e42b3ffe6e4f8903ecc67d1739068c79751252",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-03",
+        "issueKey": "0\u000032\u000048\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"de alguna manera\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "b8b3827b9d21af6c235ef112b3a081a9ea5c9ed64e4c6eda15806df92f2dd494",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-03",
+        "issueKey": "1\u0000110\u0000134\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"demuestra claramente que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "420aa271c6632760e296f899b1ac5b46f33cb68ee66e4a44f1f8004512e51131",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-03",
+        "issueKey": "1\u0000110\u0000134\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"demuestra claramente que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "2401807a486171891601f4b12c95ec7280045e9af9c2e45c8fa332a666c20faa",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-03",
+        "issueKey": "2\u0000223\u0000645\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Mientras el voluntariado contó bicicletas en cuatro intersecciones durante la mañana y la tarde, porque la lluvia interrumpió dos observaciones programadas, aunque la ciudad ajustó los semáforos antes del conteo final, el informe compara volumen, giros, uso de casco y conflictos en cada lugar, pero mezcla periodos distintos cuando presenta las tendencias y dificulta reconocer cuáles condiciones pertenecen a cada fecha.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "b93097c7064ade6feee16764e88b851e4facf1161ee578f324206a6c9c67289e",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-03",
+        "issueKey": "2\u0000223\u0000645\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Mientras el voluntariado contó bicicletas en cuatro intersecciones durante la mañana y la tarde, porque la lluvia interrumpió dos observaciones programadas, aunque la ciudad ajustó los semáforos antes del conteo final, el informe compara volumen, giros, uso de casco y conflictos en cada lugar, pero mezcla periodos distintos cuando presenta las tendencias y dificulta reconocer cuáles condiciones pertenecen a cada fecha.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "98ad7e55e0c19d32e0053e4905f1b5cf89659b4321ffa2b28ec2dbf58fad717c",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-03",
+        "issueKey": "3\u0000690\u0000703\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"con el fin de\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "336520be7f62f4cfe679716eeda91090cf630d93606b83530d74c0118cc79f92",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-03",
+        "issueKey": "3\u0000690\u0000703\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"con el fin de\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "556987789eb77714c76458c4267a55c5f20b080d015644263df86179387a5045",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-03",
+        "issueKey": "4\u0000808\u0000850\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"conteos matutinos de bicicletas informaron\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "89c415ce85383e37c1c0c170573a050ee35b942b27bac8ded3c15bd1040b0d4f",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-03",
+        "issueKey": "4\u0000808\u0000850\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"conteos matutinos de bicicletas informaron\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "ebc77edcb11603cb4e357417a074d2bcd39b13e59d3f7863dae7b0e15376fa64",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-03",
+        "issueKey": "5\u0000882\u0000898\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Cabe señalar que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "bb0d91f8adda5004d4c6d41e292b6df0e0962d390ef23f492ad78b43ab759d55",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-03",
+        "issueKey": "5\u0000882\u0000898\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Cabe señalar que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "becacecf223bf207cc8cfb0f0d67aba6e03dd226f65648d53fd661f2bcba86ed",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-04",
+        "issueKey": "0\u00000\u000020\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"En diversos sentidos\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "7e24c36e215ef0b9ba0be9facc858bfcc8f9ae7cc944e09d817902b234b87c42",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-04",
+        "issueKey": "0\u00000\u000020\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"En diversos sentidos\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "ab016092275e1133ef1599d155d92d47cc9a6a89d3996fdb0da01c8470ce07dc",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-04",
+        "issueKey": "1\u0000107\u0000130\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Los datos confirman que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "1cfd6273d179a6eadc353f8f0e5cbacdedd9065f709e74366e38782b54203cff",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-04",
+        "issueKey": "1\u0000107\u0000130\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Los datos confirman que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "182089e66887e3e471801a320dc17eb3738d5ded3f88150880c15ad9d356f1a6",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-04",
+        "issueKey": "2\u0000205\u0000624\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Porque los sensores registraron la temperatura cada quince minutos, mientras el equipo midió la humedad del suelo solamente al mediodía, aunque una bandeja fue trasladada cerca de la ventilación durante la tercera semana, el resumen relaciona hojas, altura, volumen de agua y condiciones ambientales, pero deja incierto el orden causal cuando integra todos los cambios del procedimiento en una sola explicación extensa.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "b9d7080dc86cbecf7d53adc51fb147e6b49670c9f79e92ac45715bbe7833a4de",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-04",
+        "issueKey": "2\u0000205\u0000624\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Porque los sensores registraron la temperatura cada quince minutos, mientras el equipo midió la humedad del suelo solamente al mediodía, aunque una bandeja fue trasladada cerca de la ventilación durante la tercera semana, el resumen relaciona hojas, altura, volumen de agua y condiciones ambientales, pero deja incierto el orden causal cuando integra todos los cambios del procedimiento en una sola explicación extensa.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "61c277257c8c38fc41a7b0010c871efb292602a7481b49141a330a3af47c22bb",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-04",
+        "issueKey": "3\u0000659\u0000681\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"debido al hecho de que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "61a3748d12dd33e836ba3c0daa56c90f8c6bd35fe89f79d04c67e74004f45794",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-04",
+        "issueKey": "3\u0000659\u0000681\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"debido al hecho de que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "ec69f553e37c1a30a397893cfd768f502c3ab556b202fd2fb4a8040cf91a7e81",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-04",
+        "issueKey": "4\u0000781\u0000813\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"humedad medida del suelo orientó\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "ab8830edf0770bc1489da0a83909f4c4b97985d832e2d2078258a4bc7bf759e1",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-04",
+        "issueKey": "4\u0000781\u0000813\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"humedad medida del suelo orientó\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "9b3b49562b2a693fa164685c73d56cc91a7a69b10e60215950a1f4277f39b72e",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-04",
+        "issueKey": "5\u0000850\u0000866\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Huelga decir que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "1b6c0345b0aed0405e32470822ccb896c4fe2a05651ed1812244ff83fb06f112",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-04",
+        "issueKey": "5\u0000850\u0000866\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Huelga decir que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "ba0cd064039602cf80f89428d9068b133c83cad213a1bff4e7d40941b9179a6b",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-05",
+        "issueKey": "0\u000035\u000051\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"de alguna manera\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "b984c611e01c7d0166918a2ec2e42b3ffe6e4f8903ecc67d1739068c79751252",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-05",
+        "issueKey": "0\u000035\u000051\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"de alguna manera\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "b8b3827b9d21af6c235ef112b3a081a9ea5c9ed64e4c6eda15806df92f2dd494",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-05",
+        "issueKey": "1\u0000112\u0000136\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"demuestra claramente que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "420aa271c6632760e296f899b1ac5b46f33cb68ee66e4a44f1f8004512e51131",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-05",
+        "issueKey": "1\u0000112\u0000136\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"demuestra claramente que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "2401807a486171891601f4b12c95ec7280045e9af9c2e45c8fa332a666c20faa",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-05",
+        "issueKey": "2\u0000213\u0000626\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Aunque el equipo archivó cada entrevista por fecha y barrio, porque varias grabaciones mencionaron la misma tienda con nombres distintos, mientras el catálogo agrupó las voces por década, la narración conecta migración, comercios, diseño urbano y celebraciones comunitarias, pero confunde las transiciones entre fuentes cuando resume en una sola oración todas las relaciones identificadas durante la catalogación.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "9d81c3d65729010206efa53760cde8bc5039de7b46eeea9d9a9ae2c643eade11",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-05",
+        "issueKey": "2\u0000213\u0000626\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Aunque el equipo archivó cada entrevista por fecha y barrio, porque varias grabaciones mencionaron la misma tienda con nombres distintos, mientras el catálogo agrupó las voces por década, la narración conecta migración, comercios, diseño urbano y celebraciones comunitarias, pero confunde las transiciones entre fuentes cuando resume en una sola oración todas las relaciones identificadas durante la catalogación.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "53e066c5d660f7cb7fdf50cb82a03cfb8466ee483da756031ae4e137f6860e05",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-05",
+        "issueKey": "3\u0000666\u0000679\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"con el fin de\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "336520be7f62f4cfe679716eeda91090cf630d93606b83530d74c0118cc79f92",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-05",
+        "issueKey": "3\u0000666\u0000679\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"con el fin de\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "556987789eb77714c76458c4267a55c5f20b080d015644263df86179387a5045",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-05",
+        "issueKey": "4\u0000795\u0000832\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"memorias grabadas del barrio apoyaron\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "6337d8e751d339cb8b6b634abc18bdb7d9a3129599d8f0e53915a20974afa742",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-05",
+        "issueKey": "4\u0000795\u0000832\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"memorias grabadas del barrio apoyaron\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "c0bc79c3fcb9773bc1ea54e6029426fa7c882fd8705b04e1dbab13bd5ceaabaf",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-05",
+        "issueKey": "5\u0000863\u0000879\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Cabe señalar que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "bb0d91f8adda5004d4c6d41e292b6df0e0962d390ef23f492ad78b43ab759d55",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-05",
+        "issueKey": "5\u0000863\u0000879\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Cabe señalar que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "becacecf223bf207cc8cfb0f0d67aba6e03dd226f65648d53fd661f2bcba86ed",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-06",
+        "issueKey": "0\u00000\u000020\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"En diversos sentidos\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "7e24c36e215ef0b9ba0be9facc858bfcc8f9ae7cc944e09d817902b234b87c42",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-06",
+        "issueKey": "0\u00000\u000020\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"En diversos sentidos\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "ab016092275e1133ef1599d155d92d47cc9a6a89d3996fdb0da01c8470ce07dc",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-06",
+        "issueKey": "1\u0000100\u0000123\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Los datos confirman que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "1cfd6273d179a6eadc353f8f0e5cbacdedd9065f709e74366e38782b54203cff",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-06",
+        "issueKey": "1\u0000100\u0000123\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Los datos confirman que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "182089e66887e3e471801a320dc17eb3738d5ded3f88150880c15ad9d356f1a6",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-06",
+        "issueKey": "2\u0000199\u0000616\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Mientras el equipo recogió agua durante la marea alta y baja, porque la estación norte quedó inaccesible después de la lluvia, aunque la calibración del laboratorio cambió entre los primeros lotes, los resultados combinan salinidad, sedimentos, oxígeno y nutrientes de todos los puntos, pero dificultan la comparación directa cuando presentan condiciones diferentes como si pertenecieran al mismo periodo de muestreo.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "8fb8ec8d5f14fc93701daf72b52a9e362b2f7440fb9fd84be76a45f670a48e2c",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-06",
+        "issueKey": "2\u0000199\u0000616\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Mientras el equipo recogió agua durante la marea alta y baja, porque la estación norte quedó inaccesible después de la lluvia, aunque la calibración del laboratorio cambió entre los primeros lotes, los resultados combinan salinidad, sedimentos, oxígeno y nutrientes de todos los puntos, pero dificultan la comparación directa cuando presentan condiciones diferentes como si pertenecieran al mismo periodo de muestreo.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "054ed89f0540fcee444eb1afe3f493cf13f55f6aa0dacbed4abd17f7241b8a22",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-06",
+        "issueKey": "3\u0000647\u0000669\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"debido al hecho de que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "61a3748d12dd33e836ba3c0daa56c90f8c6bd35fe89f79d04c67e74004f45794",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-06",
+        "issueKey": "3\u0000647\u0000669\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"debido al hecho de que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "ec69f553e37c1a30a397893cfd768f502c3ab556b202fd2fb4a8040cf91a7e81",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-06",
+        "issueKey": "4\u0000783\u0000820\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"muestras costeras de agua organizaron\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "49ab1a53476869ca6faa97130cf021db43df5cc15cc966d0ad03545e585081d4",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-06",
+        "issueKey": "4\u0000783\u0000820\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"muestras costeras de agua organizaron\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "6e33ede2633e5d551f668ee819f6d356bfd67d6f1e3a6f237cf910a5f906dfe2",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-06",
+        "issueKey": "5\u0000847\u0000863\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Huelga decir que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "1b6c0345b0aed0405e32470822ccb896c4fe2a05651ed1812244ff83fb06f112",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-06",
+        "issueKey": "5\u0000847\u0000863\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Huelga decir que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "ba0cd064039602cf80f89428d9068b133c83cad213a1bff4e7d40941b9179a6b",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-07",
+        "issueKey": "0\u000038\u000054\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"de alguna manera\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "b984c611e01c7d0166918a2ec2e42b3ffe6e4f8903ecc67d1739068c79751252",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-07",
+        "issueKey": "0\u000038\u000054\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"de alguna manera\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "b8b3827b9d21af6c235ef112b3a081a9ea5c9ed64e4c6eda15806df92f2dd494",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-07",
+        "issueKey": "1\u0000113\u0000137\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"demuestra claramente que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "420aa271c6632760e296f899b1ac5b46f33cb68ee66e4a44f1f8004512e51131",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-07",
+        "issueKey": "1\u0000113\u0000137\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"demuestra claramente que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "2401807a486171891601f4b12c95ec7280045e9af9c2e45c8fa332a666c20faa",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-07",
+        "issueKey": "2\u0000218\u0000653\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Porque cada mentor registró los temas de las reuniones semanales, aunque las personas podían omitir preguntas privadas, mientras el programa cambió la reflexión después de los exámenes parciales, la evaluación combina planificación académica, orientación universitaria, inquietudes económicas y adaptación social, pero no separa las trayectorias individuales cuando resume en una sola oración el conjunto completo de temas codificados.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "86ec99318ad058ce5c2364ac8b7f392367637d62bcd84330fe37ad5af1130283",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-07",
+        "issueKey": "2\u0000218\u0000653\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Porque cada mentor registró los temas de las reuniones semanales, aunque las personas podían omitir preguntas privadas, mientras el programa cambió la reflexión después de los exámenes parciales, la evaluación combina planificación académica, orientación universitaria, inquietudes económicas y adaptación social, pero no separa las trayectorias individuales cuando resume en una sola oración el conjunto completo de temas codificados.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "203d1372e710424ae0bbce0532aca07cc3fc1eabf9db1bdbc213267c52eab2be",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-07",
+        "issueKey": "3\u0000692\u0000705\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"con el fin de\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "336520be7f62f4cfe679716eeda91090cf630d93606b83530d74c0118cc79f92",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-07",
+        "issueKey": "3\u0000692\u0000705\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"con el fin de\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "556987789eb77714c76458c4267a55c5f20b080d015644263df86179387a5045",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-07",
+        "issueKey": "4\u0000816\u0000858\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"registros semanales de mentoría informaron\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "1c5371a42a7f257d8d7ee10764e18fe561e480a148783819c5f5970a56c5b94f",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-07",
+        "issueKey": "4\u0000816\u0000858\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"registros semanales de mentoría informaron\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "381576d1bc7395404ade788adee3b658629e82b7f427b24665b9e00e07413409",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-07",
+        "issueKey": "5\u0000894\u0000910\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Cabe señalar que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "bb0d91f8adda5004d4c6d41e292b6df0e0962d390ef23f492ad78b43ab759d55",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-07",
+        "issueKey": "5\u0000894\u0000910\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Cabe señalar que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "becacecf223bf207cc8cfb0f0d67aba6e03dd226f65648d53fd661f2bcba86ed",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-08",
+        "issueKey": "0\u00000\u000020\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"En diversos sentidos\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "7e24c36e215ef0b9ba0be9facc858bfcc8f9ae7cc944e09d817902b234b87c42",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-08",
+        "issueKey": "0\u00000\u000020\u0000specificity\u0000coach.specificity.question\u0000{\"observedText\":\"En diversos sentidos\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "ab016092275e1133ef1599d155d92d47cc9a6a89d3996fdb0da01c8470ce07dc",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-08",
+        "issueKey": "1\u0000111\u0000134\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Los datos confirman que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "1cfd6273d179a6eadc353f8f0e5cbacdedd9065f709e74366e38782b54203cff",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-08",
+        "issueKey": "1\u0000111\u0000134\u0000evidence\u0000coach.evidence.question\u0000{\"observedText\":\"Los datos confirman que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "182089e66887e3e471801a320dc17eb3738d5ded3f88150880c15ad9d356f1a6",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-08",
+        "issueKey": "2\u0000222\u0000654\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Aunque los equipos pesaron cada recipiente después de la cena, porque los horarios del fin de semana diferían del servicio regular, mientras dos residencias comenzaron antes la educación sobre composta, el informe combina sobras, residuos de cocina, participación y cambios de menú durante todo el mes, pero complica la comparación entre edificios cuando integra condiciones operativas diferentes dentro de una sola oración extensa.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "35516b704c866ee2eba6a051607cc3f99c088cc8091b2762b69e51255b52c5ad",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-08",
+        "issueKey": "2\u0000222\u0000654\u0000clarity\u0000coach.clarity.question\u0000{\"observedText\":\"Aunque los equipos pesaron cada recipiente después de la cena, porque los horarios del fin de semana diferían del servicio regular, mientras dos residencias comenzaron antes la educación sobre composta, el informe combina sobras, residuos de cocina, participación y cambios de menú durante todo el mes, pero complica la comparación entre edificios cuando integra condiciones operativas diferentes dentro de una sola oración extensa.\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "87200c38a46656975e59352b9cbd0d313802b75f09e811053b816efcb00324fa",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-08",
+        "issueKey": "3\u0000688\u0000710\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"debido al hecho de que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "61a3748d12dd33e836ba3c0daa56c90f8c6bd35fe89f79d04c67e74004f45794",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-08",
+        "issueKey": "3\u0000688\u0000710\u0000economy\u0000coach.economy.question\u0000{\"observedText\":\"debido al hecho de que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "ec69f553e37c1a30a397893cfd768f502c3ab556b202fd2fb4a8040cf91a7e81",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-08",
+        "issueKey": "4\u0000818\u0000857\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"residuos medidos del comedor orientaron\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "f1388b5bccf83d2c04d3d326770970a53f701262da0688bd68260f5c4c335e93",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-08",
+        "issueKey": "4\u0000818\u0000857\u0000repetition\u0000coach.repetition.question\u0000{\"observedText\":\"residuos medidos del comedor orientaron\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "9cd57de55bac5bee02afd2090a9a9c35873c0bcf1cdb5ab9be56877b6189bb4c",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-08",
+        "issueKey": "5\u0000893\u0000909\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Huelga decir que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "en"
+      },
+      "digest": "1b6c0345b0aed0405e32470822ccb896c4fe2a05651ed1812244ff83fb06f112",
+      "decision": "useful"
+    },
+    {
+      "reviewerId": "BR-02",
+      "key": {
+        "corpusVersion": "coach-corpus-v1",
+        "fixtureId": "es-weak-08",
+        "issueKey": "5\u0000893\u0000909\u0000voice\u0000coach.voice.question\u0000{\"observedText\":\"Huelga decir que\"}",
+        "catalogVersion": "coach-render-catalog-v1",
+        "uiLocale": "es"
+      },
+      "digest": "ba0cd064039602cf80f89428d9068b133c83cad213a1bff4e7d40941b9179a6b",
+      "decision": "useful"
+    }
+  ],
+  "observationDecisions": [
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-01",
+      "expectedId": "en-specificity-1",
+      "inputDigest": "665ac04ab8517d36cdb2814792fc9442aa62df143eb669b3ceb7237011cfcc92",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-01",
+      "expectedId": "en-evidence-1",
+      "inputDigest": "3e9be8b832bd63090d689d6b959a68d805fd7035c1f0488e31fe64c24ffc5b8b",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-01",
+      "expectedId": "en-clarity-1",
+      "inputDigest": "2222b67e8a1e6184047a8619b7ab8191ec20abee1f0216b9eb3074d1b18a759f",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-01",
+      "expectedId": "en-economy-1",
+      "inputDigest": "f67d4cdf25e9f4404c5d9202aced444662470f819a2c50797660ef0c1ea0cd97",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-01",
+      "expectedId": "en-repetition-1",
+      "inputDigest": "5e11e2cd71b7af852df9f5a564c6e0c108cbd1c2b6e0d91c96f5d8423ac0f8d3",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-01",
+      "expectedId": "en-voice-1",
+      "inputDigest": "4a4683ec38ccee5bb1ec774b41ba9904b8db379d0fd2d600957b46e6fdbac8b6",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-02",
+      "expectedId": "en-specificity-2",
+      "inputDigest": "31e60ad296c094c5b7624cefe18489a6d08c29e8206b7e8864744644395e063b",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-02",
+      "expectedId": "en-evidence-2",
+      "inputDigest": "a3e337aa3382532155dd70e3a2afcdb8b82c4f75ff25021a959950543ed8b4b8",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-02",
+      "expectedId": "en-clarity-2",
+      "inputDigest": "0e7086d84b4bfb62015459d11ba17828c789fc4082c150fe4e051fde5fe7a5e7",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-02",
+      "expectedId": "en-economy-2",
+      "inputDigest": "57f8469d22a31f6ab46bdbbeffa717b7015f9f744204346a4c25b29810ad2565",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-02",
+      "expectedId": "en-repetition-2",
+      "inputDigest": "20fe4f1272cd24a539a7d69893fea6c4ce10189db35b605b63916c9c3ad1c9c1",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-02",
+      "expectedId": "en-voice-2",
+      "inputDigest": "61faebbfaed8d6cb70211ec07c1f1aff06fcca087e04075707d65ec5809f9cad",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-03",
+      "expectedId": "en-specificity-3",
+      "inputDigest": "2db9a0f197f15d40d52de71ea6922352fcc66698cef8740850d78b472abddf86",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-03",
+      "expectedId": "en-evidence-3",
+      "inputDigest": "b013a3cbb649a5b80ca6cfb4639dd61cf95a46292f2e98465847201586073896",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-03",
+      "expectedId": "en-clarity-3",
+      "inputDigest": "6e09397f3ce10a34a431cdf4720384e226743383701b2c5a17921e39348f9569",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-03",
+      "expectedId": "en-economy-3",
+      "inputDigest": "3fe7e329fba45f47ab4004367ed495ba7faac7bcf07c9f9ffec8cfe6356aebd9",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-03",
+      "expectedId": "en-repetition-3",
+      "inputDigest": "f9302616df2fbfc50807722fe28bbbb4df69d7daeea18ca189e5dd3fec36ae4a",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-03",
+      "expectedId": "en-voice-3",
+      "inputDigest": "5d14b8b8d56c467bbcdad5c0a5fbb0b23ef7a52d2c319e8219f753dec845b87b",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-04",
+      "expectedId": "en-specificity-4",
+      "inputDigest": "7889ec6ce17dc4cba6a886c63e3cfcfd4a9567e17dcbdc6a7a4bd0d2ec897e19",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-04",
+      "expectedId": "en-evidence-4",
+      "inputDigest": "2847b12fe3b68bcf2294a78cd3ffdc04e4bbc1b9bc9fa170d1438aab9f7c34ed",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-04",
+      "expectedId": "en-clarity-4",
+      "inputDigest": "944a69d3dcb80a320647b2d725f22b73506354fd369cb211a219d8bc56109be9",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-04",
+      "expectedId": "en-economy-4",
+      "inputDigest": "3c54825d4d590f4d65651b2af56be5844e86ef78f459c522c11c2c9a14eb86a8",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-04",
+      "expectedId": "en-repetition-4",
+      "inputDigest": "856b47aebf63dace8081ee44eb6d7a8d228e4b16c419668573d418a099e3f577",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-04",
+      "expectedId": "en-voice-4",
+      "inputDigest": "6a46435bcbd534bcf2652aeb29098e24014d248a2cade03bac08dcbef7c7d0b0",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-05",
+      "expectedId": "en-specificity-5",
+      "inputDigest": "cfb24de0c459bba4ae74d36b36b27fa13fd7c25cc5975b187b0b3db78e42e946",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-05",
+      "expectedId": "en-evidence-5",
+      "inputDigest": "2cb213362feba62de25c74c5ad8e5f23a8fca0e051387724c6ff633fccd4a362",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-05",
+      "expectedId": "en-clarity-5",
+      "inputDigest": "0319089bf7cc341255b2ac3a8ae6818d2b3f438f33c5d06ab17ac8398993dfc2",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-05",
+      "expectedId": "en-economy-5",
+      "inputDigest": "8f2e7a2a9cf340651e2a959dd87a778783ceae71994e1d24cc632c36c0ea1466",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-05",
+      "expectedId": "en-repetition-5",
+      "inputDigest": "e7a77074898712613dbe3641495c1127adc7f3d4806def53d67229b1e09ebdd4",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-05",
+      "expectedId": "en-voice-5",
+      "inputDigest": "9f1bff7ef5c55a1f1d14c7850ad99925fe503d16811067fa3332c8563efccaea",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-06",
+      "expectedId": "en-specificity-6",
+      "inputDigest": "76ada7987a70f2bef56624d6ea2dc25ed56aeddf6733278819d06691a1a5064f",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-06",
+      "expectedId": "en-evidence-6",
+      "inputDigest": "2b518c16aa17317269c6535e731e3c75e0b755b7969c18956e8514320d58f564",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-06",
+      "expectedId": "en-clarity-6",
+      "inputDigest": "bf4a2335c5c8364b801ebe0cfa491591be41b3f85dce69b35f90f8c6d7c9ce74",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-06",
+      "expectedId": "en-economy-6",
+      "inputDigest": "b7c8937998745121961c9a4a2dd4e4ca81995ce4d104838b02d1a10854c89861",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-06",
+      "expectedId": "en-repetition-6",
+      "inputDigest": "63ff1c4f6936d3b8a367b7938c977d4ad0c08ea68d2a675887739e304d9fe2be",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-06",
+      "expectedId": "en-voice-6",
+      "inputDigest": "605774a3f73dd71289ebbcc4b9eaacce1723665c2884a88475c43c25f30f61f4",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-07",
+      "expectedId": "en-specificity-7",
+      "inputDigest": "1200398118cbaf6c42660175b7a7117ed38b6208c466af47efd974e34cb7c6f0",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-07",
+      "expectedId": "en-evidence-7",
+      "inputDigest": "dc9fb04a52d868157da83fefcaf154d8db29fb7d00ec992e2d9deb6cf2e82887",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-07",
+      "expectedId": "en-clarity-7",
+      "inputDigest": "d3f577a951da346a574bb05dd90a3fde616bccb1e74abf84453bd5b295daa632",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-07",
+      "expectedId": "en-economy-7",
+      "inputDigest": "237cff4de38987de4e0862268ca81e3dde7287ee1c4ea3ae531d9f90c2e92c0d",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-07",
+      "expectedId": "en-repetition-7",
+      "inputDigest": "267a8668ec2d07f29624820c78a82ecfce34a6f5850ce4ff7410663c671127ae",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-07",
+      "expectedId": "en-voice-7",
+      "inputDigest": "ef22dec77420f7bd459ff5ea954cbacc3c3664ad53292bc23e67e51cc18042c7",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-08",
+      "expectedId": "en-specificity-8",
+      "inputDigest": "29bd90f41537b3a283d3daf44abe91c51af3dcc5e40417bfa095e26dd7d9e0e0",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-08",
+      "expectedId": "en-evidence-8",
+      "inputDigest": "caea54c4969108232bc69817ba28d14987080e14f9742747817c0a9ed7ec7da2",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-08",
+      "expectedId": "en-clarity-8",
+      "inputDigest": "820c8c88389f495e1c2861aea20dc820fc27341d59b95ce16ca7098ced3eda50",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-08",
+      "expectedId": "en-economy-8",
+      "inputDigest": "e964392fe5c6a069f93eb21f193a2890fb2905b48bdf3e09c1ebf2ddbf4636d4",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-08",
+      "expectedId": "en-repetition-8",
+      "inputDigest": "23aa38aa8cae2a4f56a762053b273118a933be1688313d9c10b7f699591c3cf7",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "en-weak-08",
+      "expectedId": "en-voice-8",
+      "inputDigest": "76304b60a658a78c90ce0ca21e4d22fdba0f0921dd613fe67c01c66cd63e406e",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-01",
+      "expectedId": "es-specificity-1",
+      "inputDigest": "334432a2ce44b6be7dcd95ff5940743b007565749664c9b3bf9e24efa4ef47bc",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-01",
+      "expectedId": "es-evidence-1",
+      "inputDigest": "6506690707e26e4b3e3ab5d284a92c86bca4eb0b1e5450d18ce521c459093c8c",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-01",
+      "expectedId": "es-clarity-1",
+      "inputDigest": "8c8dbfafede78d7324fe1cdfbf164cd2adc7b33247f586a0ce395fa91624a9e8",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-01",
+      "expectedId": "es-economy-1",
+      "inputDigest": "aa99b83d5b72c5342126e220a0c3921aa5ce9e4665a91188e1d2105f080f666a",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-01",
+      "expectedId": "es-repetition-1",
+      "inputDigest": "847105660737f872a1e5b3be590ab6834f50aeec484d530cae98550fd484a1e4",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-01",
+      "expectedId": "es-voice-1",
+      "inputDigest": "731bc35b9dce3a58422bcbefc26039122f5a47434dade91193ff335028184d76",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-02",
+      "expectedId": "es-specificity-2",
+      "inputDigest": "141ca3867d181fdc407fabc3ce2851b856e50184354129d7ba0bbd64ce90132c",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-02",
+      "expectedId": "es-evidence-2",
+      "inputDigest": "8760bcf8a05b24082a84764df178fd86d0f179c49707d9a1a674f00116ccd612",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-02",
+      "expectedId": "es-clarity-2",
+      "inputDigest": "589935c483c4a57bec8ad12be2c4cbafdf05f67b1d71f7005e99ec0c5072a22e",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-02",
+      "expectedId": "es-economy-2",
+      "inputDigest": "ba387ef793b66e0d786eba17bafc636ccadb7b12f5bd1a50d4e38cc865ec6989",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-02",
+      "expectedId": "es-repetition-2",
+      "inputDigest": "557e7ed9d92d2e52710741117bdd29669624ec89f5609c3b053cc7ecf7cd268e",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-02",
+      "expectedId": "es-voice-2",
+      "inputDigest": "777103497b7058b597c8b4896770edbcc5129348c9f323dc2c1e7d98ae3224f0",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-03",
+      "expectedId": "es-specificity-3",
+      "inputDigest": "d24a6678a6a97253acaf3a8789434ec031aba64f63818937d5e9306b02e1c725",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-03",
+      "expectedId": "es-evidence-3",
+      "inputDigest": "49ac163f1177973768ac649677aded57d50fdd9ad00102716296f47f67252fed",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-03",
+      "expectedId": "es-clarity-3",
+      "inputDigest": "feabe866fa13af2f17801f152ff3470f9553ec6414c1685cbd55a2abd2b2be91",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-03",
+      "expectedId": "es-economy-3",
+      "inputDigest": "f656227c1a02f0509291b01809896140e3c068a05723daccf886fd76a25c4302",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-03",
+      "expectedId": "es-repetition-3",
+      "inputDigest": "974f6c10e5aeaa61e1a752773e460336c8b4a87f717ada08bd3f0e5826d11e2b",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-03",
+      "expectedId": "es-voice-3",
+      "inputDigest": "95f0fa507e7e015b4b0368a5c4f7623e43d6ccb442ce00b64638d2185095422b",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-04",
+      "expectedId": "es-specificity-4",
+      "inputDigest": "ea8cbe9467233e39213a6a7fedd903fb42e80c5f069acc7e085a5b52c15775d4",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-04",
+      "expectedId": "es-evidence-4",
+      "inputDigest": "f96e63e2cf620af9d599b2a0dfff09232c1bbcf72d11ab35ae9874e45d0419ce",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-04",
+      "expectedId": "es-clarity-4",
+      "inputDigest": "d39172321ae51f0baffec0ad440a37636a40ff56ff4bbabaa6e90c10d7f34e59",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-04",
+      "expectedId": "es-economy-4",
+      "inputDigest": "9561475800bf328807d70f752b3efdd52a13825bc6c53637880da655d9244b56",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-04",
+      "expectedId": "es-repetition-4",
+      "inputDigest": "475afedfd843174cad3cb2983affafd4a6b6632b3d392ca9f04a72361e03289c",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-04",
+      "expectedId": "es-voice-4",
+      "inputDigest": "3706788e22c89072ae37ab6250c10ead177ee0dcaa4851f7211fe28106643a5d",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-05",
+      "expectedId": "es-specificity-5",
+      "inputDigest": "49fb04e9406ed9b3fcc0cd72453b0e989c38f12c2515f8171180505b15d3d117",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-05",
+      "expectedId": "es-evidence-5",
+      "inputDigest": "e59b9e83600efaa90a15894921416577f4e6f13fa6d211fb3441cecb651c001f",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-05",
+      "expectedId": "es-clarity-5",
+      "inputDigest": "47cc15d71d62de1ac84b76713d35e4cd4545621ffd21b3b2d64dbffde3ff9a93",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-05",
+      "expectedId": "es-economy-5",
+      "inputDigest": "ee7ee5077dade63b833c031e12f2f04282757cb8b6fa7b06f675b16f984062e4",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-05",
+      "expectedId": "es-repetition-5",
+      "inputDigest": "9359abb5f1717df110f223f9aa20dbfe600f298864f2ee684cee9ab4abcf1daa",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-05",
+      "expectedId": "es-voice-5",
+      "inputDigest": "2ce39a39d28e78332f21731514d82fdbe3d7f59f1ae05bb8ee13931ab696147e",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-06",
+      "expectedId": "es-specificity-6",
+      "inputDigest": "cde639e834728db7075e072878d46185ee9b09cf6b65d8e065ebe01b7e536767",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-06",
+      "expectedId": "es-evidence-6",
+      "inputDigest": "8128d12c3844e6b60ff1fa2149dd94ff480235ab8ae7cc93c7cf9031c3d20ac7",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-06",
+      "expectedId": "es-clarity-6",
+      "inputDigest": "ba05ced75b67b217f5c0bfc1bd7e5217773a65f15c8dbb01d0325170a41d7825",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-06",
+      "expectedId": "es-economy-6",
+      "inputDigest": "669db09851908bfa4afefc78f88b714b2de7cc34493d12e2f981aeb45435e6c3",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-06",
+      "expectedId": "es-repetition-6",
+      "inputDigest": "a4620674b0c21bdd71418f84da589c8d341c088c2d4924122ee96e141b9be0e2",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-06",
+      "expectedId": "es-voice-6",
+      "inputDigest": "add064cbf0da935f21e2df3d8255eb8f15b177ce5f6c0836a41bc4dadc5b371e",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-07",
+      "expectedId": "es-specificity-7",
+      "inputDigest": "87343c1f8380862253c8013ff15b0edf2156fcd9b4c0a9fe811cd0c6ff48740d",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-07",
+      "expectedId": "es-evidence-7",
+      "inputDigest": "39043ebb726ca29dd17f91ae30b20539c83a50257ed2954963bfd5adc3a93ce7",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-07",
+      "expectedId": "es-clarity-7",
+      "inputDigest": "2bc2a4fba2c77df051b8b9b51cdcb6d31bea0e91914aef570641e3393736365e",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-07",
+      "expectedId": "es-economy-7",
+      "inputDigest": "c03a94f7d4c123fc79249dc1d1c009b5948b040f664a4481b7d495c7cbd8224f",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-07",
+      "expectedId": "es-repetition-7",
+      "inputDigest": "225721e6ac258b4d2f372ca41486130e7c41df1e01349de3a4689c7fb85a588b",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-07",
+      "expectedId": "es-voice-7",
+      "inputDigest": "0cad742fc0a67d23a65e1571c5e3a0f5c1645db760586f377cc78cbc4896cfe2",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-08",
+      "expectedId": "es-specificity-8",
+      "inputDigest": "a1f392d0e93f6958133340c7e5b30c7c4e560ff40bbf009bc051b15f9e8d7072",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-08",
+      "expectedId": "es-evidence-8",
+      "inputDigest": "97496d7fe0855b52a9cedb2cd6802b99b656b33f10641452e202905e257b2bf4",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-08",
+      "expectedId": "es-clarity-8",
+      "inputDigest": "945594c2d185b340464bc0c572ff032bdc87d00d1d094a34df46c6b4fc95299a",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-08",
+      "expectedId": "es-economy-8",
+      "inputDigest": "27712c8e6075cafbd895a147feec4203160b91f08e70b868cb732ca3fe6be03a",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-08",
+      "expectedId": "es-repetition-8",
+      "inputDigest": "f3afb3a5e7aca1ee8ed16de3236e01fd04ea52a34dc22ae866fb61707f5466f6",
+      "decision": "accept"
+    },
+    {
+      "reviewerId": "BR-02",
+      "fixtureId": "es-weak-08",
+      "expectedId": "es-voice-8",
+      "inputDigest": "c85eab7cf6e2bfb387ead1419d89b1b2856e834294c22e0685cfdd72538225ed",
+      "decision": "accept"
+    }
+  ]
+}

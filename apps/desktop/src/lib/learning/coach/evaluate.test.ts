@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
   basisPointRate,
@@ -15,9 +17,14 @@ import {
 import type { WritingCoachIssue } from "./types.ts";
 import { renderCoachMessage } from "./fixtures.ts";
 import {
+  ACCEPTED_AGGREGATE_SNAPSHOT,
+  ACCEPTED_REVIEW_EVIDENCE,
   PENDING_AGGREGATE_SNAPSHOT,
   REVIEW_HANDOFF_BUNDLE,
 } from "./reviewBundle.ts";
+
+const sha256File = async (url: URL): Promise<string> =>
+  createHash("sha256").update(await readFile(url)).digest("hex");
 
 const issue = (
   from: number,
@@ -317,5 +324,88 @@ describe("human review linkage", () => {
         changedRenderer,
       ),
     ).toBe("failed");
+  });
+});
+
+describe("accepted independent bilingual review evidence", () => {
+  it("preserves the exact assigned submission bytes and handoff linkage", async () => {
+    expect(ACCEPTED_REVIEW_EVIDENCE).toMatchObject({
+      sourceHead: "b149e4695a690c07908b12b912e5175b21281061",
+      bundleSha256:
+        "dbe6d00c8e5e15964978b3ccc8295687135471e1150c745841b1e26f4d9e51b6",
+      pendingAggregateDigest:
+        "5d1de45b2826127a8ec903b2a56ad556cb1cd94300d0e5b09a63756c0e0c1b36",
+      submissionSha256: {
+        "BR-01":
+          "2cac67c88d6e3896c4e6d3b5718d98b79a7f7098a3f2a368f0ac069ab236bd47",
+        "BR-02":
+          "55ebb21bd586e884493ef7a14fbdc82b9d2a123573e036b28dd5b7f57e99e17a",
+      },
+    });
+    await expect(
+      sha256File(
+        new URL("./reviewEvidence/br-01-submission.json", import.meta.url),
+      ),
+    ).resolves.toBe(ACCEPTED_REVIEW_EVIDENCE.submissionSha256["BR-01"]);
+    await expect(
+      sha256File(
+        new URL("./reviewEvidence/br-02-submission.json", import.meta.url),
+      ),
+    ).resolves.toBe(ACCEPTED_REVIEW_EVIDENCE.submissionSha256["BR-02"]);
+  });
+
+  it("loads two complete distinct attested evaluator submissions", () => {
+    expect(ACCEPTED_REVIEW_EVIDENCE.assignments).toEqual([
+      {
+        slot: 1,
+        role: "independent-bilingual-reviewer",
+        reviewerId: "BR-01",
+        bilingualAttestation: true,
+        independenceAttestation: true,
+      },
+      {
+        slot: 2,
+        role: "independent-bilingual-reviewer",
+        reviewerId: "BR-02",
+        bilingualAttestation: true,
+        independenceAttestation: true,
+      },
+    ]);
+    expect(ACCEPTED_REVIEW_EVIDENCE.decisions).toHaveLength(384);
+    expect(
+      ACCEPTED_REVIEW_EVIDENCE.decisions.every((item) =>
+        item.decision === "useful"
+      ),
+    ).toBe(true);
+    expect(ACCEPTED_REVIEW_EVIDENCE.observationDecisions).toHaveLength(192);
+    expect(
+      ACCEPTED_REVIEW_EVIDENCE.observationDecisions.every((item) =>
+        item.decision === "accept"
+      ),
+    ).toBe(true);
+  });
+
+  it("checks the accepted aggregate and every fixed gate", () => {
+    expect(ACCEPTED_AGGREGATE_SNAPSHOT.status).toBe("passed");
+    expect(ACCEPTED_AGGREGATE_SNAPSHOT.digest).toBe(
+      "c2914ffc2b8be8d049e1987326607e87d6f79311da37e8d765a5a1ae514ab677",
+    );
+    expect(ACCEPTED_AGGREGATE_SNAPSHOT.globalCounts).toEqual({
+      emitted: 96,
+      expected: 96,
+      matched: 96,
+      exact: 96,
+      unmatched: 0,
+    });
+    expect(
+      ACCEPTED_AGGREGATE_SNAPSHOT.gates.every((gate) =>
+        gate.state === "passed"
+      ),
+    ).toBe(true);
+    expect(evaluateCorpus(
+      ACCEPTED_REVIEW_EVIDENCE.assignments,
+      ACCEPTED_REVIEW_EVIDENCE.decisions,
+      ACCEPTED_REVIEW_EVIDENCE.observationDecisions,
+    )).toEqual(ACCEPTED_AGGREGATE_SNAPSHOT);
   });
 });
