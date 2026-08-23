@@ -3,7 +3,7 @@
 ## Accepted source
 
 The tested implementation source is
-`3bbe2a8014ef9b327b0d098e1099e7f820c942b0`. This evidence-only record does
+`8b2c03ae04f24f1cea62365c18d7c5abbcfdf140`. This evidence-only record does
 not relabel its later documentation commit as tested implementation source.
 
 LT-02 remains an internal proof. Ordinary production builds contain no
@@ -13,23 +13,28 @@ check call. The only selector is the exact compile-time input
 
 ## Automated editor evidence
 
-The final repository test run at the accepted source passed 1,675 tests with
-one intentional skip. The fake-service editor layer passed extraction and
-UTF-16 mapping, atomic title-and-body publication, source-safe replacement and
-undo, ignore scopes, bilingual document-language selection independent of the
-UI locale, correction-menu ordering, keyboard navigation, focus movement, and
-localized status behavior. These are component and editor tests; they are not
-native-service or physical assistive-technology evidence.
+The final repository test run at the accepted source passed 1,692 tests with
+one intentional skip. The proof-only compile-time addon runs inside the real
+AppPage, EditorScreen, CoverSheet, TitlePageForm, Editor, and
+createTesinaEditor path. Its fake-service tests passed extraction and UTF-16
+mapping, atomic title-and-body publication, source-safe replacement and undo,
+canonical autosave of document ignores, persisted device-dictionary enable,
+edit and clear behavior, essay teardown, title-form ownership, stale-menu
+closure, half-open pointer ranges, verified durable actions, bilingual
+document-language selection independent of the UI locale, correction-menu
+ordering, keyboard navigation, focus movement, and localized status behavior.
+These are component and editor tests; they are not native-service or physical
+assistive-technology evidence.
 
 The final static and runtime gates also passed:
 
 - Svelte check: 0 errors and 0 warnings;
 - Rust: 189 default tests and 192 tests with `spelling-ipc-test`;
 - `deno fmt --check` and `deno lint`;
-- ordinary production containment: 2,829,825 inspected text bytes and no LT-02
+- ordinary production containment: 2,830,385 inspected text bytes and no LT-02
   proof markers or spelling IPC call sites;
-- proof-positive containment: 1,341,928 inspected text bytes with every pinned
-  proof marker and spelling IPC call site;
+- proof-positive containment: 2,852,977 inspected text bytes with the real app
+  and editor path plus every pinned proof marker and spelling IPC call site;
 - strict OpenSpec validation.
 
 ## Hosted packaged native boundary evidence
