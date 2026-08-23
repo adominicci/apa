@@ -165,6 +165,7 @@ describe("schema-free coach editor bridge", () => {
     let mode: "write" | "study" = "study";
     const baselineJson = JSON.stringify(editor.getJSON());
     const baselineUndo = undoDepth(editor.state);
+    const expectedRange = controller.getState().fixed!.issue.editorRange;
 
     const result = await controller.editCurrentPassage(
       () => {
@@ -175,9 +176,8 @@ describe("schema-free coach editor bridge", () => {
 
     expect(result).toBe("navigated");
     expect(mode).toBe("write");
-    expect(editor.state.selection).toMatchObject(
-      controller.getState().fixed!.issue.editorRange,
-    );
+    expect(editor.state.selection).toMatchObject(expectedRange);
+    expect(controller.getState().fixed).toBeNull();
     expect(JSON.stringify(editor.getJSON())).toBe(baselineJson);
     expect(undoDepth(editor.state)).toBe(baselineUndo);
     controller.destroy();

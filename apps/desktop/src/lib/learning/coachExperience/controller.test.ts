@@ -124,6 +124,60 @@ describe("essay-scoped writing coach scheduling", () => {
 });
 
 describe("stale analysis rejection", () => {
+  it("converts oversized synchronous analysis and rejected adapters to unavailable", async () => {
+    vi.useFakeTimers();
+    const oversized = createWritingCoachController("essay-1");
+    oversized.updateSnapshot(snapshot(1, "x".repeat(65_537)));
+    oversized.enterStudy();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(oversized.getState().status).toBe(
+      "unavailable-for-current-text",
+    );
+    oversized.destroy();
+
+    const rejected = createWritingCoachController("essay-1", {
+      analyze: () => Promise.reject(new Error("adapter unavailable")),
+    });
+    rejected.updateSnapshot(snapshot(1));
+    rejected.enterStudy();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(rejected.getState().status).toBe(
+      "unavailable-for-current-text",
+    );
+    rejected.destroy();
+  });
+
+  it("does not let an older rejected adapter clobber a newer generation", async () => {
+    vi.useFakeTimers();
+    let rejectFirst!: (reason: Error) => void;
+    let resolveSecond!: (value: {
+      status: "available";
+      issues: [];
+    }) => void;
+    const analyze = vi.fn()
+      .mockImplementationOnce(() =>
+        new Promise((_resolve, reject) => (rejectFirst = reject))
+      )
+      .mockImplementationOnce(() =>
+        new Promise((resolve) => (resolveSecond = resolve))
+      );
+    const controller = createWritingCoachController("essay-1", { analyze });
+    controller.updateSnapshot(snapshot(1));
+    controller.enterStudy();
+    await vi.advanceTimersByTimeAsync(0);
+
+    controller.updateSnapshot(snapshot(2));
+    await vi.advanceTimersByTimeAsync(300);
+    rejectFirst(new Error("stale adapter failure"));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(controller.getState().status).toBe("analyzing");
+
+    resolveSecond({ status: "available", issues: [] });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(controller.getState().status).toBe("no-current-issues");
+    controller.destroy();
+  });
+
   it.each([
     ["revision", { revision: 2, snapshotId: "snapshot-2" }],
     ["language", {
@@ -267,6 +321,32 @@ describe("fixed question-led sessions", () => {
     });
   });
 
+  it("clears only the fixed selection when leaving Study and starts re-entry at the first remaining issue", async () => {
+    vi.useFakeTimers();
+    const controller = createWritingCoachController("essay-1");
+    controller.updateSnapshot(snapshot(
+      1,
+      "It is important to note that the policy changed in many ways in order to complete review.",
+    ));
+    controller.enterStudy();
+    await vi.advanceTimersByTimeAsync(0);
+    controller.suppressCurrent("dismiss");
+    controller.nextIssue();
+    const prior = controller.getState().fixed;
+    const suppressions = controller.getSuppressions();
+    expect(prior?.position).toBe(2);
+
+    controller.leaveStudy();
+    expect(controller.getState().fixed).toBeNull();
+    expect(controller.getSuppressions()).toEqual(suppressions);
+
+    controller.enterStudy();
+    expect(controller.getState().fixed?.position).toBe(1);
+    expect(controller.getState().fixed).not.toBe(prior);
+    expect(controller.getSuppressions()).toEqual(suppressions);
+    controller.destroy();
+  });
+
   it("maps a fixed source across unrelated edits and rejects touched text", async () => {
     vi.useFakeTimers();
     const controller = createWritingCoachController("essay-1");
@@ -318,7 +398,10 @@ describe("fixed question-led sessions", () => {
       ),
     ).toBe("navigated");
     expect(calls).toEqual(["write", "navigate"]);
-    expect(controller.getState().fixed).toBe(fixed);
+    expect(controller.getState().fixed).toBeNull();
+
+    controller.enterStudy();
+    expect(controller.getState().fixed).not.toBe(fixed);
 
     expect(
       await controller.editCurrentPassage(

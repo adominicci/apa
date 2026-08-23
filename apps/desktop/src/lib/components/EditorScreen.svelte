@@ -245,6 +245,7 @@
   }
 
   function returnToWrite(): void {
+    coachController.leaveStudy();
     coachMode = "write";
     coachNavigationStale = false;
     coachEditorHandle?.clearHighlight();
@@ -907,6 +908,7 @@
         onclick={() => {
           previewOpen = !previewOpen;
           if (previewOpen) {
+            coachController.leaveStudy();
             coachMode = "write";
             coachNavigationStale = false;
             coachEditorHandle?.clearHighlight();
@@ -928,6 +930,16 @@
       </button>
     </div>
   </header>
+
+  {#if coachMode === "write" && coachNavigationStale}
+    <div
+      class="coach-write-status"
+      data-coach-write-status
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >{m.writing_coach_status_stale()}</div>
+  {/if}
 
   <div class="shell" class:study-mode={coachMode === "study"}>
     <aside
@@ -1718,6 +1730,18 @@
   .coach-mode button:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+
+  .coach-write-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .mark {

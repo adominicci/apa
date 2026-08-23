@@ -66,6 +66,7 @@ export function createWritingCoachController(
   let current: CoachAnalysisSnapshot | null = null;
   let state: CoachControllerState = emptyState("idle");
   let armed = false;
+  let studyActive = false;
   let destroyed = false;
   let generation = 0;
   let trailingTimer: ReturnType<typeof setTimeout> | null = null;
@@ -107,6 +108,10 @@ export function createWritingCoachController(
       setState(emptyState("no-current-issues"));
       return;
     }
+    if (!studyActive) {
+      setState({ status: "analyzing", issues: visibleIssues, fixed: null });
+      return;
+    }
     const fixed: FixedCoachSession = state.fixed ?? Object.freeze({
       kind: "fixed-coach-session" as const,
       issue: visibleIssues[0]!,
@@ -120,6 +125,17 @@ export function createWritingCoachController(
     });
   };
 
+  const publishFailure = (
+    captured: CoachAnalysisSnapshot,
+    capturedGeneration: number,
+  ) => {
+    if (
+      destroyed || capturedGeneration !== generation || !current ||
+      !sameIdentity(captured, current)
+    ) return;
+    setState(emptyState("unavailable-for-current-text"));
+  };
+
   const run = () => {
     clearTimers();
     if (destroyed || !armed || !current) return;
@@ -127,8 +143,16 @@ export function createWritingCoachController(
     const capturedGeneration = generation;
     queueMicrotask(() => {
       if (destroyed || capturedGeneration !== generation) return;
-      Promise.resolve(analyze(captured.passages, capturedGeneration)).then(
-        (result) => publish(captured, capturedGeneration, result),
+      let result: CoachPassageAnalysis | Promise<CoachPassageAnalysis>;
+      try {
+        result = analyze(captured.passages, capturedGeneration);
+      } catch {
+        publishFailure(captured, capturedGeneration);
+        return;
+      }
+      Promise.resolve(result).then(
+        (value) => publish(captured, capturedGeneration, value),
+        () => publishFailure(captured, capturedGeneration),
       );
     });
   };
@@ -163,11 +187,33 @@ export function createWritingCoachController(
       if (armed) schedule();
     },
     enterStudy(): void {
-      if (destroyed || armed) return;
+      if (destroyed) return;
+      studyActive = true;
+      if (armed) {
+        if (state.fixed === null && state.issues.length > 0) {
+          setState({
+            status: "issues",
+            issues: state.issues,
+            fixed: Object.freeze({
+              kind: "fixed-coach-session",
+              issue: state.issues[0]!,
+              position: 1,
+              total: state.issues.length,
+            }),
+          });
+        }
+        return;
+      }
       armed = true;
       setState(analyzingState(state));
       generation += 1;
       run();
+    },
+    leaveStudy(): void {
+      if (destroyed) return;
+      studyActive = false;
+      if (state.fixed === null) return;
+      setState({ status: "analyzing", issues: state.issues, fixed: null });
     },
     reportExtractionFailure(): void {
       if (destroyed) return;
@@ -297,6 +343,7 @@ export function createWritingCoachController(
       navigate: (issue: MappedCoachIssue) => boolean,
     ): Promise<"navigated" | "stale"> {
       const issue = state.fixed?.issue ?? null;
+      this.leaveStudy();
       await showWrite();
       if (destroyed || !issue || !navigate(issue)) {
         if (!destroyed) {
@@ -313,6 +360,7 @@ export function createWritingCoachController(
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
+      studyActive = false;
       generation += 1;
       clearTimers();
       current = null;
