@@ -606,5 +606,8 @@
   "spelling_issues": "{count} problemas de ortografía",
   "spelling_issue_free": "No se encontraron problemas de ortografía",
   "spelling_language_en": "inglés",
-  "spelling_language_es": "español"
+  "spelling_language_es": "español",
+  "spelling_personal_dictionaries": "Diccionarios personales",
+  "spelling_dictionary_save": "Guardar diccionario",
+  "spelling_dictionary_clear": "Vaciar diccionario"
 }

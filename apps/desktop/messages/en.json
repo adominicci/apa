@@ -606,5 +606,8 @@
   "spelling_issues": "{count} spelling issues",
   "spelling_issue_free": "No spelling issues found",
   "spelling_language_en": "English",
-  "spelling_language_es": "Spanish"
+  "spelling_language_es": "Spanish",
+  "spelling_personal_dictionaries": "Personal dictionaries",
+  "spelling_dictionary_save": "Save dictionary",
+  "spelling_dictionary_clear": "Clear dictionary"
 }

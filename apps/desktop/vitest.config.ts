@@ -9,6 +9,9 @@ export default defineConfig({
     alias: {
       // Mirror SvelteKit's $lib alias for pure-TS tests in this project.
       $lib: fileURLToPath(new URL("./src/lib", import.meta.url)),
+      "$tesina-editor-addon": fileURLToPath(
+        new URL("./src/lib/editor/TestEditorAddon.svelte", import.meta.url),
+      ),
     },
   },
   test: {

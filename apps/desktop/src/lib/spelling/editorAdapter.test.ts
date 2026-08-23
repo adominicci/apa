@@ -26,6 +26,7 @@ describe("ProseMirror spelling adapter", () => {
       suggestions: [],
     }];
     expect(issueAtBodyPosition(issues, 6)).toBe(issues[0]);
+    expect(issueAtBodyPosition(issues, 8)).toBeUndefined();
     expect(issueAtBodyPosition(issues, 9)).toBeUndefined();
     expect(issueAtBodyPosition([{ ...issues[0]!, source: "paper-title" }], 6))
       .toBeUndefined();

@@ -8,6 +8,15 @@ interface SourceReaders {
   body: (from: number, to: number) => string;
 }
 
+interface DurableIssueActionArgs {
+  issue: ExperienceSpellingIssue;
+  generation: number;
+  language: DocumentLanguage;
+  titleInput?: HTMLInputElement;
+  editor?: Editor;
+  mutate: () => boolean | void;
+}
+
 export function verifyCurrentIssue(
   issue: ExperienceSpellingIssue,
   generation: number,
@@ -24,6 +33,29 @@ export function verifyCurrentIssue(
     : readers.body(issue.from, issue.to);
   return current === issue.word &&
     canonicalizeTerm(current, language)?.key === issue.termKey;
+}
+
+export function applyDurableIssueAction({
+  issue,
+  generation,
+  language,
+  titleInput,
+  editor,
+  mutate,
+}: DurableIssueActionArgs): boolean {
+  const valid = verifyCurrentIssue(issue, generation, {
+    title: (from, to) => titleInput?.value.slice(from, to) ?? "",
+    body: (from, to) => editor?.state.doc.textBetween(from, to, "", "") ?? "",
+  }, language);
+  if (!valid || mutate() === false) return false;
+  if (issue.source === "paper-title" && titleInput) {
+    titleInput.focus();
+    titleInput.setSelectionRange(issue.from, issue.to);
+  } else if (issue.source === "body" && editor) {
+    editor.commands.focus();
+    editor.commands.setTextSelection({ from: issue.from, to: issue.to });
+  }
+  return true;
 }
 
 export function replaceBodyIssue(

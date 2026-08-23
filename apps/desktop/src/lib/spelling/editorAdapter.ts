@@ -21,7 +21,7 @@ export function issueAtBodyPosition(
   position: number,
 ): ExperienceSpellingIssue | undefined {
   return issues.find((issue) =>
-    issue.source === "body" && position >= issue.from && position <= issue.to
+    issue.source === "body" && position >= issue.from && position < issue.to
   );
 }
 

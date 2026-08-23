@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createTesinaEditor } from "$lib/editor/createEditor";
 import type { ExperienceSpellingIssue } from "./controller.ts";
 import {
+  applyDurableIssueAction,
   replaceBodyIssue,
   replaceTitleIssue,
   verifyCurrentIssue,
@@ -114,5 +115,42 @@ describe("source-safe spelling actions", () => {
       replaceSelection: () => false,
     })).toBe("undo-unavailable");
     expect(input.value).toBe("wrng");
+  });
+
+  it("verifies durable actions before mutation and restores exact source focus and selection", () => {
+    const input = document.createElement("input");
+    input.value = "wrng title";
+    document.body.append(input);
+    const mutate = vi.fn(() => true);
+    const target = issue("paper-title", 0, 4, "wrng");
+    expect(applyDurableIssueAction({
+      issue: target,
+      generation: 5,
+      language: "en",
+      titleInput: input,
+      mutate,
+    })).toBe(false);
+    expect(mutate).not.toHaveBeenCalled();
+
+    expect(applyDurableIssueAction({
+      issue: target,
+      generation: 4,
+      language: "en",
+      titleInput: input,
+      mutate,
+    })).toBe(true);
+    expect(mutate).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(input);
+    expect([input.selectionStart, input.selectionEnd]).toEqual([0, 4]);
+
+    input.value = "gone title";
+    expect(applyDurableIssueAction({
+      issue: target,
+      generation: 4,
+      language: "en",
+      titleInput: input,
+      mutate,
+    })).toBe(false);
+    expect(mutate).toHaveBeenCalledOnce();
   });
 });

@@ -41,9 +41,16 @@ export function sanitizeEssaySpelling(essay: Essay): Essay {
 
 export function assertCanonicalEssaySpelling(essay: Essay): void {
   if (essay.spelling === undefined) return;
+  if (
+    typeof essay.spelling !== "object" || essay.spelling === null ||
+    Array.isArray(essay.spelling)
+  ) throw new Error("malformed essay.spelling");
   const ignores = essay.spelling.documentIgnores;
   if (
-    ignores === undefined ||
+    ignores === undefined
+  ) return;
+  if (
+    typeof ignores !== "object" || ignores === null || Array.isArray(ignores) ||
     (ignores.en !== undefined && !isCanonicalStoredTerms(ignores.en, "en")) ||
     (ignores.es !== undefined && !isCanonicalStoredTerms(ignores.es, "es"))
   ) throw new Error("malformed essay.spelling.documentIgnores.en or .es");

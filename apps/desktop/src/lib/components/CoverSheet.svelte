@@ -14,9 +14,16 @@
     onChange: (patch: CoverPatch) => void;
     /** Opens the structured modal for all student title-page fields. */
     onOpenForm: () => void;
+    titleInput?: HTMLInputElement;
   }
 
-  let { titlePage, language, onChange, onOpenForm }: Props = $props();
+  let {
+    titlePage,
+    language,
+    onChange,
+    onOpenForm,
+    titleInput = $bindable(),
+  }: Props = $props();
 
   const studentTitlePage = $derived(
     buildStudentTitlePage({
@@ -57,6 +64,7 @@
     <div class="cover-spacer"></div>
 
     <input
+      bind:this={titleInput}
       class="cf title"
       value={titlePage.title}
       placeholder={m.cover_title_ph(undefined, { locale: language })}

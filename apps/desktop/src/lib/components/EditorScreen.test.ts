@@ -37,6 +37,9 @@ const runtime = vi.hoisted(() => ({
   exportEssayToPdf: vi.fn(),
   paginationEnvs: [] as PaginationEnvironment[],
   paginationInvalidations: [] as string[],
+  citationLocales: [] as string[],
+  referenceLocales: [] as string[],
+  referenceEmptyLabels: [] as string[],
 }));
 
 interface Deferred<T> {
@@ -80,6 +83,9 @@ vi.mock("$lib/editor/createEditor", async () => {
       args: Parameters<typeof actual.createTesinaEditor>[0],
     ) {
       if (args.paginationEnv) runtime.paginationEnvs.push(args.paginationEnv);
+      runtime.citationLocales.push(args.citationEnv.locale);
+      runtime.referenceLocales.push(args.referenceEnv.locale);
+      runtime.referenceEmptyLabels.push(args.referenceEnv.emptyLabel);
       const editor = actual.createTesinaEditor({
         ...args,
         // jsdom has no layout engine; the lifecycle contract is exercised by
@@ -292,6 +298,9 @@ afterEach(() => {
   runtime.exportEssayToPdf.mockResolvedValue({ status: "cancelled" });
   runtime.paginationEnvs = [];
   runtime.paginationInvalidations = [];
+  runtime.citationLocales = [];
+  runtime.referenceLocales = [];
+  runtime.referenceEmptyLabels = [];
   document.body.replaceChildren();
 });
 
@@ -335,6 +344,17 @@ describe("outline Add menu dismissal", () => {
     flushSync();
     expect(addMenu()).toBeNull();
 
+    await unmount(component);
+  });
+
+  it("uses document English for citation and reference environments under Spanish UI", async () => {
+    const component = mountEditor();
+    flushSync();
+    expect(runtime.citationLocales).toEqual(["en"]);
+    expect(runtime.referenceLocales).toEqual(["en"]);
+    expect(runtime.referenceEmptyLabels).toEqual([
+      m.refsheet_empty(undefined, { locale: "en" }),
+    ]);
     await unmount(component);
   });
 
@@ -886,6 +906,56 @@ describe("editor preview round trip", () => {
     expect(docText(runtime.persistedDocs[0])).toContain(
       "First edit Second edit",
     );
+    await unmount(component);
+  });
+
+  it("routes proof-addon document ignores through the canonical essay autosave snapshot", async () => {
+    vi.useFakeTimers();
+    let persisted: Essay | undefined;
+    runtime.persist.mockImplementation((essay: Essay) => {
+      persisted = essay;
+    });
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay: essayWithBody("Seed"),
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+    const addon = document.querySelector<HTMLButtonElement>(
+      "[data-test-editor-addon]",
+    );
+    expect(addon?.dataset.hasTitleInput).toBe("true");
+    addon!.click();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(persisted?.spelling?.documentIgnores?.en).toEqual(["Tesina"]);
+    await unmount(component);
+  });
+
+  it("moves the proof title seam from the cover input into the canonical title form", async () => {
+    const component = mount(EditorScreen, {
+      target: document.body,
+      props: {
+        essay: essayWithBody("Seed"),
+        newlyCreated: false,
+        onLaunchConsumed: vi.fn(),
+        onBack: vi.fn(),
+        onOpenLibrary: vi.fn(),
+      },
+    });
+    flushSync();
+    const addon = document.querySelector<HTMLButtonElement>(
+      "[data-test-editor-addon]",
+    )!;
+    expect(addon.dataset.titleInputOwner).toBe("cover");
+    document.querySelector<HTMLButtonElement>(".cover-form-btn")!.click();
+    flushSync();
+    expect(addon.dataset.titleInputOwner).toBe("form");
+    expect(document.activeElement?.closest('[role="dialog"]')).not.toBeNull();
     await unmount(component);
   });
 });

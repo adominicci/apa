@@ -203,4 +203,18 @@ describe("device-local spelling settings", () => {
       },
     });
   });
+
+  it("persists dictionary edits and clears without crossing the language boundary", async () => {
+    expect(store.setPersonalDictionary("en", ["Alpha", "Beta"])).toBe(true);
+    expect(store.setPersonalDictionary("es", ["Árbol"])).toBe(true);
+    store.clearPersonalDictionary("en");
+    await store.flushPending();
+    expect(store.personalDictionaries).toEqual({ en: [], es: ["Árbol"] });
+    const payload = runtime.writeJsonAtomic.mock.calls.at(-1)![1] as {
+      schemaVersion: number;
+      spelling: { personalDictionaries: { en?: string[]; es?: string[] } };
+    };
+    expect(payload.schemaVersion).toBe(1);
+    expect(payload.spelling.personalDictionaries).toEqual({ es: ["Árbol"] });
+  });
 });

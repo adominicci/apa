@@ -20,6 +20,7 @@
     settings: EssaySettings;
     onSave: (titlePage: TitlePage, settings: EssaySettings) => void;
     onClose: () => void;
+    titleInput?: HTMLInputElement;
   }
 
   let {
@@ -27,6 +28,7 @@
     settings,
     onSave,
     onClose,
+    titleInput = $bindable(),
   }: Props = $props();
 
   // Editing works on local copies; nothing touches the essay until Guardar.
@@ -108,7 +110,7 @@
 
   <label class="field">
     <span>{m.titlepage_essay_title()}</span>
-    <input type="text" bind:value={title} />
+    <input type="text" bind:this={titleInput} bind:value={title} />
   </label>
 
   <label class="field">

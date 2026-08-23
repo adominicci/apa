@@ -18,6 +18,7 @@
   } from "$lib/model/essay";
   import { APA_FONTS } from "$lib/model/fonts";
   import Editor from "$lib/components/Editor.svelte";
+  import EditorAddon from "$tesina-editor-addon";
   import Toolbar from "$lib/components/Toolbar.svelte";
   import CoverSheet, {
     type CoverPatch,
@@ -131,6 +132,8 @@
   );
   let words = $state(untrack(() => 0));
   let editor = $state<TiptapEditor | undefined>(undefined);
+  let coverTitleInput = $state<HTMLInputElement | undefined>(undefined);
+  let titleFormInput = $state<HTMLInputElement | undefined>(undefined);
   let abstractPresent = $state(false);
   let inAppendix = $state(false);
   let citePopoverOpen = $state(false);
@@ -949,6 +952,7 @@
                 language={documentLanguage}
                 onChange={handleCoverChange}
                 onOpenForm={() => (titleFormOpen = true)}
+                bind:titleInput={coverTitleInput}
               />
               <Editor
                 initialDoc={lastDoc}
@@ -1297,6 +1301,19 @@
       {STATUS_LABELS[autosave.status]()}
     </span>
   </footer>
+  <EditorAddon
+    {essay}
+    {editor}
+    titleInput={titleFormInput ?? coverTitleInput}
+    title={essayTitle}
+    doc={lastDoc}
+    {documentLanguage}
+    onTitleChange={(value: string) => {
+      if (!titleFormInput) handleCoverChange({ title: value });
+    }}
+    onEssayMutation={() => autosave.scheduleSave()}
+    onOpenTitleForm={() => (titleFormOpen = true)}
+  />
 </div>
 
 {#if refFormOpen}
@@ -1368,6 +1385,7 @@
     titlePage={essay.titlePage}
     settings={essay.settings}
     onSave={handleSaveTitlePage}
+    bind:titleInput={titleFormInput}
     onClose={() => {
       titleFormOpen = false;
       // Dismissing the form abandons the export it was opened from, so a

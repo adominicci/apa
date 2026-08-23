@@ -50,6 +50,34 @@ describe("essay spelling persistence", () => {
     expect(() => assertCanonicalEssaySpelling(essay)).not.toThrow();
   });
 
+  it.each(["not-an-object", [], 42])(
+    "rejects a non-object documentIgnores shape: %j",
+    (documentIgnores) => {
+      const essay = createEmptyEssay("en") as unknown as Record<
+        string,
+        unknown
+      >;
+      essay.spelling = { documentIgnores };
+      expect(() => assertCanonicalEssaySpelling(essay as never)).toThrow(
+        "documentIgnores",
+      );
+    },
+  );
+
+  it.each([
+    { spelling: "not-an-object" },
+    { spelling: [] },
+    { spelling: 42 },
+    { spelling: { documentIgnores: { en: "not-an-array" } } },
+    { spelling: { documentIgnores: { en: {} } } },
+    { spelling: { documentIgnores: { es: [42] } } },
+  ])("rejects every malformed nested spelling shape: %j", (patch) => {
+    const essay = Object.assign(createEmptyEssay("en"), patch);
+    expect(() => assertCanonicalEssaySpelling(essay as never)).toThrow(
+      "malformed essay.spelling",
+    );
+  });
+
   it("includes canonical document ignores in portable semantic identity", async () => {
     const plain = createEmptyEssay("en", "2026-08-22T00:00:00.000Z");
     const ignored = structuredClone(plain);

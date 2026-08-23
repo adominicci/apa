@@ -14,8 +14,6 @@ const spellingExperienceProof =
   process.env.VITE_TESINA_SPELLING_EXPERIENCE_PROOF === "1";
 const selectedPage = packagedSpellingProof
   ? "./src/lib/spelling/PackagedProofPage.svelte"
-  : spellingExperienceProof
-  ? "./src/lib/spelling/SpellingExperienceProofPage.svelte"
   : "./src/lib/components/AppPage.svelte";
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -32,6 +30,9 @@ const config = {
         ? "./src/lib/spelling/PackagedProofLayout.svelte"
         : "./src/lib/components/AppLayout.svelte",
       "$tesina-page": selectedPage,
+      "$tesina-editor-addon": spellingExperienceProof
+        ? "./src/lib/spelling/SpellingExperienceEditorAddon.svelte"
+        : "./src/lib/editor/NoopEditorAddon.svelte",
     },
   },
 };
