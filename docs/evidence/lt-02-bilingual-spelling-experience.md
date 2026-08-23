@@ -3,7 +3,7 @@
 ## Accepted source
 
 The tested implementation source is
-`f52ba5c02a8e3355d18d62eca4816ac4eb23dd8a`. This evidence-only record does
+`f6ecab09518be4a14566d011208e696179cb83d1`. This evidence-only record does
 not relabel its later documentation commit as tested implementation source.
 
 LT-02 remains an internal proof. Ordinary production builds contain no
@@ -13,7 +13,7 @@ check call. The only selector is the exact compile-time input
 
 ## Automated editor evidence
 
-The final repository test run at the accepted source passed 1,742 tests with
+The final repository test run at the accepted source passed 1,745 tests with
 one intentional skip. Dedicated proof and ordinary Vitest projects mount the
 real EditorScreen, CoverSheet, Editor, and createTesinaEditor path with the
 same compile-time spelling-addon selections as their corresponding builds;
@@ -35,8 +35,9 @@ optional spelling data is sanitized only on trusted local load, paper-title
 pointer targeting derives its UTF-16 caret from rendered coordinates, the
 correction menu is focused outside Modal's inert application subtree, title
 replacements outside the form use the canonical essay/autosave owner while
-open-form replacements remain draft-only until Save, Close discards that
-draft, discarded title forms invalidate and recheck the canonical title, and
+open-form replacements remain draft-only until normal Save commits and
+autosaves, Close discards that draft without changing the canonical essay,
+discarded title forms invalidate and recheck the canonical title, and
 dictionary clears cannot be undone by saving stale textarea drafts. The final
 review regressions prove disabled invalidation cancels queued analysis, cover
 pointer mapping remains exact below and above scale 1, modal and body Tab
@@ -57,6 +58,14 @@ The final review regressions also prove that false or stale ignore-once,
 document-ignore, and personal-dictionary actions close their title or body menu,
 restore the exact source selection, and mutate no durable state.
 
+The final P2 reconciliation preserves title ownership explicitly: a closed
+cover-title correction mutates the canonical essay and schedules autosave,
+whereas an open-form correction remains a draft until normal Save commits and
+autosaves it, and Close discards it. New race regressions prove stale title and
+body Next actions do not navigate and restore the current source. The busy
+retry regression proves its one same-generation retry reuses the generation's
+single available capability result while keeping chunk checks sequential.
+
 The PR review regressions also prove singular English and Spanish issue counts,
 transaction-mapped body decorations after edits before an issue, reset of a
 prior title-undo alert after a later successful correction, actual empty-array
@@ -70,9 +79,9 @@ The final static and runtime gates also passed:
 - Svelte check: 0 errors and 0 warnings;
 - Rust: 189 default tests and 192 tests with `spelling-ipc-test`;
 - `deno fmt --check` and `deno lint`;
-- ordinary production containment: 2,830,312 inspected text bytes and no LT-02
+- ordinary production containment: 2,830,317 inspected text bytes and no LT-02
   proof markers or spelling IPC call sites;
-- proof-positive containment: 2,857,608 inspected text bytes with the real app
+- proof-positive containment: 2,857,902 inspected text bytes with the real app
   and editor path plus every pinned proof marker and spelling IPC call site;
 - strict OpenSpec validation.
 
