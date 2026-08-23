@@ -108,6 +108,21 @@ describe("stable aggregate mechanics", () => {
     });
   });
 
+  it("treats an empty macro as not computable or pending", () => {
+    expect(macroRate([])).toEqual({
+      numerator: 0,
+      denominator: 0,
+      basisPoints: null,
+      state: "not-computable",
+    });
+    expect(macroRate([], true)).toEqual({
+      numerator: 0,
+      denominator: 0,
+      basisPoints: null,
+      state: "pending-review",
+    });
+  });
+
   it("serializes nested parameters with lexical object keys", () => {
     expect(canonicalJson({ z: 1, a: [{ y: true, x: null }] })).toBe(
       '{"a":[{"x":null,"y":true}],"z":1}',

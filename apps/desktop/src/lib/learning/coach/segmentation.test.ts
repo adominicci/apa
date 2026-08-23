@@ -33,6 +33,17 @@ describe("coach segmentation", () => {
       .toEqual([[0, 26], [28, 40]]);
   });
 
+  it("never joins sentences across a blank-line paragraph boundary", () => {
+    const text = "First paragraph has no stop\n\nSecond paragraph ends.";
+    const secondStart = text.indexOf("Second");
+    expect(
+      sentences(text).map(({ from, to }) => [from, to, text.slice(from, to)]),
+    ).toEqual([
+      [0, 27, "First paragraph has no stop"],
+      [secondStart, text.length, "Second paragraph ends."],
+    ]);
+  });
+
   it("classifies the exact eight-token fragment boundary", () => {
     expect(tokens("one two three four five six seven", "en")).toHaveLength(7);
     expect(tokens("one two three four five six seven eight", "en"))

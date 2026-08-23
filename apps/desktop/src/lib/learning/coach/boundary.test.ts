@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { readdir, readFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   auditProductionImports,
   findRuntimeRegistrations,
@@ -18,7 +21,7 @@ async function sourceFiles(directory: URL): Promise<URL[]> {
       directory,
     );
     if (entry.isDirectory()) result.push(...await sourceFiles(url));
-    else if (/\.(?:js|rs|svelte|ts)$/u.test(entry.name)) result.push(url);
+    else if (/\.(?:js|rs|svelte|tsx?)$/u.test(entry.name)) result.push(url);
   }
   return result;
 }
@@ -31,6 +34,21 @@ async function readSourceFiles(directory: URL): Promise<SourceFile[]> {
 }
 
 describe("hidden coach module boundary", () => {
+  it("includes TSX files in application registration scans", async () => {
+    const directory = await mkdtemp(
+      resolve(tmpdir(), "tesina-coach-boundary-"),
+    );
+    try {
+      await writeFile(`${directory}/registration.tsx`, "export {};\n");
+      const files = await sourceFiles(pathToFileURL(`${directory}/`));
+      expect(files.map((file) => file.pathname)).toContain(
+        `${directory}/registration.tsx`,
+      );
+    } finally {
+      await rm(directory, { recursive: true });
+    }
+  });
+
   it("keeps the runtime graph pure and independent of evaluator fixtures", async () => {
     const forbidden = [
       "@tauri",

@@ -119,7 +119,7 @@ function gcd(a: bigint, b: bigint): bigint {
 }
 
 export function macroRate(rates: readonly Rate[], pending = false): Rate {
-  if (rates.some((rate) => rate.denominator === 0)) {
+  if (rates.length === 0 || rates.some((rate) => rate.denominator === 0)) {
     return basisPointRate(0, 0, pending);
   }
   let numerator = 0n;

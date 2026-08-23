@@ -99,7 +99,25 @@ describe("writing-coach public contract", () => {
     ).toThrowError(expect.objectContaining({ code }));
   });
 
+  it.each([null, 42, "citation", []])(
+    "returns the stable input error for malformed protected span %#",
+    (span) => {
+      expect(() =>
+        validateWritingCoachRequest({
+          text: "sample",
+          documentLanguage: "en",
+          documentStart: 0,
+          protectedSpans: [span],
+        })
+      ).toThrowError(expect.objectContaining({
+        name: "CoachInputError",
+        code: "invalid-protected-span",
+      }));
+    },
+  );
+
   it("returns one stable programmer-facing error class", () => {
+    expect.assertions(2);
     try {
       validateWritingCoachRequest(null);
     } catch (error) {

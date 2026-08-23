@@ -33,14 +33,20 @@ function trimmedRange(
 
 export function sentences(text: string): TextRange[] {
   const result: TextRange[] = [];
-  let start = 0;
-  for (const match of text.matchAll(/[.!?]+(?:["”’']+)?(?=\s|$)/gu)) {
-    const range = trimmedRange(text, start, match.index + match[0].length);
-    if (range) result.push(range);
-    start = match.index + match[0].length;
+  for (const paragraph of paragraphs(text)) {
+    const paragraphText = text.slice(paragraph.from, paragraph.to);
+    let start = paragraph.from;
+    for (
+      const match of paragraphText.matchAll(/[.!?]+(?:["”’']+)?(?=\s|$)/gu)
+    ) {
+      const end = paragraph.from + match.index + match[0].length;
+      const range = trimmedRange(text, start, end);
+      if (range) result.push(range);
+      start = end;
+    }
+    const tail = trimmedRange(text, start, paragraph.to);
+    if (tail) result.push(tail);
   }
-  const tail = trimmedRange(text, start, text.length);
-  if (tail) result.push(tail);
   return result;
 }
 

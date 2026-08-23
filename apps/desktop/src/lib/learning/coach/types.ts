@@ -116,6 +116,9 @@ export function validateWritingCoachRequest(
     "proper-name",
   ]);
   for (const value of request.protectedSpans) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new CoachInputError("invalid-protected-span");
+    }
     const span = value as Partial<ProtectedSpan>;
     if (
       !Number.isSafeInteger(span.from) || !Number.isSafeInteger(span.to) ||
