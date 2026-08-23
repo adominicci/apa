@@ -23,6 +23,10 @@ export default defineConfig({
   test: {
     name: "desktop",
     include: ["src/**/*.test.ts"],
+    exclude: [
+      "src/lib/spelling/integration/**/*.test.ts",
+      "src/lib/spelling/ordinary/**/*.test.ts",
+    ],
     environment: "node",
   },
 });

@@ -77,13 +77,17 @@ describe("LT-02 compile-time proof boundary", () => {
   });
 
   it("runs real EditorScreen integration under both compile-time addon selections", async () => {
-    const [rootConfig, ordinaryConfig, proofConfig] = await Promise.all([
-      source("vitest.config.ts"),
-      source("apps/desktop/vitest.spelling-ordinary.config.ts"),
-      source("apps/desktop/vitest.spelling-proof.config.ts"),
-    ]);
+    const [rootConfig, defaultConfig, ordinaryConfig, proofConfig] =
+      await Promise.all([
+        source("vitest.config.ts"),
+        source("apps/desktop/vitest.config.ts"),
+        source("apps/desktop/vitest.spelling-ordinary.config.ts"),
+        source("apps/desktop/vitest.spelling-proof.config.ts"),
+      ]);
     expect(rootConfig).toContain("vitest.spelling-ordinary.config.ts");
     expect(rootConfig).toContain("vitest.spelling-proof.config.ts");
+    expect(defaultConfig).toContain("spelling/integration/**/*.test.ts");
+    expect(defaultConfig).toContain("spelling/ordinary/**/*.test.ts");
     expect(ordinaryConfig).toContain("NoopEditorAddon.svelte");
     expect(proofConfig).toContain("SpellingExperienceEditorAddon.svelte");
     expect(proofConfig).not.toContain("TestEditorAddon.svelte");
