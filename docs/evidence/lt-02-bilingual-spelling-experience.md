@@ -3,7 +3,7 @@
 ## Accepted source
 
 The tested implementation source is
-`cca02950020f622b353f7b91eb43c3ccd143830e`. This evidence-only record does
+`843d6c1cdb538a8c24dd3c7914345ce8be51c24f`. This evidence-only record does
 not relabel its later documentation commit as tested implementation source.
 
 LT-02 remains an internal proof. Ordinary production builds contain no
@@ -13,7 +13,7 @@ check call. The only selector is the exact compile-time input
 
 ## Automated editor evidence
 
-The final repository test run at the accepted source passed 1,745 tests with
+The final repository test run at the accepted source passed 1,747 tests with
 one intentional skip. Dedicated proof and ordinary Vitest projects mount the
 real EditorScreen, CoverSheet, Editor, and createTesinaEditor path with the
 same compile-time spelling-addon selections as their corresponding builds;
@@ -73,9 +73,12 @@ archive-shape rejection, and canonical dictionary storage through the same
 trusted mutation used by production. The manual proof-installer workflow now
 builds and checks ordinary production containment first, then checks the exact
 proof frontend left by the Tauri build before installer validation and upload.
-The mapped-context-menu regression additionally proves that a pointer hit after
-an edit before an issue resolves the moved half-open decoration through its
-preserved issue identity instead of reusing stale service offsets.
+The mapped-context-menu regressions additionally prove that after an edit before
+a body issue, a pointer hit on the moved half-open decoration retains the
+controller's immutable source-qualified identity while using rendered
+coordinates. Next selects the next moved issue, and Ignore once removes the
+original controller occurrence, restores the moved selection, and dismisses
+the menu.
 
 The final static and runtime gates also passed:
 
@@ -84,7 +87,7 @@ The final static and runtime gates also passed:
 - `deno fmt --check` and `deno lint`;
 - ordinary production containment: 2,830,317 inspected text bytes and no LT-02
   proof markers or spelling IPC call sites;
-- proof-positive containment: 2,858,097 inspected text bytes with the real app
+- proof-positive containment: 2,858,393 inspected text bytes with the real app
   and editor path plus every pinned proof marker and spelling IPC call site;
 - strict OpenSpec validation.
 
