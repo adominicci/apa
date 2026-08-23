@@ -3,7 +3,7 @@
 ## Accepted source
 
 The tested implementation source is
-`8b2c03ae04f24f1cea62365c18d7c5abbcfdf140`. This evidence-only record does
+`4809fa821a40312cd93de8d2ecec9f279aed5e24`. This evidence-only record does
 not relabel its later documentation commit as tested implementation source.
 
 LT-02 remains an internal proof. Ordinary production builds contain no
@@ -13,7 +13,7 @@ check call. The only selector is the exact compile-time input
 
 ## Automated editor evidence
 
-The final repository test run at the accepted source passed 1,692 tests with
+The final repository test run at the accepted source passed 1,709 tests with
 one intentional skip. The proof-only compile-time addon runs inside the real
 AppPage, EditorScreen, CoverSheet, TitlePageForm, Editor, and
 createTesinaEditor path. Its fake-service tests passed extraction and UTF-16
@@ -23,7 +23,15 @@ edit and clear behavior, essay teardown, title-form ownership, stale-menu
 closure, half-open pointer ranges, verified durable actions, bilingual
 document-language selection independent of the UI locale, correction-menu
 ordering, keyboard navigation, focus movement, and localized status behavior.
-These are component and editor tests; they are not native-service or physical
+The review-fix regressions additionally prove that ordinary settings writes
+omit spelling data, proof settings reject non-boolean enable values, malformed
+optional spelling data is sanitized only on trusted local load, paper-title
+pointer targeting derives its UTF-16 caret from rendered coordinates, the
+correction menu is focused outside Modal's inert application subtree, title
+replacements use the canonical essay/autosave owner and synchronized form
+draft, discarded title forms invalidate and recheck the canonical title, and
+dictionary clears cannot be undone by saving stale textarea drafts. These are
+component and editor tests; they are not native-service or physical
 assistive-technology evidence.
 
 The final static and runtime gates also passed:
@@ -31,9 +39,9 @@ The final static and runtime gates also passed:
 - Svelte check: 0 errors and 0 warnings;
 - Rust: 189 default tests and 192 tests with `spelling-ipc-test`;
 - `deno fmt --check` and `deno lint`;
-- ordinary production containment: 2,830,385 inspected text bytes and no LT-02
+- ordinary production containment: 2,829,932 inspected text bytes and no LT-02
   proof markers or spelling IPC call sites;
-- proof-positive containment: 2,852,977 inspected text bytes with the real app
+- proof-positive containment: 2,856,198 inspected text bytes with the real app
   and editor path plus every pinned proof marker and spelling IPC call site;
 - strict OpenSpec validation.
 
