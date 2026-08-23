@@ -68,10 +68,10 @@ rather than represented as work completed during LT-01.
 
 | LT-01 evidence | Status | Record |
 | --- | --- | --- |
-| Replacement-head CI | Pending | Required after the reviewed production fixes land |
-| Replacement-head hosted spelling diagnostics | Pending | Required on macOS arm64, current Intel, and Windows |
-| Replacement-head private proof installers | Pending | Fresh macOS and Windows artifacts and hashes required |
-| Replacement-head downloaded current-arm64 packaged proof | Pending | Fresh downloaded DMG run required |
+| Exact implementation-source-head CI | Passed | Run `32606266527` at `7856778e0f10d90e0c0f181727272c581e0114a3` |
+| Exact implementation-source-head hosted spelling diagnostics | Passed | Run `32606266614`, macOS arm64, current Intel, and Windows |
+| Private proof installers from the exact implementation source | Constructed | Run `32606612375`, macOS artifact `9484308010`, Windows artifact `9484314553` |
+| Downloaded current-arm64 packaged proof | Passed | macOS 26.6.1 arm64, English and Spanish |
 
 | Final rollout physical target | Status | Required evidence before visibility |
 | --- | --- | --- |
@@ -82,6 +82,62 @@ rather than represented as work completed during LT-01.
 
 The feature remains hidden and has no visible release promise until every final
 rollout physical row passes.
+
+## Exact implementation-source-head completion evidence on 2026-08-22
+
+The exact implementation source head is
+`7856778e0f10d90e0c0f181727272c581e0114a3`. The commit that adds this section
+is evidence-only: it changes documentation and OpenSpec checkboxes after the
+implementation was independently reviewed and proved. It does not relabel the
+later evidence-only commit as the tested implementation source.
+
+[`CI` run `32606266527`](https://github.com/adominicci/tesina/actions/runs/32606266527)
+passed at the exact implementation source head. Its green jobs were:
+
+- Pagination proof (WKWebView), job `97111640764`;
+- Packaged backup proof (Windows), job `97111640830`;
+- test, job `97111640835`;
+- Pagination proof (WebView2), job `97111640837`.
+
+[`Spelling native diagnostic` run `32606266614`](https://github.com/adominicci/tesina/actions/runs/32606266614)
+also passed at that source head. The exact job and structured-report artifact
+pairs were:
+
+- current macOS Intel: job `97111641089`, artifact `9484243468`;
+- Windows: job `97111641194`, artifact `9484240300`;
+- macOS arm64: job `97111641232`, artifact `9484239607`.
+
+The hosted Windows diagnostic retained its typed Spanish dictionary capability
+block as diagnostic evidence. It did not execute or replace the separate
+physical Windows missing-dictionary final-rollout row.
+
+Manual-dispatch-only private installer
+[`run 32606612375`](https://github.com/adominicci/tesina/actions/runs/32606612375)
+constructed installers from the exact implementation source without creating
+a release:
+
+- macOS job `97112437540`, artifact `9484308010`, downloaded
+  `Tesina Spelling Proof_0.1.20_universal.dmg`, SHA-256
+  `63bde62bbaa37ed825afc5b86f0956f2789013fbb83313004dfa66b1fd8ee909`;
+  its executable contains both `x86_64` and `arm64` slices;
+- Windows job `97112437640`, artifact `9484314553`, downloaded
+  `Tesina Spelling Proof_0.1.20_x64-setup.exe`, SHA-256
+  `0b59ffe018d8824d0cbe4f621b07596eeb790b885dc361348f5aef916c3fcd08`.
+
+The downloaded universal DMG was mounted and its hidden proof executable ran
+on macOS 26.6.1 arm64. Redacted report
+`/tmp/tesina-lt01-final-dmg-report.jegdw4/macos-arm64-final-head.json` has
+SHA-256
+`11fc5d0088abf811005735bbbb42174f83056b0e5d899db58f6848a08220a53f`.
+It records contract version 1, English and Spanish available, selected generic
+`en` and `es`, ranges `0..5` and `0..8`, non-empty suggestions, and overall
+`pass`.
+
+An independent final review of the exact implementation source head found no
+actionable findings and confirmed the hidden-service scope and single-PR size
+gate. No editor integration, visible spelling UI, persistence, grammar/style,
+model, network path, dictionary mutation, bundled dictionary, or visible
+release promise entered LT-01.
 
 ## Historical implementation-head evidence on 2026-08-22
 
@@ -122,9 +178,8 @@ available, selected generic `en` and `es`, ranges `0..5` and `0..8`, non-empty
 suggestions, and overall `pass`.
 
 These artifacts and reports remain valid historical evidence, but later
-production fixes mean they do not complete the replacement-head LT-01 gate.
-Fresh exact-head diagnostics, private artifacts and hashes, and a downloaded
-current-arm64 packaged run must be recorded before tasks 7.2 and 7.3 close.
+production fixes mean they do not complete the exact implementation-source-head
+LT-01 gate. The preceding section records the replacement evidence that does.
 
 No physical macOS 12 Intel, Windows 10 x64, Windows 11 x64, or separate
 Windows missing-dictionary run was executed. Those rows are
