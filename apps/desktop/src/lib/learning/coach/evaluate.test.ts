@@ -15,7 +15,7 @@ import {
   validateReviewState,
 } from "./evaluate.ts";
 import type { WritingCoachIssue } from "./types.ts";
-import { renderCoachMessage } from "./fixtures.ts";
+import { renderCoachMessage } from "./fixtures/index.ts";
 import {
   ACCEPTED_AGGREGATE_SNAPSHOT,
   ACCEPTED_REVIEW_EVIDENCE,
@@ -291,6 +291,62 @@ describe("human review linkage", () => {
     expect(evaluateCorpus(validAssignments, questions, disagreed).status).toBe(
       "failed",
     );
+  });
+
+  it("removes a dual-rejected observation from completed-review metrics", () => {
+    const requirements = createReviewRequirements();
+    const rejected = requirements.observations[0]!;
+    const questions: ReviewDecision[] = validAssignments.flatMap((assignment) =>
+      requirements.questions.map((instance) => ({
+        reviewerId: assignment.reviewerId,
+        key: instance.key,
+        digest: instance.digest,
+        decision: "useful" as const,
+      }))
+    );
+    const observations: ObservationReviewDecision[] = validAssignments.flatMap(
+      (assignment) =>
+        requirements.observations.map((item) => ({
+          reviewerId: assignment.reviewerId,
+          ...item,
+          decision: item.fixtureId === rejected.fixtureId &&
+              item.expectedId === rejected.expectedId
+            ? "reject" as const
+            : "accept" as const,
+        })),
+    );
+
+    const aggregate = evaluateCorpus(validAssignments, questions, observations);
+    const rejectedCell = aggregate.byLanguageCategory.find((cell) =>
+      cell.documentLanguage === rejected.documentLanguage &&
+      cell.category === rejected.category
+    )!;
+
+    expect(validateReviewState(validAssignments, questions, observations)).toBe(
+      "complete",
+    );
+    expect(aggregate.globalCounts).toEqual({
+      emitted: 96,
+      expected: 95,
+      matched: 95,
+      exact: 95,
+      unmatched: 1,
+    });
+    expect(rejectedCell.counts).toEqual({
+      emitted: 8,
+      expected: 7,
+      matched: 7,
+      exact: 7,
+      unmatched: 1,
+    });
+    expect(
+      aggregate.gates.find((gate) => gate.code === "supported-cells")?.state,
+    )
+      .toBe("passed");
+    expect(
+      aggregate.gates.find((gate) => gate.code === "dual-reviewed-support")
+        ?.state,
+    ).toBe("failed");
   });
 
   it("links aggregate and decision freshness to exact rendered catalog wording", () => {

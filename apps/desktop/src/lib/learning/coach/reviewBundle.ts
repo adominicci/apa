@@ -16,7 +16,7 @@ import {
   COACH_CORPUS_VERSION,
   COACH_RENDER_CATALOG_VERSION,
   REVIEWER_SLOTS,
-} from "./fixtures.ts";
+} from "./fixtures/index.ts";
 
 export const PENDING_AGGREGATE_SNAPSHOT = Object.freeze(evaluateCorpus());
 const requirements = createReviewRequirements();

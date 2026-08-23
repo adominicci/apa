@@ -1,5 +1,5 @@
 import type { DocLocale } from "@tesina/engine";
-import type { CoachCategory, CoachMessageDescriptor } from "./types.ts";
+import type { CoachCategory, CoachMessageDescriptor } from "../types.ts";
 
 export const COACH_CORPUS_VERSION = "coach-corpus-v1" as const;
 export const COACH_RENDER_CATALOG_VERSION = "coach-render-catalog-v1" as const;

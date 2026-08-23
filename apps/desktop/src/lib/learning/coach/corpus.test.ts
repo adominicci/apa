@@ -8,7 +8,7 @@ import {
   COACH_CORPUS,
   renderCoachMessage,
   REVIEWER_SLOTS,
-} from "./fixtures.ts";
+} from "./fixtures/index.ts";
 import { COACH_CATEGORIES } from "./types.ts";
 
 describe("coach review inputs", () => {
