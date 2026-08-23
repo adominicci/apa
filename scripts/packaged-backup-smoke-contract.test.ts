@@ -8,7 +8,7 @@ describe("packaged backup smoke build contract", () => {
   it("keeps the smoke flavor default-off and outside ordinary release builds", async () => {
     const [cargo, page, ci, release, capabilities] = await Promise.all([
       source("apps/desktop/src-tauri/Cargo.toml"),
-      source("apps/desktop/src/routes/+page.svelte"),
+      source("apps/desktop/src/lib/components/AppPage.svelte"),
       source(".github/workflows/ci.yml"),
       source(".github/workflows/release.yml"),
       source("apps/desktop/src-tauri/capabilities/default.json"),

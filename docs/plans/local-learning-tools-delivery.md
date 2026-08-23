@@ -344,7 +344,7 @@ read-only evaluation may run in parallel, but implementation writers may not.
 | ID | OpenSpec change | Status | Depends on |
 | --- | --- | --- | --- |
 | P0 | None; canonical planning only | In progress | Plan approval |
-| LT-01 | `add-bilingual-spelling-service` | Planned | Canonical plan approved |
+| LT-01 | `add-bilingual-spelling-service` | In review | Current-head diagnostics, private installers, and current-arm64 packaged/manual proof required; physical Intel/Windows proof deferred to the final rollout gate |
 | LT-02 | `add-bilingual-spelling-experience` | Planned | LT-01 merged and verified |
 | LT-03 | `add-bilingual-writing-coach-engine` | Planned | M1 complete |
 | LT-04 | `add-writing-coach-experience` | Planned | LT-03 merged and verified |
@@ -429,7 +429,11 @@ Windows before exposing UI or promising the feature.
    proper-name-heavy fields.
 7. Record dependency and platform API licenses. Do not bundle third-party
    dictionaries in this task.
-8. Add packaged native evidence on supported macOS and Windows targets.
+8. Run current-head hosted macOS arm64, current Intel, and Windows diagnostics;
+   construct private proof installers for macOS and Windows; and record one
+   packaged/manual current-arm64 bilingual pass. Physical Intel and Windows
+   target runs belong to the final rollout gate below, not this hidden-service
+   PR.
 
 **Acceptance evidence:**
 
@@ -439,6 +443,9 @@ Windows before exposing UI or promising the feature.
   capability reason.
 - Missing OS dictionaries return install/help guidance codes, not a silent
   fallback to another language.
+- Current-head hosted diagnostics pass, private macOS and Windows proof
+  installers are constructed, and a downloaded current-arm64 package completes
+  the bilingual manual proof.
 - No essay, app setting, UI, model, or network behavior changes.
 - `deno task check`, relevant Rust tests, formatting/lint as applicable, and
   strict OpenSpec validation pass.
@@ -1009,6 +1016,30 @@ model removal and writing coach behavior intact.
 | Stored AI analysis becomes surveillance | Privacy and trust failure | Findings, scores, and quiz sessions are ephemeral; no telemetry, history, dashboard, or cloud fallback |
 | Nine PRs create process drag | Slow delivery despite small diffs | One PR per useful seam, subtasks inside OpenSpec, sequential fresh-main loop, focused local checks before push |
 
+## Final rollout manual platform gate
+
+After LT-01 through LT-09 are implemented and before any spelling capability is
+made visible or included in a public release promise, run the private packaged
+spelling proof on all of these physical targets:
+
+- macOS 12 Intel;
+- Windows 10 x64 with English and Spanish language features installed;
+- Windows 11 x64 with English and Spanish language features installed; and
+- a separate Windows packaged case with the requested dictionary absent.
+
+Each bilingual target run must record the OS version and architecture, contract
+version, English and Spanish capability, selected language tags, the fixed
+misspelling UTF-16 ranges, non-empty suggestions, and overall status. The
+separate missing-dictionary run must return the stable `missing-dictionary`
+capability and install guidance without falling back to another language.
+
+These physical runs are deliberately deferred to the end of the sequential
+rollout so they can be completed together through the established manual E2E
+handoff. Hosted diagnostics and constructed installers do not count as these
+physical runs. Until every row passes and its evidence is recorded, spelling
+stays hidden and Tesina makes no visible cross-platform spelling release
+promise.
+
 ## Definition of program completion
 
 The program is complete only when LT-01 through LT-09 are merged and verified,
@@ -1024,6 +1055,8 @@ while retaining a complete deterministic product. Completion also requires:
 - model and sidecar licenses, hashes, sources, and update policy are documented;
 - privacy proof shows no student text telemetry or network inference;
 - English and Spanish human-review rubrics meet their hard gates;
+- the final rollout manual platform gate above has passed on macOS 12 Intel,
+  Windows 10 x64, Windows 11 x64, and the separate missing-dictionary case;
 - failure and removal paths work without harming essays or deterministic tools.
 
 This file should be edited when sequence, scope, thresholds, or status changes.

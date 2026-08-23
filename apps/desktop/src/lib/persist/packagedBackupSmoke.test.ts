@@ -521,7 +521,7 @@ describe("packaged backup smoke", () => {
       Deno: { cwd(): string; readTextFile(path: string): Promise<string> };
     }).Deno;
     const source = await deno.readTextFile(
-      `${deno.cwd()}/apps/desktop/src/routes/+page.svelte`,
+      `${deno.cwd()}/apps/desktop/src/lib/components/AppPage.svelte`,
     );
     const gate = source.indexOf("VITE_TESINA_PACKAGED_BACKUP_SMOKE");
     const runner = source.indexOf("runPackagedBackupSmoke");

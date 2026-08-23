@@ -3,6 +3,7 @@
 import { flushSync, mount, tick, unmount } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { m } from "$lib/paraglide/messages";
+import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import {
   type BackupAdapterStatus,
   BackupStore,
@@ -169,7 +170,7 @@ describe("BackupStatusCard", () => {
 
     expect(document.body.textContent).toContain(m.bk_reauthorization_title());
     expect(document.body.textContent).toContain(
-      m.bk_reauthorization_body({ version: "0.1.19" }),
+      m.bk_reauthorization_body({ version: bundledReleaseNotes.version }),
     );
     expect(buttonByText(m.bk_card_dismiss())).toBeUndefined();
     buttonByText(m.bk_card_setup())!.click();

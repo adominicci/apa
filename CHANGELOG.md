@@ -5,6 +5,14 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.20] - 2026-08-22
+
+### Changed
+
+- Internal groundwork adds a hidden, local spelling boundary for English and
+  Spanish on macOS and Windows. The editor does not use it yet, so visible
+  behavior is unchanged.
+
 ## [0.1.19] - 2026-08-21
 
 ### Changed
@@ -319,7 +327,8 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.19...HEAD
+[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.20...HEAD
+[0.1.20]: https://github.com/adominicci/tesina/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/adominicci/tesina/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/adominicci/tesina/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/adominicci/tesina/compare/v0.1.16...v0.1.17

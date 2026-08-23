@@ -9,7 +9,10 @@ import {
 import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import LayoutReleaseNotesHarness from "./LayoutReleaseNotesHarness.test.svelte";
 
-const canonicalNotesExcerpt = "source of truth for their names";
+const canonicalNotesExcerpt = bundledReleaseNotes.body
+  .split("\n")
+  .find((line) => line.startsWith("- "))!
+  .slice(2);
 
 const runtime = vi.hoisted(() => ({
   getVersion: vi.fn<() => Promise<string>>(),

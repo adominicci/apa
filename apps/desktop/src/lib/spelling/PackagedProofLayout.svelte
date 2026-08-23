@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import AppLayout from "$tesina-layout";
 
   interface Props {
     children: Snippet;
@@ -9,4 +8,4 @@
   let { children }: Props = $props();
 </script>
 
-<AppLayout>{@render children()}</AppLayout>
+{@render children()}

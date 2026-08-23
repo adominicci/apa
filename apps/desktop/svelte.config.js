@@ -6,6 +6,10 @@
 // Keep these explicit until https://github.com/denoland/deno/pull/35866 ships.
 import adapter from "npm:@sveltejs/adapter-static@^3.0.6";
 import { vitePreprocess } from "npm:@sveltejs/vite-plugin-svelte@^5.0.0";
+import process from "node:process";
+
+const packagedSpellingProof =
+  process.env.VITE_TESINA_PACKAGED_SPELLING_PROOF === "1";
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -17,6 +21,12 @@ const config = {
     alias: {
       "@tesina/engine": "../../packages/apa-engine/src/index.ts",
       "@tesina/docx-export": "../../packages/docx-export/src/index.ts",
+      "$tesina-layout": packagedSpellingProof
+        ? "./src/lib/spelling/PackagedProofLayout.svelte"
+        : "./src/lib/components/AppLayout.svelte",
+      "$tesina-page": packagedSpellingProof
+        ? "./src/lib/spelling/PackagedProofPage.svelte"
+        : "./src/lib/components/AppPage.svelte",
     },
   },
 };

@@ -218,7 +218,13 @@ describe("release workflow contract", () => {
 
   it("isolates the release build from shared Rust build-output caches", () => {
     expect(actionSteps(releaseDocument, "swatinem/rust-cache")).toHaveLength(0);
-    expect(actionSteps(mergeDocument, "swatinem/rust-cache")).toHaveLength(1);
+    const ordinaryBuild = recordField(
+      recordField(mergeDocument, "jobs"),
+      "build",
+    );
+    const ordinaryDocument = { jobs: { build: ordinaryBuild } };
+    expect(actionSteps(ordinaryDocument, "swatinem/rust-cache"))
+      .toHaveLength(1);
   });
 
   it("uses the stable DMG and updater names", () => {
@@ -352,9 +358,17 @@ describe("release workflow contract", () => {
   });
 
   it("preserves the merge workflow's no-upload policy", () => {
-    const platforms = workflowPropertyValues(mergeDocument, "platform");
+    const ordinaryBuild = recordField(
+      recordField(mergeDocument, "jobs"),
+      "build",
+    );
+    const ordinaryDocument = { jobs: { build: ordinaryBuild } };
+    const platforms = workflowPropertyValues(ordinaryBuild, "platform");
     expect(platforms).toEqual(["macos-latest", "windows-latest"]);
-    const tauriSteps = actionSteps(mergeDocument, "tauri-apps/tauri-action");
+    const tauriSteps = actionSteps(
+      ordinaryDocument,
+      "tauri-apps/tauri-action",
+    );
     expect(tauriSteps).toHaveLength(1);
     const inputs = recordField(tauriSteps[0], "with");
     expect(inputs.uploadUpdaterJson).toBe(false);

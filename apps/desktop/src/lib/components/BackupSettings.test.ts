@@ -3,6 +3,7 @@
 import { flushSync, mount, tick, unmount } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { m } from "$lib/paraglide/messages";
+import { bundledReleaseNotes } from "$lib/update/bundledReleaseNotes";
 import { uiLocale } from "$lib/state/uiLocale.svelte";
 import {
   type BackupAdapter,
@@ -376,7 +377,7 @@ describe("BackupSettings", () => {
 
     expect(bodyText()).toContain(m.bk_reauthorization_title());
     expect(bodyText()).toContain(
-      m.bk_reauthorization_body({ version: "0.1.19" }),
+      m.bk_reauthorization_body({ version: bundledReleaseNotes.version }),
     );
     buttonByText(m.bk_reenable())!.click();
     expect(h.onRunWizard).toHaveBeenCalledOnce();
