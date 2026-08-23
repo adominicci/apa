@@ -96,6 +96,42 @@ describe("proposed bilingual corpus", () => {
     );
   });
 
+  it("uses materially distinct natural passages rather than templated inflation", () => {
+    expect(
+      COACH_CORPUS.every((fixture) =>
+        !/\b(?:en|es)\d+term\d+\b|\bExample \d+\b/iu.test(fixture.text)
+      ),
+    ).toBe(true);
+    for (const language of ["en", "es"] as const) {
+      const weak = COACH_CORPUS.filter((fixture) =>
+        fixture.documentLanguage === language && fixture.cohort === "weak"
+      );
+      const paragraphCount = weak[0]!.text.split(/\n\n/gu).length;
+      expect(paragraphCount).toBe(6);
+      for (let index = 0; index < paragraphCount; index += 1) {
+        expect(
+          new Set(weak.map((fixture) => fixture.text.split(/\n\n/gu)[index]))
+            .size,
+        ).toBe(8);
+      }
+      for (
+        const cohort of [
+          "competent",
+          "ai-assisted",
+          "second-language",
+        ] as const
+      ) {
+        const fixtures = COACH_CORPUS.filter((fixture) =>
+          fixture.documentLanguage === language && fixture.cohort === cohort
+        );
+        expect(
+          new Set(fixtures.map((fixture) => fixture.text.split(/[.!?]/u)[0]))
+            .size,
+        ).toBe(8);
+      }
+    }
+  });
+
   it("contains eight proposed exact positives per language and category with auditable provenance", () => {
     for (const language of ["en", "es"] as const) {
       for (const category of COACH_CATEGORIES) {

@@ -13,6 +13,7 @@ import {
   validateReviewState,
 } from "./evaluate.ts";
 import type { WritingCoachIssue } from "./types.ts";
+import { renderCoachMessage } from "./fixtures.ts";
 import {
   PENDING_AGGREGATE_SNAPSHOT,
   REVIEW_HANDOFF_BUNDLE,
@@ -236,6 +237,14 @@ describe("human review linkage", () => {
     )).toBe("failed");
     expect(evaluateCorpus(validAssignments, questions, observations).status)
       .toBe("passed");
+    const canonical = evaluateCorpus(validAssignments, questions, observations);
+    const permuted = evaluateCorpus(
+      validAssignments.toReversed(),
+      questions.toReversed(),
+      observations.toReversed(),
+    );
+    expect(permuted.status).toBe(canonical.status);
+    expect(permuted.digest).toBe(canonical.digest);
     expect(
       validateReviewState(validAssignments, questions.slice(1), observations),
     ).toBe("pending");
@@ -275,5 +284,38 @@ describe("human review linkage", () => {
     expect(evaluateCorpus(validAssignments, questions, disagreed).status).toBe(
       "failed",
     );
+  });
+
+  it("links aggregate and decision freshness to exact rendered catalog wording", () => {
+    const requirements = createReviewRequirements();
+    const questions: ReviewDecision[] = validAssignments.flatMap((assignment) =>
+      requirements.questions.map((instance) => ({
+        reviewerId: assignment.reviewerId,
+        key: instance.key,
+        digest: instance.digest,
+        decision: "useful" as const,
+      }))
+    );
+    const observations: ObservationReviewDecision[] = validAssignments.flatMap(
+      (assignment) =>
+        requirements.observations.map((instance) => ({
+          reviewerId: assignment.reviewerId,
+          ...instance,
+          decision: "accept" as const,
+        })),
+    );
+    const changedRenderer: typeof renderCoachMessage = (descriptor, locale) =>
+      `${renderCoachMessage(descriptor, locale)} `;
+    expect(evaluateCorpus([], [], [], changedRenderer).digest).not.toBe(
+      evaluateCorpus().digest,
+    );
+    expect(
+      validateReviewState(
+        validAssignments,
+        questions,
+        observations,
+        changedRenderer,
+      ),
+    ).toBe("failed");
   });
 });

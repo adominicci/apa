@@ -172,6 +172,14 @@ export function canonicalJson(value: unknown): string {
   }}`;
 }
 
+function canonicalSort<T>(values: readonly T[]): T[] {
+  return [...values].sort((left, right) => {
+    const leftKey = canonicalJson(left);
+    const rightKey = canonicalJson(right);
+    return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+  });
+}
+
 const digest = (value: string): string =>
   bytesToHex(sha256(new TextEncoder().encode(value)));
 
@@ -188,6 +196,7 @@ export function createReviewInstance(
   issue: WritingCoachIssue,
   outputIndex: number,
   uiLocale: DocLocale,
+  renderer: typeof renderCoachMessage = renderCoachMessage,
 ) {
   const params = canonicalJson(issue.learningQuestion.params);
   const issueKey = [
@@ -198,7 +207,7 @@ export function createReviewInstance(
     issue.learningQuestion.id,
     params,
   ].join("\0");
-  const renderedQuestion = renderCoachMessage(issue.learningQuestion, uiLocale);
+  const renderedQuestion = renderer(issue.learningQuestion, uiLocale);
   const key: ReviewInstanceKey = {
     corpusVersion: COACH_CORPUS_VERSION,
     fixtureId,
@@ -259,7 +268,9 @@ function isDualUseful(
     );
 }
 
-export function createReviewRequirements() {
+export function createReviewRequirements(
+  renderer: typeof renderCoachMessage = renderCoachMessage,
+) {
   const observations = COACH_CORPUS.flatMap((fixture) =>
     fixture.proposedObservations.map((observation) => {
       const inputDigest = digest([
@@ -293,7 +304,7 @@ export function createReviewRequirements() {
     })
       .flatMap((issue, index) =>
         LANGUAGES.map((uiLocale) =>
-          createReviewInstance(fixture.id, issue, index, uiLocale)
+          createReviewInstance(fixture.id, issue, index, uiLocale, renderer)
         )
       )
   );
@@ -304,9 +315,13 @@ export function validateReviewState(
   assignments: readonly ReviewerAssignment[],
   decisions: readonly ReviewDecision[],
   observationDecisions: readonly ObservationReviewDecision[] = [],
+  renderer: typeof renderCoachMessage = renderCoachMessage,
 ): "pending" | "failed" | "complete" {
+  const canonicalAssignments = canonicalSort(assignments);
+  const canonicalDecisions = canonicalSort(decisions);
+  const canonicalObservationDecisions = canonicalSort(observationDecisions);
   if (
-    assignments.some((assignment) =>
+    canonicalAssignments.some((assignment) =>
       (assignment.slot !== 1 && assignment.slot !== 2) ||
       assignment.role !== "independent-bilingual-reviewer" ||
       assignment.reviewerId.length === 0 ||
@@ -315,20 +330,23 @@ export function validateReviewState(
     )
   ) return "failed";
   if (
-    assignments.length < 2 ||
-    assignments.some((assignment) =>
+    canonicalAssignments.length < 2 ||
+    canonicalAssignments.some((assignment) =>
       assignment.bilingualAttestation !== true ||
       assignment.independenceAttestation !== true
     )
   ) return "pending";
-  const ids = assignments.map((assignment) => assignment.reviewerId);
-  const slots = new Set(assignments.map((assignment) => assignment.slot));
+  const ids = canonicalAssignments.map((assignment) => assignment.reviewerId);
+  const slots = new Set(
+    canonicalAssignments.map((assignment) => assignment.slot),
+  );
   if (
-    assignments.length !== 2 || new Set(ids).size !== 2 || slots.size !== 2 ||
+    canonicalAssignments.length !== 2 || new Set(ids).size !== 2 ||
+    slots.size !== 2 ||
     !slots.has(1) || !slots.has(2) ||
     ids.some((id) => id.length === 0)
   ) return "failed";
-  const requirements = createReviewRequirements();
+  const requirements = createReviewRequirements(renderer);
   const requiredQuestions = new Map(
     requirements.questions.map((
       instance,
@@ -341,7 +359,7 @@ export function validateReviewState(
     ]),
   );
   const seenQuestions = new Set<string>();
-  for (const decision of decisions) {
+  for (const decision of canonicalDecisions) {
     const key = canonicalJson(decision.key);
     const decisionKey = `${decision.reviewerId}\0${key}`;
     if (
@@ -356,7 +374,7 @@ export function validateReviewState(
     string,
     ObservationReviewDecision["decision"]
   >();
-  for (const decision of observationDecisions) {
+  for (const decision of canonicalObservationDecisions) {
     const key = `${decision.fixtureId}\0${decision.expectedId}`;
     const decisionKey = `${decision.reviewerId}\0${key}`;
     if (
@@ -412,7 +430,11 @@ export function evaluateCorpus(
   assignments: readonly ReviewerAssignment[] = [],
   decisions: readonly ReviewDecision[] = [],
   observationDecisions: readonly ObservationReviewDecision[] = [],
+  renderer: typeof renderCoachMessage = renderCoachMessage,
 ) {
+  const canonicalAssignments = canonicalSort(assignments);
+  const canonicalDecisions = canonicalSort(decisions);
+  const canonicalObservationDecisions = canonicalSort(observationDecisions);
   const fixtureResults = COACH_CORPUS.map((fixture) => {
     const issues = analyzeWriting({
       text: fixture.text,
@@ -423,7 +445,7 @@ export function evaluateCorpus(
     const matching = matchIssues(issues, fixture.proposedObservations);
     const instances = issues.flatMap((item, index) =>
       LANGUAGES.map((uiLocale) =>
-        createReviewInstance(fixture.id, item, index, uiLocale)
+        createReviewInstance(fixture.id, item, index, uiLocale, renderer)
       )
     );
     return { fixture, issues, matching, instances };
@@ -470,14 +492,15 @@ export function evaluateCorpus(
     );
   const global = sumCounts([cell("en"), cell("es")]);
   const reviewState = validateReviewState(
-    assignments,
-    decisions,
-    observationDecisions,
+    canonicalAssignments,
+    canonicalDecisions,
+    canonicalObservationDecisions,
+    renderer,
   );
-  const requirements = createReviewRequirements();
+  const requirements = createReviewRequirements(renderer);
   const usefulCount =
     requirements.questions.filter((instance) =>
-      isDualUseful(instance, assignments, decisions)
+      isDualUseful(instance, canonicalAssignments, canonicalDecisions)
     ).length;
   const metrics = {
     precision: basisPointRate(global.matched, global.emitted),
@@ -525,7 +548,7 @@ export function evaluateCorpus(
           instance.key.uiLocale === uiLocale
         );
         const useful = instances.filter((instance) =>
-          isDualUseful(instance, assignments, decisions)
+          isDualUseful(instance, canonicalAssignments, canonicalDecisions)
         ).length;
         return {
           documentLanguage,
@@ -590,8 +613,8 @@ export function evaluateCorpus(
           : []
       );
       return expectedIds.filter((item) =>
-        assignments.every((assignment) =>
-          observationDecisions.some((decision) =>
+        canonicalAssignments.every((assignment) =>
+          canonicalObservationDecisions.some((decision) =>
             decision.reviewerId === assignment.reviewerId &&
             decision.fixtureId === item.fixtureId &&
             decision.expectedId === item.expectedId &&
@@ -714,7 +737,8 @@ export function evaluateCorpus(
     ? "pending-human-review"
     : "passed";
   const reviewerSlots = REVIEWER_SLOTS.map((slot) =>
-    assignments.find((assignment) => assignment.slot === slot.slot) ?? slot
+    canonicalAssignments.find((assignment) => assignment.slot === slot.slot) ??
+      slot
   );
   const digestInput = {
     corpus: COACH_CORPUS,
@@ -724,8 +748,8 @@ export function evaluateCorpus(
     })),
     renderCatalog: requirements.questions,
     reviewerSlots,
-    decisions,
-    observationDecisions,
+    decisions: canonicalDecisions,
+    observationDecisions: canonicalObservationDecisions,
   };
   return {
     schemaVersion: "writing-coach-evaluation-v1" as const,
