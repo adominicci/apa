@@ -3,7 +3,7 @@
 ## Accepted source
 
 The tested implementation source is
-`956f52b5a88dc517bafaace8516e610145d58584`. This evidence-only record does
+`18ab19bd541fd9ebb480a3224221df06c4b8d8c1`. This evidence-only record does
 not relabel its later documentation commit as tested implementation source.
 
 LT-02 remains an internal proof. Ordinary production builds contain no
@@ -13,7 +13,7 @@ check call. The only selector is the exact compile-time input
 
 ## Automated editor evidence
 
-The final repository test run at the accepted source passed 1,728 tests with
+The final repository test run at the accepted source passed 1,732 tests with
 one intentional skip. The proof-only compile-time addon runs inside the real
 AppPage, EditorScreen, CoverSheet, TitlePageForm, Editor, and
 createTesinaEditor path. Its fake-service tests passed extraction and UTF-16
@@ -28,7 +28,8 @@ omit spelling data, proof settings reject non-boolean enable values, malformed
 optional spelling data is sanitized only on trusted local load, paper-title
 pointer targeting derives its UTF-16 caret from rendered coordinates, the
 correction menu is focused outside Modal's inert application subtree, title
-replacements use the canonical essay/autosave owner and synchronized form
+replacements outside the form use the canonical essay/autosave owner while
+open-form replacements remain draft-only until Save, Close discards that
 draft, discarded title forms invalidate and recheck the canonical title, and
 dictionary clears cannot be undone by saving stale textarea drafts. The final
 review regressions prove disabled invalidation cancels queued analysis, cover
@@ -46,14 +47,22 @@ programmatic title or body races close stale replacement menus, preserve the
 mutated source, and restore a safe exact source selection. These tests are not
 native-service or physical assistive-technology evidence.
 
+The PR review regressions also prove singular English and Spanish issue counts,
+transaction-mapped body decorations after edits before an issue, reset of a
+prior title-undo alert after a later successful correction, actual empty-array
+archive-shape rejection, and canonical dictionary storage through the same
+trusted mutation used by production. The manual proof-installer workflow now
+builds and checks ordinary production containment first, then checks the exact
+proof frontend left by the Tauri build before installer validation and upload.
+
 The final static and runtime gates also passed:
 
 - Svelte check: 0 errors and 0 warnings;
 - Rust: 189 default tests and 192 tests with `spelling-ipc-test`;
 - `deno fmt --check` and `deno lint`;
-- ordinary production containment: 2,830,078 inspected text bytes and no LT-02
+- ordinary production containment: 2,830,083 inspected text bytes and no LT-02
   proof markers or spelling IPC call sites;
-- proof-positive containment: 2,857,191 inspected text bytes with the real app
+- proof-positive containment: 2,857,506 inspected text bytes with the real app
   and editor path plus every pinned proof marker and spelling IPC call site;
 - strict OpenSpec validation.
 
