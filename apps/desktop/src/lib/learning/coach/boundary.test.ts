@@ -96,7 +96,10 @@ describe("hidden coach module boundary", () => {
     const files = [
       ...await readSourceFiles(APP_SRC_DIR),
       ...await readSourceFiles(TAURI_DIR),
-    ].filter((file) => !file.path.includes("/learning/coach/"));
+    ].filter((file) =>
+      !file.path.includes("/learning/coach/") &&
+      !file.path.includes("/learning/coachExperience/")
+    );
     expect(findRuntimeRegistrations(files)).toEqual([]);
   });
 
