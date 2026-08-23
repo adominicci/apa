@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { TextSelection } from "@tiptap/pm/state";
 import { undoDepth } from "@tiptap/pm/history";
 import { NODE_NAMES } from "@tesina/engine";
 import { createTesinaEditor } from "$lib/editor/createEditor.ts";
 import { refreshCitations } from "$lib/editor/citation.ts";
 import { analyzeCoachPassages } from "./analysisAdapter.ts";
+import { createWritingCoachController } from "./controller.ts";
 import type { CoachEditorBridge, CoachEditorHandle } from "./editorPlugin.ts";
 
 Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
@@ -16,6 +17,7 @@ function createHarness(text: string) {
   const element = document.createElement("div");
   document.body.append(element);
   let handle: CoachEditorHandle | null = null;
+  const attachments: Array<CoachEditorHandle | null> = [];
   const transactions: Parameters<
     NonNullable<CoachEditorBridge["onTransaction"]>
   >[0][] = [];
@@ -23,6 +25,7 @@ function createHarness(text: string) {
     currentRevision: () => 1,
     attach: (next) => {
       handle = next;
+      attachments.push(next);
     },
     onTransaction: (event) => transactions.push(event),
   };
@@ -42,7 +45,13 @@ function createHarness(text: string) {
     coachBridge: bridge,
   });
   if (!handle) throw new Error("coach editor bridge was not attached");
-  return { editor, element, handle: handle as CoachEditorHandle, transactions };
+  return {
+    editor,
+    element,
+    handle: handle as CoachEditorHandle,
+    transactions,
+    attachments,
+  };
 }
 
 afterEach(() => document.body.replaceChildren());
@@ -75,6 +84,8 @@ describe("schema-free coach editor bridge", () => {
     );
     const baselineJson = JSON.stringify(editor.getJSON());
     const baselineUndo = undoDepth(editor.state);
+    const focus = vi.spyOn(editor.view, "focus").mockImplementation(() => {});
+    const dispatch = vi.spyOn(editor.view, "dispatch");
     const analyzed = analyzeCoachPassages(
       handle.capture("essay-1").passages,
       1,
@@ -84,6 +95,10 @@ describe("schema-free coach editor bridge", () => {
       item.issue.observedText === "in many ways"
     )[1]!;
     expect(handle.navigate(second)).toBe(true);
+    expect(focus).toHaveBeenCalledOnce();
+    expect(
+      dispatch.mock.calls.some(([transaction]) => transaction.scrolledIntoView),
+    ).toBe(true);
     expect(editor.state.selection).toMatchObject(second.editorRange);
     expect(JSON.stringify(editor.getJSON())).toBe(baselineJson);
     expect(undoDepth(editor.state)).toBe(baselineUndo);
@@ -91,7 +106,7 @@ describe("schema-free coach editor bridge", () => {
     editor.destroy();
   });
 
-  it("fails stale navigation without guessing and clears emphasis on selection, edits, refresh, and teardown", () => {
+  it("fails stale navigation without guessing and clears emphasis on selection, source, preview, essay, and teardown", () => {
     const { editor, handle } = createHarness(
       "The policy changed in many ways during review.",
     );
@@ -116,9 +131,54 @@ describe("schema-free coach editor bridge", () => {
     refreshCitations(editor);
     expect(handle.getHighlight()).toBeNull();
     const second = createHarness("Various aspects shaped the final review.");
-    second.handle.clearHighlight();
+    const secondAnalysis = analyzeCoachPassages(
+      second.handle.capture("essay-1").passages,
+      1,
+    );
+    if (secondAnalysis.status !== "available") {
+      throw new Error("expected second analysis");
+    }
+    expect(second.handle.navigate(secondAnalysis.issues[0]!)).toBe(true);
+    const enterPreview = () => second.handle.clearHighlight();
+    enterPreview();
+    expect(second.handle.getHighlight()).toBeNull();
+    expect(second.handle.navigate(secondAnalysis.issues[0]!)).toBe(true);
+    const switchEssay = () => second.handle.clearHighlight();
+    switchEssay();
+    expect(second.handle.getHighlight()).toBeNull();
     second.editor.destroy();
     expect(second.handle.getHighlight()).toBeNull();
+    expect(second.attachments.at(-1)).toBeNull();
+    editor.destroy();
+  });
+
+  it("composes return-to-Write with exact controller-to-plugin navigation", async () => {
+    const { editor, handle } = createHarness(
+      "The policy changed in many ways during review.",
+    );
+    const controller = createWritingCoachController("essay-1");
+    controller.updateSnapshot(handle.capture("essay-1"));
+    controller.enterStudy();
+    await vi.waitFor(() => expect(controller.getState().status).toBe("issues"));
+    let mode: "write" | "study" = "study";
+    const baselineJson = JSON.stringify(editor.getJSON());
+    const baselineUndo = undoDepth(editor.state);
+
+    const result = await controller.editCurrentPassage(
+      () => {
+        mode = "write";
+      },
+      (issue) => handle.navigate(issue),
+    );
+
+    expect(result).toBe("navigated");
+    expect(mode).toBe("write");
+    expect(editor.state.selection).toMatchObject(
+      controller.getState().fixed!.issue.editorRange,
+    );
+    expect(JSON.stringify(editor.getJSON())).toBe(baselineJson);
+    expect(undoDepth(editor.state)).toBe(baselineUndo);
+    controller.destroy();
     editor.destroy();
   });
 });

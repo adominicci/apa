@@ -277,6 +277,22 @@ export function createWritingCoachController(
     getSuppressions(): readonly CoachSuppression[] {
       return suppressions;
     },
+    async editCurrentPassage(
+      showWrite: () => void | Promise<void>,
+      navigate: (issue: MappedCoachIssue) => boolean,
+    ): Promise<"navigated" | "stale"> {
+      const issue = state.fixed?.issue ?? null;
+      await showWrite();
+      if (destroyed || !issue || !navigate(issue)) {
+        if (!destroyed) {
+          state = state.status === "analyzing"
+            ? analyzingState(emptyState("no-current-issues"))
+            : emptyState("no-current-issues");
+        }
+        return "stale";
+      }
+      return "navigated";
+    },
     destroy(): void {
       if (destroyed) return;
       destroyed = true;

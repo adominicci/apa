@@ -278,6 +278,46 @@ describe("fixed question-led sessions", () => {
     expect(controller.getState().fixed).toBeNull();
     controller.destroy();
   });
+
+  it("returns to Write before exact navigation and clears a stale fixed session", async () => {
+    vi.useFakeTimers();
+    const controller = createWritingCoachController("essay-1");
+    controller.updateSnapshot(snapshot(1));
+    controller.enterStudy();
+    await vi.advanceTimersByTimeAsync(0);
+    const fixed = controller.getState().fixed!;
+    const calls: string[] = [];
+
+    expect(
+      await controller.editCurrentPassage(
+        async () => {
+          calls.push("write");
+        },
+        (issue) => {
+          calls.push("navigate");
+          expect(issue).toBe(fixed.issue);
+          return true;
+        },
+      ),
+    ).toBe("navigated");
+    expect(calls).toEqual(["write", "navigate"]);
+    expect(controller.getState().fixed).toBe(fixed);
+
+    expect(
+      await controller.editCurrentPassage(
+        async () => {
+          calls.push("write-stale");
+        },
+        () => {
+          calls.push("reject-stale");
+          return false;
+        },
+      ),
+    ).toBe("stale");
+    expect(calls.slice(-2)).toEqual(["write-stale", "reject-stale"]);
+    expect(controller.getState().fixed).toBeNull();
+    controller.destroy();
+  });
 });
 
 describe("session-only suppressions", () => {
