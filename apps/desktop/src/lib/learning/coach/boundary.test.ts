@@ -10,6 +10,7 @@ import {
 } from "./boundaryAudit.ts";
 
 const COACH_DIR = new URL("./", import.meta.url);
+const COACH_EXPERIENCE_DIR = new URL("../coachExperience/", import.meta.url);
 const APP_SRC_DIR = new URL("../../../", import.meta.url);
 const TAURI_DIR = new URL("../../../../src-tauri/", import.meta.url);
 
@@ -80,6 +81,35 @@ describe("hidden coach module boundary", () => {
     ], forbidden)).toEqual([]);
   });
 
+  it("keeps the desktop experience free of persistence, network, model, quiz, telemetry, APA, and export authority", async () => {
+    const forbidden = [
+      "@tauri",
+      "fetch(",
+      "localStorage",
+      "sessionStorage",
+      "indexedDB",
+      "$lib/persist",
+      "$lib/state",
+      "$lib/model",
+      "$lib/export",
+      "apaCheck",
+      "checkApa",
+      "telemetry",
+      "analytics",
+      "quiz",
+    ];
+    const files = (await readSourceFiles(COACH_EXPERIENCE_DIR)).filter((file) =>
+      !file.path.endsWith(".test.ts")
+    );
+    const findings = files.flatMap((file) =>
+      forbidden.filter((token) => file.source.includes(token)).map((token) => ({
+        path: file.path,
+        token,
+      }))
+    );
+    expect(findings).toEqual([]);
+  });
+
   it("detects forbidden code in a transitively imported production helper", () => {
     const files: SourceFile[] = [
       { path: "/coach/rules.ts", source: 'import "./helper.ts";' },
@@ -92,13 +122,21 @@ describe("hidden coach module boundary", () => {
       .toEqual([{ path: "/coach/helper.ts", token: "fetch(" }]);
   });
 
-  it("is not registered in application routes, state, or Tauri", async () => {
+  it("is registered only through the sanctioned desktop editor seams, never routes, state, or Tauri", async () => {
+    const sanctioned = new Set([
+      new URL("../../components/Editor.svelte", COACH_DIR).pathname,
+      new URL("../../components/EditorScreen.svelte", COACH_DIR).pathname,
+      new URL("../../components/WritingCoachStudy.svelte", COACH_DIR).pathname,
+      new URL("../../editor/createEditor.ts", COACH_DIR).pathname,
+    ]);
     const files = [
       ...await readSourceFiles(APP_SRC_DIR),
       ...await readSourceFiles(TAURI_DIR),
     ].filter((file) =>
       !file.path.includes("/learning/coach/") &&
-      !file.path.includes("/learning/coachExperience/")
+      !file.path.includes("/learning/coachExperience/") &&
+      !file.path.includes(".test.") &&
+      !sanctioned.has(file.path)
     );
     expect(findRuntimeRegistrations(files)).toEqual([]);
   });
