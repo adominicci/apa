@@ -39,6 +39,29 @@ function bodyDecorations(editor: Editor, env: SpellingEditorEnvironment) {
   return DecorationSet.create(editor.state.doc, decorations);
 }
 
+export function renderedBodyIssue(
+  editor: Editor,
+  issue: ExperienceSpellingIssue,
+): ExperienceSpellingIssue {
+  const identity = spellingIssueIdentity(issue);
+  const decorations = spellingEditorPluginKey.getState(
+    editor.state,
+  ) as DecorationSet | undefined;
+  const decoration = decorations?.find(
+    undefined,
+    undefined,
+    (spec) => spec.spellingIssueIdentity === identity,
+  )[0];
+  return decoration
+    ? {
+      ...issue,
+      from: decoration.from,
+      to: decoration.to,
+      analysisIdentity: identity,
+    }
+    : issue;
+}
+
 export function attachSpellingEditorAdapter(
   editor: Editor,
   env: SpellingEditorEnvironment,
@@ -93,7 +116,12 @@ export function attachSpellingEditorAdapter(
             )
             : undefined;
           const mappedIssue = issue && decoration
-            ? { ...issue, from: decoration.from, to: decoration.to }
+            ? {
+              ...issue,
+              from: decoration.from,
+              to: decoration.to,
+              analysisIdentity: identity,
+            }
             : undefined;
           return mappedIssue
             ? env.onIssueContextMenu(mappedIssue, event)

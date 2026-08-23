@@ -18,6 +18,7 @@
   import {
     attachSpellingEditorAdapter,
     refreshSpellingDecorations,
+    renderedBodyIssue,
   } from "./editorAdapter";
   import { addDocumentIgnore, effectiveDocumentIgnores } from "./persistence";
   import { addCanonicalTerm } from "./canonicalTerms";
@@ -122,24 +123,30 @@
     navigate = false,
   ) {
     if (!issue) return;
-    if (issue.source === "paper-title") {
+    const currentIssue = issue.source === "body" && editor
+      ? renderedBodyIssue(editor, issue)
+      : issue;
+    if (currentIssue.source === "paper-title") {
       if (navigate && !titleFormOpen) {
         requestedTitleIssue = {
-          source: issue.source,
-          from: issue.from,
-          to: issue.to,
-          termKey: issue.termKey,
+          source: currentIssue.source,
+          from: currentIssue.from,
+          to: currentIssue.to,
+          termKey: currentIssue.termKey,
         };
         onOpenTitleForm();
         await tick();
         return;
       }
       titleInput?.focus();
-      titleInput?.setSelectionRange(issue.from, issue.to);
+      titleInput?.setSelectionRange(currentIssue.from, currentIssue.to);
     } else {
-      editor?.chain().focus().setTextSelection({ from: issue.from, to: issue.to }).run();
+      editor?.chain().focus().setTextSelection({
+        from: currentIssue.from,
+        to: currentIssue.to,
+      }).run();
     }
-    menuIssue = issue;
+    menuIssue = currentIssue;
     await tick();
   }
 

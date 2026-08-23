@@ -19,6 +19,7 @@ export interface SpellingAnalysisSnapshot {
 export interface ExperienceSpellingIssue extends MappedSpellingIssue {
   generation: number;
   termKey: string;
+  analysisIdentity?: string;
 }
 
 export type SpellingExperienceStatus =
@@ -46,7 +47,8 @@ interface ControllerOptions {
 }
 
 export function spellingIssueIdentity(issue: ExperienceSpellingIssue): string {
-  return `${issue.source}:${issue.generation}:${issue.from}:${issue.to}:${issue.termKey}`;
+  return issue.analysisIdentity ??
+    `${issue.source}:${issue.generation}:${issue.from}:${issue.to}:${issue.termKey}`;
 }
 
 export function createSpellingController(options: ControllerOptions) {

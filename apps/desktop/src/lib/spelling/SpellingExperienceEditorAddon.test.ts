@@ -397,6 +397,136 @@ describe("real EditorScreen spelling addon", () => {
     editor.destroy();
   });
 
+  it("navigates from a mapped body issue to the next controller issue", async () => {
+    overwriteGetLocale(() => "en");
+    const editor = createEditor("This sentnce is editabl.");
+    const titleInput = document.createElement("input");
+    titleInput.value = "Clean title";
+    document.body.append(titleInput);
+    const target = document.createElement("div");
+    document.body.append(target);
+    const component = mount(SpellingExperienceEditorAddon, {
+      target,
+      props: {
+        essay: createEmptyEssay("en"),
+        editor,
+        titleInput,
+        titleFormOpen: false,
+        title: titleInput.value,
+        doc: editor.getJSON(),
+        documentLanguage: "en",
+        onTitleChange: vi.fn(),
+        onEssayMutation: vi.fn(),
+        onOpenTitleForm: vi.fn(),
+        service: twoBodyIssueService(),
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const firstMark = editor.view.dom.querySelector<HTMLElement>(
+      ".tesina-spelling-issue",
+    )!;
+    const originalFrom = Number(
+      firstMark.dataset.spellingIssue?.split(":")[2],
+    );
+    editor.view.dispatch(
+      editor.state.tr.insertText("New ", 2).setMeta("preventUpdate", true),
+    );
+    editor.view.posAtCoords = vi.fn(() => ({
+      pos: originalFrom + 5,
+      inside: -1,
+    }));
+    editor.view.dom.dispatchEvent(
+      new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+        clientX: 20,
+        clientY: 10,
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector<HTMLButtonElement>(
+      '[data-spelling-action="next"]',
+    )!.click();
+    await Promise.resolve();
+    expect(
+      editor.state.doc.textBetween(
+        editor.state.selection.from,
+        editor.state.selection.to,
+        "",
+        "",
+      ),
+    ).toBe("editabl");
+    await unmount(component);
+    editor.destroy();
+  });
+
+  it("ignores and dismisses the original occurrence from a mapped body issue", async () => {
+    overwriteGetLocale(() => "en");
+    const editor = createEditor("This sentnce is editabl.");
+    const titleInput = document.createElement("input");
+    titleInput.value = "Clean title";
+    document.body.append(titleInput);
+    const target = document.createElement("div");
+    document.body.append(target);
+    const component = mount(SpellingExperienceEditorAddon, {
+      target,
+      props: {
+        essay: createEmptyEssay("en"),
+        editor,
+        titleInput,
+        titleFormOpen: false,
+        title: titleInput.value,
+        doc: editor.getJSON(),
+        documentLanguage: "en",
+        onTitleChange: vi.fn(),
+        onEssayMutation: vi.fn(),
+        onOpenTitleForm: vi.fn(),
+        service: twoBodyIssueService(),
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const firstMark = editor.view.dom.querySelector<HTMLElement>(
+      ".tesina-spelling-issue",
+    )!;
+    const originalFrom = Number(
+      firstMark.dataset.spellingIssue?.split(":")[2],
+    );
+    editor.view.dispatch(
+      editor.state.tr.insertText("New ", 2).setMeta("preventUpdate", true),
+    );
+    editor.view.posAtCoords = vi.fn(() => ({
+      pos: originalFrom + 5,
+      inside: -1,
+    }));
+    editor.view.dom.dispatchEvent(
+      new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+        clientX: 20,
+        clientY: 10,
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector<HTMLButtonElement>(
+      '[data-spelling-action="ignore-once"]',
+    )!.click();
+    await Promise.resolve();
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+    expect(target.querySelector("[data-spelling-status]")?.textContent).toBe(
+      "1 spelling issue",
+    );
+    expect(
+      editor.state.doc.textBetween(
+        editor.state.selection.from,
+        editor.state.selection.to,
+        "",
+        "",
+      ),
+    ).toBe("sentnce");
+    await unmount(component);
+    editor.destroy();
+  });
+
   it("closes stale replacement menus and restores safe source selections without changing data", async () => {
     const titleEditor = createEditor("Clean body");
     const titleInput = document.createElement("input");
