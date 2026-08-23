@@ -3,7 +3,7 @@
 ## Accepted source
 
 The tested implementation source is
-`f6ecab09518be4a14566d011208e696179cb83d1`. This evidence-only record does
+`cca02950020f622b353f7b91eb43c3ccd143830e`. This evidence-only record does
 not relabel its later documentation commit as tested implementation source.
 
 LT-02 remains an internal proof. Ordinary production builds contain no
@@ -73,6 +73,9 @@ archive-shape rejection, and canonical dictionary storage through the same
 trusted mutation used by production. The manual proof-installer workflow now
 builds and checks ordinary production containment first, then checks the exact
 proof frontend left by the Tauri build before installer validation and upload.
+The mapped-context-menu regression additionally proves that a pointer hit after
+an edit before an issue resolves the moved half-open decoration through its
+preserved issue identity instead of reusing stale service offsets.
 
 The final static and runtime gates also passed:
 
@@ -81,7 +84,7 @@ The final static and runtime gates also passed:
 - `deno fmt --check` and `deno lint`;
 - ordinary production containment: 2,830,317 inspected text bytes and no LT-02
   proof markers or spelling IPC call sites;
-- proof-positive containment: 2,857,902 inspected text bytes with the real app
+- proof-positive containment: 2,858,097 inspected text bytes with the real app
   and editor path plus every pinned proof marker and spelling IPC call site;
 - strict OpenSpec validation.
 
