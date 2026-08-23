@@ -81,6 +81,8 @@ export function createSpellingController(options: ControllerOptions) {
 
   const invalidate = (_source: SpellingIssueSource | "essay" | "disabled") => {
     generation += 1;
+    if (timer) clearTimeout(timer);
+    timer = null;
     active?.abort();
     active = null;
     ignoredOnce.clear();

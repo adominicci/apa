@@ -230,4 +230,17 @@ describe("device-local spelling settings", () => {
     expect(payload.schemaVersion).toBe(1);
     expect(payload.spelling.personalDictionaries).toEqual({ es: ["Árbol"] });
   });
+
+  it("refuses a new term at capacity while retaining duplicate no-op semantics", async () => {
+    const full = Array.from({ length: 256 }, (_, index) => `term${index}`);
+    runtime.readJson.mockResolvedValue({
+      schemaVersion: 1,
+      spelling: { personalDictionaries: { en: full } },
+    });
+    await store.load();
+    expect(store.addPersonalDictionaryTerm("newterm", "en")).toBe("overflow");
+    expect(store.addPersonalDictionaryTerm("TERM0", "en")).toBe("duplicate");
+    expect(runtime.writeJsonAtomic).not.toHaveBeenCalled();
+    expect(store.personalDictionaries.en).toEqual(full);
+  });
 });

@@ -20,6 +20,7 @@
     refreshSpellingDecorations,
   } from "./editorAdapter";
   import { addDocumentIgnore, effectiveDocumentIgnores } from "./persistence";
+  import { addCanonicalTerm } from "./canonicalTerms";
   import {
     applyDurableIssueAction,
     replaceBodyIssue,
@@ -55,7 +56,10 @@
   let undoUnavailable = $state(false);
   let enDraft = $state("");
   let esDraft = $state("");
-  let navigateTitleAfterRecheck = false;
+  let requestedTitleIssue: Pick<
+    ExperienceSpellingIssue,
+    "source" | "from" | "to" | "termKey"
+  > | undefined;
   const dictionaryLanguages: readonly DocLocale[] = ["en", "es"];
 
   const controller = createSpellingController({
@@ -76,18 +80,20 @@
         )
       ) menuIssue = undefined;
       if (editor && !editor.isDestroyed) refreshSpellingDecorations(editor);
-      if (navigateTitleAfterRecheck && next.status === "issues") {
-        navigateTitleAfterRecheck = false;
+      if (requestedTitleIssue && next.status === "issues") {
+        const requested = requestedTitleIssue;
+        requestedTitleIssue = undefined;
         const titleIssue = next.issues.find((issue) =>
-          issue.source === "paper-title"
+          issue.source === requested.source && issue.from === requested.from &&
+          issue.to === requested.to && issue.termKey === requested.termKey
         );
         if (titleIssue) queueMicrotask(() => void openIssue(titleIssue));
       } else if (
-        navigateTitleAfterRecheck &&
+        requestedTitleIssue &&
         ["issue-free", "missing-dictionary", "unavailable", "failed"]
           .includes(next.status)
       ) {
-        navigateTitleAfterRecheck = false;
+        requestedTitleIssue = undefined;
       }
     },
   });
@@ -101,8 +107,12 @@
     next: m.spelling_next_issue(),
   });
 
-  function invalidate(source: "body" | "paper-title" | "essay" | "disabled") {
+  function invalidate(
+    source: "body" | "paper-title" | "essay" | "disabled",
+    retainRequestedTitleIssue = false,
+  ) {
     menuIssue = undefined;
+    if (!retainRequestedTitleIssue) requestedTitleIssue = undefined;
     controller.invalidate(source);
     if (uiLocale.spellingEnabled) controller.schedule();
   }
@@ -114,7 +124,12 @@
     if (!issue) return;
     if (issue.source === "paper-title") {
       if (navigate && !titleFormOpen) {
-        navigateTitleAfterRecheck = true;
+        requestedTitleIssue = {
+          source: issue.source,
+          from: issue.from,
+          to: issue.to,
+          termKey: issue.termKey,
+        };
         onOpenTitleForm();
         await tick();
         return;
@@ -138,21 +153,27 @@
     menuIssue = undefined;
     if (!issue) return;
     const source = issue.source === "paper-title" ? titleInput : editor?.view.dom;
-    if (direction !== "restore" && source) {
-      queueMicrotask(() => {
-        const root = source.closest<HTMLElement>(".app");
-        const focusable = root
-          ? [...root.querySelectorAll<HTMLElement>(
-            'button:not([disabled]), input:not([disabled]), select:not([disabled]), [contenteditable="true"], [tabindex]:not([tabindex="-1"])',
-          )]
-          : [];
-        const index = focusable.indexOf(source);
-        focusable[index + (direction === "forward" ? 1 : -1)]?.focus();
-      });
-    } else if (issue.source === "paper-title") {
-      titleInput?.focus();
-      titleInput?.setSelectionRange(issue.from, issue.to);
-    } else editor?.chain().focus().setTextSelection({ from: issue.from, to: issue.to }).run();
+    queueMicrotask(() => {
+      if (issue.source === "paper-title") {
+        titleInput?.focus();
+        titleInput?.setSelectionRange(issue.from, issue.to);
+      } else {
+        editor?.chain().focus().setTextSelection({
+          from: issue.from,
+          to: issue.to,
+        }).run();
+      }
+      if (direction === "restore" || !source) return;
+      const owner = source.closest<HTMLElement>('[role="dialog"]') ??
+        source.closest<HTMLElement>(".app");
+      const focusable = owner
+        ? [...owner.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [contenteditable="true"], [tabindex]:not([tabindex="-1"])',
+        )]
+        : [];
+      const index = focusable.indexOf(source);
+      focusable[index + (direction === "forward" ? 1 : -1)]?.focus();
+    });
   }
 
   function completeDurableAction(issue: ExperienceSpellingIssue, mutate: () => boolean | void) {
@@ -235,6 +256,15 @@
     if (language === documentLanguage) invalidate("essay");
   }
 
+  function canAddPersonalDictionary(issue: ExperienceSpellingIssue): boolean {
+    const status = addCanonicalTerm(
+      uiLocale.personalDictionaries[documentLanguage],
+      issue.word,
+      documentLanguage,
+    ).status;
+    return status === "added" || status === "duplicate";
+  }
+
   $effect(() => {
     const currentEditor = editor;
     if (!currentEditor || currentEditor.isDestroyed) return;
@@ -304,7 +334,7 @@
     if (nextTitleInput === priorTitleInput) return;
     priorTitleInput = nextTitleInput;
     menuIssue = undefined;
-    invalidate("paper-title");
+    invalidate("paper-title", requestedTitleIssue !== undefined);
   });
 
   $effect(() => {
@@ -339,6 +369,7 @@
       checked={uiLocale.spellingEnabled}
       onchange={(event) => {
         uiLocale.setSpellingEnabled(event.currentTarget.checked);
+        requestedTitleIssue = undefined;
         controller.invalidate("disabled");
         if (event.currentTarget.checked) controller.schedule();
       }}
@@ -380,7 +411,7 @@
     <SpellingCorrectionMenu
       issue={menuIssue}
       {labels}
-      canAddDictionary={true}
+      canAddDictionary={canAddPersonalDictionary(menuIssue)}
       canNext={spellingState.issues.length > 1}
       onAction={handleAction}
       onClose={closeMenu}

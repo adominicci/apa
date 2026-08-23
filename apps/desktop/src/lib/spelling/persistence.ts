@@ -51,12 +51,16 @@ export function assertCanonicalEssaySpelling(essay: Essay): void {
     typeof essay.spelling !== "object" || essay.spelling === null ||
     Array.isArray(essay.spelling)
   ) throw new Error("malformed essay.spelling");
+  if (
+    Object.keys(essay.spelling).some((key) => key !== "documentIgnores")
+  ) throw new Error("malformed essay.spelling keys");
   const ignores = essay.spelling.documentIgnores;
   if (
     ignores === undefined
   ) return;
   if (
     typeof ignores !== "object" || ignores === null || Array.isArray(ignores) ||
+    Object.keys(ignores).some((key) => key !== "en" && key !== "es") ||
     (ignores.en !== undefined && !isCanonicalStoredTerms(ignores.en, "en")) ||
     (ignores.es !== undefined && !isCanonicalStoredTerms(ignores.es, "es"))
   ) throw new Error("malformed essay.spelling.documentIgnores.en or .es");

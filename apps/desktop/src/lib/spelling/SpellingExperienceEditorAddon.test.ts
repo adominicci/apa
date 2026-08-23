@@ -33,9 +33,12 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   measureText: (text: string) => ({ width: text.length * 10 }),
 })) as never;
 
-function createEditor(text = "This sentnce is editable.") {
+function createEditor(
+  text = "This sentnce is editable.",
+  container: HTMLElement = document.body,
+) {
   const element = document.createElement("div");
-  document.body.append(element);
+  container.append(element);
   return createTesinaEditor({
     element,
     content: {
@@ -81,6 +84,46 @@ function fakeService(): SpellingService {
             suggestions: [`${word}x`],
           }]
           : [],
+      });
+    }),
+  };
+}
+
+function twoTitleIssueService(dropSecondOnRecheck = false): SpellingService {
+  let titleChecks = 0;
+  return {
+    capability: vi.fn((language) =>
+      Promise.resolve({
+        status: "available" as const,
+        language,
+        selectedLanguageTag: language,
+      })
+    ),
+    check: vi.fn((input) => {
+      const titleChunk = input.text === "Frst Scnd";
+      if (titleChunk) titleChecks += 1;
+      const issues = titleChunk
+        ? [
+          {
+            from: input.documentStart,
+            to: input.documentStart + 4,
+            word: "Frst",
+            suggestions: ["First"],
+          },
+          ...(dropSecondOnRecheck && titleChecks > 1 ? [] : [{
+            from: input.documentStart + 5,
+            to: input.documentStart + 9,
+            word: "Scnd",
+            suggestions: ["Second"],
+          }]),
+        ]
+        : [];
+      return Promise.resolve({
+        status: "completed" as const,
+        requestId: input.text,
+        documentRevision: input.documentRevision,
+        selectedLanguageTag: input.language,
+        issues,
       });
     }),
   };
@@ -335,6 +378,52 @@ describe("real EditorScreen spelling addon", () => {
     editor.destroy();
   });
 
+  it("disables adding a new current-language term at dictionary capacity", async () => {
+    settings.personalDictionaries.en = Array.from(
+      { length: 256 },
+      (_, index) => `term${index}`,
+    );
+    const editor = createEditor("Clean body");
+    const titleInput = document.createElement("input");
+    titleInput.value = "Wrng title";
+    titleInput.getBoundingClientRect = () => new DOMRect(0, 0, 200, 24);
+    document.body.append(titleInput);
+    const target = document.createElement("div");
+    document.body.append(target);
+    const component = mount(SpellingExperienceEditorAddon, {
+      target,
+      props: {
+        essay: createEmptyEssay("en"),
+        editor,
+        titleInput,
+        titleFormOpen: false,
+        title: titleInput.value,
+        doc: editor.getJSON(),
+        documentLanguage: "en",
+        onTitleChange: vi.fn(),
+        onEssayMutation: vi.fn(),
+        onOpenTitleForm: vi.fn(),
+        service: fakeService(),
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    titleInput.dispatchEvent(
+      new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+        clientX: 20,
+        clientY: 12,
+      }),
+    );
+    await Promise.resolve();
+    const addPersonal = document.querySelectorAll<HTMLElement>(
+      '[role="menuitem"]',
+    )[3]!;
+    expect(addPersonal.getAttribute("aria-disabled")).toBe("true");
+    await unmount(component);
+    editor.destroy();
+  });
+
   it("invalidates a discarded title-form draft and rechecks the canonical cover title", async () => {
     const editor = createEditor("Clean body");
     const essay = createEmptyEssay("en");
@@ -388,4 +477,199 @@ describe("real EditorScreen spelling addon", () => {
     await unmount(component);
     editor.destroy();
   });
+
+  it.each([
+    [false, "[data-close-title]"],
+    [true, ".modal-close"],
+  ])(
+    "restores title selection and moves %s from the portaled modal menu",
+    async (shiftKey, expectedTarget) => {
+      const editor = createEditor("Clean body");
+      const essay = createEmptyEssay("en");
+      essay.titlePage.title = "Wrng title";
+      const component = mount(SpellingExperienceTitleHarness, {
+        target: document.body,
+        props: { essay, editor, service: fakeService() },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      const coverInput = document.querySelector<HTMLInputElement>(
+        '[data-title-owner="cover"]',
+      )!;
+      coverInput.focus();
+      globalThis.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "F7",
+          altKey: true,
+          bubbles: true,
+        }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      const formInput = document.querySelector<HTMLInputElement>(
+        '[data-title-owner="form"]',
+      )!;
+      const menu = document.querySelector<HTMLElement>('[role="menu"]')!;
+      menu.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Tab",
+          shiftKey,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      await Promise.resolve();
+      expect(document.querySelector('[role="menu"]')).toBeNull();
+      expect([formInput.selectionStart, formInput.selectionEnd]).toEqual([
+        0,
+        4,
+      ]);
+      expect(document.activeElement).toBe(
+        document.querySelector(expectedTarget),
+      );
+      await unmount(component);
+      editor.destroy();
+    },
+  );
+
+  it("retains the requested second title issue across form-open reanalysis", async () => {
+    const editor = createEditor("Clean body");
+    const essay = createEmptyEssay("en");
+    essay.titlePage.title = "Frst Scnd";
+    const component = mount(SpellingExperienceTitleHarness, {
+      target: document.body,
+      props: { essay, editor, service: twoTitleIssueService() },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const coverInput = document.querySelector<HTMLInputElement>(
+      '[data-title-owner="cover"]',
+    )!;
+    coverInput.getBoundingClientRect = () => new DOMRect(0, 0, 200, 24);
+    coverInput.dispatchEvent(
+      new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+        clientX: 20,
+        clientY: 12,
+      }),
+    );
+    await Promise.resolve();
+    document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
+      .item(4).click();
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const formInput = document.querySelector<HTMLInputElement>(
+      '[data-title-owner="form"]',
+    )!;
+    expect([formInput.selectionStart, formInput.selectionEnd]).toEqual([5, 9]);
+    expect(
+      document.querySelector('[role="menuitem"]')?.textContent?.trim(),
+    ).toBe("Second");
+    await unmount(component);
+    editor.destroy();
+  });
+
+  it("closes safely when the requested title issue is stale after reanalysis", async () => {
+    const editor = createEditor("Clean body");
+    const essay = createEmptyEssay("en");
+    essay.titlePage.title = "Frst Scnd";
+    const component = mount(SpellingExperienceTitleHarness, {
+      target: document.body,
+      props: {
+        essay,
+        editor,
+        service: twoTitleIssueService(true),
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    const coverInput = document.querySelector<HTMLInputElement>(
+      '[data-title-owner="cover"]',
+    )!;
+    coverInput.getBoundingClientRect = () => new DOMRect(0, 0, 200, 24);
+    coverInput.dispatchEvent(
+      new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+        clientX: 20,
+        clientY: 12,
+      }),
+    );
+    await Promise.resolve();
+    document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
+      .item(4).click();
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(document.querySelector('[data-title-owner="form"]')).not.toBeNull();
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+    await unmount(component);
+    editor.destroy();
+  });
+
+  it.each([
+    [false, "after"],
+    [true, "before"],
+  ])(
+    "restores body selection and moves %s in the app owner",
+    async (shiftKey, expectedTarget) => {
+      const app = document.createElement("div");
+      app.className = "app";
+      document.body.append(app);
+      const before = document.createElement("button");
+      before.dataset.bodyAdjacent = "before";
+      app.append(before);
+      const editor = createEditor("This sentnce is editable.", app);
+      const after = document.createElement("button");
+      after.dataset.bodyAdjacent = "after";
+      app.append(after);
+      const titleInput = document.createElement("input");
+      titleInput.value = "Clean title";
+      app.append(titleInput);
+      const target = document.createElement("div");
+      app.append(target);
+      const component = mount(SpellingExperienceEditorAddon, {
+        target,
+        props: {
+          essay: createEmptyEssay("en"),
+          editor,
+          titleInput,
+          titleFormOpen: false,
+          title: titleInput.value,
+          doc: editor.getJSON(),
+          documentLanguage: "en",
+          onTitleChange: vi.fn(),
+          onEssayMutation: vi.fn(),
+          onOpenTitleForm: vi.fn(),
+          service: fakeService(),
+        },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      editor.view.dom.focus();
+      editor.view.dom.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "F7",
+          altKey: true,
+          bubbles: true,
+        }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const expectedSelection = {
+        from: editor.state.selection.from,
+        to: editor.state.selection.to,
+      };
+      document.querySelector<HTMLElement>('[role="menu"]')!.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Tab",
+          shiftKey,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      await Promise.resolve();
+      expect({
+        from: editor.state.selection.from,
+        to: editor.state.selection.to,
+      }).toEqual(expectedSelection);
+      expect(document.activeElement).toBe(
+        document.querySelector(`[data-body-adjacent="${expectedTarget}"]`),
+      );
+      await unmount(component);
+      editor.destroy();
+    },
+  );
 });

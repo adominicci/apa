@@ -28,6 +28,43 @@ function snapshot(overrides: Partial<SpellingAnalysisSnapshot> = {}) {
 }
 
 describe("unified spelling analysis controller", () => {
+  it("does not revive a debounced check after disabled invalidation", async () => {
+    vi.useFakeTimers();
+    const service: SpellingService = {
+      capability: vi.fn(() =>
+        asyncValue({
+          status: "available" as const,
+          language: "en" as const,
+          selectedLanguageTag: "en",
+        })
+      ),
+      check: vi.fn((input) =>
+        asyncValue({
+          status: "completed" as const,
+          requestId: input.text,
+          documentRevision: input.documentRevision,
+          selectedLanguageTag: "en",
+          issues: [],
+        })
+      ),
+    };
+    const states: string[] = [];
+    const controller = createSpellingController({
+      service,
+      read: snapshot,
+      debounceMs: 250,
+      onChange: (state) => states.push(state.status),
+    });
+    controller.schedule();
+    controller.invalidate("disabled");
+    expect(controller.state.status).toBe("idle");
+    await vi.advanceTimersByTimeAsync(251);
+    expect(service.capability).not.toHaveBeenCalled();
+    expect(service.check).not.toHaveBeenCalled();
+    expect(states).toEqual(["idle"]);
+    vi.useRealTimers();
+  });
+
   it("checks capability once, chunks sequentially, and publishes title first atomically", async () => {
     let active = 0;
     let maxActive = 0;

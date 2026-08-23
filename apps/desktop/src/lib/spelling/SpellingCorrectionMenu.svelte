@@ -55,6 +55,19 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
+    if (
+      ![
+        "ArrowDown",
+        "ArrowUp",
+        "Home",
+        "End",
+        "Enter",
+        " ",
+        "Escape",
+        "Tab",
+      ].includes(event.key)
+    ) return;
+    event.stopPropagation();
     switch (event.key) {
       case "ArrowDown":
         event.preventDefault();

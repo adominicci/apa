@@ -88,6 +88,25 @@ describe("essay spelling persistence", () => {
     );
   });
 
+  it.each([
+    {
+      spelling: {
+        personalDictionaries: { en: ["secret"] },
+        documentIgnores: { fr: ["mot"] },
+        unexpected: "payload",
+      },
+    },
+    { spelling: { unexpected: "payload", documentIgnores: {} } },
+    { spelling: { personalDictionaries: { en: ["secret"] } } },
+    { spelling: { documentIgnores: { fr: ["mot"] } } },
+    { spelling: { documentIgnores: { en: ["word"], extra: [] } } },
+  ])("rejects every unknown untrusted spelling key: %j", (patch) => {
+    const essay = Object.assign(createEmptyEssay("en"), patch);
+    expect(() => assertCanonicalEssaySpelling(essay as never)).toThrow(
+      /malformed essay\.spelling/,
+    );
+  });
+
   it("includes canonical document ignores in portable semantic identity", async () => {
     const plain = createEmptyEssay("en", "2026-08-22T00:00:00.000Z");
     const ignored = structuredClone(plain);

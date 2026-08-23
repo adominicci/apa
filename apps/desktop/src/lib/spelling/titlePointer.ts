@@ -33,10 +33,13 @@ export function titleOffsetAtPointer(
   ) return undefined;
 
   const style = getComputedStyle(input);
+  const layoutWidth = input.offsetWidth > 0 ? input.offsetWidth : rect.width;
+  const scaleX = input.offsetWidth > 0 ? rect.width / input.offsetWidth : 1;
+  if (!Number.isFinite(scaleX) || scaleX <= 0) return undefined;
   const leftInset = pixels(style.borderLeftWidth) + pixels(style.paddingLeft);
   const rightInset = pixels(style.borderRightWidth) +
     pixels(style.paddingRight);
-  const contentWidth = Math.max(0, rect.width - leftInset - rightInset);
+  const contentWidth = Math.max(0, layoutWidth - leftInset - rightInset);
   const textWidth = measureText(input.value, style);
   if (textWidth === undefined) return undefined;
 
@@ -54,8 +57,8 @@ export function titleOffsetAtPointer(
     : alignment === "right"
     ? unused
     : 0;
-  const target = point.clientX - rect.left - leftInset + input.scrollLeft -
-    alignedOffset;
+  const target = (point.clientX - rect.left) / scaleX - leftInset +
+    input.scrollLeft - alignedOffset;
   if (target <= 0) return 0;
   if (target >= textWidth) return input.value.length;
 
