@@ -14,6 +14,40 @@ import type {
 import WritingCoachStudy from "./WritingCoachStudy.svelte";
 
 const mounted: Array<Record<string, unknown>> = [];
+type EmptyCoachStatus = Exclude<CoachControllerState["status"], "issues">;
+const EMPTY_COACH_STATES = {
+  idle: { status: "idle", issues: [], fixed: null },
+  analyzing: { status: "analyzing", issues: [], fixed: null },
+  "no-current-issues": {
+    status: "no-current-issues",
+    issues: [],
+    fixed: null,
+  },
+  "unavailable-for-current-text": {
+    status: "unavailable-for-current-text",
+    issues: [],
+    fixed: null,
+  },
+} as const satisfies Record<EmptyCoachStatus, CoachControllerState>;
+const EMPTY_COACH_STATUSES = [
+  "idle",
+  "analyzing",
+  "no-current-issues",
+  "unavailable-for-current-text",
+] as const satisfies readonly EmptyCoachStatus[];
+
+function expectedStatusMessage(status: EmptyCoachStatus): string {
+  switch (status) {
+    case "idle":
+      return m.writing_coach_status_idle();
+    case "analyzing":
+      return m.writing_coach_status_analyzing();
+    case "no-current-issues":
+      return m.writing_coach_status_no_current();
+    case "unavailable-for-current-text":
+      return m.writing_coach_status_unavailable();
+  }
+}
 
 function issueState(
   documentLanguage: "en" | "es" = "en",
@@ -123,7 +157,17 @@ describe("dedicated Writing Coach Study workspace", () => {
       onNotHelpful: vi.fn(),
       onEditPassage: vi.fn(),
     };
-    render(issueState(), callbacks);
+    const state = issueState();
+    render(state, callbacks);
+    expect(
+      document.querySelector('[role="group"].issue-navigation')
+        ?.getAttribute("aria-label"),
+    ).toBe(
+      m.writing_coach_position({
+        position: state.fixed!.position,
+        total: state.fixed!.total,
+      }),
+    );
     button(m.writing_coach_previous()).click();
     button(m.writing_coach_next()).click();
     button(m.writing_coach_dismiss()).click();
@@ -264,20 +308,14 @@ describe("dedicated Writing Coach Study workspace", () => {
     expect(JSON.stringify(state)).toBe(serialized);
   });
 
-  it.each(
-    [
-      ["idle", m.writing_coach_status_idle()],
-      ["analyzing", m.writing_coach_status_analyzing()],
-      ["no-current-issues", m.writing_coach_status_no_current()],
-      ["unavailable-for-current-text", m.writing_coach_status_unavailable()],
-    ] as const,
-  )("renders the %s state distinctly", (status, expected) => {
-    const state = status === "analyzing"
-      ? { status, issues: [], fixed: null } as const
-      : { status, issues: [], fixed: null } as CoachControllerState;
-    render(state);
-    expect(document.querySelector("[data-coach-state]")?.textContent).toContain(
-      expected,
-    );
-  });
+  it.each(EMPTY_COACH_STATUSES)(
+    "renders the %s state distinctly",
+    (status) => {
+      render(EMPTY_COACH_STATES[status]);
+      expect(document.querySelector("[data-coach-state]")?.textContent)
+        .toContain(
+          expectedStatusMessage(status),
+        );
+    },
+  );
 });

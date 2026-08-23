@@ -1,5 +1,5 @@
 import type { Mapping } from "@tiptap/pm/transform";
-import { canonicalDescriptorIdentity } from "./types.ts";
+import { canonicalDescriptorIdentity, suppressionIdentity } from "./types.ts";
 import type {
   CoachSuppression,
   EditorRange,
@@ -29,23 +29,6 @@ export function mapCoachRange(
   return current;
 }
 
-function suppressionKey(
-  suppression: Omit<CoachSuppression, "identity">,
-): string {
-  return JSON.stringify({
-    kind: suppression.kind,
-    essayId: suppression.essayId,
-    documentLanguage: suppression.documentLanguage,
-    citationEnvironmentVersion: suppression.citationEnvironmentVersion,
-    from: suppression.editorRange.from,
-    to: suppression.editorRange.to,
-    sourceText: suppression.sourceText,
-    category: suppression.category,
-    explanationIdentity: suppression.explanationIdentity,
-    questionIdentity: suppression.questionIdentity,
-  });
-}
-
 export function createCoachSuppression(
   mapped: MappedCoachIssue,
   action: CoachSuppression["action"],
@@ -66,7 +49,7 @@ export function createCoachSuppression(
   };
   return Object.freeze({
     ...suppression,
-    identity: suppressionKey(suppression),
+    identity: suppressionIdentity(suppression),
   });
 }
 
@@ -80,7 +63,7 @@ export function mapCoachSuppression(
     return null;
   }
   const mapped = { ...suppression, editorRange };
-  return Object.freeze({ ...mapped, identity: suppressionKey(mapped) });
+  return Object.freeze({ ...mapped, identity: suppressionIdentity(mapped) });
 }
 
 export function suppressionMatchesIssue(

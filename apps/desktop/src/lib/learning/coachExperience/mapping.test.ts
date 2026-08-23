@@ -7,7 +7,11 @@ import {
   mapCoachSuppression,
   suppressionMatchesIssue,
 } from "./mapping.ts";
-import type { CoachPassageSnapshot, MappedCoachIssue } from "./types.ts";
+import {
+  type CoachPassageSnapshot,
+  type MappedCoachIssue,
+  suppressionIdentity,
+} from "./types.ts";
 
 const issue: WritingCoachIssue = {
   from: 0,
@@ -74,6 +78,13 @@ describe("ephemeral suppression identity", () => {
       const suppression = createCoachSuppression(mapped, action);
       expect(suppression.kind).toBe("coach-suppression");
       expect(suppression.identity).not.toBe(mapped.identity);
+      expect(suppression.identity).toBe(suppressionIdentity(suppression));
+      expect(
+        createCoachSuppression(
+          { ...mapped, generation: 9 },
+          action === "dismiss" ? "not-helpful" : "dismiss",
+        ).identity,
+      ).toBe(suppression.identity);
       expect("generation" in suppression).toBe(false);
       const shifted = mapCoachSuppression(
         suppression,
@@ -81,6 +92,7 @@ describe("ephemeral suppression identity", () => {
         (range) => range.from === 15 && range.to === 27 ? "in many ways" : "",
       );
       expect(shifted?.editorRange).toEqual({ from: 15, to: 27 });
+      expect(shifted?.identity).toBe(suppressionIdentity(shifted!));
       expect(
         suppressionMatchesIssue({
           ...mapped,

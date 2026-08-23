@@ -36,6 +36,7 @@ export interface CoachEditorBridge {
 interface CoachPluginState {
   readonly highlight: EditorRange | null;
   readonly decorations: DecorationSet;
+  readonly pendingTransaction: CoachEditorTransaction | null;
 }
 
 const coachPluginKey = new PluginKey<CoachPluginState>("tesinaWritingCoach");
@@ -45,9 +46,11 @@ const CLEAR_HIGHLIGHT = "tesina:coach-clear-highlight";
 function pluginState(
   doc: PMNode,
   highlight: EditorRange | null,
+  pendingTransaction: CoachEditorTransaction | null = null,
 ): CoachPluginState {
   return {
     highlight,
+    pendingTransaction,
     decorations: highlight
       ? DecorationSet.create(doc, [Decoration.inline(
         highlight.from,
@@ -81,7 +84,7 @@ export function createCoachEditorExtension(
                 transaction.docChanged || transaction.getMeta("apa:external") ||
                 (transaction.selectionSet && !requested);
               const highlight = requested ?? (clear ? null : prior.highlight);
-              bridge.onTransaction?.({
+              const pendingTransaction: CoachEditorTransaction = {
                 mapping: transaction.mapping,
                 doc: newState.doc,
                 docChanged: transaction.docChanged,
@@ -91,8 +94,8 @@ export function createCoachEditorExtension(
                 citationEnvironmentVersion: citationEnvironmentVersion(
                   newState,
                 ),
-              });
-              return pluginState(newState.doc, highlight);
+              };
+              return pluginState(newState.doc, highlight, pendingTransaction);
             },
           },
           props: {
@@ -100,6 +103,7 @@ export function createCoachEditorExtension(
           },
           view: (view) => {
             let capturedEssayId: string | null = null;
+            let emittedTransaction: CoachEditorTransaction | null = null;
             const handle: CoachEditorHandle = {
               capture(essayId) {
                 capturedEssayId = essayId;
@@ -159,7 +163,17 @@ export function createCoachEditorExtension(
               },
             };
             bridge.attach(handle);
-            return { destroy: () => bridge.attach(null) };
+            return {
+              update: (updatedView) => {
+                const pending = coachPluginKey.getState(updatedView.state)
+                  ?.pendingTransaction ?? null;
+                if (pending && pending !== emittedTransaction) {
+                  emittedTransaction = pending;
+                  bridge.onTransaction?.(pending);
+                }
+              },
+              destroy: () => bridge.attach(null),
+            };
           },
         }),
       ];

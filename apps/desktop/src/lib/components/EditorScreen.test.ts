@@ -459,6 +459,13 @@ describe("Write and Study workspace modes", () => {
     const editor = runtime.editors[0]!;
     const beforeJson = JSON.stringify(editor.getJSON());
     const beforeSelection = editor.state.selection.toJSON();
+    const mountedWriteStatus = document.querySelector(
+      "[data-coach-write-status]",
+    );
+    expect(mountedWriteStatus).not.toBeNull();
+    expect(mountedWriteStatus?.textContent).toBe("");
+    expect(document.querySelectorAll('[role="status"][aria-live="polite"]'))
+      .toHaveLength(1);
     [...document.querySelectorAll<HTMLButtonElement>(".coach-mode button")]
       .find((item) =>
         item.textContent?.trim() === m.writing_coach_mode_study()

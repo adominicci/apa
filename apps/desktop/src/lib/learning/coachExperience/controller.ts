@@ -349,7 +349,12 @@ export function createWritingCoachController(
       });
     },
     getSuppressions(): readonly CoachSuppression[] {
-      return suppressions;
+      return Object.freeze(suppressions.map((suppression) =>
+        Object.freeze({
+          ...suppression,
+          editorRange: Object.freeze({ ...suppression.editorRange }),
+        })
+      ));
     },
     async editCurrentPassage(
       showWrite: () => void | Promise<void>,

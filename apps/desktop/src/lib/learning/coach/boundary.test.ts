@@ -13,6 +13,10 @@ const COACH_DIR = new URL("./", import.meta.url);
 const COACH_EXPERIENCE_DIR = new URL("../coachExperience/", import.meta.url);
 const APP_SRC_DIR = new URL("../../../", import.meta.url);
 const TAURI_DIR = new URL("../../../../src-tauri/", import.meta.url);
+const ARCHIVED_TASKS = new URL(
+  "../../../../../../openspec/changes/archive/2026-08-23-add-writing-coach-experience/tasks.md",
+  import.meta.url,
+);
 
 async function sourceFiles(directory: URL): Promise<URL[]> {
   const result: URL[] = [];
@@ -35,6 +39,18 @@ async function readSourceFiles(directory: URL): Promise<SourceFile[]> {
 }
 
 describe("hidden coach module boundary", () => {
+  it("keeps the archived manual evidence link resolvable", async () => {
+    const tasks = await readFile(ARCHIVED_TASKS, "utf8");
+    const href = tasks.match(
+      /\[assistive-technology and overflow evidence\]\(([^)]+)\)/u,
+    )?.[1];
+    expect(href).toBeDefined();
+    const evidence = await readFile(new URL(href!, ARCHIVED_TASKS), "utf8");
+    expect(evidence).toContain(
+      "# LT-04 Writing Coach experience manual evidence",
+    );
+  });
+
   it("does not delegate deterministic ordering to locale collation", async () => {
     for (const file of ["normalization.ts", "unslopV1.ts"]) {
       const source = await readFile(new URL(file, COACH_DIR), "utf8");
@@ -98,28 +114,33 @@ describe("hidden coach module boundary", () => {
       "analytics",
       "quiz",
     ];
-    const files = (await readSourceFiles(COACH_EXPERIENCE_DIR)).filter((file) =>
-      !file.path.endsWith(".test.ts")
+    const files = (await readSourceFiles(APP_SRC_DIR)).filter((file) =>
+      !file.path.includes(".test.")
     );
-    const findings = files.flatMap((file) =>
-      forbidden.filter((token) => file.source.includes(token)).map((token) => ({
-        path: file.path,
-        token,
-      }))
-    );
-    expect(findings).toEqual([]);
+    const entryPoints = files.filter((file) =>
+      file.path.startsWith(COACH_EXPERIENCE_DIR.pathname)
+    ).map((file) => file.path);
+    expect(auditProductionImports(files, entryPoints, forbidden)).toEqual([]);
   });
 
   it("detects forbidden code in a transitively imported production helper", () => {
     const files: SourceFile[] = [
-      { path: "/coach/rules.ts", source: 'import "./helper.ts";' },
       {
-        path: "/coach/helper.ts",
+        path: "/app/coachExperience/controller.ts",
+        source: 'import "../shared/helper.ts";',
+      },
+      {
+        path: "/app/shared/helper.ts",
         source: 'export const load = () => fetch("https://example.invalid");',
       },
     ];
-    expect(auditProductionImports(files, ["/coach/rules.ts"], ["fetch("]))
-      .toEqual([{ path: "/coach/helper.ts", token: "fetch(" }]);
+    expect(
+      auditProductionImports(
+        files,
+        ["/app/coachExperience/controller.ts"],
+        ["fetch("],
+      ),
+    ).toEqual([{ path: "/app/shared/helper.ts", token: "fetch(" }]);
   });
 
   it("is registered only through the sanctioned desktop editor seams, never routes, state, or Tauri", async () => {

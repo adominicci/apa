@@ -8,21 +8,20 @@ import {
   type FixedCoachSession,
   type MappedCoachIssue,
   mappedIssueIdentity,
-  suppressionIdentity,
 } from "./types.ts";
 
 const engineIssue: WritingCoachIssue = {
   from: 1,
   to: 3,
-  observedText: "😀",
+  observedText: "\u{1F600}",
   category: "specificity",
   explanation: {
     id: "coach.specificity.explanation",
-    params: { observedText: "😀" },
+    params: { observedText: "\u{1F600}" },
   },
   learningQuestion: {
     id: "coach.specificity.question",
-    params: { observedText: "😀" },
+    params: { observedText: "\u{1F600}" },
   },
   source: "deterministic",
 };
@@ -34,7 +33,7 @@ const passage: CoachPassageSnapshot = {
   revision: 4,
   documentLanguage: "es",
   citationEnvironmentVersion: 12,
-  text: "A😀é",
+  text: "A\u{1F600}e\u0301",
   offsetMap: [10, 11, 12, 13, 14, 15],
   protectedSpans: [],
 };
@@ -69,7 +68,7 @@ describe("writing coach experience contracts", () => {
     expect(fixed.issue.kind).toBe("mapped-coach-issue");
   });
 
-  it("uses generation only for mapped issues and canonical descriptor parameters for suppressions", () => {
+  it("uses generation for mapped issues and canonical descriptor parameters", () => {
     const nextGeneration: MappedCoachIssue = {
       ...mappedIssue,
       generation: 8,
@@ -80,27 +79,12 @@ describe("writing coach experience contracts", () => {
     expect(
       canonicalDescriptorIdentity({
         id: "coach.specificity.explanation",
-        params: { z: "last", observedText: "😀", a: "first" },
+        params: { z: "last", observedText: "\u{1F600}", a: "first" },
       }),
     ).toBe(
       canonicalDescriptorIdentity({
         id: "coach.specificity.explanation",
-        params: { a: "first", observedText: "😀", z: "last" },
-      }),
-    );
-    expect(suppressionIdentity(mappedIssue)).toBe(
-      suppressionIdentity(nextGeneration),
-    );
-    expect(suppressionIdentity(mappedIssue)).not.toBe(
-      suppressionIdentity({
-        ...mappedIssue,
-        issue: {
-          ...engineIssue,
-          explanation: {
-            ...engineIssue.explanation,
-            params: { observedText: "changed" },
-          },
-        },
+        params: { a: "first", observedText: "\u{1F600}", z: "last" },
       }),
     );
   });

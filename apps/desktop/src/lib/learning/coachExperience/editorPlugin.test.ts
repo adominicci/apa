@@ -57,6 +57,32 @@ function createHarness(text: string) {
 afterEach(() => document.body.replaceChildren());
 
 describe("schema-free coach editor bridge", () => {
+  it("keeps discarded state application pure and emits an installed transaction once", () => {
+    const { editor, transactions } = createHarness(
+      "The policy changed during review.",
+    );
+    const transaction = editor.state.tr
+      .insertText("Earlier ", 2)
+      .setMeta("apa:external", true);
+    const installedState = editor.state.apply(transaction);
+
+    expect(transactions).toEqual([]);
+
+    editor.view.updateState(installedState);
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]).toEqual({
+      mapping: transaction.mapping,
+      doc: installedState.doc,
+      docChanged: true,
+      externalCitationRefresh: true,
+      citationEnvironmentVersion: 0,
+    });
+
+    editor.view.updateState(installedState);
+    expect(transactions).toHaveLength(1);
+    editor.destroy();
+  });
+
   it("captures exact passages and reports document and external citation transactions", () => {
     const { editor, handle, transactions } = createHarness(
       "The policy changed in many ways during review.",

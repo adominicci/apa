@@ -463,6 +463,23 @@ describe("fixed question-led sessions", () => {
 });
 
 describe("session-only suppressions", () => {
+  it("returns an immutable suppression view that cannot mutate controller state", async () => {
+    vi.useFakeTimers();
+    const controller = createWritingCoachController("essay-1");
+    controller.updateSnapshot(snapshot(1));
+    controller.enterStudy();
+    await vi.advanceTimersByTimeAsync(0);
+    controller.suppressCurrent("dismiss");
+
+    const exposed = controller.getSuppressions();
+    const expectedRange = { ...exposed[0]!.editorRange };
+    expect(Object.isFrozen(exposed)).toBe(true);
+    expect(Reflect.set(exposed[0]!.editorRange, "from", 0)).toBe(false);
+    expect(Reflect.deleteProperty(exposed, "0")).toBe(false);
+    expect(controller.getSuppressions()[0]?.editorRange).toEqual(expectedRange);
+    controller.destroy();
+  });
+
   it.each(["dismiss", "not-helpful"] as const)(
     "%s hides the current issue with no callback or generation identity",
     async (action) => {

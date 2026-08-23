@@ -931,14 +931,14 @@
     </div>
   </header>
 
-  {#if coachMode === "write" && coachNavigationStale}
+  {#if coachMode === "write"}
     <div
       class="coach-write-status"
       data-coach-write-status
       role="status"
       aria-live="polite"
       aria-atomic="true"
-    >{m.writing_coach_status_stale()}</div>
+    >{coachNavigationStale ? m.writing_coach_status_stale() : ""}</div>
   {/if}
 
   <div class="shell" class:study-mode={coachMode === "study"}>

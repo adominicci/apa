@@ -1,7 +1,6 @@
 import type { DocLocale } from "@tesina/engine";
 import type {
   CoachCategory,
-  CoachMessageDescriptor,
   ProtectedSpan,
   WritingCoachIssue,
 } from "../coach/types.ts";
@@ -112,22 +111,29 @@ export function mappedIssueIdentity(issue: MappedCoachIssue): string {
 }
 
 export function suppressionIdentity(
-  issue: Pick<MappedCoachIssue, "passage" | "issue" | "editorRange">,
+  suppression: Pick<
+    CoachSuppression,
+    | "kind"
+    | "essayId"
+    | "documentLanguage"
+    | "citationEnvironmentVersion"
+    | "editorRange"
+    | "sourceText"
+    | "category"
+    | "explanationIdentity"
+    | "questionIdentity"
+  >,
 ): string {
-  return canonicalJson({
-    kind: "coach-suppression",
-    essayId: issue.passage.essayId,
-    documentLanguage: issue.passage.documentLanguage,
-    citationEnvironmentVersion: issue.passage.citationEnvironmentVersion,
-    from: issue.editorRange.from,
-    to: issue.editorRange.to,
-    sourceText: issue.issue.observedText,
-    category: issue.issue.category,
-    explanation: canonicalDescriptorIdentity(
-      issue.issue.explanation as CoachMessageDescriptor,
-    ),
-    question: canonicalDescriptorIdentity(
-      issue.issue.learningQuestion as CoachMessageDescriptor,
-    ),
+  return JSON.stringify({
+    kind: suppression.kind,
+    essayId: suppression.essayId,
+    documentLanguage: suppression.documentLanguage,
+    citationEnvironmentVersion: suppression.citationEnvironmentVersion,
+    from: suppression.editorRange.from,
+    to: suppression.editorRange.to,
+    sourceText: suppression.sourceText,
+    category: suppression.category,
+    explanationIdentity: suppression.explanationIdentity,
+    questionIdentity: suppression.questionIdentity,
   });
 }

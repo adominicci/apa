@@ -104,7 +104,7 @@
         </p>
       </section>
 
-      <div class="issue-navigation" aria-label={m.writing_coach_position({
+      <div class="issue-navigation" role="group" aria-label={m.writing_coach_position({
         position: fixed.position,
         total: fixed.total,
       })}>
