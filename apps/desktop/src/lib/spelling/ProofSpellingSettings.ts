@@ -2,7 +2,8 @@ import type { DocLocale } from "@tesina/engine";
 import {
   addCanonicalTerm,
   canonicalizeStoredTerms,
-  isCanonicalStoredTerms,
+  canonicalizeTerm,
+  MAX_SPELLING_TERMS,
 } from "$lib/spelling/canonicalTerms";
 import type {
   DeviceSpellingSettings,
@@ -64,10 +65,20 @@ export function replacePersonalDictionary(
   language: DocLocale,
   terms: unknown,
 ): boolean {
-  if (!isCanonicalStoredTerms(terms, language)) return false;
+  if (!Array.isArray(terms)) return false;
+  const canonicalTerms: string[] = [];
+  const keys = new Set<string>();
+  for (const candidate of terms) {
+    const canonical = canonicalizeTerm(candidate, language);
+    if (!canonical) return false;
+    if (keys.has(canonical.key)) continue;
+    if (canonicalTerms.length >= MAX_SPELLING_TERMS) return false;
+    keys.add(canonical.key);
+    canonicalTerms.push(canonical.display);
+  }
   state.personalDictionaries = {
     ...state.personalDictionaries,
-    [language]: [...terms],
+    [language]: canonicalTerms,
   };
   return true;
 }

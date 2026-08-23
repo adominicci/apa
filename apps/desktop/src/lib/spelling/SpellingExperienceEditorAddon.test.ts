@@ -308,6 +308,106 @@ describe("real EditorScreen spelling addon", () => {
     editor.destroy();
   });
 
+  it("closes stale replacement menus and restores safe source selections without changing data", async () => {
+    const titleEditor = createEditor("Clean body");
+    const titleInput = document.createElement("input");
+    titleInput.value = "Wrng title";
+    titleInput.getBoundingClientRect = () => new DOMRect(0, 0, 200, 24);
+    document.body.append(titleInput);
+    const titleTarget = document.createElement("div");
+    document.body.append(titleTarget);
+    const titleComponent = mount(SpellingExperienceEditorAddon, {
+      target: titleTarget,
+      props: {
+        essay: createEmptyEssay("en"),
+        editor: titleEditor,
+        titleInput,
+        titleFormOpen: true,
+        title: titleInput.value,
+        doc: titleEditor.getJSON(),
+        documentLanguage: "en",
+        onTitleChange: vi.fn(),
+        onEssayMutation: vi.fn(),
+        onOpenTitleForm: vi.fn(),
+        service: fakeService(),
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    titleInput.dispatchEvent(
+      new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+        clientX: 20,
+        clientY: 12,
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const staleTitleSuggestion = document.querySelector<HTMLButtonElement>(
+      '[role="menuitem"]',
+    )!;
+    titleInput.value = "Abcd title";
+    staleTitleSuggestion.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+    expect(titleInput.value).toBe("Abcd title");
+    expect(document.activeElement).toBe(titleInput);
+    expect([titleInput.selectionStart, titleInput.selectionEnd]).toEqual([
+      0,
+      4,
+    ]);
+    await unmount(titleComponent);
+    titleEditor.destroy();
+
+    const bodyEditor = createEditor();
+    const cleanTitleInput = document.createElement("input");
+    cleanTitleInput.value = "Clean title";
+    document.body.append(cleanTitleInput);
+    const bodyTarget = document.createElement("div");
+    document.body.append(bodyTarget);
+    const bodyComponent = mount(SpellingExperienceEditorAddon, {
+      target: bodyTarget,
+      props: {
+        essay: createEmptyEssay("en"),
+        editor: bodyEditor,
+        titleInput: cleanTitleInput,
+        titleFormOpen: false,
+        title: cleanTitleInput.value,
+        doc: bodyEditor.getJSON(),
+        documentLanguage: "en",
+        onTitleChange: vi.fn(),
+        onEssayMutation: vi.fn(),
+        onOpenTitleForm: vi.fn(),
+        service: fakeService(),
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    bodyEditor.view.dom.focus();
+    bodyEditor.view.dom.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "F7", altKey: true, bubbles: true }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const { from, to } = bodyEditor.state.selection;
+    const staleBodySuggestion = document.querySelector<HTMLButtonElement>(
+      '[role="menuitem"]',
+    )!;
+    bodyEditor.view.updateState(
+      bodyEditor.state.apply(
+        bodyEditor.state.tr.insertText("altered", from, to),
+      ),
+    );
+    staleBodySuggestion.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+    expect(bodyEditor.getText()).toContain("altered");
+    expect(document.activeElement).toBe(bodyEditor.view.dom);
+    expect([bodyEditor.state.selection.from, bodyEditor.state.selection.to])
+      .toEqual([from, to]);
+    await unmount(bodyComponent);
+    bodyEditor.destroy();
+  });
+
   it("edits and clears both device dictionaries, opens the real title form seam, and tears down per essay", async () => {
     settings.personalDictionaries = { en: ["OldEnglish"], es: ["Viejo"] };
     const editor = createEditor("Clean body");
@@ -342,13 +442,14 @@ describe("real EditorScreen spelling addon", () => {
     const english = target.querySelector<HTMLTextAreaElement>(
       '[data-spelling-dictionary="en"]',
     )!;
-    english.value = "Alpha\nBeta";
+    english.value = " Cafe\u0301 \nCAFÉ\nBeta";
     english.dispatchEvent(new InputEvent("input", { bubbles: true }));
     const callsBeforeSave = vi.mocked(service.capability).mock.calls.length;
     target.querySelector<HTMLButtonElement>('[data-spelling-save="en"]')!
       .click();
     expect(settings.setPersonalDictionary).toHaveBeenCalledWith("en", [
-      "Alpha",
+      "Cafe\u0301",
+      "CAFÉ",
       "Beta",
     ]);
     await new Promise((resolve) => setTimeout(resolve, 350));

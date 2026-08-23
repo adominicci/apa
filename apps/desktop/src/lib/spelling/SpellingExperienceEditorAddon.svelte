@@ -162,6 +162,7 @@
           from: issue.from,
           to: issue.to,
         }).run();
+        editor?.view.focus();
       }
       if (direction === "restore" || !source) return;
       const owner = source.closest<HTMLElement>('[role="dialog"]') ??
@@ -194,7 +195,9 @@
     if (!issue) return;
     if (action.type === "replace") {
       if (issue.source === "body" && editor) {
-        if (replaceBodyIssue(editor, issue, controller.generation, action.suggestion, documentLanguage)) invalidate("body");
+        if (replaceBodyIssue(editor, issue, controller.generation, action.suggestion, documentLanguage)) {
+          invalidate("body");
+        } else closeMenu("restore");
       } else if (titleInput) {
         const result = replaceTitleIssue({
           input: titleInput,
@@ -206,6 +209,7 @@
         });
         if (result === "undo-unavailable") undoUnavailable = true;
         if (result === "replaced") invalidate("paper-title");
+        else if (result === "stale") closeMenu("restore");
       }
       return;
     }

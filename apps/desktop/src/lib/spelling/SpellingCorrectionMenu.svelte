@@ -107,10 +107,7 @@
 
   onMount(async () => {
     await tick();
-    const firstEnabled = itemElements().findIndex((item) =>
-      item.getAttribute("aria-disabled") !== "true"
-    );
-    focusIndex(firstEnabled < 0 ? 0 : firstEnabled);
+    focusIndex(0);
   });
 </script>
 
