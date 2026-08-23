@@ -39,6 +39,8 @@ const PATTERNS: Record<
 
 const escape = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&").replace(/\s+/gu, "\\s+");
+const compareLexically = (a: string, b: string): number =>
+  a < b ? -1 : a > b ? 1 : 0;
 
 export function auditUnslopV1(
   request: { text: string; contentLanguage: DocLocale },
@@ -84,7 +86,7 @@ export function auditUnslopV1(
     }
   }
   violations.sort((a, b) =>
-    a.from - b.from || a.to - b.to || a.code.localeCompare(b.code)
+    a.from - b.from || a.to - b.to || compareLexically(a.code, b.code)
   );
   return { policyVersion: UNSLOP_POLICY_VERSION, violations };
 }

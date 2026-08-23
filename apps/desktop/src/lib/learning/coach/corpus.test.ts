@@ -6,6 +6,7 @@ import {
 } from "./reviewMetadata.ts";
 import {
   COACH_CORPUS,
+  locateObservationRange,
   renderCoachMessage,
   REVIEWER_SLOTS,
 } from "./fixtures/index.ts";
@@ -67,6 +68,11 @@ describe("coach review inputs", () => {
 });
 
 describe("proposed bilingual corpus", () => {
+  it("fails fast when fixture authoring references absent text", () => {
+    expect(() => locateObservationRange("available text", "missing", "en"))
+      .toThrow("Corpus observation text not found");
+  });
+
   it("contains eight fixtures in every language and review-only cohort cell", () => {
     for (const language of ["en", "es"] as const) {
       for (
@@ -143,7 +149,8 @@ describe("proposed bilingual corpus", () => {
         expect(observations).toHaveLength(8);
         expect(
           observations.every(({ from, to }) =>
-            Number.isInteger(from) && from < to
+            Number.isInteger(from) && Number.isInteger(to) && from >= 0 &&
+            from < to
           ),
         ).toBe(true);
       }

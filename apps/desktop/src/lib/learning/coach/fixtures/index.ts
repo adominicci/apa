@@ -196,6 +196,21 @@ const WEAK_PARAGRAPHS = {
   },
 } as const;
 
+export function locateObservationRange(
+  text: string,
+  observed: string,
+  language: DocLocale,
+  last = false,
+): { from: number; to: number } {
+  const from = last
+    ? text.toLocaleLowerCase(language).lastIndexOf(observed)
+    : text.indexOf(observed);
+  if (observed.length === 0 || from < 0) {
+    throw new Error("Corpus observation text not found");
+  }
+  return { from, to: from + observed.length };
+}
+
 function weakFixture(language: DocLocale, index: number): CoachCorpusFixture {
   const paragraphs = WEAK_PARAGRAPHS[language];
   const odd = index % 2 === 1;
@@ -259,14 +274,11 @@ function weakFixture(language: DocLocale, index: number): CoachCorpusFixture {
     deIdentified: true,
     expectedClean: false,
     proposedObservations: observations.map(([category, observed, last]) => {
-      const from = last
-        ? text.toLocaleLowerCase(language).lastIndexOf(observed)
-        : text.indexOf(observed);
+      const range = locateObservationRange(text, observed, language, last);
       return {
         id: `${language}-${category}-${index + 1}`,
         category,
-        from,
-        to: from + observed.length,
+        ...range,
       };
     }),
   };

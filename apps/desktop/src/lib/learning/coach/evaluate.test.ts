@@ -165,7 +165,16 @@ describe("stable aggregate mechanics", () => {
     expect(aggregate.gates.some((gate) => gate.state === "pending-review"))
       .toBe(true);
     expect(PENDING_AGGREGATE_SNAPSHOT).toEqual(aggregate);
+    expect(Object.isFrozen(PENDING_AGGREGATE_SNAPSHOT.gates)).toBe(true);
+    expect(Object.isFrozen(PENDING_AGGREGATE_SNAPSHOT.gates[0])).toBe(true);
     expect(REVIEW_HANDOFF_BUNDLE.aggregateDigest).toBe(aggregate.digest);
+    expect(Object.isFrozen(REVIEW_HANDOFF_BUNDLE.corpusFixtures)).toBe(true);
+    expect(
+      Object.isFrozen(
+        REVIEW_HANDOFF_BUNDLE.submissionTemplates[0]
+          .expectedObservationDecisions,
+      ),
+    ).toBe(true);
     expect(
       REVIEW_HANDOFF_BUNDLE.reviewerSlots.every((slot) =>
         slot.reviewerId === null

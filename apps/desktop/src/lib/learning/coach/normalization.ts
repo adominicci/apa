@@ -33,6 +33,8 @@ const CATEGORY_ORDER = new Map(
 );
 const overlaps = (a: TextRange, b: TextRange): boolean =>
   a.from < b.to && b.from < a.to;
+const compareLexically = (a: string, b: string): number =>
+  a < b ? -1 : a > b ? 1 : 0;
 
 export function normalizeProtection(
   request: WritingCoachRequest,
@@ -147,7 +149,7 @@ export function normalizeCandidates<T extends Candidate>(
   }
   const ranked = [...exact.values()].sort((a, b) =>
     (a.to - a.from) - (b.to - b.from) || a.from - b.from || a.to - b.to ||
-    a.priority - b.priority || a.ruleId.localeCompare(b.ruleId)
+    a.priority - b.priority || compareLexically(a.ruleId, b.ruleId)
   );
   const retained: T[] = [];
   for (const candidate of ranked) {
@@ -162,6 +164,6 @@ export function normalizeCandidates<T extends Candidate>(
   return retained.sort((a, b) =>
     a.from - b.from || a.to - b.to ||
     CATEGORY_ORDER.get(a.category)! - CATEGORY_ORDER.get(b.category)! ||
-    a.ruleId.localeCompare(b.ruleId)
+    compareLexically(a.ruleId, b.ruleId)
   );
 }

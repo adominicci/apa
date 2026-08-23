@@ -34,6 +34,13 @@ async function readSourceFiles(directory: URL): Promise<SourceFile[]> {
 }
 
 describe("hidden coach module boundary", () => {
+  it("does not delegate deterministic ordering to locale collation", async () => {
+    for (const file of ["normalization.ts", "unslopV1.ts"]) {
+      const source = await readFile(new URL(file, COACH_DIR), "utf8");
+      expect(source, file).not.toContain(".localeCompare(");
+    }
+  });
+
   it("includes TSX files in application registration scans", async () => {
     const directory = await mkdtemp(
       resolve(tmpdir(), "tesina-coach-boundary-"),

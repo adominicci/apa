@@ -18,7 +18,15 @@ import {
   REVIEWER_SLOTS,
 } from "./fixtures/index.ts";
 
-export const PENDING_AGGREGATE_SNAPSHOT = Object.freeze(evaluateCorpus());
+function deepFreeze<T>(value: T): Readonly<T> {
+  if (value && typeof value === "object") {
+    Object.freeze(value);
+    for (const nested of Object.values(value)) deepFreeze(nested);
+  }
+  return value;
+}
+
+export const PENDING_AGGREGATE_SNAPSHOT = deepFreeze(evaluateCorpus());
 const requirements = createReviewRequirements();
 const submissionTemplates = ([1, 2] as const).map((slot) => ({
   slot,
@@ -36,7 +44,7 @@ const submissionTemplates = ([1, 2] as const).map((slot) => ({
   })),
 }));
 
-export const REVIEW_HANDOFF_BUNDLE = Object.freeze({
+export const REVIEW_HANDOFF_BUNDLE = deepFreeze({
   schemaVersion: "writing-coach-review-handoff-v1" as const,
   corpusVersion: COACH_CORPUS_VERSION,
   catalogVersion: COACH_RENDER_CATALOG_VERSION,
@@ -140,14 +148,6 @@ function assertSubmission(
       !["accept", "reject", "abstain"].includes(String(decision.decision))
     ) throw new Error(`Invalid observation decision: ${expectedReviewerId}`);
   }
-}
-
-function deepFreeze<T>(value: T): Readonly<T> {
-  if (value && typeof value === "object") {
-    Object.freeze(value);
-    for (const nested of Object.values(value)) deepFreeze(nested);
-  }
-  return value;
 }
 
 assertSubmission(br01Submission, 1, "BR-01");
