@@ -3,7 +3,7 @@
 ## Accepted source
 
 The tested implementation source is
-`18ab19bd541fd9ebb480a3224221df06c4b8d8c1`. This evidence-only record does
+`f52ba5c02a8e3355d18d62eca4816ac4eb23dd8a`. This evidence-only record does
 not relabel its later documentation commit as tested implementation source.
 
 LT-02 remains an internal proof. Ordinary production builds contain no
@@ -13,18 +13,24 @@ check call. The only selector is the exact compile-time input
 
 ## Automated editor evidence
 
-The final repository test run at the accepted source passed 1,732 tests with
-one intentional skip. The proof-only compile-time addon runs inside the real
-AppPage, EditorScreen, CoverSheet, TitlePageForm, Editor, and
-createTesinaEditor path. Its fake-service tests passed extraction and UTF-16
+The final repository test run at the accepted source passed 1,742 tests with
+one intentional skip. Dedicated proof and ordinary Vitest projects mount the
+real EditorScreen, CoverSheet, Editor, and createTesinaEditor path with the
+same compile-time spelling-addon selections as their corresponding builds;
+the proof project invokes the spelling service through the real addon, while
+the ordinary project renders no spelling status or service activity. Static
+build containment separately proves that AppPage selects this EditorScreen
+path. The fake-service tests passed extraction and UTF-16
 mapping, atomic title-and-body publication, source-safe replacement and undo,
 canonical autosave of document ignores, persisted device-dictionary enable,
 edit and clear behavior, essay teardown, title-form ownership, stale-menu
 closure, half-open pointer ranges, verified durable actions, bilingual
 document-language selection independent of the UI locale, correction-menu
 ordering, keyboard navigation, focus movement, and localized status behavior.
-The review-fix regressions additionally prove that ordinary settings writes
-omit spelling data, proof settings reject non-boolean enable values, malformed
+The review-fix regressions additionally prove that ordinary settings create no
+spelling data while structurally preserving an already-loaded inert spelling
+payload across unrelated writes and failed-write retries, proof settings reject
+non-boolean enable values, malformed
 optional spelling data is sanitized only on trusted local load, paper-title
 pointer targeting derives its UTF-16 caret from rendered coordinates, the
 correction menu is focused outside Modal's inert application subtree, title
@@ -47,6 +53,10 @@ programmatic title or body races close stale replacement menus, preserve the
 mutated source, and restore a safe exact source selection. These tests are not
 native-service or physical assistive-technology evidence.
 
+The final review regressions also prove that false or stale ignore-once,
+document-ignore, and personal-dictionary actions close their title or body menu,
+restore the exact source selection, and mutate no durable state.
+
 The PR review regressions also prove singular English and Spanish issue counts,
 transaction-mapped body decorations after edits before an issue, reset of a
 prior title-undo alert after a later successful correction, actual empty-array
@@ -60,9 +70,9 @@ The final static and runtime gates also passed:
 - Svelte check: 0 errors and 0 warnings;
 - Rust: 189 default tests and 192 tests with `spelling-ipc-test`;
 - `deno fmt --check` and `deno lint`;
-- ordinary production containment: 2,830,083 inspected text bytes and no LT-02
+- ordinary production containment: 2,830,312 inspected text bytes and no LT-02
   proof markers or spelling IPC call sites;
-- proof-positive containment: 2,857,506 inspected text bytes with the real app
+- proof-positive containment: 2,857,608 inspected text bytes with the real app
   and editor path plus every pinned proof marker and spelling IPC call site;
 - strict OpenSpec validation.
 
