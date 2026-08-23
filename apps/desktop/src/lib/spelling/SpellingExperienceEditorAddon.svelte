@@ -187,6 +187,7 @@
       mutate,
     });
     if (completed) invalidate(issue.source);
+    else closeMenu("restore");
     return completed;
   }
 
@@ -215,7 +216,7 @@
       return;
     }
     if (action.type === "ignore-once") {
-      applyDurableIssueAction({
+      const completed = applyDurableIssueAction({
         issue,
         generation: controller.generation,
         language: documentLanguage,
@@ -223,6 +224,7 @@
         editor,
         mutate: () => controller.ignoreOnce(issue),
       });
+      if (!completed) closeMenu("restore");
     } else if (action.type === "ignore-document") {
       completeDurableAction(issue, () => {
         const result = addDocumentIgnore(essay, issue.word, documentLanguage);

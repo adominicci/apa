@@ -3,12 +3,18 @@ import * as ordinary from "$lib/editor/NoopSpellingSettings";
 import * as proof from "$lib/spelling/ProofSpellingSettings";
 
 describe("compile-time spelling settings seam", () => {
-  it("omits spelling from ordinary settings serialization", () => {
-    const state = ordinary.loadSpellingSettings({
+  it("preserves loaded spelling inertly but creates none in ordinary settings", () => {
+    const spelling = {
       enabled: false,
       personalDictionaries: { en: ["word"] },
-    });
-    expect(ordinary.serializeSpellingSettings(state)).toBeUndefined();
+    };
+    const loaded = ordinary.loadSpellingSettings(spelling);
+    expect(ordinary.serializeSpellingSettings(loaded)).toEqual(spelling);
+    expect(
+      ordinary.serializeSpellingSettings(
+        ordinary.loadSpellingSettings(undefined),
+      ),
+    ).toBeUndefined();
   });
 
   it("serializes canonical spelling state only in the exact proof adapter", () => {

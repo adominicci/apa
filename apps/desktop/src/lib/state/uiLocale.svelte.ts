@@ -12,7 +12,7 @@ import {
   replacePersonalDictionary,
   serializeSpellingSettings,
 } from "$tesina-spelling-settings";
-import type { DeviceSpellingSettings } from "$lib/spelling/settingsAddon";
+import type { SpellingSettingsState } from "$lib/spelling/settingsAddon";
 
 const SETTINGS_FILE = "settings.json";
 
@@ -47,7 +47,7 @@ interface AppSettings {
   toolbarDock?: ToolbarDock;
   /** Additive (schema stays 1): absent means backup was never touched. */
   backup?: BackupUiSettings;
-  spelling?: DeviceSpellingSettings;
+  spelling?: unknown;
 }
 
 function sanitizeBackup(value: unknown): BackupUiSettings | undefined {
@@ -109,6 +109,9 @@ export class UiSettingsStore {
   #activeWrite: SettingsWriteAttempt | null = null;
   #activeFlush: Promise<void> | null = null;
   #notifyPersistenceDirty: (() => void) | null = null;
+  #spellingSettingsState: SpellingSettingsState = loadSpellingSettings(
+    undefined,
+  );
 
   constructor() {
     overwriteGetLocale(() => this.current);
@@ -122,6 +125,7 @@ export class UiSettingsStore {
       this.dock = parseDock(settings?.toolbarDock);
       this.backup = sanitizeBackup(settings?.backup);
       const spelling = loadSpellingSettings(settings?.spelling);
+      this.#spellingSettingsState = spelling;
       this.spellingEnabled = spelling.enabled;
       this.personalDictionaries = spelling.personalDictionaries;
     } catch (err) {
@@ -133,6 +137,7 @@ export class UiSettingsStore {
 
   #snapshot(): AppSettings {
     const spelling = serializeSpellingSettings({
+      ...this.#spellingSettingsState,
       enabled: this.spellingEnabled,
       personalDictionaries: this.personalDictionaries,
     });
@@ -144,7 +149,7 @@ export class UiSettingsStore {
       ...(this.backup
         ? { backup: $state.snapshot(this.backup) as BackupUiSettings }
         : {}),
-      ...(spelling ? { spelling } : {}),
+      ...(spelling === undefined ? {} : { spelling }),
     };
   }
 

@@ -5,14 +5,18 @@ import type {
   SpellingSettingsState,
 } from "$lib/spelling/settingsAddon";
 
-export function loadSpellingSettings(_value: unknown): SpellingSettingsState {
-  return { enabled: true, personalDictionaries: { en: [], es: [] } };
+export function loadSpellingSettings(value: unknown): SpellingSettingsState {
+  return {
+    enabled: true,
+    personalDictionaries: { en: [], es: [] },
+    ...(value === undefined ? {} : { preservedSerializedValue: value }),
+  };
 }
 
 export function serializeSpellingSettings(
-  _state: SpellingSettingsState,
-): DeviceSpellingSettings | undefined {
-  return undefined;
+  state: SpellingSettingsState,
+): DeviceSpellingSettings | unknown | undefined {
+  return state.preservedSerializedValue;
 }
 
 export function addPersonalTerm(

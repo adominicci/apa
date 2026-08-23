@@ -467,6 +467,109 @@ describe("real EditorScreen spelling addon", () => {
     bodyEditor.destroy();
   });
 
+  it.each(
+    [
+      ["paper-title", "ignore-once"],
+      ["paper-title", "ignore-document"],
+      ["paper-title", "add-personal"],
+      ["body", "ignore-once"],
+      ["body", "ignore-document"],
+      ["body", "add-personal"],
+    ] as const,
+  )(
+    "closes a stale %s %s menu and restores the source selection",
+    async (source, action) => {
+      const essay = createEmptyEssay("en");
+      const onEssayMutation = vi.fn();
+      const editor = createEditor();
+      const titleInput = document.createElement("input");
+      titleInput.value = source === "paper-title"
+        ? "Wrng title"
+        : "Clean title";
+      titleInput.getBoundingClientRect = () => new DOMRect(0, 0, 200, 24);
+      document.body.append(titleInput);
+      const target = document.createElement("div");
+      document.body.append(target);
+      const component = mount(SpellingExperienceEditorAddon, {
+        target,
+        props: {
+          essay,
+          editor,
+          titleInput,
+          titleFormOpen: source === "paper-title",
+          title: titleInput.value,
+          doc: editor.getJSON(),
+          documentLanguage: "en",
+          onTitleChange: vi.fn(),
+          onEssayMutation,
+          onOpenTitleForm: vi.fn(),
+          service: fakeService(),
+        },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 350));
+
+      if (source === "paper-title") {
+        titleInput.dispatchEvent(
+          new MouseEvent("contextmenu", {
+            bubbles: true,
+            cancelable: true,
+            clientX: 20,
+            clientY: 12,
+          }),
+        );
+      } else {
+        editor.view.dom.focus();
+        editor.view.dom.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "F7",
+            altKey: true,
+            bubbles: true,
+          }),
+        );
+      }
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const selection = source === "paper-title"
+        ? { from: 0, to: 4 }
+        : { from: editor.state.selection.from, to: editor.state.selection.to };
+
+      if (source === "paper-title") {
+        titleInput.value = "Abcd title";
+      } else {
+        editor.view.updateState(
+          editor.state.apply(
+            editor.state.tr.insertText("altered", selection.from, selection.to),
+          ),
+        );
+      }
+      document.querySelector<HTMLButtonElement>(
+        `[data-spelling-action="${action}"]`,
+      )!.click();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(document.querySelector('[role="menu"]')).toBeNull();
+      expect(onEssayMutation).not.toHaveBeenCalled();
+      expect(settings.addPersonalDictionaryTerm).not.toHaveBeenCalled();
+      expect(essay.spelling).toBeUndefined();
+      if (source === "paper-title") {
+        expect(document.activeElement).toBe(titleInput);
+        expect([titleInput.selectionStart, titleInput.selectionEnd]).toEqual([
+          selection.from,
+          selection.to,
+        ]);
+      } else {
+        expect(document.activeElement).toBe(editor.view.dom);
+        expect({
+          from: editor.state.selection.from,
+          to: editor.state.selection.to,
+        }).toEqual(selection);
+      }
+
+      await unmount(component);
+      editor.destroy();
+    },
+  );
+
   it("clears a prior title-undo alert when a later correction succeeds", async () => {
     const editor = createEditor("Clean body");
     const titleInput = document.createElement("input");

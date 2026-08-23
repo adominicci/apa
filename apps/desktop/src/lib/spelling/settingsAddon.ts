@@ -11,6 +11,8 @@ export interface DeviceSpellingSettings {
 export interface SpellingSettingsState {
   enabled: boolean;
   personalDictionaries: Record<DocLocale, string[]>;
+  /** Opaque value retained by the ordinary compile-time adapter only. */
+  preservedSerializedValue?: unknown;
 }
 
 export type DictionaryMutationStatus =
