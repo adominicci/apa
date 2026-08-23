@@ -174,6 +174,7 @@ export function createWritingCoachController(
     },
     updateSnapshot(next: CoachAnalysisSnapshot): void {
       if (destroyed || next.essayId !== essayId) return;
+      if (current && sameIdentity(current, next)) return;
       const invalidatesFixed = current !== null &&
         (current.documentLanguage !== next.documentLanguage ||
           current.citationEnvironmentVersion !==
@@ -190,7 +191,14 @@ export function createWritingCoachController(
       if (destroyed) return;
       studyActive = true;
       if (armed) {
-        if (state.fixed === null && state.issues.length > 0) {
+        const currentSnapshot = current;
+        const retainedIssuesAreCurrent = currentSnapshot !== null &&
+          state.issues.length > 0 &&
+          state.issues.every((issue) =>
+            issue.generation === generation &&
+            currentSnapshot.passages.includes(issue.passage)
+          );
+        if (state.fixed === null && retainedIssuesAreCurrent) {
           setState({
             status: "issues",
             issues: state.issues,

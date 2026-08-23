@@ -340,11 +340,42 @@ describe("fixed question-led sessions", () => {
     controller.leaveStudy();
     expect(controller.getState().fixed).toBeNull();
     expect(controller.getSuppressions()).toEqual(suppressions);
+    controller.updateSnapshot(snapshot(
+      1,
+      "It is important to note that the policy changed in many ways in order to complete review.",
+    ));
 
     controller.enterStudy();
     expect(controller.getState().fixed?.position).toBe(1);
     expect(controller.getState().fixed).not.toBe(prior);
     expect(controller.getSuppressions()).toEqual(suppressions);
+    controller.destroy();
+  });
+
+  it("does not restore old-revision issues while replacement analysis is pending", async () => {
+    vi.useFakeTimers();
+    const controller = createWritingCoachController("essay-1");
+    controller.updateSnapshot(snapshot(1));
+    controller.enterStudy();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(controller.getState().fixed?.issue.passage.revision).toBe(1);
+
+    controller.leaveStudy();
+    controller.updateSnapshot(
+      snapshot(2, "Various aspects shaped the revised policy."),
+    );
+    controller.enterStudy();
+
+    expect(controller.getState().status).toBe("analyzing");
+    expect(controller.getState().fixed).toBeNull();
+    expect(controller.getState().issues[0]?.passage.revision).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(300);
+    expect(controller.getState().status).toBe("issues");
+    expect(controller.getState().fixed?.issue.passage.revision).toBe(2);
+    expect(controller.getState().fixed?.issue.issue.observedText).toBe(
+      "Various aspects",
+    );
     controller.destroy();
   });
 
