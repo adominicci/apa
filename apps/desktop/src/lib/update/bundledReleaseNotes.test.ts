@@ -7,13 +7,13 @@ import {
 
 describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
-    const expectedNotes = `### Changed
+    const expectedNotes = `### Added
 
-- Internal groundwork adds a hidden deterministic English and Spanish
-  writing-coach engine, offline quality evaluator, and generated-text style
-  audit. No editor controls or model features are enabled.`;
+- A local English and Spanish Study workspace offers deterministic,
+  question-led writing feedback without changing the paper automatically or
+  acting as APA authority.`;
 
-    expect(bundledReleaseNotes.version).toBe("0.1.22");
+    expect(bundledReleaseNotes.version).toBe("0.1.23");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");
