@@ -5,6 +5,14 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.22] - 2026-08-23
+
+### Changed
+
+- Internal groundwork adds a hidden deterministic English and Spanish
+  writing-coach engine, offline quality evaluator, and generated-text style
+  audit. No editor controls or model features are enabled.
+
 ## [0.1.21] - 2026-08-22
 
 ### Changed
@@ -336,7 +344,8 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.21...HEAD
+[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.22...HEAD
+[0.1.22]: https://github.com/adominicci/tesina/compare/v0.1.21...v0.1.22
 [0.1.21]: https://github.com/adominicci/tesina/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/adominicci/tesina/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/adominicci/tesina/compare/v0.1.18...v0.1.19

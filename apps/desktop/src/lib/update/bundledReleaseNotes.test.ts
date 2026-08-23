@@ -9,12 +9,11 @@ describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
     const expectedNotes = `### Changed
 
-- Internal editor proof work adds deterministic English and Spanish spelling
-  extraction, student-approved corrections, scoped ignore lists, and an
-  accessible correction menu. Ordinary release builds still contain no
-  spelling controls or native spelling calls pending the final physical gate.`;
+- Internal groundwork adds a hidden deterministic English and Spanish
+  writing-coach engine, offline quality evaluator, and generated-text style
+  audit. No editor controls or model features are enabled.`;
 
-    expect(bundledReleaseNotes.version).toBe("0.1.21");
+    expect(bundledReleaseNotes.version).toBe("0.1.22");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");
