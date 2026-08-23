@@ -92,6 +92,36 @@ function fakeService(): SpellingService {
   };
 }
 
+function twoBodyIssueService(): SpellingService {
+  return {
+    capability: vi.fn((language) =>
+      Promise.resolve({
+        status: "available" as const,
+        language,
+        selectedLanguageTag: language,
+      })
+    ),
+    check: vi.fn((input) => {
+      const issues = ["sentnce", "editabl"].flatMap((word) => {
+        const index = input.text.indexOf(word);
+        return index < 0 ? [] : [{
+          from: input.documentStart + index,
+          to: input.documentStart + index + word.length,
+          word,
+          suggestions: [`${word}x`],
+        }];
+      });
+      return Promise.resolve({
+        status: "completed" as const,
+        requestId: input.text,
+        documentRevision: input.documentRevision,
+        selectedLanguageTag: input.language,
+        issues,
+      });
+    }),
+  };
+}
+
 function twoTitleIssueService(dropSecondOnRecheck = false): SpellingService {
   let titleChecks = 0;
   return {
@@ -472,16 +502,21 @@ describe("real EditorScreen spelling addon", () => {
       ["paper-title", "ignore-once"],
       ["paper-title", "ignore-document"],
       ["paper-title", "add-personal"],
+      ["paper-title", "next"],
       ["body", "ignore-once"],
       ["body", "ignore-document"],
       ["body", "add-personal"],
+      ["body", "next"],
     ] as const,
   )(
     "closes a stale %s %s menu and restores the source selection",
     async (source, action) => {
       const essay = createEmptyEssay("en");
       const onEssayMutation = vi.fn();
-      const editor = createEditor();
+      const hasTwoBodyIssues = source === "body" && action === "next";
+      const editor = createEditor(
+        hasTwoBodyIssues ? "This sentnce is editabl." : undefined,
+      );
       const titleInput = document.createElement("input");
       titleInput.value = source === "paper-title"
         ? "Wrng title"
@@ -503,7 +538,7 @@ describe("real EditorScreen spelling addon", () => {
           onTitleChange: vi.fn(),
           onEssayMutation,
           onOpenTitleForm: vi.fn(),
-          service: fakeService(),
+          service: hasTwoBodyIssues ? twoBodyIssueService() : fakeService(),
         },
       });
       await new Promise((resolve) => setTimeout(resolve, 350));

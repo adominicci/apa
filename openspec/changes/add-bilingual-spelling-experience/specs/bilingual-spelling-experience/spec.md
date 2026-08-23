@@ -60,7 +60,7 @@ Tesina SHALL indicate each body and title issue without relying on color alone. 
 
 The popup SHALL use `role="menu"`. Suggestions SHALL appear first as `role="menuitem"` in native order, followed by `role="separator"`, Ignore once, Ignore in this document, Add to personal dictionary, another separator, and Next spelling issue. When suggestions are empty, one disabled No suggestions menuitem SHALL occupy the suggestion position. Add to personal dictionary and Next spelling issue SHALL expose `aria-disabled="true"` when unavailable. Disabled items remain arrow-focusable but MUST NOT activate.
 
-Arrow Down and Arrow Up SHALL move focus with wraparound among menuitems. Home and End SHALL move to the first and last menuitem. Enter and Space SHALL activate an enabled item. Escape SHALL close without action and restore the affected source's focus and selection. Tab or Shift+Tab SHALL close without action, restore the source selection, and then move to the next or previous focusable control rather than trap focus. A completed action SHALL restore the body selection and editor focus or the title input selection and focus unless the action intentionally navigates to the next issue. Live status MUST NOT announce every keystroke or background result.
+Arrow Down and Arrow Up SHALL move focus with wraparound among menuitems. Home and End SHALL move to the first and last menuitem. Enter and Space SHALL activate an enabled item. Escape SHALL close without action and restore the affected source's focus and selection. Tab or Shift+Tab SHALL close without action, restore the source selection, and then move to the next or previous focusable control rather than trap focus. Before Next spelling issue navigates, Tesina SHALL verify the current menu issue's source, generation, range, normalized term, and exact substring; a stale failure SHALL close or refresh the menu and restore the current source without navigating. A completed action SHALL restore the body selection and editor focus or the title input selection and focus unless the action intentionally navigates to the next issue. Live status MUST NOT announce every keystroke or background result.
 
 #### Scenario: Keyboard user opens a body issue
 - **WHEN** a keyboard user presses `Alt+F7` and a current body issue exists
@@ -78,16 +78,28 @@ Arrow Down and Arrow Up SHALL move focus with wraparound among menuitems. Home a
 - **WHEN** the menu is open for a paper-title issue and the user presses Escape
 - **THEN** Tesina closes the menu and restores the exact title-input selection and focus
 
+#### Scenario: Source changes before Next activates
+- **WHEN** a body or paper-title mutation makes the open menu issue stale before the student chooses Next spelling issue
+- **THEN** Tesina does not navigate, closes or refreshes the stale menu, and restores the affected source focus and selection
+
 ### Requirement: Every replacement is source-specific and student-approved
-Tesina SHALL offer suggestions without automatic correction. Before replacement, it SHALL confirm the current issue's source, analysis generation, mapped range, normalized term, and exact current substring. A body replacement SHALL dispatch one ordinary ProseMirror transaction and remain undoable through editor history. A paper-title replacement SHALL change only the verified title-input range through the canonical title mutation and autosave path and preserve the title field's normal editing undo behavior. A stale verification failure SHALL close or refresh the menu without changing either source. Tesina MUST NOT add autocorrect, automatic replacement, grammar checking, or style advice.
+Tesina SHALL offer suggestions without automatic correction. Before replacement, it SHALL confirm the current issue's source, analysis generation, mapped range, normalized term, and exact current substring. A body replacement SHALL dispatch one ordinary ProseMirror transaction and remain undoable through editor history. A paper-title replacement SHALL change only the verified title-input range through that input's existing owner and preserve the title field's normal editing undo behavior. When the title form is closed, the cover-title owner SHALL apply the canonical essay mutation and schedule autosave immediately. When `TitlePageForm` is open, replacement SHALL change only its draft; normal Save SHALL commit that draft through the canonical essay mutation and autosave owner, while Close SHALL discard it. A stale verification failure SHALL close or refresh the menu without changing either source. Tesina MUST NOT add autocorrect, automatic replacement, grammar checking, or style advice.
 
 #### Scenario: Student replaces one body occurrence
 - **WHEN** the student selects a suggestion for one of two matching current body issues
 - **THEN** Tesina replaces only the approved range and normal editor undo restores its original text
 
-#### Scenario: Student replaces a paper-title issue
-- **WHEN** the paper-title generation, range, normalized term, and substring still match and the student selects a suggestion
-- **THEN** Tesina replaces only that title substring, schedules normal essay persistence, invalidates the generation, and preserves title-field undo behavior
+#### Scenario: Student replaces a cover-title issue while the form is closed
+- **WHEN** the paper-title generation, range, normalized term, and substring still match, the title form is closed, and the student selects a suggestion
+- **THEN** Tesina replaces only that title substring through the canonical essay owner, schedules normal essay persistence, invalidates the generation, and preserves title-field undo behavior
+
+#### Scenario: Student saves a correction made in the open title form
+- **WHEN** the student replaces a verified paper-title issue while `TitlePageForm` is open and then chooses Save
+- **THEN** Tesina keeps the replacement in the form draft until Save commits it through the canonical essay mutation and autosave owner
+
+#### Scenario: Student closes the title form after a correction
+- **WHEN** the student replaces a verified paper-title issue while `TitlePageForm` is open and then chooses Close without saving
+- **THEN** Tesina discards the corrected draft and leaves the canonical essay title unchanged
 
 #### Scenario: Paper title changed after the menu opened
 - **WHEN** any paper-title mutation makes an open action stale
@@ -159,7 +171,7 @@ Tesina SHALL clear stale issues before a new generation runs. If capability is `
 
 #### Scenario: One sequential chunk reports busy
 - **WHEN** earlier chunks completed but a later current-generation chunk reports busy
-- **THEN** Tesina discards the whole unpublished batch, shows busy rather than issue-free, and schedules one current-generation recheck
+- **THEN** Tesina discards the whole unpublished batch, shows busy rather than issue-free, and schedules one current-generation recheck without repeating the generation's available capability call
 
 #### Scenario: Superseded batch is cancelled
 - **WHEN** body or title mutation supersedes and cancels the active batch

@@ -55,6 +55,11 @@ export function createSpellingController(options: ControllerOptions) {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let destroyed = false;
   let busyRetryGeneration: number | null = null;
+  let capabilityCache: {
+    generation: number;
+    language: DocumentLanguage;
+    promise: ReturnType<SpellingService["capability"]>;
+  } | null = null;
   const contextId = options.contextId ?? crypto.randomUUID();
   const ignoredOnce = new Set<string>();
   const state: SpellingExperienceState = { status: "idle", issues: [] };
@@ -87,6 +92,7 @@ export function createSpellingController(options: ControllerOptions) {
     active = null;
     ignoredOnce.clear();
     busyRetryGeneration = null;
+    capabilityCache = null;
     publish("idle");
   };
 
@@ -102,9 +108,17 @@ export function createSpellingController(options: ControllerOptions) {
     const currentGeneration = generation;
     const snapshot = options.read();
     publish("checking", [], snapshot.documentLanguage);
-    const capability = await options.service.capability(
-      snapshot.documentLanguage,
-    );
+    if (
+      capabilityCache?.generation !== currentGeneration ||
+      capabilityCache.language !== snapshot.documentLanguage
+    ) {
+      capabilityCache = {
+        generation: currentGeneration,
+        language: snapshot.documentLanguage,
+        promise: options.service.capability(snapshot.documentLanguage),
+      };
+    }
+    const capability = await capabilityCache.promise;
     if (destroyed || abort.signal.aborted || generation !== currentGeneration) {
       return;
     }
@@ -226,6 +240,7 @@ export function createSpellingController(options: ControllerOptions) {
       if (timer) clearTimeout(timer);
       timer = null;
       ignoredOnce.clear();
+      capabilityCache = null;
       publish("idle");
     },
   };

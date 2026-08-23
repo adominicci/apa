@@ -5,7 +5,7 @@ LT-01 proved a hidden bilingual spelling service, but students still cannot see 
 ## What Changes
 
 - Add spelling indications and a keyboard-accessible correction journey to the current editor writing surface.
-- Let students review suggestions, replace the selected range, ignore an occurrence, ignore a term in one document, add terms to a device-local personal dictionary, and move to the next issue.
+- Let students review suggestions, replace the selected range through its current editor owner (immediate canonical cover-title mutation when the title form is closed, or draft-only mutation followed by normal Save or Close behavior when it is open), ignore an occurrence, ignore a term in one document, add terms to a device-local personal dictionary, and move to the next issue.
 - Persist document ignores as optional schema-version-2 essay data and persist spelling preferences and English or Spanish personal dictionaries in additive schema-version-1 device settings.
 - Analyze ProseMirror body text and the external paper title under one generation, publish only complete bounded batches, and reject stale source-qualified actions.
 - Recheck with the essay's document language, cancel checks when their editor context ends, and show localized capability guidance when the required system dictionary is missing.

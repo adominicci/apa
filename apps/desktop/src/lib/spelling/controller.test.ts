@@ -221,6 +221,54 @@ describe("unified spelling analysis controller", () => {
     }
   });
 
+  it("reuses one available capability result for the allowed busy retry", async () => {
+    vi.useFakeTimers();
+    let checks = 0;
+    const service: SpellingService = {
+      capability: vi.fn(() =>
+        asyncValue({
+          status: "available" as const,
+          language: "en" as const,
+          selectedLanguageTag: "en",
+        })
+      ),
+      check: vi.fn((input) => {
+        checks += 1;
+        return asyncValue(
+          checks === 1
+            ? {
+              status: "busy" as const,
+              requestId: "busy",
+              documentRevision: input.documentRevision,
+              code: "busy" as const,
+            }
+            : {
+              status: "completed" as const,
+              requestId: input.text,
+              documentRevision: input.documentRevision,
+              selectedLanguageTag: "en",
+              issues: [],
+            },
+        );
+      }),
+    };
+    const controller = createSpellingController({
+      service,
+      read: snapshot,
+      debounceMs: 25,
+    });
+
+    await controller.checkNow();
+    expect(controller.state.status).toBe("busy");
+    await vi.advanceTimersByTimeAsync(26);
+
+    expect(service.capability).toHaveBeenCalledTimes(1);
+    expect(service.check).toHaveBeenCalledTimes(3);
+    expect(controller.state.status).toBe("issue-free");
+    controller.destroy();
+    vi.useRealTimers();
+  });
+
   it("keeps Ignore once occurrence-specific and drops it across source mutations", async () => {
     const service: SpellingService = {
       capability: () =>

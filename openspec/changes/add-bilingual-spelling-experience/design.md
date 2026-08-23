@@ -59,7 +59,7 @@ Parallel `Promise.all` chunking was rejected because LT-01's `latestByContext` b
 
 ### Verify and mutate each source through its owner
 
-Before any action, the controller verifies the issue source, generation, range, term key, and current substring. Body replacement dispatches one ProseMirror transaction, preserving normal editor undo. Title replacement acts on the focused title input's verified range and then uses the existing title mutation and autosave path. Tests must prove the input retains its normal undo behavior. If WKWebView or WebView2 cannot preserve it, implementation stops for a design challenge rather than shipping a weaker title action.
+Before any action, the controller verifies the issue source, generation, range, term key, and current substring. Body replacement dispatches one ProseMirror transaction, preserving normal editor undo. Title replacement acts on the focused title input's verified range through its existing owner. When the title form is closed, the cover-title owner applies the canonical essay mutation and schedules autosave immediately. When `TitlePageForm` is open, replacement changes only its draft; normal Save commits that draft through the canonical essay mutation and autosave owner, while Close discards it. Tests must prove both ownership paths and that the input retains its normal undo behavior. If WKWebView or WebView2 cannot preserve it, implementation stops for a design challenge rather than shipping a weaker title action.
 
 Ignore once is an in-memory set keyed by the full issue identity. Any body or title mutation drops the prior generation's set. Document and personal ignores use the normalized term key and current document language, then trigger a complete new generation.
 

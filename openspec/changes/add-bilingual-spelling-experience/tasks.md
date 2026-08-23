@@ -29,11 +29,11 @@
 ## 4. Implement source-safe actions with TDD
 
 - [x] 4.1 Add failing body-action tests that verify source, generation, range, normalized term, and substring before replacement, change only one occurrence, and restore it through normal ProseMirror undo.
-- [x] 4.2 Add failing title-action tests for exact stale verification, range-only replacement through the canonical title mutation and autosave path, title-input undo, ignore actions, cancellation, full-generation invalidation, recheck, and focus-selection restoration.
+- [x] 4.2 Add failing title-action tests for exact stale verification, range-only replacement through the closed cover title's canonical mutation and autosave path, open-form draft replacement whose normal Save commits and Close discards, title-input undo, ignore actions, cancellation, full-generation invalidation, recheck, and focus-selection restoration.
 - [x] 4.3 Implement source-specific replacement and stale-action rejection; stop for a design challenge if either webview cannot preserve normal title-input undo.
 - [x] 4.4 Add failing Ignore-once tests keyed by source, generation, mapped range, and normalized term, including invalidation after a mutation in the other source.
 - [x] 4.5 Add failing document-ignore and personal-dictionary tests proving language scope, title and body filtering, complete recheck, distinct persistence ownership, and edit or clear behavior.
-- [x] 4.6 Implement Ignore once, Ignore in this document, Add to personal dictionary, and Next spelling issue without autocorrect, grammar, style, model, or network behavior.
+- [x] 4.6 Implement Ignore once, Ignore in this document, Add to personal dictionary, and source-verified Next spelling issue without autocorrect, grammar, style, model, or network behavior.
 
 ## 5. Pin and implement the accessible menu
 

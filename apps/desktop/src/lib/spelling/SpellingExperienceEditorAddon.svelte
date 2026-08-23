@@ -236,7 +236,18 @@
         const status = uiLocale.addPersonalDictionaryTerm(issue.word, documentLanguage);
         return status !== "invalid" && status !== "overflow";
       });
-    } else void openIssue(controller.nextIssue(issue), true);
+    } else {
+      const current = applyDurableIssueAction({
+        issue,
+        generation: controller.generation,
+        language: documentLanguage,
+        titleInput,
+        editor,
+        mutate: () => true,
+      });
+      if (current) void openIssue(controller.nextIssue(issue), true);
+      else closeMenu("restore");
+    }
   }
 
   function statusText() {
