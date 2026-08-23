@@ -136,6 +136,36 @@ describe("dedicated Writing Coach Study workspace", () => {
     expect(callbacks.onEditPassage).toHaveBeenCalledOnce();
   });
 
+  it("keeps the primary Edit hover high-contrast and distinct from focus", async () => {
+    render(issueState());
+    expect(button(m.writing_coach_edit_passage()).classList).toContain(
+      "primary",
+    );
+    const css = await readFile(
+      fileURLToPath(
+        new NodeURL("./WritingCoachStudy.svelte", import.meta.url),
+      ),
+      "utf8",
+    );
+    const genericHover = css.indexOf("button:hover:not(:disabled)");
+    const primaryHover = css.indexOf("button.primary:hover:not(:disabled)");
+    const primaryHoverRule = css.slice(
+      primaryHover,
+      css.indexOf("}", primaryHover) + 1,
+    );
+    const focusRule = css.slice(
+      css.indexOf("button:focus-visible"),
+      css.indexOf("}", css.indexOf("button:focus-visible")) + 1,
+    );
+
+    expect(genericHover).toBeGreaterThan(-1);
+    expect(primaryHover).toBeGreaterThan(genericHover);
+    expect(primaryHoverRule).toContain("background: var(--accent-hover)");
+    expect(primaryHoverRule).toContain("color: var(--accent-on)");
+    expect(primaryHoverRule).not.toContain("outline");
+    expect(focusRule).toContain("outline: 3px solid var(--accent)");
+  });
+
   it("uses one polite announcement, semantic emphasis, and a named stale status", () => {
     render(issueState(), {}, true);
     const liveRegions = document.querySelectorAll(

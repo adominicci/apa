@@ -176,7 +176,8 @@
   button:hover:not(:disabled) { background: var(--hover); }
   button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   button:disabled { cursor: default; opacity: 0.45; }
-  button.primary { margin-left: auto; border-color: var(--accent); background: var(--accent); color: white; }
+  button.primary { margin-left: auto; border-color: var(--accent); background: var(--accent); color: var(--accent-on); }
+  button.primary:hover:not(:disabled) { border-color: var(--accent-hover); background: var(--accent-hover); color: var(--accent-on); }
   .state-card { display: flex; align-items: center; gap: 14px; min-height: 120px; }
   .state-card p { margin-bottom: 0; }
   .state-symbol { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border: 2px solid currentColor; border-radius: 50%; font-weight: 800; }
