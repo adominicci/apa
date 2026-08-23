@@ -114,7 +114,7 @@ function essay(): Essay {
   };
 }
 
-afterEach(async () => {
+afterEach(() => {
   for (const editor of runtime.editors) editor.destroy();
   runtime.editors = [];
   runtime.persist.mockReset();
