@@ -58,5 +58,5 @@
 - [x] 7.1 Run focused Vitest targets while iterating, apply the Svelte autofixer to changed components, and resolve every functional or accessibility diagnostic without weakening the contract.
 - [x] 7.2 Update synchronized versions, CHANGELOG, README, and delivery-plan status for the approved `main` change while stating that default production spelling remains absent pending the final physical gate.
 - [x] 7.3 Run `deno task check`, `deno task test`, applicable Rust tests, `deno fmt --check`, `deno lint`, both production-negative and proof-positive containment checks, and `openspec validate add-bilingual-spelling-experience --strict` on the final source head.
-- [ ] 7.4 Record fake-service editor UI evidence and hosted packaged native evidence as separate layers with exact source, runs, artifact identities, and hashes.
-- [ ] 7.5 Record physical keyboard, non-color, VoiceOver, and Narrator testing as deferred and mandatory on macOS 12 Intel, Windows 10 x64, Windows 11 x64, and separate Windows missing-dictionary environments; automated components, hosted CI, and constructed installers do not satisfy it.
+- [x] 7.4 Record fake-service editor UI evidence and hosted packaged native evidence as separate layers with exact source, runs, artifact identities, and hashes.
+- [x] 7.5 Record physical keyboard, non-color, VoiceOver, and Narrator testing as deferred and mandatory on macOS 12 Intel, Windows 10 x64, Windows 11 x64, and separate Windows missing-dictionary environments; automated components, hosted CI, and constructed installers do not satisfy it.
