@@ -164,3 +164,43 @@ describe("backup status cache (task 8.3)", () => {
     expect(last.backup).toBeUndefined();
   });
 });
+
+describe("device-local spelling settings", () => {
+  it("defaults enabled and sanitizes dictionaries without an eager write", async () => {
+    runtime.readJson.mockResolvedValue({
+      schemaVersion: 1,
+      spelling: {
+        personalDictionaries: {
+          en: [" first ", "FIRST", "two words"],
+          es: [" Cafe\u0301 ", "CAFÉ"],
+        },
+      },
+    });
+    await store.load();
+    expect(store.spellingEnabled).toBe(true);
+    expect(store.personalDictionaries).toEqual({
+      en: ["first"],
+      es: ["Café"],
+    });
+    expect(runtime.writeJsonAtomic).not.toHaveBeenCalled();
+  });
+
+  it("persists canonical trusted mutations and retains schema version 1", async () => {
+    expect(store.addPersonalDictionaryTerm(" Cafe\u0301 ", "es")).toBe("added");
+    expect(store.addPersonalDictionaryTerm("CAFÉ", "es")).toBe("duplicate");
+    expect(store.addPersonalDictionaryTerm("two words", "es")).toBe("invalid");
+    store.setSpellingEnabled(false);
+    await store.flushPending();
+    const payload = runtime.writeJsonAtomic.mock.calls.at(-1)![1] as {
+      schemaVersion: number;
+      spelling: unknown;
+    };
+    expect(payload).toMatchObject({
+      schemaVersion: 1,
+      spelling: {
+        enabled: false,
+        personalDictionaries: { es: ["Café"] },
+      },
+    });
+  });
+});

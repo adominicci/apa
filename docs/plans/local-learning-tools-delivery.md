@@ -343,9 +343,9 @@ read-only evaluation may run in parallel, but implementation writers may not.
 
 | ID | OpenSpec change | Status | Depends on |
 | --- | --- | --- | --- |
-| P0 | None; canonical planning only | In progress | Plan approval |
-| LT-01 | `add-bilingual-spelling-service` | In review | Current-head diagnostics, private installers, and current-arm64 packaged/manual proof required; physical Intel/Windows proof deferred to the final rollout gate |
-| LT-02 | `add-bilingual-spelling-experience` | Planned | LT-01 merged and verified |
+| P0 | None; canonical planning only | Merged | Plan approval |
+| LT-01 | `add-bilingual-spelling-service` | Merged | Current-head diagnostics and private installers passed; physical Intel/Windows proof remains deferred to the final rollout gate |
+| LT-02 | `add-bilingual-spelling-experience` | In review | Default production spelling remains absent; internal editor proof and final physical keyboard/accessibility evidence are separate gates |
 | LT-03 | `add-bilingual-writing-coach-engine` | Planned | M1 complete |
 | LT-04 | `add-writing-coach-experience` | Planned | LT-03 merged and verified |
 | LT-05 | `add-local-inference-sidecar` | Planned | M2 complete |

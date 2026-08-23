@@ -5,6 +5,15 @@ and [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.21] - 2026-08-22
+
+### Changed
+
+- Internal editor proof work adds deterministic English and Spanish spelling
+  extraction, student-approved corrections, scoped ignore lists, and an
+  accessible correction menu. Ordinary release builds still contain no
+  spelling controls or native spelling calls pending the final physical gate.
+
 ## [0.1.20] - 2026-08-22
 
 ### Changed
@@ -327,7 +336,8 @@ and [Semantic Versioning](https://semver.org/).
 - Improved the reliability of installing updates and showing release notes
   after restart.
 
-[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.20...HEAD
+[Unreleased]: https://github.com/adominicci/tesina/compare/v0.1.21...HEAD
+[0.1.21]: https://github.com/adominicci/tesina/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/adominicci/tesina/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/adominicci/tesina/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/adominicci/tesina/compare/v0.1.17...v0.1.18

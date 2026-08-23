@@ -9,11 +9,12 @@ describe("bundled release notes", () => {
   it("bundles the exact desktop package version from the canonical changelog", () => {
     const expectedNotes = `### Changed
 
-- Internal groundwork adds a hidden, local spelling boundary for English and
-  Spanish on macOS and Windows. The editor does not use it yet, so visible
-  behavior is unchanged.`;
+- Internal editor proof work adds deterministic English and Spanish spelling
+  extraction, student-approved corrections, scoped ignore lists, and an
+  accessible correction menu. Ordinary release builds still contain no
+  spelling controls or native spelling calls pending the final physical gate.`;
 
-    expect(bundledReleaseNotes.version).toBe("0.1.20");
+    expect(bundledReleaseNotes.version).toBe("0.1.21");
     expect(bundledReleaseNotes.version).toBe(desktopPackage.version);
     expect(bundledReleaseNotes.body).toBe(expectedNotes);
     expect(bundledReleaseNotes.body).not.toContain("## [0.1.2]");

@@ -8,10 +8,14 @@ in APA 7 style. It runs without an account, and your papers remain on your
 computer. The interface and each document can use English or Spanish
 independently.
 
-Version 0.1.20 supports student papers on macOS 12 or newer, and ships an
+Version 0.1.21 supports student papers on macOS 12 or newer, and ships an
 experimental Windows 10 or newer build. Both are distributed through GitHub
 Releases, not through an app store. Linux is not currently a supported or
 CI-built release target, although its implementation remains in the source.
+
+The source includes an internal bilingual spelling-editor proof. Ordinary
+release builds do not include its controls or native spelling calls until the
+final physical macOS Intel and Windows accessibility gate is complete.
 
 ## Install on macOS
 

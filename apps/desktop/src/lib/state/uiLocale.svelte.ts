@@ -5,6 +5,12 @@ import {
   parseDock,
   type ToolbarDock,
 } from "$lib/state/toolbarDock";
+import type { DocLocale } from "@tesina/engine";
+import {
+  addCanonicalTerm,
+  canonicalizeStoredTerms,
+  isCanonicalStoredTerms,
+} from "$lib/spelling/canonicalTerms";
 
 const SETTINGS_FILE = "settings.json";
 
@@ -31,6 +37,14 @@ export interface BackupUiSettings {
   setupCardDismissed?: boolean;
 }
 
+export interface DeviceSpellingSettings {
+  enabled?: boolean;
+  personalDictionaries?: {
+    en?: string[];
+    es?: string[];
+  };
+}
+
 interface AppSettings {
   schemaVersion: 1;
   uiLanguage?: UiLanguage;
@@ -39,6 +53,7 @@ interface AppSettings {
   toolbarDock?: ToolbarDock;
   /** Additive (schema stays 1): absent means backup was never touched. */
   backup?: BackupUiSettings;
+  spelling?: DeviceSpellingSettings;
 }
 
 function sanitizeBackup(value: unknown): BackupUiSettings | undefined {
@@ -88,6 +103,11 @@ export class UiSettingsStore {
   theme = $state<UiTheme>("system");
   dock = $state<ToolbarDock>(DEFAULT_DOCK);
   backup = $state<BackupUiSettings | undefined>(undefined);
+  spellingEnabled = $state(true);
+  personalDictionaries = $state<{ en: string[]; es: string[] }>({
+    en: [],
+    es: [],
+  });
   loaded = $state(false);
   #requestedRevision = 0;
   #persistedRevision = 0;
@@ -107,6 +127,17 @@ export class UiSettingsStore {
       if (settings?.uiTheme) this.theme = settings.uiTheme;
       this.dock = parseDock(settings?.toolbarDock);
       this.backup = sanitizeBackup(settings?.backup);
+      this.spellingEnabled = settings?.spelling?.enabled ?? true;
+      this.personalDictionaries = {
+        en: canonicalizeStoredTerms(
+          settings?.spelling?.personalDictionaries?.en,
+          "en",
+        ),
+        es: canonicalizeStoredTerms(
+          settings?.spelling?.personalDictionaries?.es,
+          "es",
+        ),
+      };
     } catch (err) {
       console.error("No se pudo cargar settings.json:", err);
     } finally {
@@ -123,6 +154,17 @@ export class UiSettingsStore {
       ...(this.backup
         ? { backup: $state.snapshot(this.backup) as BackupUiSettings }
         : {}),
+      spelling: {
+        enabled: this.spellingEnabled,
+        personalDictionaries: {
+          ...(this.personalDictionaries.en.length > 0
+            ? { en: [...this.personalDictionaries.en] }
+            : {}),
+          ...(this.personalDictionaries.es.length > 0
+            ? { es: [...this.personalDictionaries.es] }
+            : {}),
+        },
+      },
     };
   }
 
@@ -197,6 +239,47 @@ export class UiSettingsStore {
   setDock(dock: ToolbarDock): void {
     if (this.dock === dock) return;
     this.dock = dock;
+    this.#persist();
+  }
+
+  setSpellingEnabled(enabled: boolean): void {
+    if (this.spellingEnabled === enabled) return;
+    this.spellingEnabled = enabled;
+    this.#persist();
+  }
+
+  addPersonalDictionaryTerm(candidate: unknown, language: DocLocale) {
+    const result = addCanonicalTerm(
+      this.personalDictionaries[language],
+      candidate,
+      language,
+    );
+    if (result.status === "added") {
+      this.personalDictionaries = {
+        ...this.personalDictionaries,
+        [language]: result.terms,
+      };
+      this.#persist();
+    }
+    return result.status;
+  }
+
+  setPersonalDictionary(language: DocLocale, terms: unknown): boolean {
+    if (!isCanonicalStoredTerms(terms, language)) return false;
+    this.personalDictionaries = {
+      ...this.personalDictionaries,
+      [language]: [...terms],
+    };
+    this.#persist();
+    return true;
+  }
+
+  clearPersonalDictionary(language: DocLocale): void {
+    if (this.personalDictionaries[language].length === 0) return;
+    this.personalDictionaries = {
+      ...this.personalDictionaries,
+      [language]: [],
+    };
     this.#persist();
   }
 

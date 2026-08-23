@@ -590,5 +590,21 @@
   "bk_err_name_taken": "A file with the backup's name already exists in the folder.",
   "bk_err_not_configured": "Automatic backup is not configured.",
   "bk_err_io": "The backup folder could not be written. Check permissions and free space.",
-  "bk_err_generic": "Backup error ({code})."
+  "bk_err_generic": "Backup error ({code}).",
+  "spelling_proof_title": "Spelling proof editor",
+  "spelling_menu_label": "Spelling suggestions",
+  "spelling_no_suggestions": "No suggestions",
+  "spelling_ignore_once": "Ignore once",
+  "spelling_ignore_document": "Ignore in this document",
+  "spelling_add_personal": "Add to personal dictionary",
+  "spelling_next_issue": "Next spelling issue",
+  "spelling_enable": "Check spelling",
+  "spelling_busy": "Spelling is temporarily busy.",
+  "spelling_missing_dictionary": "The {language} system dictionary is not installed.",
+  "spelling_unavailable": "Spelling is unavailable on this device.",
+  "spelling_failed": "Spelling could not check this document.",
+  "spelling_issues": "{count} spelling issues",
+  "spelling_issue_free": "No spelling issues found",
+  "spelling_language_en": "English",
+  "spelling_language_es": "Spanish"
 }
