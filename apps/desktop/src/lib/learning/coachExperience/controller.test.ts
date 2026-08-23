@@ -4,6 +4,7 @@ import {
   type CoachAnalysisSnapshot,
   createWritingCoachController,
 } from "./controller.ts";
+import { analyzeCoachPassages } from "./analysisAdapter.ts";
 import type { CoachPassageSnapshot } from "./types.ts";
 
 function snapshot(
@@ -378,7 +379,8 @@ describe("fixed question-led sessions", () => {
 
   it("returns to Write before exact navigation and clears a stale fixed session", async () => {
     vi.useFakeTimers();
-    const controller = createWritingCoachController("essay-1");
+    const analyze = vi.fn(analyzeCoachPassages);
+    const controller = createWritingCoachController("essay-1", { analyze });
     controller.updateSnapshot(snapshot(1));
     controller.enterStudy();
     await vi.advanceTimersByTimeAsync(0);
@@ -416,6 +418,15 @@ describe("fixed question-led sessions", () => {
     ).toBe("stale");
     expect(calls.slice(-2)).toEqual(["write-stale", "reject-stale"]);
     expect(controller.getState().fixed).toBeNull();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(analyze).toHaveBeenCalledTimes(1);
+
+    controller.enterStudy();
+    expect(controller.getState().status).toBe("analyzing");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(analyze).toHaveBeenCalledTimes(2);
+    expect(controller.getState().status).toBe("issues");
+    expect(controller.getState().fixed).not.toBeNull();
     controller.destroy();
   });
 });

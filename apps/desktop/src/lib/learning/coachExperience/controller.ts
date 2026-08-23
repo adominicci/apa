@@ -201,6 +201,11 @@ export function createWritingCoachController(
               total: state.issues.length,
             }),
           });
+        } else if (
+          state.status === "analyzing" && state.issues.length === 0
+        ) {
+          generation += 1;
+          run();
         }
         return;
       }

@@ -482,6 +482,16 @@ describe("Write and Study workspace modes", () => {
     expect(editor.state.selection.toJSON()).toEqual(beforeSelection);
     expect(JSON.stringify(editor.getJSON())).toBe(beforeJson);
     expect(document.querySelector(".writing-coach-source-emphasis")).toBeNull();
+
+    [...document.querySelectorAll<HTMLButtonElement>(".coach-mode button")]
+      .find((item) =>
+        item.textContent?.trim() === m.writing_coach_mode_study()
+      )!.click();
+    await drainMicrotasks();
+    flushSync();
+    expect(document.querySelector("[data-coach-workspace]")).not.toBeNull();
+    expect(document.querySelector("[data-coach-source]")?.textContent)
+      .toContain("in many ways");
     await unmount(component);
   });
 
