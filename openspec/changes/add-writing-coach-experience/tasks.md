@@ -47,7 +47,7 @@
 
 ## 7. Final Quality, Product Metadata, and Review
 
-- [ ] 7.1 Run the Svelte MCP autofixer on every new or changed `.svelte` file until it reports no findings, then run the desktop Svelte check through `deno task check`; verify no Svelte, TypeScript, locale, or accessibility diagnostic remains.
-- [ ] 7.2 Synchronize the repository's required per-change version fields, CHANGELOG entry, and focused user documentation for the approved deterministic Study experience without promising model, quiz, telemetry, APA authority, or an unapproved release; verify all version assertions and documentation links agree.
-- [ ] 7.3 Run the focused writing-coach engine and experience targets, `deno task check`, `deno task test`, `deno fmt --check`, and `deno lint`, followed by `openspec validate add-writing-coach-experience --strict` and `git diff --check`; verify every applicable gate passes and classify any unrelated baseline failure separately.
+- [x] 7.1 Run the Svelte MCP autofixer on every new or changed `.svelte` file until it reports no findings, then run the desktop Svelte check through `deno task check`; verify no Svelte, TypeScript, locale, or accessibility diagnostic remains.
+- [x] 7.2 Synchronize the repository's required per-change version fields, CHANGELOG entry, and focused user documentation for the approved deterministic Study experience without promising model, quiz, telemetry, APA authority, or an unapproved release; verify all version assertions and documentation links agree.
+- [x] 7.3 Run the focused writing-coach engine and experience targets, `deno task check`, `deno task test`, `deno fmt --check`, and `deno lint`, followed by `openspec validate add-writing-coach-experience --strict` and `git diff --check`; verify every applicable gate passes and classify any unrelated baseline failure separately.
 - [ ] 7.4 Request an independent review against the current branch head after all implementation, metadata, documentation, and generated files are final; verify every actionable finding is resolved or explicitly reported before handoff, with no review based on a stale head.

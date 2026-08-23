@@ -307,7 +307,7 @@ describe("fixed question-led sessions", () => {
 
     expect(
       await controller.editCurrentPassage(
-        async () => {
+        () => {
           calls.push("write");
         },
         (issue) => {
@@ -322,7 +322,7 @@ describe("fixed question-led sessions", () => {
 
     expect(
       await controller.editCurrentPassage(
-        async () => {
+        () => {
           calls.push("write-stale");
         },
         () => {
