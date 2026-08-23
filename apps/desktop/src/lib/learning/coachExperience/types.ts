@@ -60,7 +60,11 @@ interface EmptyControllerState {
 
 export type CoachControllerState =
   | ({ readonly status: "idle" } & EmptyControllerState)
-  | ({ readonly status: "analyzing" } & EmptyControllerState)
+  | {
+    readonly status: "analyzing";
+    readonly issues: readonly MappedCoachIssue[];
+    readonly fixed: FixedCoachSession | null;
+  }
   | {
     readonly status: "issues";
     readonly issues: readonly MappedCoachIssue[];

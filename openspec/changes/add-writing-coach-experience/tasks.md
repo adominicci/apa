@@ -15,11 +15,11 @@
 
 ## 3. Build the Essay-Scoped Controller with Bounded Scheduling
 
-- [ ] 3.1 Add fake-clock failing tests for idle-before-Study, immediate first analysis, 300 ms trailing debounce, 1,000 ms maximum wait under continuous edits, latest-snapshot consumption, and timer cleanup; verify the controller test target fails before scheduling is implemented.
-- [ ] 3.2 Add failing stale-work tests covering essay ID, revision, document language, citation/reference-environment version, `apa:external` citation refresh, snapshot ID, generation, extraction failure, essay switch, and teardown; verify English and Spanish pending/fixed passages invalidate and bounded reanalysis uses the current rendered citations.
-- [ ] 3.3 Implement the essay-scoped controller state machine and bounded scheduler, exposing `idle`, `analyzing`, `issues`, `no-current-issues`, and `unavailable-for-current-text`; verify tasks 3.1–3.2 pass with no analysis before first Study entry.
-- [ ] 3.4 Add failing fixed-session and ordering tests proving full-passage immutability, exact-issue emphasis data, document/engine ordering, previous/next wrapping only for multiple issues, explicit selection changes, and invalidation on source, language, reference/citation refresh, essay, or lifecycle changes; verify the focused target fails before session behavior is added.
-- [ ] 3.5 Implement fixed-session selection and deterministic navigation without editable answers, examples, rewrites, Apply actions, or insertion callbacks; verify the fixed-session tests pass and background analysis cannot replace the selected passage or question.
+- [x] 3.1 Add fake-clock failing tests for idle-before-Study, immediate first analysis, 300 ms trailing debounce, 1,000 ms maximum wait under continuous edits, latest-snapshot consumption, and timer cleanup; verify the controller test target fails before scheduling is implemented.
+- [x] 3.2 Add failing stale-work tests covering essay ID, revision, document language, citation/reference-environment version, `apa:external` citation refresh, snapshot ID, generation, extraction failure, essay switch, and teardown; verify English and Spanish pending/fixed passages invalidate and bounded reanalysis uses the current rendered citations.
+- [x] 3.3 Implement the essay-scoped controller state machine and bounded scheduler, exposing `idle`, `analyzing`, `issues`, `no-current-issues`, and `unavailable-for-current-text`; verify tasks 3.1–3.2 pass with no analysis before first Study entry.
+- [x] 3.4 Add failing fixed-session and ordering tests proving full-passage immutability, exact-issue emphasis data, document/engine ordering, previous/next wrapping only for multiple issues, explicit selection changes, and invalidation on source, language, reference/citation refresh, essay, or lifecycle changes; verify the focused target fails before session behavior is added.
+- [x] 3.5 Implement fixed-session selection and deterministic navigation without editable answers, examples, rewrites, Apply actions, or insertion callbacks; verify the fixed-session tests pass and background analysis cannot replace the selected passage or question.
 
 ## 4. Map Editor Transactions and Ephemeral Actions
 
