@@ -1,14 +1,24 @@
 import type { DocLocale } from "@tesina/engine";
+import type { Mapping } from "@tiptap/pm/transform";
 import {
   analyzeCoachPassages,
   type CoachPassageAnalysis,
 } from "./analysisAdapter.ts";
-import type {
-  CoachControllerState,
-  CoachPassageSnapshot,
-  FixedCoachSession,
-  MappedCoachIssue,
+import {
+  type CoachControllerState,
+  type CoachPassageSnapshot,
+  type CoachSuppression,
+  type EditorRange,
+  type FixedCoachSession,
+  type MappedCoachIssue,
+  mappedIssueIdentity,
 } from "./types.ts";
+import {
+  createCoachSuppression,
+  mapCoachRange,
+  mapCoachSuppression,
+  suppressionMatchesIssue,
+} from "./mapping.ts";
 
 export interface CoachAnalysisSnapshot {
   readonly essayId: string;
@@ -60,6 +70,7 @@ export function createWritingCoachController(
   let generation = 0;
   let trailingTimer: ReturnType<typeof setTimeout> | null = null;
   let maximumTimer: ReturnType<typeof setTimeout> | null = null;
+  let suppressions: CoachSuppression[] = [];
 
   const clearTimers = () => {
     if (trailingTimer !== null) clearTimeout(trailingTimer);
@@ -81,19 +92,24 @@ export function createWritingCoachController(
       state = emptyState("unavailable-for-current-text");
       return;
     }
-    if (result.issues.length === 0) {
+    const visibleIssues = result.issues.filter((issue) =>
+      !suppressions.some((suppression) =>
+        suppressionMatchesIssue(issue, suppression)
+      )
+    );
+    if (visibleIssues.length === 0) {
       state = emptyState("no-current-issues");
       return;
     }
     const fixed: FixedCoachSession = state.fixed ?? Object.freeze({
       kind: "fixed-coach-session" as const,
-      issue: result.issues[0]!,
+      issue: visibleIssues[0]!,
       position: 1,
-      total: result.issues.length,
+      total: visibleIssues.length,
     });
     state = {
       status: "issues",
-      issues: result.issues,
+      issues: visibleIssues,
       fixed,
     };
   };
@@ -129,7 +145,10 @@ export function createWritingCoachController(
             next.citationEnvironmentVersion);
       current = next;
       generation += 1;
-      if (invalidatesFixed) state = emptyState("no-current-issues");
+      if (invalidatesFixed) {
+        suppressions = [];
+        state = emptyState("no-current-issues");
+      }
       if (armed) schedule();
     },
     enterStudy(): void {
@@ -181,12 +200,82 @@ export function createWritingCoachController(
       this.selectIssue(state.issues[index]!.identity);
     },
     invalidateFixedSource(): void {
-      if (destroyed || state.fixed === null) return;
+      if (
+        destroyed || state.fixed === null ||
+        (state.status !== "issues" && state.status !== "analyzing")
+      ) return;
       generation += 1;
       clearTimers();
       state = armed
         ? analyzingState(emptyState("no-current-issues"))
         : emptyState("idle");
+    },
+    mapFixedSource(
+      mapping: Mapping,
+      readText: (range: EditorRange) => string,
+      revision: number,
+    ): void {
+      if (destroyed || state.fixed === null) return;
+      const editorRange = mapCoachRange(state.fixed.issue.editorRange, mapping);
+      if (
+        !editorRange ||
+        readText(editorRange) !== state.fixed.issue.issue.observedText
+      ) {
+        generation += 1;
+        state = armed
+          ? analyzingState(emptyState("no-current-issues"))
+          : emptyState("idle");
+        return;
+      }
+      const provisional: MappedCoachIssue = {
+        ...state.fixed.issue,
+        identity: "",
+        passage: { ...state.fixed.issue.passage, revision },
+        editorRange,
+      };
+      const fixed = Object.freeze({
+        ...state.fixed,
+        issue: Object.freeze({
+          ...provisional,
+          identity: mappedIssueIdentity(provisional),
+        }),
+      });
+      state = { ...state, fixed };
+    },
+    suppressCurrent(action: CoachSuppression["action"]): void {
+      if (state.status !== "issues") return;
+      suppressions.push(createCoachSuppression(state.fixed.issue, action));
+      const remaining = state.issues.filter((issue) =>
+        !suppressions.some((suppression) =>
+          suppressionMatchesIssue(issue, suppression)
+        )
+      );
+      if (remaining.length === 0) {
+        state = emptyState("no-current-issues");
+        return;
+      }
+      state = {
+        status: "issues",
+        issues: remaining,
+        fixed: Object.freeze({
+          kind: "fixed-coach-session",
+          issue: remaining[0]!,
+          position: 1,
+          total: remaining.length,
+        }),
+      };
+    },
+    mapSuppressions(
+      mapping: Mapping,
+      readText: (range: EditorRange) => string,
+    ): void {
+      suppressions = suppressions.flatMap((suppression) => {
+        const mapped = mapCoachSuppression(suppression, mapping, readText);
+        return mapped ? [mapped] : [];
+      });
+    },
+    getSuppressions(): readonly CoachSuppression[] {
+      return suppressions;
     },
     destroy(): void {
       if (destroyed) return;
@@ -194,6 +283,7 @@ export function createWritingCoachController(
       generation += 1;
       clearTimers();
       current = null;
+      suppressions = [];
       state = emptyState("idle");
     },
   };

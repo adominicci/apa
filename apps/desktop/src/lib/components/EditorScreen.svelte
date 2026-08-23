@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick, untrack } from "svelte";
+  import { onDestroy, onMount, tick, untrack } from "svelte";
   import type { Attachment } from "svelte/attachments";
   import type { Editor as TiptapEditor } from "@tiptap/core";
   import { hasAuthoredBodyTitle } from "@tesina/docx-export";
@@ -105,6 +105,11 @@
   } from "$lib/persist/coordinator";
   import { createAutosaveController } from "$lib/persist/autosaveController.svelte";
   import { useReleaseNotesController } from "$lib/update/releaseNotesController.svelte";
+  import { createWritingCoachController } from "$lib/learning/coachExperience/controller";
+  import type {
+    CoachEditorBridge,
+    CoachEditorHandle,
+  } from "$lib/learning/coachExperience/editorPlugin";
 
   interface Props {
     essay: Essay;
@@ -194,6 +199,31 @@
     untrack(() => collectCitedRefIds(essay.content)),
   );
   let lastDoc = $state<unknown>(untrack(() => essay.content));
+  const coachEssayId = untrack(() => essay.id);
+  let coachRevision = 0;
+  let coachEditorHandle: CoachEditorHandle | null = null;
+  const coachController = createWritingCoachController(coachEssayId);
+  const syncCoachSnapshot = () => {
+    if (!coachEditorHandle) return;
+    coachController.updateSnapshot(coachEditorHandle.capture(coachEssayId));
+  };
+  const coachBridge: CoachEditorBridge = {
+    currentRevision: () => coachRevision,
+    attach: (handle) => {
+      coachEditorHandle = handle;
+      if (handle) syncCoachSnapshot();
+    },
+    onTransaction: (event) => {
+      if (event.docChanged) coachRevision += 1;
+      const readText = (range: { from: number; to: number }) =>
+        event.doc.textBetween(range.from, range.to, "", "");
+      coachController.mapFixedSource(event.mapping, readText, coachRevision);
+      coachController.mapSuppressions(event.mapping, readText);
+      if (event.docChanged || event.externalCitationRefresh) {
+        queueMicrotask(syncCoachSnapshot);
+      }
+    },
+  };
 
   const citationEnv: CitationEnv = {
     refsById: untrack(() => library.byId()),
@@ -434,6 +464,7 @@
   }
 
   onMount(() => autosave.bindPersistence(persistence));
+  onDestroy(() => coachController.destroy());
 
   async function leaveEditor(destination: () => void) {
     try {
@@ -982,6 +1013,7 @@
                 onReady={handleReady}
                 onEditEquation={(pos, latex) =>
                   (equationDialog = { mode: "edit", pos, latex })}
+                {coachBridge}
               />
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { type Editor, Node } from "@tiptap/core";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { type EditorState, Plugin, PluginKey } from "@tiptap/pm/state";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import {
   buildCitationContext,
@@ -34,6 +34,33 @@ interface CitationPluginState {
 export const citationPluginKey = new PluginKey<CitationPluginState>(
   "tesinaCitations",
 );
+
+export function citationEnvironmentVersion(state: EditorState): number {
+  return citationPluginKey.getState(state)?.version ?? 0;
+}
+
+export function renderCitationText(
+  state: EditorState,
+  env: CitationEnv,
+  node: PMNode,
+  position: number,
+): string {
+  const pluginState = citationPluginKey.getState(state);
+  if (!pluginState || node.type.name !== "citation") return "";
+  const attrs = node.attrs as CitationAttrs;
+  const firstOccurrenceRefIds = new Set(
+    attrs.items.map((item) => item.refId).filter((refId) =>
+      pluginState.firstOccurrenceAt.get(refId) === position
+    ),
+  );
+  return plainText(formatCitation(
+    attrs,
+    pluginState.ctx,
+    env.refsById,
+    env.locale,
+    { firstOccurrenceRefIds },
+  ));
+}
 
 function collectCitations(
   doc: PMNode,

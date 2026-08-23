@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { Mapping, StepMap } from "@tiptap/pm/transform";
 import {
   type CoachAnalysisSnapshot,
   createWritingCoachController,
@@ -247,5 +248,109 @@ describe("fixed question-led sessions", () => {
       issues: [],
       fixed: null,
     });
+  });
+
+  it("maps a fixed source across unrelated edits and rejects touched text", async () => {
+    vi.useFakeTimers();
+    const controller = createWritingCoachController("essay-1");
+    controller.updateSnapshot(snapshot(1));
+    controller.enterStudy();
+    await vi.advanceTimersByTimeAsync(0);
+    const before = controller.getState().fixed!;
+    controller.mapFixedSource(
+      new Mapping([new StepMap([1, 0, 5])]),
+      () => "in many ways",
+      2,
+    );
+    expect(controller.getState().fixed?.issue.editorRange).toEqual({
+      from: 26,
+      to: 38,
+    });
+    expect(controller.getState().fixed?.issue.passage.text).toBe(
+      before.issue.passage.text,
+    );
+    expect(controller.getState().fixed?.issue.passage.revision).toBe(2);
+    controller.mapFixedSource(
+      new Mapping([new StepMap([30, 0, 1])]),
+      () => "in many ways",
+      3,
+    );
+    expect(controller.getState().fixed).toBeNull();
+    controller.destroy();
+  });
+});
+
+describe("session-only suppressions", () => {
+  it.each(["dismiss", "not-helpful"] as const)(
+    "%s hides the current issue with no callback or generation identity",
+    async (action) => {
+      vi.useFakeTimers();
+      const controller = createWritingCoachController("essay-1");
+      controller.updateSnapshot(snapshot(1));
+      controller.enterStudy();
+      await vi.advanceTimersByTimeAsync(0);
+      controller.suppressCurrent(action);
+      expect(controller.getState().status).toBe("no-current-issues");
+      expect(controller.getSuppressions()).toHaveLength(1);
+      expect("generation" in controller.getSuppressions()[0]!).toBe(false);
+      controller.destroy();
+      expect(controller.getSuppressions()).toEqual([]);
+    },
+  );
+
+  it("maps an unchanged suppression across an earlier edit and removes it when touched", async () => {
+    vi.useFakeTimers();
+    const controller = createWritingCoachController("essay-1");
+    controller.updateSnapshot(snapshot(1));
+    controller.enterStudy();
+    await vi.advanceTimersByTimeAsync(0);
+    controller.suppressCurrent("dismiss");
+    controller.mapSuppressions(
+      new Mapping([new StepMap([1, 0, 5])]),
+      () => "in many ways",
+    );
+    expect(controller.getSuppressions()[0]?.editorRange).toEqual({
+      from: 26,
+      to: 38,
+    });
+    const shifted = snapshot(2);
+    controller.updateSnapshot({
+      ...shifted,
+      passages: shifted.passages.map((passage) => ({
+        ...passage,
+        offsetMap: passage.offsetMap.map((position) =>
+          position === null ? null : position + 5
+        ),
+      })),
+    });
+    await vi.advanceTimersByTimeAsync(300);
+    expect(controller.getState().status).toBe("no-current-issues");
+
+    controller.mapSuppressions(
+      new Mapping([new StepMap([30, 0, 1])]),
+      () => "in many ways",
+    );
+    expect(controller.getSuppressions()).toEqual([]);
+    controller.destroy();
+  });
+
+  it("clears suppressions on language and citation-environment changes", async () => {
+    vi.useFakeTimers();
+    const controller = createWritingCoachController("essay-1");
+    controller.updateSnapshot(snapshot(1));
+    controller.enterStudy();
+    await vi.advanceTimersByTimeAsync(0);
+    controller.suppressCurrent("dismiss");
+    controller.updateSnapshot(
+      snapshot(2, undefined, { documentLanguage: "es" }),
+    );
+    expect(controller.getSuppressions()).toEqual([]);
+    await vi.advanceTimersByTimeAsync(300);
+    controller.suppressCurrent("not-helpful");
+    controller.updateSnapshot(
+      snapshot(3, undefined, { citationEnvironmentVersion: 4 }),
+    );
+    expect(controller.getSuppressions()).toEqual([]);
+    controller.destroy();
   });
 });
