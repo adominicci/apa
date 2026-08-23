@@ -69,7 +69,9 @@ describe("schema-free coach editor bridge", () => {
     expect(snapshot.revision).toBe(1);
     expect(snapshot.citationEnvironmentVersion).toBe(0);
     editor.commands.insertContentAt(2, "Earlier ");
+    expect(handle.capture("essay-1").citationEnvironmentVersion).toBe(0);
     refreshCitations(editor);
+    expect(handle.capture("essay-1").citationEnvironmentVersion).toBe(1);
     expect(transactions.some((event) => event.docChanged)).toBe(true);
     expect(transactions.some((event) => event.externalCitationRefresh)).toBe(
       true,

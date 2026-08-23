@@ -71,6 +71,12 @@ export function createWritingCoachController(
   let trailingTimer: ReturnType<typeof setTimeout> | null = null;
   let maximumTimer: ReturnType<typeof setTimeout> | null = null;
   let suppressions: CoachSuppression[] = [];
+  const listeners = new Set<(value: CoachControllerState) => void>();
+
+  const setState = (next: CoachControllerState) => {
+    state = next;
+    for (const listener of listeners) listener(state);
+  };
 
   const clearTimers = () => {
     if (trailingTimer !== null) clearTimeout(trailingTimer);
@@ -89,7 +95,7 @@ export function createWritingCoachController(
       !sameIdentity(captured, current)
     ) return;
     if (result.status === "unavailable-for-current-text") {
-      state = emptyState("unavailable-for-current-text");
+      setState(emptyState("unavailable-for-current-text"));
       return;
     }
     const visibleIssues = result.issues.filter((issue) =>
@@ -98,7 +104,7 @@ export function createWritingCoachController(
       )
     );
     if (visibleIssues.length === 0) {
-      state = emptyState("no-current-issues");
+      setState(emptyState("no-current-issues"));
       return;
     }
     const fixed: FixedCoachSession = state.fixed ?? Object.freeze({
@@ -107,11 +113,11 @@ export function createWritingCoachController(
       position: 1,
       total: visibleIssues.length,
     });
-    state = {
+    setState({
       status: "issues",
       issues: visibleIssues,
       fixed,
-    };
+    });
   };
 
   const run = () => {
@@ -129,7 +135,7 @@ export function createWritingCoachController(
 
   const schedule = () => {
     if (!armed || destroyed || !current) return;
-    state = analyzingState(state);
+    setState(analyzingState(state));
     if (trailingTimer !== null) clearTimeout(trailingTimer);
     trailingTimer = setTimeout(run, 300);
     if (maximumTimer === null) maximumTimer = setTimeout(run, 1_000);
@@ -137,6 +143,11 @@ export function createWritingCoachController(
 
   return {
     getState: (): CoachControllerState => state,
+    subscribe(listener: (value: CoachControllerState) => void): () => void {
+      listeners.add(listener);
+      listener(state);
+      return () => listeners.delete(listener);
+    },
     updateSnapshot(next: CoachAnalysisSnapshot): void {
       if (destroyed || next.essayId !== essayId) return;
       const invalidatesFixed = current !== null &&
@@ -147,14 +158,14 @@ export function createWritingCoachController(
       generation += 1;
       if (invalidatesFixed) {
         suppressions = [];
-        state = emptyState("no-current-issues");
+        setState(emptyState("no-current-issues"));
       }
       if (armed) schedule();
     },
     enterStudy(): void {
       if (destroyed || armed) return;
       armed = true;
-      state = analyzingState(state);
+      setState(analyzingState(state));
       generation += 1;
       run();
     },
@@ -162,7 +173,7 @@ export function createWritingCoachController(
       if (destroyed) return;
       generation += 1;
       clearTimers();
-      state = emptyState("unavailable-for-current-text");
+      setState(emptyState("unavailable-for-current-text"));
     },
     selectIssue(identity: string): void {
       if (state.status !== "issues") return;
@@ -170,7 +181,7 @@ export function createWritingCoachController(
         issue.identity === identity
       );
       if (index < 0) return;
-      state = {
+      setState({
         ...state,
         fixed: Object.freeze({
           kind: "fixed-coach-session",
@@ -178,7 +189,7 @@ export function createWritingCoachController(
           position: index + 1,
           total: state.issues.length,
         }),
-      };
+      });
     },
     nextIssue(): void {
       if (state.status !== "issues" || state.issues.length < 2) return;
@@ -206,9 +217,11 @@ export function createWritingCoachController(
       ) return;
       generation += 1;
       clearTimers();
-      state = armed
-        ? analyzingState(emptyState("no-current-issues"))
-        : emptyState("idle");
+      setState(
+        armed
+          ? analyzingState(emptyState("no-current-issues"))
+          : emptyState("idle"),
+      );
     },
     mapFixedSource(
       mapping: Mapping,
@@ -222,9 +235,11 @@ export function createWritingCoachController(
         readText(editorRange) !== state.fixed.issue.issue.observedText
       ) {
         generation += 1;
-        state = armed
-          ? analyzingState(emptyState("no-current-issues"))
-          : emptyState("idle");
+        setState(
+          armed
+            ? analyzingState(emptyState("no-current-issues"))
+            : emptyState("idle"),
+        );
         return;
       }
       const provisional: MappedCoachIssue = {
@@ -240,7 +255,7 @@ export function createWritingCoachController(
           identity: mappedIssueIdentity(provisional),
         }),
       });
-      state = { ...state, fixed };
+      setState({ ...state, fixed });
     },
     suppressCurrent(action: CoachSuppression["action"]): void {
       if (state.status !== "issues") return;
@@ -251,10 +266,10 @@ export function createWritingCoachController(
         )
       );
       if (remaining.length === 0) {
-        state = emptyState("no-current-issues");
+        setState(emptyState("no-current-issues"));
         return;
       }
-      state = {
+      setState({
         status: "issues",
         issues: remaining,
         fixed: Object.freeze({
@@ -263,7 +278,7 @@ export function createWritingCoachController(
           position: 1,
           total: remaining.length,
         }),
-      };
+      });
     },
     mapSuppressions(
       mapping: Mapping,
@@ -285,9 +300,11 @@ export function createWritingCoachController(
       await showWrite();
       if (destroyed || !issue || !navigate(issue)) {
         if (!destroyed) {
-          state = state.status === "analyzing"
-            ? analyzingState(emptyState("no-current-issues"))
-            : emptyState("no-current-issues");
+          setState(
+            state.status === "analyzing"
+              ? analyzingState(emptyState("no-current-issues"))
+              : emptyState("no-current-issues"),
+          );
         }
         return "stale";
       }
@@ -300,7 +317,8 @@ export function createWritingCoachController(
       clearTimers();
       current = null;
       suppressions = [];
-      state = emptyState("idle");
+      setState(emptyState("idle"));
+      listeners.clear();
     },
   };
 }

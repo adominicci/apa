@@ -38,6 +38,23 @@ afterEach(() => {
 });
 
 describe("essay-scoped writing coach scheduling", () => {
+  it("notifies and detaches a mounted Study view across controller states", async () => {
+    vi.useFakeTimers();
+    const controller = createWritingCoachController("essay-1");
+    const states: string[] = [];
+    const unsubscribe = controller.subscribe((state) =>
+      states.push(state.status)
+    );
+    controller.updateSnapshot(snapshot(1));
+    controller.enterStudy();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(states).toEqual(["idle", "analyzing", "issues"]);
+    unsubscribe();
+    controller.updateSnapshot(snapshot(2));
+    expect(states).toEqual(["idle", "analyzing", "issues"]);
+    controller.destroy();
+  });
+
   it("stays idle before Study and analyzes the current snapshot immediately on first entry", async () => {
     vi.useFakeTimers();
     const controller = createWritingCoachController("essay-1");

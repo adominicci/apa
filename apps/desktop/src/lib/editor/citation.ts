@@ -29,6 +29,8 @@ interface CitationPluginState {
   /** Document position of the first citation node mentioning each refId. */
   firstOccurrenceAt: ReadonlyMap<string, number>;
   version: number;
+  environmentVersion: number;
+  environmentKey: string;
 }
 
 export const citationPluginKey = new PluginKey<CitationPluginState>(
@@ -36,7 +38,7 @@ export const citationPluginKey = new PluginKey<CitationPluginState>(
 );
 
 export function citationEnvironmentVersion(state: EditorState): number {
-  return citationPluginKey.getState(state)?.version ?? 0;
+  return citationPluginKey.getState(state)?.environmentVersion ?? 0;
 }
 
 export function renderCitationText(
@@ -79,6 +81,7 @@ function computeState(
   doc: PMNode,
   env: CitationEnv,
   version: number,
+  environmentVersion = 0,
 ): CitationPluginState {
   const citations = collectCitations(doc);
   const firstOccurrenceAt = new Map<string, number>();
@@ -94,7 +97,13 @@ function computeState(
     env.refsById,
     env.locale,
   );
-  return { ctx, firstOccurrenceAt, version };
+  return {
+    ctx,
+    firstOccurrenceAt,
+    version,
+    environmentVersion,
+    environmentKey: JSON.stringify(citations.map(({ attrs }) => attrs)),
+  };
 }
 
 function renderRuns(target: HTMLElement, runs: RichRun[]): void {
@@ -168,7 +177,19 @@ export function createCitationExtension(env: CitationEnv) {
             init: (_config, state) => computeState(state.doc, env, 0),
             apply: (tr, prev) => {
               if (!tr.docChanged && !tr.getMeta("apa:external")) return prev;
-              return computeState(tr.doc, env, prev.version + 1);
+              const next = computeState(
+                tr.doc,
+                env,
+                prev.version + 1,
+                prev.environmentVersion,
+              );
+              return {
+                ...next,
+                environmentVersion: tr.getMeta("apa:external") ||
+                    next.environmentKey !== prev.environmentKey
+                  ? prev.environmentVersion + 1
+                  : prev.environmentVersion,
+              };
             },
           },
         }),
