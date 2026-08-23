@@ -4,7 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mount, unmount } from "svelte";
 import { createTesinaEditor } from "$lib/editor/createEditor";
 import { createEmptyEssay } from "$lib/model/essay";
+import { overwriteGetLocale } from "$lib/paraglide/runtime";
 import type { SpellingService } from "./types.ts";
+import { replacePersonalDictionary } from "./ProofSpellingSettings.ts";
 import SpellingExperienceEditorAddon from "./SpellingExperienceEditorAddon.svelte";
 import SpellingExperienceTitleHarness from "./SpellingExperienceTitleHarness.test.svelte";
 
@@ -32,6 +34,7 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
   font: "",
   measureText: (text: string) => ({ width: text.length * 10 }),
 })) as never;
+const nativeExecCommand = document.execCommand;
 
 function createEditor(
   text = "This sentnce is editable.",
@@ -133,9 +136,27 @@ beforeEach(() => {
   settings.spellingEnabled = true;
   settings.personalDictionaries = { en: [], es: [] };
   vi.clearAllMocks();
+  settings.setPersonalDictionary.mockImplementation((language, terms) => {
+    const state = {
+      enabled: settings.spellingEnabled,
+      personalDictionaries: settings.personalDictionaries,
+    };
+    const replaced = replacePersonalDictionary(state, language, terms);
+    settings.personalDictionaries = state.personalDictionaries;
+    return replaced;
+  });
 });
 
-afterEach(() => document.body.replaceChildren());
+afterEach(() => {
+  overwriteGetLocale(() => "es");
+  if (nativeExecCommand) {
+    Object.defineProperty(document, "execCommand", {
+      configurable: true,
+      value: nativeExecCommand,
+    });
+  } else Reflect.deleteProperty(document, "execCommand");
+  document.body.replaceChildren();
+});
 
 describe("real EditorScreen spelling addon", () => {
   it("honors persisted disabled state before the first native request", async () => {
@@ -165,6 +186,43 @@ describe("real EditorScreen spelling addon", () => {
     });
     await new Promise((resolve) => setTimeout(resolve, 350));
     expect(service.capability).not.toHaveBeenCalled();
+    await unmount(component);
+    editor.destroy();
+  });
+
+  it.each(
+    [
+      ["en", "1 spelling issue"],
+      ["es", "1 problema de ortografía"],
+    ] as const,
+  )("renders a singular issue count in %s", async (locale, expected) => {
+    overwriteGetLocale(() => locale);
+    const editor = createEditor();
+    const titleInput = document.createElement("input");
+    titleInput.value = "Clean title";
+    document.body.append(titleInput);
+    const target = document.createElement("div");
+    document.body.append(target);
+    const component = mount(SpellingExperienceEditorAddon, {
+      target,
+      props: {
+        essay: createEmptyEssay("en"),
+        editor,
+        titleInput,
+        titleFormOpen: false,
+        title: titleInput.value,
+        doc: editor.getJSON(),
+        documentLanguage: "en",
+        onTitleChange: vi.fn(),
+        onEssayMutation: vi.fn(),
+        onOpenTitleForm: vi.fn(),
+        service: fakeService(),
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(target.querySelector("[data-spelling-status]")?.textContent).toBe(
+      expected,
+    );
     await unmount(component);
     editor.destroy();
   });
@@ -241,7 +299,9 @@ describe("real EditorScreen spelling addon", () => {
     expect(firstMenu.closest(".app")).toBeNull();
     expect(firstMenu.closest("[inert]")).toBeNull();
     expect(document.activeElement).toBe(firstItems[0]);
-    firstItems[1]!.click();
+    document.querySelector<HTMLButtonElement>(
+      '[data-spelling-action="ignore-once"]',
+    )!.click();
     await Promise.resolve();
     expect(document.activeElement).toBe(titleInput);
     expect([titleInput.selectionStart, titleInput.selectionEnd]).toEqual([
@@ -290,10 +350,9 @@ describe("real EditorScreen spelling addon", () => {
       }),
     );
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const items = document.querySelectorAll<HTMLButtonElement>(
-      '[role="menuitem"]',
-    );
-    items[2]!.click();
+    document.querySelector<HTMLButtonElement>(
+      '[data-spelling-action="ignore-document"]',
+    )!.click();
     await Promise.resolve();
     expect(essay.spelling?.documentIgnores?.en).toEqual(["Wrng"]);
     expect(onEssayMutation).toHaveBeenCalledOnce();
@@ -408,6 +467,61 @@ describe("real EditorScreen spelling addon", () => {
     bodyEditor.destroy();
   });
 
+  it("clears a prior title-undo alert when a later correction succeeds", async () => {
+    const editor = createEditor("Clean body");
+    const titleInput = document.createElement("input");
+    titleInput.value = "Wrng title";
+    titleInput.getBoundingClientRect = () => new DOMRect(0, 0, 200, 24);
+    document.body.append(titleInput);
+    const execCommand = vi.fn(() => false);
+    Object.defineProperty(document, "execCommand", {
+      configurable: true,
+      value: execCommand,
+    });
+    const target = document.createElement("div");
+    document.body.append(target);
+    const component = mount(SpellingExperienceEditorAddon, {
+      target,
+      props: {
+        essay: createEmptyEssay("en"),
+        editor,
+        titleInput,
+        titleFormOpen: true,
+        title: titleInput.value,
+        doc: editor.getJSON(),
+        documentLanguage: "en",
+        onTitleChange: vi.fn(),
+        onEssayMutation: vi.fn(),
+        onOpenTitleForm: vi.fn(),
+        service: fakeService(),
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    titleInput.dispatchEvent(
+      new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+        clientX: 20,
+        clientY: 12,
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.querySelector<HTMLButtonElement>('[role="menuitem"]')!.click();
+    await Promise.resolve();
+    expect(target.querySelector('[role="alert"]')).not.toBeNull();
+
+    execCommand.mockImplementation(() => {
+      titleInput.setRangeText("Wrngx", 0, 4, "select");
+      return true;
+    });
+    document.querySelector<HTMLButtonElement>('[role="menuitem"]')!.click();
+    await Promise.resolve();
+    expect(titleInput.value).toBe("Wrngx title");
+    expect(target.querySelector('[role="alert"]')).toBeNull();
+    await unmount(component);
+    editor.destroy();
+  });
+
   it("edits and clears both device dictionaries, opens the real title form seam, and tears down per essay", async () => {
     settings.personalDictionaries = { en: ["OldEnglish"], es: ["Viejo"] };
     const editor = createEditor("Clean body");
@@ -452,6 +566,7 @@ describe("real EditorScreen spelling addon", () => {
       "CAFÉ",
       "Beta",
     ]);
+    expect(settings.personalDictionaries.en).toEqual(["Café", "Beta"]);
     await new Promise((resolve) => setTimeout(resolve, 350));
     expect(vi.mocked(service.capability).mock.calls.length).toBeGreaterThan(
       callsBeforeSave,
@@ -653,8 +768,9 @@ describe("real EditorScreen spelling addon", () => {
       }),
     );
     await Promise.resolve();
-    document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
-      .item(4).click();
+    document.querySelector<HTMLButtonElement>(
+      '[data-spelling-action="next"]',
+    )!.click();
     await new Promise((resolve) => setTimeout(resolve, 350));
     const formInput = document.querySelector<HTMLInputElement>(
       '[data-title-owner="form"]',
@@ -693,8 +809,9 @@ describe("real EditorScreen spelling addon", () => {
       }),
     );
     await Promise.resolve();
-    document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')
-      .item(4).click();
+    document.querySelector<HTMLButtonElement>(
+      '[data-spelling-action="next"]',
+    )!.click();
     await new Promise((resolve) => setTimeout(resolve, 350));
     expect(document.querySelector('[data-title-owner="form"]')).not.toBeNull();
     expect(document.querySelector('[role="menu"]')).toBeNull();

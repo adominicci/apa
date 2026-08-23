@@ -1325,8 +1325,8 @@
     doc={lastDoc}
     {documentLanguage}
     onTitleChange={(value: string) => {
-      handleCoverChange({ title: value });
       titleFormDraft = value;
+      if (!titleFormOpen) handleCoverChange({ title: value });
     }}
     onEssayMutation={() => autosave.scheduleSave()}
     onOpenTitleForm={openTitleForm}

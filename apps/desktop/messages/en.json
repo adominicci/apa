@@ -603,6 +603,7 @@
   "spelling_missing_dictionary": "The {language} system dictionary is not installed.",
   "spelling_unavailable": "Spelling is unavailable on this device.",
   "spelling_failed": "Spelling could not check this document.",
+  "spelling_issue_one": "1 spelling issue",
   "spelling_issues": "{count} spelling issues",
   "spelling_issue_free": "No spelling issues found",
   "spelling_language_en": "English",

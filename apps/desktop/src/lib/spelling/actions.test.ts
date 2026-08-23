@@ -76,6 +76,19 @@ describe("source-safe spelling actions", () => {
       .toBe(false);
     expect(verifyCurrentIssue(issue("body", 0, 4, "wrng"), 5, readers, "en"))
       .toBe(false);
+    expect(verifyCurrentIssue(issue("body", -1, 4, "wrng"), 4, readers, "en"))
+      .toBe(false);
+    expect(verifyCurrentIssue(issue("body", 4, 4, "wrng"), 4, readers, "en"))
+      .toBe(false);
+    expect(verifyCurrentIssue(
+      {
+        ...issue("body", 0, 4, "wrng"),
+        termKey: "other",
+      },
+      4,
+      readers,
+      "en",
+    )).toBe(false);
   });
 
   it("uses the title input's editing command, canonical mutation callback, and focus selection", () => {

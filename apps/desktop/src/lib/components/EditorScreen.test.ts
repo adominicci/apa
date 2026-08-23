@@ -936,7 +936,7 @@ describe("editor preview round trip", () => {
     await unmount(component);
   });
 
-  it("moves the proof title seam from the cover input into the canonical title form", async () => {
+  it("keeps proof title corrections in the form draft until Save and discards them on Close", async () => {
     vi.useFakeTimers();
     let persisted: Essay | undefined;
     runtime.persist.mockImplementation((essay: Essay) => {
@@ -969,8 +969,29 @@ describe("editor preview round trip", () => {
     const formTitle = document.querySelector<HTMLInputElement>(
       '[role="dialog"] input[type="text"]',
     )!;
-    expect(essay.titlePage.title).toBe("Corrected title");
+    expect(essay.titlePage.title).toBe("Preview round trip");
     expect(formTitle.value).toBe("Corrected title");
+    await vi.advanceTimersByTimeAsync(500);
+    expect(persisted).toBeUndefined();
+
+    document.querySelector<HTMLButtonElement>(
+      '[role="dialog"] .btn-secondary',
+    )!.click();
+    flushSync();
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(essay.titlePage.title).toBe("Preview round trip");
+
+    document.querySelector<HTMLButtonElement>(".cover-form-btn")!.click();
+    flushSync();
+    document.querySelector<HTMLButtonElement>(
+      "[data-test-title-replacement]",
+    )!.click();
+    flushSync();
+    document.querySelector<HTMLButtonElement>(
+      '[role="dialog"] .btn-primary',
+    )!.click();
+    flushSync();
+    expect(essay.titlePage.title).toBe("Corrected title");
     await vi.advanceTimersByTimeAsync(500);
     expect(persisted?.titlePage.title).toBe("Corrected title");
     await unmount(component);

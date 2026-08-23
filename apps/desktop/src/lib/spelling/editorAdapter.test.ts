@@ -43,7 +43,7 @@ describe("ProseMirror spelling adapter", () => {
           type: "sectionBody",
           content: [{
             type: "paragraph",
-            content: [{ type: "text", text: "wrng" }],
+            content: [{ type: "text", text: "ok wrng" }],
           }],
         }],
       },
@@ -55,8 +55,8 @@ describe("ProseMirror spelling adapter", () => {
     const issues: ExperienceSpellingIssue[] = [{
       source: "body",
       generation: 1,
-      from: 2,
-      to: 6,
+      from: 5,
+      to: 9,
       word: "wrng",
       termKey: "wrng",
       suggestions: [],
@@ -71,8 +71,12 @@ describe("ProseMirror spelling adapter", () => {
     refreshSpellingDecorations(editor);
     const mark = element.querySelector(".tesina-spelling-issue");
     expect(mark?.getAttribute("data-spelling-indicator")).toBe("misspelled");
-    editor.commands.insertContentAt(6, "x");
+    expect(mark?.textContent).toBe("wrng");
+    editor.commands.insertContentAt(2, "new ");
     expect(onBodyMutation).toHaveBeenCalled();
+    expect(element.querySelector(".tesina-spelling-issue")?.textContent).toBe(
+      "wrng",
+    );
     detach();
     editor.destroy();
   });

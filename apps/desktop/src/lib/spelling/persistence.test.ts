@@ -31,7 +31,7 @@ describe("essay spelling persistence", () => {
     expect(malformed.spelling.documentIgnores.en[0]).toBe(" first ");
   });
 
-  it.each([null, "not-an-object", [], 42])(
+  it.each([[null], ["not-an-object"], [[]], [42]] as const)(
     "sanitizes a malformed direct-load essay.spelling shape in memory: %j",
     (spelling) => {
       const essay = Object.assign(createEmptyEssay("en"), { spelling });
@@ -60,7 +60,7 @@ describe("essay spelling persistence", () => {
     expect(() => assertCanonicalEssaySpelling(essay)).not.toThrow();
   });
 
-  it.each(["not-an-object", [], 42])(
+  it.each([["not-an-object"], [[]], [42]] as const)(
     "rejects a non-object documentIgnores shape: %j",
     (documentIgnores) => {
       const essay = createEmptyEssay("en") as unknown as Record<

@@ -137,18 +137,21 @@
   <button
     type="button"
     role="menuitem"
+    data-spelling-action="ignore-once"
     tabindex="-1"
     onclick={() => activate({ type: "ignore-once" })}
   >{labels.ignoreOnce}</button>
   <button
     type="button"
     role="menuitem"
+    data-spelling-action="ignore-document"
     tabindex="-1"
     onclick={() => activate({ type: "ignore-document" })}
   >{labels.ignoreDocument}</button>
   <button
     type="button"
     role="menuitem"
+    data-spelling-action="add-personal"
     tabindex="-1"
     aria-disabled={!canAddDictionary}
     onclick={() => activate({ type: "add-personal" }, canAddDictionary)}
@@ -157,6 +160,7 @@
   <button
     type="button"
     role="menuitem"
+    data-spelling-action="next"
     tabindex="-1"
     aria-disabled={!canNext}
     onclick={() => activate({ type: "next" }, canNext)}

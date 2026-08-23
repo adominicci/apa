@@ -194,6 +194,7 @@
     const issue = menuIssue;
     if (!issue) return;
     if (action.type === "replace") {
+      undoUnavailable = false;
       if (issue.source === "body" && editor) {
         if (replaceBodyIssue(editor, issue, controller.generation, action.suggestion, documentLanguage)) {
           invalidate("body");
@@ -238,7 +239,11 @@
 
   function statusText() {
     const language = documentLanguage === "en" ? m.spelling_language_en() : m.spelling_language_es();
-    if (spellingState.status === "issues") return m.spelling_issues({ count: spellingState.issues.length });
+    if (spellingState.status === "issues") {
+      return spellingState.issues.length === 1
+        ? m.spelling_issue_one()
+        : m.spelling_issues({ count: spellingState.issues.length });
+    }
     if (spellingState.status === "issue-free") return m.spelling_issue_free();
     if (spellingState.status === "busy") return m.spelling_busy();
     if (spellingState.status === "missing-dictionary") return m.spelling_missing_dictionary({ language });

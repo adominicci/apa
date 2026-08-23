@@ -28,7 +28,7 @@ describe("spelling localization keeps UI locale separate from document language"
     ]);
     expect(addon).not.toContain("Paper title");
     expect(addon).not.toContain("No references");
-    expect(editorScreen).toContain("locale: untrack(() => documentLanguage)");
-    expect(editorScreen).toContain("locale: documentLanguage");
+    expect(editorScreen).not.toContain('"Paper title"');
+    expect(editorScreen).not.toContain('"No references"');
   });
 });

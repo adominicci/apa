@@ -46,10 +46,11 @@ export function attachSpellingEditorAdapter(
     state: {
       init: () => bodyDecorations(editor, env),
       apply(transaction, previous) {
-        if (
-          transaction.docChanged || transaction.getMeta(spellingEditorPluginKey)
-        ) {
+        if (transaction.getMeta(spellingEditorPluginKey)) {
           return bodyDecorations(editor, env);
+        }
+        if (transaction.docChanged) {
+          return previous.map(transaction.mapping, transaction.doc);
         }
         return previous;
       },

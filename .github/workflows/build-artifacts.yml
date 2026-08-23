@@ -217,6 +217,15 @@ jobs:
           workspaces: apps/desktop/src-tauri
       - name: Install dependencies
         run: deno install --frozen
+      - name: Build ordinary frontend for containment
+        working-directory: apps/desktop
+        env:
+          VITE_TESINA_SPELLING_EXPERIENCE_PROOF: "0"
+        run: deno task vite:build
+      - name: Verify ordinary frontend containment
+        run: >-
+          deno run -A scripts/verify-spelling-experience-containment.ts
+          production apps/desktop/build
       - name: Compile internal editor proof installer
         id: tauri-build
         env:
@@ -228,6 +237,10 @@ jobs:
           uploadUpdaterJson: false
           uploadWorkflowArtifacts: false
           args: ${{ matrix.args }}
+      - name: Verify proof frontend containment
+        run: >-
+          deno run -A scripts/verify-spelling-experience-containment.ts
+          proof apps/desktop/build
       - name: Verify proof installer
         env:
           TAURI_ARTIFACT_PATHS: ${{ steps.tauri-build.outputs.artifactPaths }}

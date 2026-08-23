@@ -603,6 +603,7 @@
   "spelling_missing_dictionary": "El diccionario del sistema para {language} no está instalado.",
   "spelling_unavailable": "La revisión ortográfica no está disponible en este dispositivo.",
   "spelling_failed": "No se pudo revisar la ortografía de este documento.",
+  "spelling_issue_one": "1 problema de ortografía",
   "spelling_issues": "{count} problemas de ortografía",
   "spelling_issue_free": "No se encontraron problemas de ortografía",
   "spelling_language_en": "inglés",

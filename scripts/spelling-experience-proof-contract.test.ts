@@ -54,4 +54,25 @@ describe("LT-02 compile-time proof boundary", () => {
       expect(exportSource).not.toContain("spellingEnabled");
     }
   });
+
+  it("verifies ordinary and proof frontend containment before proof installer upload", async () => {
+    const workflow = await source(".github/workflows/build-artifacts.yml");
+    const job = workflow.slice(workflow.indexOf("  spelling-experience-proof:"))
+      .replaceAll(/\s+/g, " ");
+    const production = job.indexOf(
+      "verify-spelling-experience-containment.ts production apps/desktop/build",
+    );
+    const compile = job.indexOf("Compile internal editor proof installer");
+    const proof = job.indexOf(
+      "verify-spelling-experience-containment.ts proof apps/desktop/build",
+    );
+    const verifyInstaller = job.indexOf("Verify proof installer");
+    const upload = job.indexOf("Upload proof installer");
+
+    expect(production).toBeGreaterThan(-1);
+    expect(production).toBeLessThan(compile);
+    expect(proof).toBeGreaterThan(compile);
+    expect(proof).toBeLessThan(verifyInstaller);
+    expect(verifyInstaller).toBeLessThan(upload);
+  });
 });
