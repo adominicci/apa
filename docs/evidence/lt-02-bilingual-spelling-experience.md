@@ -3,7 +3,7 @@
 ## Accepted source
 
 The tested implementation source is
-`aea0ec607f6bb21b13fb5fb494981e13d3460780`. This evidence-only record does
+`956f52b5a88dc517bafaace8516e610145d58584`. This evidence-only record does
 not relabel its later documentation commit as tested implementation source.
 
 LT-02 remains an internal proof. Ordinary production builds contain no
@@ -13,7 +13,7 @@ check call. The only selector is the exact compile-time input
 
 ## Automated editor evidence
 
-The final repository test run at the accepted source passed 1,726 tests with
+The final repository test run at the accepted source passed 1,728 tests with
 one intentional skip. The proof-only compile-time addon runs inside the real
 AppPage, EditorScreen, CoverSheet, TitlePageForm, Editor, and
 createTesinaEditor path. Its fake-service tests passed extraction and UTF-16
@@ -38,7 +38,13 @@ owner, untrusted archives reject unknown spelling keys and device-shaped data,
 full dictionaries disable new-term actions while retaining duplicate no-op
 semantics, and form-open reanalysis retains the requested source/range/term
 identity without substituting the first issue. These are component and editor
-tests; they are not native-service or physical assistive-technology evidence.
+tests. The final contract regressions prove complete personal-dictionary edits
+canonicalize Unicode whitespace, NFC display forms, and locale-case duplicate
+keys atomically in both languages; the disabled No suggestions row retains the
+pinned initial and arrow-focus position without becoming activatable; and
+programmatic title or body races close stale replacement menus, preserve the
+mutated source, and restore a safe exact source selection. These tests are not
+native-service or physical assistive-technology evidence.
 
 The final static and runtime gates also passed:
 
@@ -47,7 +53,7 @@ The final static and runtime gates also passed:
 - `deno fmt --check` and `deno lint`;
 - ordinary production containment: 2,830,078 inspected text bytes and no LT-02
   proof markers or spelling IPC call sites;
-- proof-positive containment: 2,857,025 inspected text bytes with the real app
+- proof-positive containment: 2,857,191 inspected text bytes with the real app
   and editor path plus every pinned proof marker and spelling IPC call site;
 - strict OpenSpec validation.
 
