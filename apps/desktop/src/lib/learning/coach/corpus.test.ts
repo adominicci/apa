@@ -82,6 +82,13 @@ describe("proposed bilingual corpus", () => {
             fixture.documentLanguage === language && fixture.cohort === cohort
           ),
         ).toHaveLength(8);
+        expect(
+          new Set(
+            COACH_CORPUS.filter((fixture) =>
+              fixture.documentLanguage === language && fixture.cohort === cohort
+            ).map((fixture) => fixture.text),
+          ).size,
+        ).toBe(8);
       }
     }
     expect(new Set(COACH_CORPUS.map((fixture) => fixture.id)).size).toBe(

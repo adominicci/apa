@@ -7,6 +7,7 @@ import {
   COACH_RENDER_CATALOG_VERSION,
   type ProposedObservation,
   renderCoachMessage,
+  REVIEWER_SLOTS,
 } from "./fixtures.ts";
 import { analyzeWriting } from "./rules.ts";
 import {
@@ -239,15 +240,49 @@ export interface ObservationReviewDecision {
   reviewerId: string;
   fixtureId: string;
   expectedId: string;
+  inputDigest: string;
   decision: "accept" | "reject" | "abstain";
+}
+
+function isDualUseful(
+  instance: ReturnType<typeof createReviewInstance>,
+  assignments: readonly ReviewerAssignment[],
+  decisions: readonly ReviewDecision[],
+): boolean {
+  return assignments.length === 2 &&
+    assignments.every((assignment) =>
+      decisions.some((decision) =>
+        decision.reviewerId === assignment.reviewerId &&
+        canonicalJson(decision.key) === canonicalJson(instance.key) &&
+        decision.digest === instance.digest && decision.decision === "useful"
+      )
+    );
 }
 
 export function createReviewRequirements() {
   const observations = COACH_CORPUS.flatMap((fixture) =>
-    fixture.proposedObservations.map((observation) => ({
-      fixtureId: fixture.id,
-      expectedId: observation.id,
-    }))
+    fixture.proposedObservations.map((observation) => {
+      const inputDigest = digest([
+        COACH_CORPUS_VERSION,
+        fixture.id,
+        observation.id,
+        fixture.documentLanguage,
+        observation.category,
+        observation.from,
+        observation.to,
+        fixture.text,
+      ].join("\0"));
+      return {
+        corpusVersion: COACH_CORPUS_VERSION,
+        fixtureId: fixture.id,
+        expectedId: observation.id,
+        documentLanguage: fixture.documentLanguage,
+        category: observation.category,
+        from: observation.from,
+        to: observation.to,
+        inputDigest,
+      };
+    })
   );
   const questions = COACH_CORPUS.flatMap((fixture) =>
     analyzeWriting({
@@ -270,14 +305,28 @@ export function validateReviewState(
   decisions: readonly ReviewDecision[],
   observationDecisions: readonly ObservationReviewDecision[] = [],
 ): "pending" | "failed" | "complete" {
-  if (assignments.length < 2) return "pending";
-  const ids = assignments.map((assignment) => assignment.reviewerId);
   if (
-    assignments.length !== 2 || new Set(ids).size !== 2 ||
-    ids.some((id) => id.length === 0) ||
     assignments.some((assignment) =>
-      !assignment.bilingualAttestation || !assignment.independenceAttestation
+      (assignment.slot !== 1 && assignment.slot !== 2) ||
+      assignment.role !== "independent-bilingual-reviewer" ||
+      assignment.reviewerId.length === 0 ||
+      assignment.bilingualAttestation === false ||
+      assignment.independenceAttestation === false
     )
+  ) return "failed";
+  if (
+    assignments.length < 2 ||
+    assignments.some((assignment) =>
+      assignment.bilingualAttestation !== true ||
+      assignment.independenceAttestation !== true
+    )
+  ) return "pending";
+  const ids = assignments.map((assignment) => assignment.reviewerId);
+  const slots = new Set(assignments.map((assignment) => assignment.slot));
+  if (
+    assignments.length !== 2 || new Set(ids).size !== 2 || slots.size !== 2 ||
+    !slots.has(1) || !slots.has(2) ||
+    ids.some((id) => id.length === 0)
   ) return "failed";
   const requirements = createReviewRequirements();
   const requiredQuestions = new Map(
@@ -285,10 +334,11 @@ export function validateReviewState(
       instance,
     ) => [canonicalJson(instance.key), instance.digest]),
   );
-  const requiredObservations = new Set(
-    requirements.observations.map((item) =>
-      `${item.fixtureId}\0${item.expectedId}`
-    ),
+  const requiredObservations = new Map(
+    requirements.observations.map((item) => [
+      `${item.fixtureId}\0${item.expectedId}`,
+      item.inputDigest,
+    ]),
   );
   const seenQuestions = new Set<string>();
   for (const decision of decisions) {
@@ -311,11 +361,13 @@ export function validateReviewState(
     const decisionKey = `${decision.reviewerId}\0${key}`;
     if (
       decision.decision === "abstain" || !ids.includes(decision.reviewerId) ||
-      !requiredObservations.has(key) || seenObservations.has(decisionKey)
+      !requiredObservations.has(key) ||
+      requiredObservations.get(key) !== decision.inputDigest ||
+      seenObservations.has(decisionKey)
     ) return "failed";
     seenObservations.set(decisionKey, decision.decision);
   }
-  for (const key of requiredObservations) {
+  for (const key of requiredObservations.keys()) {
     const first = seenObservations.get(`${ids[0]}\0${key}`);
     const second = seenObservations.get(`${ids[1]}\0${key}`);
     if (first && second && first !== second) return "failed";
@@ -425,14 +477,7 @@ export function evaluateCorpus(
   const requirements = createReviewRequirements();
   const usefulCount =
     requirements.questions.filter((instance) =>
-      assignments.length === 2 &&
-      assignments.every((assignment) =>
-        decisions.some((decision) =>
-          decision.reviewerId === assignment.reviewerId &&
-          canonicalJson(decision.key) === canonicalJson(instance.key) &&
-          decision.digest === instance.digest && decision.decision === "useful"
-        )
-      )
+      isDualUseful(instance, assignments, decisions)
     ).length;
   const metrics = {
     precision: basisPointRate(global.matched, global.emitted),
@@ -480,14 +525,7 @@ export function evaluateCorpus(
           instance.key.uiLocale === uiLocale
         );
         const useful = instances.filter((instance) =>
-          assignments.length === 2 && assignments.every((assignment) =>
-            decisions.some((decision) =>
-              decision.reviewerId === assignment.reviewerId &&
-              canonicalJson(decision.key) === canonicalJson(instance.key) &&
-              decision.digest === instance.digest &&
-              decision.decision === "useful"
-            )
-          )
+          isDualUseful(instance, assignments, decisions)
         ).length;
         return {
           documentLanguage,
@@ -517,11 +555,17 @@ export function evaluateCorpus(
       result.fixture.documentLanguage === documentLanguage &&
       result.fixture.cohort === cohort
     );
-    return basisPointRate(
-      results.filter((result) => result.matching.unmatchedEmitted.length > 0)
-        .length,
-      results.length,
-    );
+    return {
+      rate: basisPointRate(
+        results.filter((result) => result.matching.unmatchedEmitted.length > 0)
+          .length,
+        results.length,
+      ),
+      unmatchedIssueCount: results.reduce(
+        (sum, result) => sum + result.matching.unmatchedEmitted.length,
+        0,
+      ),
+    };
   };
   const macro = {
     precision: macroRate(cellPrecision),
@@ -560,12 +604,12 @@ export function evaluateCorpus(
     {
       documentLanguage,
       cohort: "competent" as const,
-      rate: falsePositiveRate(documentLanguage, "competent"),
+      ...falsePositiveRate(documentLanguage, "competent"),
     },
     {
       documentLanguage,
       cohort: "second-language" as const,
-      rate: falsePositiveRate(documentLanguage, "second-language"),
+      ...falsePositiveRate(documentLanguage, "second-language"),
     },
   ]);
   const gates = [
@@ -669,14 +713,17 @@ export function evaluateCorpus(
     : gates.some((gate) => gate.state === "pending-review")
     ? "pending-human-review"
     : "passed";
+  const reviewerSlots = REVIEWER_SLOTS.map((slot) =>
+    assignments.find((assignment) => assignment.slot === slot.slot) ?? slot
+  );
   const digestInput = {
     corpus: COACH_CORPUS,
     outputs: fixtureResults.map(({ fixture, issues }) => ({
       fixtureId: fixture.id,
       issues,
     })),
-    catalogVersion: COACH_RENDER_CATALOG_VERSION,
-    assignments,
+    renderCatalog: requirements.questions,
+    reviewerSlots,
     decisions,
     observationDecisions,
   };
@@ -687,7 +734,7 @@ export function evaluateCorpus(
     catalogVersion: COACH_RENDER_CATALOG_VERSION,
     digest: digest(canonicalJson(digestInput)),
     status,
-    reviewerSlots: assignments,
+    reviewerSlots,
     globalCounts: global,
     micro: metrics,
     macro,

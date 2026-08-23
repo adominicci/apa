@@ -1,5 +1,6 @@
 import {
   type CoachToken,
+  paragraphs,
   sentences,
   type TextRange,
   tokens,
@@ -38,22 +39,20 @@ export function normalizeProtection(
 ): Protection[] {
   const spans: Array<{ from: number; to: number; kind: ProtectedSpanKind }> =
     request.protectedSpans.map((span) => ({ ...span }));
-  const paragraphBounds = request.text.split(/\n\s*\n/gu);
-  let paragraphStart = 0;
-  for (const paragraph of paragraphBounds) {
-    for (const quote of paragraph.matchAll(/(["“])(?=\S)(.*?\S)(["”])/gu)) {
+  for (const paragraph of paragraphs(request.text)) {
+    const paragraphText = request.text.slice(paragraph.from, paragraph.to);
+    for (const quote of paragraphText.matchAll(/(["“])(?=\S)(.*?\S)(["”])/gu)) {
       if (
         (quote[1] === '"' && quote[3] !== '"') ||
         (quote[1] === "“" && quote[3] !== "”")
       ) continue;
       spans.push({
-        from: request.documentStart + paragraphStart + quote.index,
-        to: request.documentStart + paragraphStart + quote.index +
+        from: request.documentStart + paragraph.from + quote.index,
+        to: request.documentStart + paragraph.from + quote.index +
           quote[0].length,
         kind: "quotation",
       });
     }
-    paragraphStart += paragraph.length + 2;
   }
   for (
     const citation of request.text.matchAll(

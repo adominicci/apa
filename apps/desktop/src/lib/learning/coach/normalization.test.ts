@@ -63,6 +63,17 @@ describe("protected coach source", () => {
       ]);
   });
 
+  it("keeps inferred quotation offsets after variable blank-line separators", () => {
+    const input = request("First paragraph.\n   \nSecond “exact quote” ends.");
+    const observed = "“exact quote”";
+    const from = input.documentStart + input.text.indexOf(observed);
+    expect(normalizeProtection(input)).toContainEqual({
+      from,
+      to: from + observed.length,
+      kinds: ["quotation"],
+    });
+  });
+
   it("discards any intersecting candidate but retains touching candidates", () => {
     const protection = [{ from: 110, to: 120, kinds: ["quotation" as const] }];
     expect(

@@ -122,6 +122,9 @@ describe("stable aggregate mechanics", () => {
     expect(Object.keys(aggregate)[0]).toBe("schemaVersion");
     expect(aggregate.schemaVersion).toBe("writing-coach-evaluation-v1");
     expect(aggregate.status).toBe("pending-human-review");
+    expect(aggregate.reviewerSlots).toHaveLength(2);
+    expect(aggregate.reviewerSlots.every((slot) => slot.reviewerId === null))
+      .toBe(true);
     expect(aggregate.digest).toMatch(/^[a-f0-9]{64}$/u);
     expect(aggregate.byDocumentLanguage).toHaveLength(2);
     expect(aggregate.byCategory).toHaveLength(6);
@@ -130,6 +133,11 @@ describe("stable aggregate mechanics", () => {
     expect(aggregate.byLanguageCohort).toHaveLength(8);
     expect(aggregate.byLanguageCategoryUiLocale).toHaveLength(24);
     expect(aggregate.falsePositiveRates).toHaveLength(4);
+    expect(
+      aggregate.falsePositiveRates.every((item) =>
+        item.rate.denominator === 8 && item.unmatchedIssueCount === 0
+      ),
+    ).toBe(true);
     expect(aggregate.macro.precision.basisPoints).toBe(10_000);
     expect(aggregate.gates.some((gate) => gate.state === "pending-review"))
       .toBe(true);
@@ -141,6 +149,7 @@ describe("stable aggregate mechanics", () => {
       ),
     ).toBe(true);
     expect(REVIEW_HANDOFF_BUNDLE.submissionTemplates).toHaveLength(2);
+    expect(REVIEW_HANDOFF_BUNDLE.corpusFixtures).toHaveLength(64);
     expect(
       REVIEW_HANDOFF_BUNDLE.submissionTemplates.every((submission) =>
         submission.reviewerId === null &&
@@ -177,6 +186,10 @@ describe("human review linkage", () => {
 
   it("distinguishes pending assignments from invalid duplicate or false attestations", () => {
     expect(validateReviewState([], [])).toBe("pending");
+    expect(validateReviewState([{
+      ...validAssignments[0],
+      bilingualAttestation: false,
+    }], [])).toBe("failed");
     expect(validateReviewState([
       validAssignments[0],
       { ...validAssignments[1], reviewerId: "reviewer-a" },
@@ -186,6 +199,7 @@ describe("human review linkage", () => {
       { ...validAssignments[1], bilingualAttestation: false },
     ], [])).toBe("failed");
     expect(validateReviewState(validAssignments, [])).toBe("pending");
+    expect(evaluateCorpus([validAssignments[0]]).reviewerSlots).toHaveLength(2);
   });
 
   it("requires fresh complete independent decisions and treats not-useful as complete", () => {
@@ -212,6 +226,14 @@ describe("human review linkage", () => {
     expect(validateReviewState(validAssignments, questions, observations)).toBe(
       "complete",
     );
+    expect(validateReviewState(
+      [
+        validAssignments[0],
+        { ...validAssignments[1], slot: 1 },
+      ],
+      questions,
+      observations,
+    )).toBe("failed");
     expect(evaluateCorpus(validAssignments, questions, observations).status)
       .toBe("passed");
     expect(
@@ -236,6 +258,12 @@ describe("human review linkage", () => {
       validateReviewState(validAssignments, [], [{
         ...observations[0]!,
         fixtureId: "foreign",
+      }]),
+    ).toBe("failed");
+    expect(
+      validateReviewState(validAssignments, [], [{
+        ...observations[0]!,
+        inputDigest: "0".repeat(64),
       }]),
     ).toBe("failed");
     const disagreed = [...observations];

@@ -1,5 +1,6 @@
 import { createReviewRequirements, evaluateCorpus } from "./evaluate.ts";
 import {
+  COACH_CORPUS,
   COACH_CORPUS_VERSION,
   COACH_RENDER_CATALOG_VERSION,
   REVIEWER_SLOTS,
@@ -29,6 +30,7 @@ export const REVIEW_HANDOFF_BUNDLE = Object.freeze({
   catalogVersion: COACH_RENDER_CATALOG_VERSION,
   aggregateDigest: PENDING_AGGREGATE_SNAPSHOT.digest,
   reviewerSlots: REVIEWER_SLOTS,
+  corpusFixtures: COACH_CORPUS,
   expectedObservationInstances: requirements.observations,
   renderedQuestionInstances: requirements.questions,
   instructions: {

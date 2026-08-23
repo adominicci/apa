@@ -49,10 +49,33 @@ export const REVIEWER_SLOTS = Object.freeze(
   ] as const,
 );
 
-const longSentence = (language: DocLocale): string => {
+const REPETITION_STEMS: Record<DocLocale, readonly string[]> = {
+  en: [
+    "Careful local evidence supports",
+    "Measured field results guide",
+    "Focused source comparisons inform",
+    "Documented sample patterns shape",
+    "Clear method records support",
+    "Specific study findings guide",
+    "Local source details strengthen",
+    "Measured outcome records inform",
+  ],
+  es: [
+    "Método crítico reúne información",
+    "Evidencia local orienta revisiones",
+    "Resultados medidos apoyan decisiones",
+    "Comparaciones claras guían cambios",
+    "Registros precisos sostienen conclusiones",
+    "Detalles concretos mejoran argumentos",
+    "Fuentes locales respaldan análisis",
+    "Hallazgos medidos orientan preguntas",
+  ],
+};
+
+const longSentence = (language: DocLocale, fixtureIndex: number): string => {
   const words = Array.from(
     { length: language === "en" ? 43 : 48 },
-    (_, index) => `${language}term${index}`,
+    (_, index) => `${language}${fixtureIndex}term${index}`,
   );
   return `${words.join(" ")} ${
     language === "en" ? "because although while" : "porque aunque mientras"
@@ -60,6 +83,11 @@ const longSentence = (language: DocLocale): string => {
 };
 
 function weakFixture(language: DocLocale, index: number): CoachCorpusFixture {
+  const repetitionStem = REPETITION_STEMS[language][index]!;
+  const repetitionMatch = repetitionStem.toLocaleLowerCase(language);
+  const repetition = `${repetitionStem} revision ${
+    index + 1
+  }; ${repetitionMatch} revision ${index + 9}.`;
   const phrases = language === "en"
     ? {
       specificity:
@@ -67,14 +95,13 @@ function weakFixture(language: DocLocale, index: number): CoachCorpusFixture {
       evidence:
         "The report clearly proves that daily practice improves every measured outcome.",
       economy: "The team met in order to compare the two documented methods.",
-      repetition:
-        "Careful local evidence supports revision today; careful local evidence supports revision tomorrow.",
+      repetition,
       voice:
         "It is important to note that the sample changed across every measured period.",
       specificityMatch: "in many ways",
       evidenceMatch: "clearly proves that",
       economyMatch: "in order to",
-      repetitionMatch: "careful local evidence supports",
+      repetitionMatch,
       voiceMatch: "It is important to note that",
     }
     : {
@@ -84,20 +111,19 @@ function weakFixture(language: DocLocale, index: number): CoachCorpusFixture {
         "El informe demuestra claramente que la práctica diaria mejora cada resultado medido.",
       economy:
         "El equipo se reunió con el fin de comparar los métodos documentados.",
-      repetition:
-        "Método crítico reúne información nueva; método crítico reúne información válida.",
+      repetition,
       voice:
         "Cabe señalar que la muestra cambió durante cada periodo medido del estudio.",
       specificityMatch: "de alguna manera",
       evidenceMatch: "demuestra claramente que",
       economyMatch: "con el fin de",
-      repetitionMatch: "método crítico reúne información",
+      repetitionMatch,
       voiceMatch: "Cabe señalar que",
     };
   const parts = [
     phrases.specificity,
     phrases.evidence,
-    longSentence(language),
+    longSentence(language, index),
     phrases.economy,
     phrases.repetition,
     phrases.voice,
@@ -158,6 +184,29 @@ const CLEAN_TEXT: Record<
   },
 };
 
+const CLEAN_SUFFIX: Record<DocLocale, readonly string[]> = {
+  en: [
+    "Rainfall records came from a public measurement station.",
+    "Each table reports one predefined measurement from the sample.",
+    "Readers can compare the two documented procedures directly.",
+    "The paragraph identifies the limits of its selected sample.",
+    "All names and examples are synthetic and redistribution safe.",
+    "The observation window covers one defined study period.",
+    "The conclusion restates the measured comparison in direct terms.",
+    "The appendix lists the documented steps in chronological order.",
+  ],
+  es: [
+    "Los registros de lluvia provienen de una estación pública de medición.",
+    "Cada tabla presenta una medida predefinida de la muestra.",
+    "Las personas lectoras pueden comparar los dos procedimientos documentados.",
+    "El párrafo identifica los límites de la muestra seleccionada.",
+    "Todos los nombres y ejemplos son sintéticos y redistribuibles.",
+    "La ventana de observación cubre un periodo definido del estudio.",
+    "La conclusión resume la comparación medida con términos directos.",
+    "El apéndice enumera los pasos documentados en orden cronológico.",
+  ],
+};
+
 function cleanFixture(
   language: DocLocale,
   cohort: Exclude<CorpusCohort, "weak">,
@@ -167,7 +216,7 @@ function cleanFixture(
     id: `${language}-${cohort}-${String(index + 1).padStart(2, "0")}`,
     documentLanguage: language,
     cohort,
-    text: `${CLEAN_TEXT[language][cohort]} Example ${index + 1}.`,
+    text: `${CLEAN_TEXT[language][cohort]} ${CLEAN_SUFFIX[language][index]}`,
     origin: "tesina-lt03-synthetic-v1",
     license: "MIT",
     sourceUrl: null,
